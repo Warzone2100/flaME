@@ -1,0 +1,48 @@
+flaME
+
+Controls:
+
+View
+f1 - camera movement mode
+f5 - terrain on/off
+f6 - grid on/off
+f7 - units on/off
+f8 - lighting on/off
+arrows - rotate
+home,end - zoom
+w,s,a,d,e,c - move
+backspace - reset
+f - fast
+r - slow
+ctrl-(1<->0) - set view radius. 1 is small. 0 is very large
+mouse-wheel - move towards/away
+
+Texture
+<, > - rotate
+/ - flip x
+\ - change triangle direction
+
+Height
+height change; right click changes in opposite direction.
+
+Units
+escape - unit select/edit mode
+<, > - rotate
+m - move selected unit to mouse position
+delete - delete selected unit
+shift - select multiple units
+
+Entire Map Painter
+after clicking in the layers list:
+	insert - add layer 
+	shift-delete - remove layer
+	press -, + to move layers up and down
+
+Gateways
+shift + left click - remove gateway
+
+Other
+ctrl-z - undo
+ctrl-y - redo
+hold ctrl + left click - texture/ground/unit picker tool
+

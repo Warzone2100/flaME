@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{BD8012A0-2BFF-4CFA-9E78-DD15FDCB504B}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <StartupObject>flaME.My.MyApplication</StartupObject>
+    <RootNamespace>flaME</RootNamespace>
+    <AssemblyName>flaME</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <MyType>WindowsForms</MyType>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <ReleaseVersion>1.16</ReleaseVersion>
+    <OptionInfer>On</OptionInfer>
+    <ApplicationIcon>flaME.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug Mono</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <AdditionalParameters />
+    <DefineTrace>false</DefineTrace>
+    <DefineDebug>false</DefineDebug>
+    <ConsolePause>false</ConsolePause>
+    <EnvironmentVariables>
+      <EnvironmentVariables>
+        <Variable name="OS=&quot;Mono&quot;" value="" />
+      </EnvironmentVariables>
+    </EnvironmentVariables>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <OutputPath>bin\Release Mono</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <DefineTrace>false</DefineTrace>
+    <AdditionalParameters />
+    <DefineDebug>false</DefineDebug>
+    <ConsolePause>false</ConsolePause>
+    <DefineConstants>OS="Mono"</DefineConstants>
+    <EnvironmentVariables>
+      <EnvironmentVariables>
+        <Variable name="OS=&quot;Mono&quot;" value="" />
+      </EnvironmentVariables>
+    </EnvironmentVariables>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
+  <ItemGroup>
+    <Compile Include="clsBooleanMap.vb" />
+    <Compile Include="clsByteReadFile.vb" />
+    <Compile Include="clsByteWriteFile.vb" />
+    <Compile Include="clsFileBitmap.vb" />
+    <Compile Include="clsHeightmap.vb" />
+    <Compile Include="clsInputControl.vb" />
+    <Compile Include="clsMap.vb" />
+    <Compile Include="clsModel.vb" />
+    <Compile Include="clsTileset.vb" />
+    <Compile Include="clsUnitType.vb" />
+    <Compile Include="ctrlMapView.vb" />
+    <Compile Include="ctrlPlayerNum.vb" />
+    <Compile Include="ctrlTextureView.vb" />
+    <Compile Include="frmCompile.vb" />
+    <Compile Include="frmMain.vb" />
+    <Compile Include="frmMapTexturer.vb" />
+    <Compile Include="frmSplash.vb" />
+    <Compile Include="frmWZLoad.vb" />
+    <Compile Include="GLFont.vb" />
+    <Compile Include="modData.vb" />
+    <Compile Include="modMath.vb" />
+    <Compile Include="modMatrix.vb" />
+    <Compile Include="modProgram.vb" />
+    <Compile Include="modWZME.vb" />
+    <Compile Include="sPainter.vb" />
+    <Compile Include="TileOrientation.vb" />
+    <Compile Include="Application.vb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.5.452, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>OpenTK.GLControl.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="System" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.Windows.Forms" />
+  </ItemGroup>
+</Project>
