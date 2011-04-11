@@ -1,4 +1,4 @@
-﻿Class clsByteWriteFile
+﻿Public Class clsByteWriteFile
 
     Public Bytes(-1) As Byte
     Public ByteCount As Integer

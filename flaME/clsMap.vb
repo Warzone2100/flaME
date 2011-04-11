@@ -2377,7 +2377,7 @@ LineDone:
         End If
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private MinimapBitmap As Bitmap
 #End If
     Private MinimapPending As Boolean
@@ -2418,7 +2418,7 @@ LineDone:
 
         If NewTextureSize <> Minimap_Texture_Size Then
             Minimap_Texture_Size = NewTextureSize
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
             MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
 #End If
         End If
@@ -2429,7 +2429,7 @@ LineDone:
 
         Minimap_Texture_Fill(Pixels)
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
         Dim Texture As New clsFileBitmap
 
         Texture.CurrentBitmap = MinimapBitmap
@@ -2454,7 +2454,7 @@ LineDone:
             Minimap_Texture = 0
         End If
 
-#If OS = "Windows" Then
+#If OS = 0.0# Then
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
         GL.GenTextures(1, Minimap_Texture)
         GL.BindTexture(TextureTarget.Texture2D, Minimap_Texture)
@@ -5034,7 +5034,7 @@ LineDone:
         Dim MapCount As Integer
         Dim GameName As String = ""
         Dim strTemp As String = ""
-        Dim SplitPath As sSplitPath
+        Dim SplitPath As sZipSplitPath
         Dim GotMapFile As Boolean = False
         Dim A As Integer
         Dim B As Integer
@@ -5053,7 +5053,7 @@ LineDone:
                     Exit Do
                 End If
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
 
                 If SplitPath.FileExtension = "lev" And SplitPath.PartCount = 1 Then
                     ReDim Buffer(ZipEntry.Size - 1)
@@ -5174,7 +5174,7 @@ LineDone:
                     Exit Do
                 End If
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
                 If SplitPath.FilePath = GameFilesPath Then
                     If SplitPath.FileTitle = "game.map" Then
                         ReDim ByteLoadFile.Bytes(ZipEntry.Size)
@@ -5189,8 +5189,12 @@ LineDone:
 
                         If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Version <> 10UI Then
-                            Load_WZ.Problem = "Unknown game.map version."
-                            Exit Function
+                            'Load_WZ.Problem = "Unknown game.map version."
+                            'Exit Function
+                            If MsgBox("game.map version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                                Load_WZ.Problem = "Aborted."
+                                Exit Function
+                            End If
                         End If
                         If Not ByteLoadFile.Get_U32(MapWidth) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Not ByteLoadFile.Get_U32(MapHeight) Then Load_WZ.Problem = "Read error." : Exit Function
@@ -5200,10 +5204,10 @@ LineDone:
 
                         For Z = 0 To MapHeight - 1
                             For X = 0 To MapWidth - 1
-                                If Not ByteLoadFile.Get_U8(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(uintTemp) Then Load_WZ.Problem = "Tile data read error." : Exit Function
                                 TerrainTile(X, Z).Texture.TextureNum = uintTemp
-                                If Not ByteLoadFile.Get_U8(Flip) Then Load_WZ.Problem = "Read error." : Exit Function
-                                If Not ByteLoadFile.Get_U8(TerrainVertex(X, Z).Height) Then Load_WZ.Problem = "Read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(Flip) Then Load_WZ.Problem = "Tile data read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(TerrainVertex(X, Z).Height) Then Load_WZ.Problem = "Tile data read error." : Exit Function
                                 'get flipx
                                 A = Int(Flip / 128.0#)
                                 Flip -= A * 128
@@ -5224,18 +5228,20 @@ LineDone:
                             Next
                         Next
 
-                        If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If uintTemp <> 1 Then Load_WZ.Problem = "Bad gateway version number." : Exit Function
+                        If Version <> 2UI Then
+                            If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Gateway version read error." : Exit Function
+                            If uintTemp <> 1 Then Load_WZ.Problem = "Bad gateway version number." : Exit Function
 
-                        If Not ByteLoadFile.Get_U32(GatewayCount) Then Load_WZ.Problem = "Read error." : Exit Function
-                        ReDim Gateways(GatewayCount - 1)
+                            If Not ByteLoadFile.Get_U32(GatewayCount) Then Load_WZ.Problem = "Gateway read error." : Exit Function
+                            ReDim Gateways(GatewayCount - 1)
 
-                        For A = 0 To GatewayCount - 1
-                            ByteLoadFile.Get_U8(Gateways(A).PosA.X)
-                            ByteLoadFile.Get_U8(Gateways(A).PosA.Y)
-                            ByteLoadFile.Get_U8(Gateways(A).PosB.X)
-                            ByteLoadFile.Get_U8(Gateways(A).PosB.Y)
-                        Next
+                            For A = 0 To GatewayCount - 1
+                                If Not ByteLoadFile.Get_U8(Gateways(A).PosA.X) Then Load_WZ.Problem = "Gateway read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(Gateways(A).PosA.Y) Then Load_WZ.Problem = "Gateway read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(Gateways(A).PosB.X) Then Load_WZ.Problem = "Gateway read error." : Exit Function
+                                If Not ByteLoadFile.Get_U8(Gateways(A).PosB.Y) Then Load_WZ.Problem = "Gateway read error." : Exit Function
+                            Next
+                        End If
 
                         GotMapFile = True
                         Exit Do
@@ -5260,7 +5266,7 @@ LineDone:
                 ZipEntry = ZipStream.GetNextEntry
                 If ZipEntry Is Nothing Then Exit Do
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
                 If SplitPath.FilePath = GameFilesPath Then
                     If SplitPath.FileTitle = "feat.bjo" Then
                         ReDim ByteLoadFile.Bytes(ZipEntry.Size)
@@ -5275,8 +5281,12 @@ LineDone:
 
                         If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Version <> 8UI Then
-                            Load_WZ.Problem = "Unknown feat.bjo version."
-                            Exit Function
+                            'Load_WZ.Problem = "Unknown feat.bjo version."
+                            'Exit Function
+                            If MsgBox("feat.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                                Load_WZ.Problem = "Aborted."
+                                Exit Function
+                            End If
                         End If
 
                         If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
@@ -5312,7 +5322,7 @@ LineDone:
                 ZipEntry = ZipStream.GetNextEntry
                 If ZipEntry Is Nothing Then Exit Do
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
                 If SplitPath.FilePath = GameFilesPath Then
                     If SplitPath.FileTitle = "ttypes.ttp" Then
                         ReDim ByteLoadFile.Bytes(ZipEntry.Size)
@@ -5327,8 +5337,12 @@ LineDone:
 
                         If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Version <> 8UI Then
-                            Load_WZ.Problem = "Unknown ttypes.ttp version."
-                            Exit Function
+                            'Load_WZ.Problem = "Unknown ttypes.ttp version."
+                            'Exit Function
+                            If MsgBox("ttypes.ttp version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                                Load_WZ.Problem = "Aborted."
+                                Exit Function
+                            End If
                         End If
 
                         If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
@@ -5357,7 +5371,7 @@ LineDone:
                 ZipEntry = ZipStream.GetNextEntry
                 If ZipEntry Is Nothing Then Exit Do
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
                 If SplitPath.FilePath = GameFilesPath Then
                     If SplitPath.FileTitle = "struct.bjo" Then
                         ReDim ByteLoadFile.Bytes(ZipEntry.Size)
@@ -5372,8 +5386,12 @@ LineDone:
 
                         If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Version <> 8UI Then
-                            Load_WZ.Problem = "Unknown struct.bjo version."
-                            Exit Function
+                            'Load_WZ.Problem = "Unknown struct.bjo version."
+                            'Exit Function
+                            If MsgBox("struct.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                                Load_WZ.Problem = "Aborted."
+                                Exit Function
+                            End If
                         End If
 
                         If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
@@ -5409,7 +5427,7 @@ LineDone:
                 ZipEntry = ZipStream.GetNextEntry
                 If ZipEntry Is Nothing Then Exit Do
 
-                SplitPath = New sSplitPath(ZipEntry.Name)
+                SplitPath = New sZipSplitPath(ZipEntry.Name)
                 If SplitPath.FilePath = GameFilesPath Then
                     If SplitPath.FileTitle = "dinit.bjo" Then
                         ReDim ByteLoadFile.Bytes(ZipEntry.Size)
@@ -5424,8 +5442,12 @@ LineDone:
 
                         If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
                         If Version > 19UI Then
-                            Load_WZ.Problem = "Unknown dinit.bjo version."
-                            Exit Function
+                            'Load_WZ.Problem = "Unknown dinit.bjo version."
+                            'Exit Function
+                            If MsgBox("dinit.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                                Load_WZ.Problem = "Aborted."
+                                Exit Function
+                            End If
                         End If
 
                         If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
@@ -5480,10 +5502,6 @@ LineDone:
             End If
             Load_WZ.Problem = ex.Message
             Exit Function
-        Finally
-            If ZipStream IsNot Nothing Then
-                ZipStream.Close()
-            End If
         End Try
 
         Load_WZ.Success = True

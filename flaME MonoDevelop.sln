@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "flaME", "flaME\flaME Mono.vbproj", "{BD8012A0-2BFF-4CFA-9E78-DD15FDCB504B}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "flaME Mono", "flaME\flaME Mono.vbproj", "{BD8012A0-2BFF-4CFA-9E78-DD15FDCB504B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,7 +15,7 @@ Global
 		{BD8012A0-2BFF-4CFA-9E78-DD15FDCB504B}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = "flaME\flaME Mono.vbproj"
+		StartupItem = flaME\flaME Mono.vbproj
 		Policies = $0
 		$0.DotNetNamingPolicy = $1
 		$1.DirectoryNamespaceAssociation = None

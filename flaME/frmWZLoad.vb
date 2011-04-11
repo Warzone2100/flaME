@@ -1,5 +1,5 @@
 ﻿Public Class frmWZLoad
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits Form
 #End If
 
@@ -34,7 +34,7 @@
         End If
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmWZLoad))
         Me.Label1 = New System.Windows.Forms.Label()

@@ -1,5 +1,5 @@
 ﻿Public Class frmMapTexturer
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits Form
 #End If
 
@@ -582,7 +582,7 @@
         Layer_Items_Refresh()
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMapTexturer))
         Me.lstLayer = New System.Windows.Forms.ListBox()

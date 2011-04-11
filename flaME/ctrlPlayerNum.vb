@@ -1,5 +1,5 @@
 ﻿Public Class ctrlPlayerNum
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits UserControl
 #End If
 
@@ -90,7 +90,7 @@
         RaiseEvent SelectedPlayerNumChanged()
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Me.tsPlayerNum1 = New System.Windows.Forms.ToolStrip()
         Me.tsPlayerNum2 = New System.Windows.Forms.ToolStrip()

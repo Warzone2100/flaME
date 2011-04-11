@@ -1,6 +1,6 @@
 ﻿Public Module modProgram
 
-#If OS = "Windows" Then
+#If OS = 0.0# Then
     Public Const ProgramVersion As String = "1.16 Windows"
 #Else
     Public Const ProgramVersion As String = "1.16 Mono"
@@ -19,18 +19,18 @@
     Public SettingsPath As String
     Public AutoSavePath As String
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Public InterfaceImagesPath As String
 #End If
 
     Public Sub SetProgramSubDirs()
 
         TilesetPath = EndWithPathSeperator(My.Application.Info.DirectoryPath) & "tilesets" & OSPathSeperator
-        MyDocumentsPath = EndWithPathSeperator(My.Computer.FileSystem.SpecialDirectories.MyDocuments) & ".flaME"
-        SettingsPath = EndWithPathSeperator(MyDocumentsPath) & "settings"
-        AutoSavePath = EndWithPathSeperator(MyDocumentsPath) & "autosave" & OSPathSeperator
-#If OS <> "Windows" Then
-        interfaceimagespath = EndWithPathSeperator(My.Application.Info.DirectoryPath) & "interface" & ospathseperator
+        MyDocumentsPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
+        SettingsPath = MyDocumentsPath & OSPathSeperator & "settings"
+        AutoSavePath = MyDocumentsPath & OSPathSeperator & "autosave" & OSPathSeperator
+#If OS <> 0.0# Then
+        InterfaceImagesPath = My.Application.Info.DirectoryPath & OSPathSeperator & "interface" & OSPathSeperator
 #End If
     End Sub
 
@@ -52,7 +52,7 @@
     Public SunPitch As Double = 22.5# * RadOf1Deg
 
     Public frmMainInstance As New frmMain
-#If OS = "Windows" Then
+#If OS = 0.0# Then
     Public frmSplashInstance As New frmSplash
 #End If
     Public frmCompileInstance As New frmCompile
@@ -404,7 +404,7 @@
     End Sub
 
     Public Function OSRGB(ByVal Red As Integer, ByVal Green As Integer, ByVal Blue As Integer) As Integer
-#If OS = "Windows" Then
+#If OS = 0.0# Then
         OSRGB = RGB(Red, Green, Blue)
 #Else
         OSRGB = RGB(Blue, Green, Red)

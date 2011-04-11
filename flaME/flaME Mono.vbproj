@@ -26,11 +26,7 @@
     <DefineTrace>false</DefineTrace>
     <DefineDebug>false</DefineDebug>
     <ConsolePause>false</ConsolePause>
-    <EnvironmentVariables>
-      <EnvironmentVariables>
-        <Variable name="OS=&quot;Mono&quot;" value="" />
-      </EnvironmentVariables>
-    </EnvironmentVariables>
+    <DefineConstants>OS=1.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\Release Mono</OutputPath>
@@ -39,12 +35,6 @@
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
     <ConsolePause>false</ConsolePause>
-    <DefineConstants>OS="Mono"</DefineConstants>
-    <EnvironmentVariables>
-      <EnvironmentVariables>
-        <Variable name="OS=&quot;Mono&quot;" value="" />
-      </EnvironmentVariables>
-    </EnvironmentVariables>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
   <ItemGroup>

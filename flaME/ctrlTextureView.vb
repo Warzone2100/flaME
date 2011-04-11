@@ -1,7 +1,7 @@
 ﻿Imports OpenTK.Graphics.OpenGL
 
 Public Class ctrlTextureView
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits UserControl
 #End If
 
@@ -435,7 +435,7 @@ EndOfTextures4:
         DrawViewLater()
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Me.tmrDraw = New System.Windows.Forms.Timer()
         Me.tmrDraw_Delay = New System.Windows.Forms.Timer()

@@ -1,5 +1,5 @@
 ﻿Public Class frmCompile
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits Form
 #End If
 
@@ -392,7 +392,7 @@ Found:
         End If
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmCompile))
         Me.txtName = New System.Windows.Forms.TextBox()

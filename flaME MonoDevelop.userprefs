@@ -1,9 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" ActiveRuntime="Mono 2.10.1" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="flaME\TileOrientation.vb">
+  <MonoDevelop.Ide.Workbench ActiveDocument="flaME\clsMap.vb">
     <Files>
-      <File FileName="flaME\frmMain.vb" Line="200" Column="5" />
-      <File FileName="flaME\clsMap.vb" Line="596" Column="19" />
+      <File FileName="flaME\frmMain.vb" Line="1" Column="1" />
+      <File FileName="flaME\clsMap.vb" Line="163" Column="1" />
       <File FileName="flaME\modProgram.vb" Line="413" Column="11" />
       <File FileName="flaME\clsTileset.vb" Line="148" Column="1" />
       <File FileName="flaME\clsUnitType.vb" Line="8" Column="16" />

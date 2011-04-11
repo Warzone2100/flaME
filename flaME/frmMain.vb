@@ -2,7 +2,7 @@
 Imports ICSharpCode.SharpZipLib
 
 Public Class frmMain
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Inherits Form
 #End If
 
@@ -20,7 +20,7 @@ Public Class frmMain
     Public WithEvents ObjectPlayerNum As New ctrlPlayerNum
 
     Public Sub New()
-#If OS = "Windows" Then
+#If OS = 0.0# Then
         InitializeComponent() 'required for mono too
 #Else
 		'The copied InitializeComponent for mono needs the interface images path, so it is done later
@@ -72,7 +72,7 @@ Public Class frmMain
         SetProgramSubDirs()
         SetDataSubDirs()
         
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
         InitializeComponent()
         AddHandler nudAutoCliffBrushRadius.ValueChanged, AddressOf nudAutoCliffBrushRadius_LostFocus
         AddHandler nudAutoTextureRadius.ValueChanged, AddressOf nudAutoTextureRadius_LostFocus
@@ -244,7 +244,7 @@ Public Class frmMain
 
         TextureView.DrawView_SetEnabled(True)
 
-#If OS = "Windows" Then
+#If OS = 0.0# Then
         frmSplashInstance.Hide()
         WindowState = FormWindowState.Maximized
         Show()
@@ -257,7 +257,7 @@ Public Class frmMain
 
     Private Sub frmMain_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
 
-#If OS = "Windows" Then
+#If OS = 0.0# Then
         Hide()
         frmSplashInstance.Show()
 #End If
@@ -2649,7 +2649,7 @@ Error_Exit:
         DrawView()
     End Sub
 
-#If OS <> "Windows" Then
+#If OS <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
         Me.tmrKey = New System.Windows.Forms.Timer()
