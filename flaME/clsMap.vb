@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 Imports ICSharpCode.SharpZipLib
 
 Public Class clsMap
@@ -197,9 +198,9 @@ Public Class clsMap
         Public ChangedSectors() As sXY_int
         Public ChangedSectorsCount As Integer
 
-        Sub New(ByVal Map_New As clsMap)
+        Sub New(ByVal NewMap As clsMap)
 
-            Parent_Map = Map_New
+            Parent_Map = NewMap
 
             ReDim SectorIsChanged(Parent_Map.SectorCount.X - 1, Parent_Map.SectorCount.Y - 1)
             ReDim ChangedSectors(Parent_Map.SectorCount.X * Parent_Map.SectorCount.Y - 1)
@@ -323,7 +324,7 @@ Public Class clsMap
             Static B As Integer
             Static X As Integer
             Static Z As Integer
-            Static Unit_New As clsUnit
+            Static NewUnit As clsUnit
             Static ID As UInteger
             Static tmpUnit As clsUnit
             Static C As Integer
@@ -352,11 +353,11 @@ Public Class clsMap
                 Next
                 For A = 0 To OldUnitCount - 1
                     tmpUnit = OldUnits(A)
-                    Unit_New = New clsUnit(tmpUnit)
+                    NewUnit = New clsUnit(tmpUnit)
                     ID = tmpUnit.ID
-                    Unit_New.Pos.Y = Parent_Map.GetTerrainHeight(Unit_New.Pos.X, Unit_New.Pos.Z)
+                    NewUnit.Pos.Y = Parent_Map.GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
                     Parent_Map.Unit_Remove_StoreChange(tmpUnit.Num)
-                    Parent_Map.Unit_Add_StoreChange(Unit_New, ID)
+                    Parent_Map.Unit_Add_StoreChange(NewUnit, ID)
                 Next
                 ChangedSectorsCount = 0
                 Parent_Map.Minimap_Make()
@@ -366,17 +367,17 @@ Public Class clsMap
     Public SectorChange As clsSectorChange
 
     Public Class clsAutoTextureChange
-        Public Parent_Map As clsMap
+        Public ParentMap As clsMap
 
         Public TileIsChanged(,) As Boolean
         Public ChangedTiles() As sXY_int
         Public ChangedTileCount As Integer
 
-        Sub New(ByVal Parent_Map_New As clsMap)
+        Sub New(ByVal NewParentMap As clsMap)
 
-            Parent_Map = Parent_Map_New
-            ReDim TileIsChanged(Parent_Map_New.TerrainSize.X - 1, Parent_Map_New.TerrainSize.Y - 1)
-            ReDim ChangedTiles(Parent_Map_New.TerrainSize.X * Parent_Map_New.TerrainSize.Y - 1)
+            ParentMap = NewParentMap
+            ReDim TileIsChanged(NewParentMap.TerrainSize.X - 1, NewParentMap.TerrainSize.Y - 1)
+            ReDim ChangedTiles(NewParentMap.TerrainSize.X * NewParentMap.TerrainSize.Y - 1)
         End Sub
 
         Sub Tile_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
@@ -395,15 +396,15 @@ Public Class clsMap
                 If Z > 0 Then
                     Tile_Set_Changed(X - 1, Z - 1)
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
+                If Z < ParentMap.TerrainSize.Y Then
                     Tile_Set_Changed(X - 1, Z)
                 End If
             End If
-            If X < Parent_Map.TerrainSize.X Then
+            If X < ParentMap.TerrainSize.X Then
                 If Z > 0 Then
                     Tile_Set_Changed(X, Z - 1)
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
+                If Z < ParentMap.TerrainSize.Y Then
                     Tile_Set_Changed(X, Z)
                 End If
             End If
@@ -433,7 +434,7 @@ Public Class clsMap
             For A = 0 To ChangedTileCount - 1
                 X = ChangedTiles(A).X
                 Z = ChangedTiles(A).Y
-                Parent_Map.Tile_AutoTexture_Changed(X, Z)
+                ParentMap.Tile_AutoTexture_Changed(X, Z)
                 TileIsChanged(X, Z) = False
             Next
             ChangedTileCount = 0
@@ -444,13 +445,13 @@ Public Class clsMap
     Sub New()
 
         MakeMinimapTimer = New Timer
-        MakeMinimapTimer.Interval = 1000
+        MakeMinimapTimer.Interval = MinimapDelay
     End Sub
 
     Sub New(ByVal TileSizeX As Integer, ByVal TileSizeZ As Integer)
 
         MakeMinimapTimer = New Timer
-        MakeMinimapTimer.Interval = 1000
+        MakeMinimapTimer.Interval = MinimapDelay
 
         Terrain_Blank(TileSizeX, TileSizeZ)
         ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
@@ -469,7 +470,7 @@ Public Class clsMap
         Dim Z As Integer
 
         'MakeMinimapTimer = New Timer
-        'MakeMinimapTimer.Interval = 1000
+        'MakeMinimapTimer.Interval = MinimapDelay
 
         'make some map data for selection
 
@@ -632,7 +633,7 @@ Public Class clsMap
         XYZ_dbl2.X = 0.0#
         XYZ_dbl2.Y = GradientZ * HeightMultiplier
         XYZ_dbl2.Z = TerrainGridSpacing
-        CrossProduct(XYZ_dbl, XYZ_dbl2, XYZ_dbl3)
+        VectorCrossProduct(XYZ_dbl, XYZ_dbl2, XYZ_dbl3)
         If XYZ_dbl3.X <> 0.0# Or XYZ_dbl3.Z <> 0.0# Then
             GetAnglePY(XYZ_dbl3, AnglePY)
             GetTerrainSlopeAngle = RadOf90Deg - Math.Abs(AnglePY.Pitch)
@@ -737,9 +738,8 @@ Public Class clsMap
         Dim X As Integer
         Dim Z As Integer
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
         For Z = 0 To SectorCount.Y - 1
@@ -766,7 +766,7 @@ Public Class clsMap
             GL.DeleteTextures(1, Minimap_Texture)
         End If
         If AutoTextureChange IsNot Nothing Then
-            AutoTextureChange.Parent_Map = Nothing
+            AutoTextureChange.ParentMap = Nothing
             AutoTextureChange = Nothing
         End If
         If SectorChange IsNot Nothing Then
@@ -933,7 +933,7 @@ Public Class clsMap
 
         ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
-        AutoTextureChange.Parent_Map = Nothing
+        AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange.Parent_Map = Nothing
         SectorChange = New clsSectorChange(Me)
@@ -947,9 +947,8 @@ Public Class clsMap
         Static FinishX As Integer
         Static FinishZ As Integer
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
         If Sector(X, Z).GLList_Textured > 0 Then
@@ -1646,26 +1645,26 @@ LineDone:
                 Next
             Next
 
-            Dim Unit_New As clsUnit
+            Dim NewUnit As clsUnit
             Dim XYZ_int As sXYZ_int
             Dim Result As sResult
 
             For A = 0 To ObjectCount - 1
-                Unit_New = New clsUnit
-                Unit_New.ID = LNDObject(A).ID
-                Result = FindUnitType(LNDObject(A).Code, LNDObject(A).TypeNum, Unit_New.Type)
+                NewUnit = New clsUnit
+                NewUnit.ID = LNDObject(A).ID
+                Result = FindUnitType(LNDObject(A).Code, LNDObject(A).TypeNum, NewUnit.Type)
                 If Not Result.Success Then
                     Load_LND.Problem = Result.Problem
                     Exit Function
                 End If
-                Unit_New.Name = LNDObject(A).Name
-                Unit_New.PlayerNum = LNDObject(A).PlayerNum
+                NewUnit.Name = LNDObject(A).Name
+                NewUnit.PlayerNum = LNDObject(A).PlayerNum
                 XYZ_int.X = LNDObject(A).Pos.X
                 XYZ_int.Y = LNDObject(A).Pos.Y
                 XYZ_int.Z = LNDObject(A).Pos.Z
-                Unit_New.Pos = MapPos_From_LNDPos(XYZ_int)
-                Unit_New.Rotation = LNDObject(A).Rotation.Y
-                Unit_Add(Unit_New, LNDObject(A).ID)
+                NewUnit.Pos = MapPos_From_LNDPos(XYZ_int)
+                NewUnit.Rotation = LNDObject(A).Rotation.Y
+                Unit_Add(NewUnit, LNDObject(A).ID)
             Next
 
             GatewayCount = LNDGateCount
@@ -1743,522 +1742,541 @@ LineDone:
         FindUnitType.Success = True
     End Function
 
+    Structure sFMEUnit
+        Dim Code As String
+        Dim ID As UInteger
+        Dim SavePriority As Integer
+        Dim LNDType As Byte
+        Dim X As UInteger
+        Dim Y As UInteger
+        Dim Z As UInteger
+        Dim Rotation As UShort
+        Dim Name As String
+        Dim Player As Byte
+    End Structure
+
     Function Load_FME(ByVal Path As String) As sResult
         Load_FME.Success = False
         Load_FME.Problem = ""
 
-        Try
+        Dim File As New clsByteReadFile
 
-            Dim Version_Val As UInteger
+        Load_FME = File.Begin(Path)
+        If Not Load_FME.Success Then
+            Exit Function
+        End If
+        Load_FME = Read_FME(File)
+        If Not Load_FME.Success Then
+            Exit Function
+        End If
 
-            Dim ByteFile As New clsByteReadFile
-            Dim Result As sResult = ByteFile.File_Read(Path)
-            If Not Result.Success Then Load_FME.Problem = Result.Problem : Exit Function
+        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ShadowSector_CreateAll()
+        AutoTextureChange = New clsAutoTextureChange(Me)
+        SectorChange = New clsSectorChange(Me)
+    End Function
 
-            If Not ByteFile.Get_U32(Version_Val) Then Load_FME.Problem = "Read error." : Exit Function
+    Private Function Read_FME(ByVal File As clsByteReadFile) As sResult
+        Read_FME.Problem = ""
+        Read_FME.Success = False
 
-            If Version_Val = 1UI Then
-                Load_FME.Problem = "Version 1 is no longer supported."
-                Exit Function
-            ElseIf Version_Val = 2UI Then
-                Load_FME.Problem = "Version 2 is no longer supported."
-                Exit Function
-            ElseIf Version_Val = 3UI Or Version_Val = 4UI Then
+        Dim Result As sResult
+        Dim Version As UInteger
 
-                Dim byteTemp As Byte
+        If Not File.Get_U32(Version) Then Read_FME.Problem = "Read error." : Exit Function
 
-                'tileset
-                If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                If byteTemp = 0 Then
-                    Tileset = Nothing
-                ElseIf byteTemp = 1 Then
-                    Tileset = Tileset_Arizona
-                ElseIf byteTemp = 2 Then
-                    Tileset = Tileset_Urban
-                ElseIf byteTemp = 3 Then
-                    Tileset = Tileset_Rockies
-                Else
-                    Load_FME.Problem = "Tileset value out of range."
-                    Exit Function
-                End If
+        If Version = 1UI Then
+            Read_FME.Problem = "Version 1 is no longer supported."
+            Exit Function
+        ElseIf Version = 2UI Then
+            Read_FME.Problem = "Version 2 is no longer supported."
+            Exit Function
+        ElseIf Version = 3UI Or Version = 4UI Then
 
-                SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
+            Dim byteTemp As Byte
 
-                Dim MapWidth As UShort
-                Dim MapHeight As UShort
-
-                If Not ByteFile.Get_U16(MapWidth) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_U16(MapHeight) Then Load_FME.Problem = "Read error." : Exit Function
-
-                If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                    Load_FME.Problem = "Map size is invalid."
-                    Exit Function
-                End If
-
-                Terrain_Blank(MapWidth, MapHeight)
-                TileType_Reset()
-
-                Dim X As Integer
-                Dim Z As Integer
-                Dim A As Integer
-                Dim B As Integer
-                Dim intTemp As Integer
-                Dim Rotation As Byte
-                Dim FlipX As Boolean
-                Dim FlipZ As Boolean
-
-                For Z = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X
-                        If Not ByteFile.Get_U8(TerrainVertex(X, Z).Height) Then Load_FME.Problem = "Read error." : Exit Function
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainVertex(X, Z).Terrain = Nothing
-                        ElseIf intTemp >= Painter.TerrainCount Then
-                            Load_FME.Problem = "Terrain value out of range."
-                            Exit Function
-                        Else
-                            TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
-                        End If
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
-
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-
-                        intTemp = 128
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
-
-                        intTemp = 32
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        Rotation = A
-
-                        intTemp = 16
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        FlipX = (A = 1)
-
-                        intTemp = 8
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        FlipZ = (A = 1)
-
-                        OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
-
-                        intTemp = 4
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Tri = (A = 1)
-
-                        intTemp = 2
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        If TerrainTile(X, Z).Tri Then
-                            TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
-                        Else
-                            TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
-                        End If
-
-                        intTemp = 1
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        If TerrainTile(X, Z).Tri Then
-                            TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
-                        Else
-                            TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
-                        End If
-
-                        'attributes2
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-
-                        'ignore large values - nothing should be stored there
-                        intTemp = 16
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-
-                        intTemp = 1
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        Select Case A
-                            Case 1
-                                TerrainTile(X, Z).DownSide = TileDirection_Top
-                            Case 3
-                                TerrainTile(X, Z).DownSide = TileDirection_Right
-                            Case 5
-                                TerrainTile(X, Z).DownSide = TileDirection_Bottom
-                            Case 7
-                                TerrainTile(X, Z).DownSide = TileDirection_Left
-                            Case 8
-                                TerrainTile(X, Z).DownSide = TileDirection_None
-                            Case Else
-                                TerrainTile(X, Z).DownSide = TileDirection_None
-                                'Load_FME.Problem = "Cliff down-side is out of range."
-                                'Exit Function
-                        End Select
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X - 1
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainSideH(X, Z).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
-                            Load_FME.Problem = "Road value out of range."
-                            Exit Function
-                        Else
-                            TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
-                        End If
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainSideV(X, Z).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
-                            Load_FME.Problem = "Road value out of range."
-                            Exit Function
-                        Else
-                            TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
-                        End If
-                    Next
-                Next
-                Dim TempUnitCount As UInteger
-                ByteFile.Get_U32(TempUnitCount)
-                Dim TempUnit(TempUnitCount - 1) As sWZME3Unit
-                For A = 0 To TempUnitCount - 1
-                    If Not ByteFile.Get_Text(40, TempUnit(A).Code) Then Load_FME.Problem = "Read error." : Exit Function
-                    B = Strings.InStr(TempUnit(A).Code, Chr(0))
-                    If B > 0 Then
-                        TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
-                    End If
-                    If Not ByteFile.Get_U8(TempUnit(A).LNDType) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).ID) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).Z) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).Y) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(TempUnit(A).Rotation) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_Text_VariableLength(TempUnit(A).Name) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U8(TempUnit(A).Player) Then Load_FME.Problem = "Read error." : Exit Function
-                Next
-
-                Dim Unit_New As clsUnit
-                For A = 0 To TempUnitCount - 1
-                    Unit_New = New clsUnit
-                    Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, Unit_New.Type)
-                    If Not Result.Success Then
-                        Load_FME.Problem = Result.Problem
-                        Exit Function
-                    End If
-                    Unit_New.ID = TempUnit(A).ID
-                    Unit_New.Name = TempUnit(A).Name
-                    Unit_New.PlayerNum = TempUnit(A).Player
-                    Unit_New.Pos.X = TempUnit(A).X
-                    Unit_New.Pos.Y = TempUnit(A).Y
-                    Unit_New.Pos.Z = TempUnit(A).Z
-                    Unit_New.Rotation = Math.Min(TempUnit(A).Rotation, 359)
-                    Unit_Add(Unit_New, TempUnit(A).ID)
-                Next
-
-                ByteFile.Get_U32(GatewayCount)
-                ReDim Gateways(GatewayCount - 1)
-                For A = 0 To GatewayCount - 1
-                    If Not ByteFile.Get_U16(Gateways(A).PosA.X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosA.Y) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosB.X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosB.Y) Then Load_FME.Problem = "Read error." : Exit Function
-                Next
-
-                If Version_Val = 4UI And Tileset IsNot Nothing Then
-                    For A = 0 To 89
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        If A < Tileset.TileCount Then
-                            Tile_TypeNum(A) = byteTemp
-                        End If
-                    Next
-                End If
-            ElseIf Version_Val = 5UI Or Version_Val = 6UI Then
-
-                Dim byteTemp As Byte
-                Dim uintTemp As UInteger
-
-                'tileset
-                If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                If byteTemp = 0 Then
-                    Tileset = Nothing
-                ElseIf byteTemp = 1 Then
-                    Tileset = Tileset_Arizona
-                ElseIf byteTemp = 2 Then
-                    Tileset = Tileset_Urban
-                ElseIf byteTemp = 3 Then
-                    Tileset = Tileset_Rockies
-                Else
-                    Load_FME.Problem = "Tileset value out of range."
-                    Exit Function
-                End If
-
-                SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
-
-                Dim MapWidth As UShort
-                Dim MapHeight As UShort
-
-                If Not ByteFile.Get_U16(MapWidth) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_U16(MapHeight) Then Load_FME.Problem = "Read error." : Exit Function
-
-                If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                    Load_FME.Problem = "Map size is invalid."
-                    Exit Function
-                End If
-
-                Terrain_Blank(MapWidth, MapHeight)
-                TileType_Reset()
-
-                Dim X As Integer
-                Dim Z As Integer
-                Dim A As Integer
-                Dim B As Integer
-                Dim intTemp As Integer
-
-                For Z = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X
-                        If Not ByteFile.Get_U8(TerrainVertex(X, Z).Height) Then Load_FME.Problem = "Read error." : Exit Function
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainVertex(X, Z).Terrain = Nothing
-                        ElseIf intTemp >= Painter.TerrainCount Then
-                            Load_FME.Problem = "Terrain value out of range."
-                            Exit Function
-                        Else
-                            TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
-                        End If
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
-
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-
-                        intTemp = 128
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
-
-                        intTemp = 64
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Texture.Orientation.SwitchedAxes = (A = 1)
-
-                        intTemp = 32
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Texture.Orientation.ResultXFlip = (A = 1)
-
-                        intTemp = 16
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Texture.Orientation.ResultZFlip = (A = 1)
-
-                        intTemp = 4
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        TerrainTile(X, Z).Tri = (A = 1)
-
-                        intTemp = 2
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        If TerrainTile(X, Z).Tri Then
-                            TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
-                        Else
-                            TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
-                        End If
-
-                        intTemp = 1
-                        A = CInt(Int(byteTemp / intTemp))
-                        byteTemp -= A * intTemp
-                        If TerrainTile(X, Z).Tri Then
-                            TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
-                        Else
-                            TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
-                        End If
-
-                        'attributes2
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-
-                        Select Case byteTemp
-                            Case 0
-                                TerrainTile(X, Z).DownSide = TileDirection_None
-                            Case 1
-                                TerrainTile(X, Z).DownSide = TileDirection_Top
-                            Case 2
-                                TerrainTile(X, Z).DownSide = TileDirection_Left
-                            Case 3
-                                TerrainTile(X, Z).DownSide = TileDirection_Right
-                            Case 4
-                                TerrainTile(X, Z).DownSide = TileDirection_Bottom
-                            Case Else
-                                Load_FME.Problem = "Cliff down-side value out of range."
-                                Exit Function
-                        End Select
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X - 1
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainSideH(X, Z).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
-                            Load_FME.Problem = "Road value out of range."
-                            Exit Function
-                        Else
-                            TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
-                        End If
-                    Next
-                Next
-                For Z = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        intTemp = CInt(byteTemp) - 1
-                        If intTemp < 0 Then
-                            TerrainSideV(X, Z).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
-                            Load_FME.Problem = "Road value out of range."
-                            Exit Function
-                        Else
-                            TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
-                        End If
-                    Next
-                Next
-                Dim TempUnitCount As UInteger
-                ByteFile.Get_U32(TempUnitCount)
-                Dim TempUnit(TempUnitCount - 1) As sWZME3Unit
-                For A = 0 To TempUnitCount - 1
-                    If Not ByteFile.Get_Text(40, TempUnit(A).Code) Then Load_FME.Problem = "Read error." : Exit Function
-                    B = Strings.InStr(TempUnit(A).Code, Chr(0))
-                    If B > 0 Then
-                        TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
-                    End If
-                    If Not ByteFile.Get_U8(TempUnit(A).LNDType) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).ID) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Version_Val = 6UI Then
-                        If Not ByteFile.Get_S32(TempUnit(A).SavePriority) Then Load_FME.Problem = "Read error." : Exit Function
-                    End If
-                    If Not ByteFile.Get_U32(TempUnit(A).X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).Z) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U32(TempUnit(A).Y) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(TempUnit(A).Rotation) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_Text_VariableLength(TempUnit(A).Name) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U8(TempUnit(A).Player) Then Load_FME.Problem = "Read error." : Exit Function
-                Next
-
-                Dim Unit_New As clsUnit
-                For A = 0 To TempUnitCount - 1
-                    Unit_New = New clsUnit
-                    Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, Unit_New.Type)
-                    If Not Result.Success Then
-                        Load_FME.Problem = Result.Problem
-                        Exit Function
-                    End If
-                    Unit_New.ID = TempUnit(A).ID
-                    Unit_New.SavePriority = TempUnit(A).SavePriority
-                    Unit_New.Name = TempUnit(A).Name
-                    Unit_New.PlayerNum = TempUnit(A).Player
-                    Unit_New.Pos.X = TempUnit(A).X
-                    Unit_New.Pos.Y = TempUnit(A).Y
-                    Unit_New.Pos.Z = TempUnit(A).Z
-                    Unit_New.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
-                    Unit_Add(Unit_New, TempUnit(A).ID)
-                Next
-
-                ByteFile.Get_U32(GatewayCount)
-                ReDim Gateways(GatewayCount - 1)
-                For A = 0 To GatewayCount - 1
-                    If Not ByteFile.Get_U16(Gateways(A).PosA.X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosA.Y) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosB.X) Then Load_FME.Problem = "Read error." : Exit Function
-                    If Not ByteFile.Get_U16(Gateways(A).PosB.Y) Then Load_FME.Problem = "Read error." : Exit Function
-                Next
-
-                If Tileset IsNot Nothing Then
-                    For A = 0 To Tileset.TileCount - 1
-                        If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                        Tile_TypeNum(A) = byteTemp
-                    Next
-                End If
-
-                'scroll limits
-                If Not ByteFile.Get_S32(intTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                frmCompileInstance.txtCampMinX.Text = intTemp
-                If Not ByteFile.Get_S32(intTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                frmCompileInstance.txtCampMinY.Text = intTemp
-                If Not ByteFile.Get_U32(uintTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                frmCompileInstance.txtCampMaxX.Text = uintTemp
-                If Not ByteFile.Get_U32(uintTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                frmCompileInstance.txtCampMaxY.Text = uintTemp
-
-                'other compile info
-
-                If Not ByteFile.Get_Text_VariableLength(frmCompileInstance.txtName.Text) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                Select Case byteTemp
-                    Case 0
-                        frmCompileInstance.rdoMulti.Checked = False
-                        frmCompileInstance.rdoCamp.Checked = False
-                    Case 1
-                        frmCompileInstance.rdoMulti.Checked = True
-                    Case 2
-                        frmCompileInstance.rdoCamp.Checked = True
-                    Case Else
-                        Load_FME.Problem = "Compile type out of range."
-                        Exit Function
-                End Select
-                If Not ByteFile.Get_Text_VariableLength(frmCompileInstance.txtMultiPlayers.Text) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_U8(byteTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                Select Case byteTemp
-                    Case 0
-                        frmCompileInstance.chkNewPlayerFormat.Checked = False
-                    Case 1
-                        frmCompileInstance.chkNewPlayerFormat.Checked = True
-                    Case Else
-                        Load_FME.Problem = "Compile player format out of range."
-                        Exit Function
-                End Select
-                If Not ByteFile.Get_Text_VariableLength(frmCompileInstance.txtAuthor.Text) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_Text_VariableLength(frmCompileInstance.cmbLicense.Text) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_Text_VariableLength(frmCompileInstance.txtCampTime.Text) Then Load_FME.Problem = "Read error." : Exit Function
-                If Not ByteFile.Get_S32(intTemp) Then Load_FME.Problem = "Read error." : Exit Function
-                If intTemp < -1 Or intTemp >= frmCompileInstance.cmbCampType.Items.Count Then
-                    Load_FME.Problem = "Compile campaign type is out of range."
-                    Exit Function
-                End If
-                frmCompileInstance.cmbCampType.SelectedIndex = intTemp
+            'tileset
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If byteTemp = 0 Then
+                Tileset = Nothing
+            ElseIf byteTemp = 1 Then
+                Tileset = Tileset_Arizona
+            ElseIf byteTemp = 2 Then
+                Tileset = Tileset_Urban
+            ElseIf byteTemp = 3 Then
+                Tileset = Tileset_Rockies
             Else
-                Load_FME.Problem = "File version number is not recognised."
+                Read_FME.Problem = "Tileset value out of range."
                 Exit Function
             End If
 
-            ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
-            ShadowSector_CreateAll()
-            AutoTextureChange = New clsAutoTextureChange(Me)
-            SectorChange = New clsSectorChange(Me)
+            SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
 
-        Catch ex As Exception
-            Load_FME.Problem = ex.Message
+            Dim MapWidth As UShort
+            Dim MapHeight As UShort
+
+            If Not File.Get_U16(MapWidth) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U16(MapHeight) Then Read_FME.Problem = "Read error." : Exit Function
+
+            If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
+                Read_FME.Problem = "Map size is invalid."
+                Exit Function
+            End If
+
+            Terrain_Blank(MapWidth, MapHeight)
+            TileType_Reset()
+
+            Dim X As Integer
+            Dim Z As Integer
+            Dim A As Integer
+            Dim B As Integer
+            Dim intTemp As Integer
+            Dim Rotation As Byte
+            Dim FlipX As Boolean
+            Dim FlipZ As Boolean
+
+            For Z = 0 To TerrainSize.Y
+                For X = 0 To TerrainSize.X
+                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainVertex(X, Z).Terrain = Nothing
+                    ElseIf intTemp >= Painter.TerrainCount Then
+                        Read_FME.Problem = "Terrain value out of range."
+                        Exit Function
+                    Else
+                        TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
+                    End If
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y - 1
+                For X = 0 To TerrainSize.X - 1
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
+
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+
+                    intTemp = 128
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
+
+                    intTemp = 32
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    Rotation = A
+
+                    intTemp = 16
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    FlipX = (A = 1)
+
+                    intTemp = 8
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    FlipZ = (A = 1)
+
+                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
+
+                    intTemp = 4
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Tri = (A = 1)
+
+                    intTemp = 2
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    If TerrainTile(X, Z).Tri Then
+                        TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
+                    Else
+                        TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
+                    End If
+
+                    intTemp = 1
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    If TerrainTile(X, Z).Tri Then
+                        TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
+                    Else
+                        TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
+                    End If
+
+                    'attributes2
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+
+                    'ignore large values - nothing should be stored there
+                    intTemp = 16
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+
+                    intTemp = 1
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    Select Case A
+                        Case 1
+                            TerrainTile(X, Z).DownSide = TileDirection_Top
+                        Case 3
+                            TerrainTile(X, Z).DownSide = TileDirection_Right
+                        Case 5
+                            TerrainTile(X, Z).DownSide = TileDirection_Bottom
+                        Case 7
+                            TerrainTile(X, Z).DownSide = TileDirection_Left
+                        Case 8
+                            TerrainTile(X, Z).DownSide = TileDirection_None
+                        Case Else
+                            TerrainTile(X, Z).DownSide = TileDirection_None
+                            'Load_FME.Problem = "Cliff down-side is out of range."
+                            'Exit Function
+                    End Select
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y
+                For X = 0 To TerrainSize.X - 1
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainSideH(X, Z).Road = Nothing
+                    ElseIf intTemp >= Painter.RoadCount Then
+                        Read_FME.Problem = "Road value out of range."
+                        Exit Function
+                    Else
+                        TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
+                    End If
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y - 1
+                For X = 0 To TerrainSize.X
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainSideV(X, Z).Road = Nothing
+                    ElseIf intTemp >= Painter.RoadCount Then
+                        Read_FME.Problem = "Road value out of range."
+                        Exit Function
+                    Else
+                        TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
+                    End If
+                Next
+            Next
+            Dim TempUnitCount As UInteger
+            File.Get_U32(TempUnitCount)
+            Dim TempUnit(TempUnitCount - 1) As sFMEUnit
+            For A = 0 To TempUnitCount - 1
+                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem = "Read error." : Exit Function
+                B = Strings.InStr(TempUnit(A).Code, Chr(0))
+                If B > 0 Then
+                    TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
+                End If
+                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem = "Read error." : Exit Function
+            Next
+
+            Dim NewUnit As clsUnit
+            For A = 0 To TempUnitCount - 1
+                NewUnit = New clsUnit
+                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, NewUnit.Type)
+                If Not Result.Success Then
+                    Read_FME.Problem = Result.Problem
+                    Exit Function
+                End If
+                NewUnit.ID = TempUnit(A).ID
+                NewUnit.Name = TempUnit(A).Name
+                NewUnit.PlayerNum = TempUnit(A).Player
+                NewUnit.Pos.X = TempUnit(A).X
+                NewUnit.Pos.Y = TempUnit(A).Y
+                NewUnit.Pos.Z = TempUnit(A).Z
+                NewUnit.Rotation = Math.Min(TempUnit(A).Rotation, 359)
+                Unit_Add(NewUnit, TempUnit(A).ID)
+            Next
+
+            File.Get_U32(GatewayCount)
+            ReDim Gateways(GatewayCount - 1)
+            For A = 0 To GatewayCount - 1
+                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem = "Read error." : Exit Function
+            Next
+
+            If Version = 4UI And Tileset IsNot Nothing Then
+                For A = 0 To 89
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If A < Tileset.TileCount Then
+                        Tile_TypeNum(A) = byteTemp
+                    End If
+                Next
+            End If
+        ElseIf Version = 5UI Or Version = 6UI Then
+
+            Dim byteTemp As Byte
+            Dim uintTemp As UInteger
+
+            'tileset
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If byteTemp = 0 Then
+                Tileset = Nothing
+            ElseIf byteTemp = 1 Then
+                Tileset = Tileset_Arizona
+            ElseIf byteTemp = 2 Then
+                Tileset = Tileset_Urban
+            ElseIf byteTemp = 3 Then
+                Tileset = Tileset_Rockies
+            Else
+                Read_FME.Problem = "Tileset value out of range."
+                Exit Function
+            End If
+
+            SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
+
+            Dim MapWidth As UShort
+            Dim MapHeight As UShort
+
+            If Not File.Get_U16(MapWidth) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U16(MapHeight) Then Read_FME.Problem = "Read error." : Exit Function
+
+            If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
+                Read_FME.Problem = "Map size is invalid."
+                Exit Function
+            End If
+
+            Terrain_Blank(MapWidth, MapHeight)
+            TileType_Reset()
+
+            Dim X As Integer
+            Dim Z As Integer
+            Dim A As Integer
+            Dim B As Integer
+            Dim intTemp As Integer
+
+            For Z = 0 To TerrainSize.Y
+                For X = 0 To TerrainSize.X
+                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainVertex(X, Z).Terrain = Nothing
+                    ElseIf intTemp >= Painter.TerrainCount Then
+                        Read_FME.Problem = "Terrain value out of range."
+                        Exit Function
+                    Else
+                        TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
+                    End If
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y - 1
+                For X = 0 To TerrainSize.X - 1
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
+
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+
+                    intTemp = 128
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
+
+                    intTemp = 64
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Texture.Orientation.SwitchedAxes = (A = 1)
+
+                    intTemp = 32
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Texture.Orientation.ResultXFlip = (A = 1)
+
+                    intTemp = 16
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Texture.Orientation.ResultZFlip = (A = 1)
+
+                    intTemp = 4
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    TerrainTile(X, Z).Tri = (A = 1)
+
+                    intTemp = 2
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    If TerrainTile(X, Z).Tri Then
+                        TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
+                    Else
+                        TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
+                    End If
+
+                    intTemp = 1
+                    A = CInt(Int(byteTemp / intTemp))
+                    byteTemp -= A * intTemp
+                    If TerrainTile(X, Z).Tri Then
+                        TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
+                    Else
+                        TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
+                    End If
+
+                    'attributes2
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+
+                    Select Case byteTemp
+                        Case 0
+                            TerrainTile(X, Z).DownSide = TileDirection_None
+                        Case 1
+                            TerrainTile(X, Z).DownSide = TileDirection_Top
+                        Case 2
+                            TerrainTile(X, Z).DownSide = TileDirection_Left
+                        Case 3
+                            TerrainTile(X, Z).DownSide = TileDirection_Right
+                        Case 4
+                            TerrainTile(X, Z).DownSide = TileDirection_Bottom
+                        Case Else
+                            Read_FME.Problem = "Cliff down-side value out of range."
+                            Exit Function
+                    End Select
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y
+                For X = 0 To TerrainSize.X - 1
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainSideH(X, Z).Road = Nothing
+                    ElseIf intTemp >= Painter.RoadCount Then
+                        Read_FME.Problem = "Road value out of range."
+                        Exit Function
+                    Else
+                        TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
+                    End If
+                Next
+            Next
+            For Z = 0 To TerrainSize.Y - 1
+                For X = 0 To TerrainSize.X
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    intTemp = CInt(byteTemp) - 1
+                    If intTemp < 0 Then
+                        TerrainSideV(X, Z).Road = Nothing
+                    ElseIf intTemp >= Painter.RoadCount Then
+                        Read_FME.Problem = "Road value out of range."
+                        Exit Function
+                    Else
+                        TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
+                    End If
+                Next
+            Next
+            Dim TempUnitCount As UInteger
+            File.Get_U32(TempUnitCount)
+            Dim TempUnit(TempUnitCount - 1) As sFMEUnit
+            For A = 0 To TempUnitCount - 1
+                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem = "Read error." : Exit Function
+                B = Strings.InStr(TempUnit(A).Code, Chr(0))
+                If B > 0 Then
+                    TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
+                End If
+                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem = "Read error." : Exit Function
+                If Version = 6UI Then
+                    If Not File.Get_S32(TempUnit(A).SavePriority) Then Read_FME.Problem = "Read error." : Exit Function
+                End If
+                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem = "Read error." : Exit Function
+            Next
+
+            Dim NewUnit As clsUnit
+            For A = 0 To TempUnitCount - 1
+                NewUnit = New clsUnit
+                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, NewUnit.Type)
+                If Not Result.Success Then
+                    Read_FME.Problem = Result.Problem
+                    Exit Function
+                End If
+                NewUnit.ID = TempUnit(A).ID
+                NewUnit.SavePriority = TempUnit(A).SavePriority
+                NewUnit.Name = TempUnit(A).Name
+                NewUnit.PlayerNum = TempUnit(A).Player
+                NewUnit.Pos.X = TempUnit(A).X
+                NewUnit.Pos.Y = TempUnit(A).Y
+                NewUnit.Pos.Z = TempUnit(A).Z
+                NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
+                Unit_Add(NewUnit, TempUnit(A).ID)
+            Next
+
+            File.Get_U32(GatewayCount)
+            ReDim Gateways(GatewayCount - 1)
+            For A = 0 To GatewayCount - 1
+                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem = "Read error." : Exit Function
+            Next
+
+            If Tileset IsNot Nothing Then
+                For A = 0 To Tileset.TileCount - 1
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    Tile_TypeNum(A) = byteTemp
+                Next
+            End If
+
+            'scroll limits
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            frmCompileInstance.txtCampMinX.Text = intTemp
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            frmCompileInstance.txtCampMinY.Text = intTemp
+            If Not File.Get_U32(uintTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            frmCompileInstance.txtCampMaxX.Text = uintTemp
+            If Not File.Get_U32(uintTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            frmCompileInstance.txtCampMaxY.Text = uintTemp
+
+            'other compile info
+
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtName.Text) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            Select Case byteTemp
+                Case 0
+                    frmCompileInstance.rdoMulti.Checked = False
+                    frmCompileInstance.rdoCamp.Checked = False
+                Case 1
+                    frmCompileInstance.rdoMulti.Checked = True
+                Case 2
+                    frmCompileInstance.rdoCamp.Checked = True
+                Case Else
+                    Read_FME.Problem = "Compile type out of range."
+                    Exit Function
+            End Select
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtMultiPlayers.Text) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            Select Case byteTemp
+                Case 0
+                    frmCompileInstance.chkNewPlayerFormat.Checked = False
+                Case 1
+                    frmCompileInstance.chkNewPlayerFormat.Checked = True
+                Case Else
+                    Read_FME.Problem = "Compile player format out of range."
+                    Exit Function
+            End Select
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtAuthor.Text) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.cmbLicense.Text) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtCampTime.Text) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If intTemp < -1 Or intTemp >= frmCompileInstance.cmbCampType.Items.Count Then
+                Read_FME.Problem = "Compile campaign type is out of range."
+                Exit Function
+            End If
+            frmCompileInstance.cmbCampType.SelectedIndex = intTemp
+        Else
+            Read_FME.Problem = "File version number is not recognised."
             Exit Function
-        End Try
+        End If
 
-        Load_FME.Success = True
+        Read_FME.Success = True
     End Function
 
     Sub Minimap_Texture_Fill(ByRef Texture(,,) As Byte)
@@ -2444,9 +2462,8 @@ LineDone:
         Next
 #End If
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
         If Minimap_Texture > 0 Then
@@ -2464,7 +2481,7 @@ LineDone:
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Minimap_Texture_Size, Minimap_Texture_Size, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Pixels)
 #Else
-        Minimap_Texture = Texture.GL_Texture_Create
+        Minimap_Texture = Texture.GLTexture(frmMainInstance.View.OpenGLControl, False)
 #End If
 
         frmMainInstance.DrawView()
@@ -2969,7 +2986,7 @@ LineDone:
                 End If
             End If
 
-            Dim Quote As String = Chr(34)
+            Dim Quote As String = ControlChars.Quote
             Dim EndChar As String = Chr(10)
             Dim Text As String
 
@@ -3481,7 +3498,7 @@ LineDone:
             Dim Rotation As Byte
             Dim FlipX As Boolean
 
-            Quote = Chr(34)
+            Quote = ControlChars.Quote
             EndChar = Chr(10)
 
             Dim ByteFile As clsByteWriteFile = New clsByteWriteFile
@@ -4091,18 +4108,18 @@ LineDone:
 
     Sub UnitHeight_Update_All()
         Dim A As Integer
-        Dim Unit_New As clsUnit
+        Dim NewUnit As clsUnit
         Dim ID As UInteger
 
         Dim OldUnits() As clsUnit = Units.Clone
         Dim OldUnitCount As Integer = UnitCount
 
         For A = 0 To OldUnitCount - 1
-            Unit_New = New clsUnit(OldUnits(A))
+            NewUnit = New clsUnit(OldUnits(A))
             ID = OldUnits(A).ID
-            Unit_New.Pos.Y = GetTerrainHeight(Unit_New.Pos.X, Unit_New.Pos.Z)
+            NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
             Unit_Remove_StoreChange(OldUnits(A).Num)
-            Unit_Add_StoreChange(Unit_New, ID)
+            Unit_Add_StoreChange(NewUnit, ID)
         Next
         frmMainInstance.Selected_Object_Changed()
     End Sub
@@ -4200,38 +4217,38 @@ LineDone:
     Sub UndoStepCreate(ByVal StepName As String)
         Dim X As Integer
         Dim Z As Integer
-        Dim Undo_New As New clsUndo
+        Dim NewUndo As New clsUndo
 
-        Undo_New.Name = StepName
+        NewUndo.Name = StepName
 
         AutoSave.ChangeCount += 1UI
         AutoSave_Test()
         frmMainInstance.tsbSave.Enabled = True
 
-        ReDim Undo_New.ChangedSectors(SectorCount.X * SectorCount.Y - 1)
+        ReDim NewUndo.ChangedSectors(SectorCount.X * SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
                 If Sector(X, Z).Changed Then
                     Sector(X, Z).Changed = False
-                    Undo_New.ChangedSectors(Undo_New.ChangedSectorCount) = ShadowSector(X, Z)
-                    Undo_New.ChangedSectorCount = Undo_New.ChangedSectorCount + 1
+                    NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSector(X, Z)
+                    NewUndo.ChangedSectorCount = NewUndo.ChangedSectorCount + 1
                     ShadowSector_Create(X, Z)
                 End If
             Next
         Next
-        ReDim Preserve Undo_New.ChangedSectors(Undo_New.ChangedSectorCount - 1)
+        ReDim Preserve NewUndo.ChangedSectors(NewUndo.ChangedSectorCount - 1)
 
-        Undo_New.UnitChanges = UnitChanges.Clone
-        Undo_New.UnitChangeCount = UnitChangeCount
+        NewUndo.UnitChanges = UnitChanges.Clone
+        NewUndo.UnitChangeCount = UnitChangeCount
 
         UnitChangeCount = 0
         ReDim UnitChanges(-1)
 
-        If Undo_New.ChangedSectorCount + Undo_New.UnitChangeCount > 0 Then
+        If NewUndo.ChangedSectorCount + NewUndo.UnitChangeCount > 0 Then
             UndoCount = Undo_Pos
             ReDim Preserve Undo(UndoCount - 1) 'a new line has been started so remove redos
 
-            Undo_Append(Undo_New)
+            Undo_Append(NewUndo)
             Undo_Pos = UndoCount
         End If
     End Sub
@@ -4318,9 +4335,8 @@ LineDone:
 
         Undo_Pos = Undo_Pos - 1
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
         For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
@@ -4374,9 +4390,8 @@ LineDone:
         Dim X As Integer
         Dim Z As Integer
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
         For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
@@ -4619,7 +4634,7 @@ LineDone:
             Dim PosDifX As Integer
             Dim PosDifZ As Integer
             Dim A As Integer
-            Dim Unit_New As clsUnit
+            Dim NewUnit As clsUnit
             Dim tmpUnit As clsUnit
 
             PosDifX = Offset.X * TerrainGridSpacing
@@ -4628,10 +4643,10 @@ LineDone:
                 tmpUnit = Map_To_Insert.Units(A)
                 If tmpUnit.Pos.X < AreaAdjusted.X * TerrainGridSpacing And _
                     tmpUnit.Pos.Z < AreaAdjusted.Y * TerrainGridSpacing Then
-                    Unit_New = New clsUnit(Map_To_Insert.Units(A))
-                    Unit_New.Pos.X += PosDifX
-                    Unit_New.Pos.Z += PosDifZ
-                    Unit_Add_StoreChange(Unit_New)
+                    NewUnit = New clsUnit(Map_To_Insert.Units(A))
+                    NewUnit.Pos.X += PosDifX
+                    NewUnit.Pos.Z += PosDifZ
+                    Unit_Add_StoreChange(NewUnit)
                 End If
             Next
         End If
@@ -4765,7 +4780,7 @@ LineDone:
 
         ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
-        AutoTextureChange.Parent_Map = Nothing
+        AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange.Parent_Map = Nothing
         SectorChange = New clsSectorChange(Me)
@@ -4891,7 +4906,7 @@ LineDone:
 
         ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
-        AutoTextureChange.Parent_Map = Nothing
+        AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange.Parent_Map = Nothing
         SectorChange = New clsSectorChange(Me)
@@ -5002,7 +5017,7 @@ LineDone:
 
         ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
-        AutoTextureChange.Parent_Map = Nothing
+        AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange.Parent_Map = Nothing
         SectorChange = New clsSectorChange(Me)
@@ -5022,9 +5037,9 @@ LineDone:
         Load_WZ.Problem = ""
 
         Dim Result As sResult
-        Dim Quote As String = Chr(34)
+        Dim Quote As String = ControlChars.Quote
         Dim ZipEntry As Zip.ZipEntry
-        Dim Buffer(-1) As Byte
+        Dim Bytes(-1) As Byte
         Dim LineData(-1) As String
         Dim GameFound As Boolean
         Dim DatasetFound As Boolean
@@ -5041,44 +5056,70 @@ LineDone:
         Dim C As Integer
         Dim D As Integer
 
-        Dim ZipStream As Zip.ZipInputStream = Nothing
+        Dim ZipStream As Zip.ZipInputStream
 
-        Try
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        'get all usable lev entries
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
 
-            'get all usable lev entries
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then
-                    Exit Do
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+
+            If SplitPath.FileExtension = "lev" And SplitPath.PartCount = 1 Then
+                If ZipEntry.Size > 10 * 1024 * 1024 Then
+                    Load_WZ.Problem = "lev file is too large."
+                    ZipStream.Close()
+                    Exit Function
                 End If
-
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-
-                If SplitPath.FileExtension = "lev" And SplitPath.PartCount = 1 Then
-                    ReDim Buffer(ZipEntry.Size - 1)
-                    ZipStream.Read(Buffer, 0, ZipEntry.Size)
-                    BytesToLines(Buffer, LineData)
-                    Lines_Remove_Comments(LineData)
-                    'find each level block
-                    For A = 0 To LineData.GetUpperBound(0)
-                        If Strings.LCase(Strings.Left(LineData(A), 5)) = "level" Then
-                            'find each levels game file
-                            GameFound = False
+                ReDim Bytes(ZipEntry.Size - 1)
+                ZipStream.Read(Bytes, 0, ZipEntry.Size)
+                BytesToLines(Bytes, LineData)
+                LinesRemoveComments(LineData)
+                'find each level block
+                For A = 0 To LineData.GetUpperBound(0)
+                    If Strings.LCase(Strings.Left(LineData(A), 5)) = "level" Then
+                        'find each levels game file
+                        GameFound = False
+                        B = 1
+                        Do While A + B <= LineData.GetUpperBound(0)
+                            If Strings.LCase(Strings.Left(LineData(A + B), 4)) = "game" Then
+                                C = Strings.InStr(LineData(A + B), Quote)
+                                D = Strings.InStrRev(LineData(A + B), Quote)
+                                If C > 0 And D > 0 And D - C > 1 Then
+                                    GameName = Strings.LCase(Strings.Mid(LineData(A + B), C + 1, D - C - 1))
+                                    'see if map is already counted
+                                    For C = 0 To MapCount - 1
+                                        If GameName = MapName(C) Then Exit For
+                                    Next
+                                    If C = MapCount Then
+                                        GameFound = True
+                                    End If
+                                End If
+                                Exit Do
+                            ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
+                                Exit Do
+                            End If
+                            B += 1
+                        Loop
+                        If GameFound Then
+                            'find the dataset (determines tileset)
+                            DatasetFound = False
                             B = 1
                             Do While A + B <= LineData.GetUpperBound(0)
-                                If Strings.LCase(Strings.Left(LineData(A + B), 4)) = "game" Then
-                                    C = Strings.InStr(LineData(A + B), Quote)
-                                    D = Strings.InStrRev(LineData(A + B), Quote)
-                                    If C > 0 And D > 0 And D - C > 1 Then
-                                        GameName = Strings.LCase(Strings.Mid(LineData(A + B), C + 1, D - C - 1))
-                                        'see if map is already counted
-                                        For C = 0 To MapCount - 1
-                                            If GameName = MapName(C) Then Exit For
-                                        Next
-                                        If C = MapCount Then
-                                            GameFound = True
-                                        End If
+                                If Strings.LCase(Strings.Left(LineData(A + B), 7)) = "dataset" Then
+                                    strTemp = Strings.LCase(Strings.Right(LineData(A + B), 1))
+                                    If strTemp = "1" Then
+                                        GameTileset = Tileset_Arizona
+                                        DatasetFound = True
+                                    ElseIf strTemp = "2" Then
+                                        GameTileset = Tileset_Urban
+                                        DatasetFound = True
+                                    ElseIf strTemp = "3" Then
+                                        GameTileset = Tileset_Rockies
+                                        DatasetFound = True
                                     End If
                                     Exit Do
                                 ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
@@ -5086,423 +5127,204 @@ LineDone:
                                 End If
                                 B += 1
                             Loop
-                            If GameFound Then
-                                'find the dataset (determines tileset)
-                                DatasetFound = False
-                                B = 1
-                                Do While A + B <= LineData.GetUpperBound(0)
-                                    If Strings.LCase(Strings.Left(LineData(A + B), 7)) = "dataset" Then
-                                        strTemp = Strings.LCase(Strings.Right(LineData(A + B), 1))
-                                        If strTemp = "1" Then
-                                            GameTileset = Tileset_Arizona
-                                            DatasetFound = True
-                                        ElseIf strTemp = "2" Then
-                                            GameTileset = Tileset_Urban
-                                            DatasetFound = True
-                                        ElseIf strTemp = "3" Then
-                                            GameTileset = Tileset_Rockies
-                                            DatasetFound = True
-                                        End If
-                                        Exit Do
-                                    ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
-                                        Exit Do
-                                    End If
-                                    B += 1
-                                Loop
-                                If DatasetFound Then
-                                    ReDim Preserve MapName(MapCount)
-                                    ReDim Preserve MapTileset(MapCount)
-                                    MapName(MapCount) = GameName
-                                    MapTileset(MapCount) = GameTileset
-                                    MapCount += 1
-                                End If
+                            If DatasetFound Then
+                                ReDim Preserve MapName(MapCount)
+                                ReDim Preserve MapTileset(MapCount)
+                                MapName(MapCount) = GameName
+                                MapTileset(MapCount) = GameTileset
+                                MapCount += 1
                             End If
                         End If
-                    Next
-                End If
-            Loop
+                    End If
+                Next
+            End If
+        Loop
+        ZipStream.Close()
 
-            Dim MapLoadName As String
+        Dim MapLoadName As String
 
-            'prompt user for which of the entries to load
-            If MapCount < 1 Then
-                Load_WZ.Problem = "No maps found in file."
+        'prompt user for which of the entries to load
+        If MapCount < 1 Then
+            Load_WZ.Problem = "No maps found in file."
+            Exit Function
+        ElseIf MapCount = 1 Then
+            MapLoadName = MapName(0)
+            Tileset = MapTileset(0)
+        Else
+            Dim SelectToLoadResult As New frmWZLoad.clsOutput
+            Dim SelectToLoadForm As New frmWZLoad(MapName, SelectToLoadResult)
+            SelectToLoadForm.ShowDialog()
+            If SelectToLoadResult.Result < 0 Then
+                Load_WZ.Problem = "No map selected."
                 Exit Function
-            ElseIf MapCount = 1 Then
-                MapLoadName = MapName(0)
-                Tileset = MapTileset(0)
-            Else
-                Dim frmWZLoad_Output As New frmWZLoad.clsOutput
-                Dim frmWZLoad_New As New frmWZLoad(MapName, frmWZLoad_Output)
-                frmWZLoad_New.ShowDialog()
-                If frmWZLoad_Output.Result < 0 Then
-                    Load_WZ.Problem = "No map selected."
-                    Exit Function
-                End If
-                MapLoadName = MapName(frmWZLoad_Output.Result)
-                Tileset = MapTileset(frmWZLoad_Output.Result)
+            End If
+            MapLoadName = MapName(SelectToLoadResult.Result)
+            Tileset = MapTileset(SelectToLoadResult.Result)
+        End If
+
+        TileType_Reset()
+        SetPainterToDefaults()
+
+        Dim GameSplitPath As New sZipSplitPath(MapLoadName)
+        Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & "/"
+
+        Dim File As New clsByteReadFile
+
+        'load map files
+
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
             End If
 
-            TileType_Reset()
-            SetPainterToDefaults()
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+            If SplitPath.FilePath = GameFilesPath Then
+                If SplitPath.FileTitle = "game.map" Then
+                    File.Begin(ZipStream, ZipEntry.Size)
 
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+                    Result = Read_WZ_Game(File)
+                    If Not Result.Success Then
+                        ZipStream.Close()
+                        Load_WZ.Problem = Result.Problem
+                        Exit Function
+                    End If
 
-            Dim GameSplitPath As New sZipSplitPath(MapLoadName)
-            Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & "/"
-
-            Dim Version As UInteger
-            Dim MapWidth As UInteger
-            Dim MapHeight As UInteger
-            Dim ByteLoadFile As clsByteReadFile
-            Dim uintTemp As UInteger
-            Dim ushortTemp As UShort
-            Dim X As Integer
-            Dim Z As Integer
-            Dim Flip As Byte
-            Dim FlipX As Boolean
-            Dim FlipZ As Boolean
-            Dim Rotate As Byte
-
-            'load map files
-
-            ByteLoadFile = New clsByteReadFile
-
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then
+                    GotMapFile = True
                     Exit Do
                 End If
+            End If
+        Loop
+        ZipStream.Close()
 
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-                If SplitPath.FilePath = GameFilesPath Then
-                    If SplitPath.FileTitle = "game.map" Then
-                        ReDim ByteLoadFile.Bytes(ZipEntry.Size)
-                        ByteLoadFile.ByteCount = ZipEntry.Size
-                        ZipStream.Read(ByteLoadFile.Bytes, 0, ZipEntry.Size)
+        If Not GotMapFile Then
+            Load_WZ.Problem = "game.map file not found."
+            Exit Function
+        End If
 
-                        If Not ByteLoadFile.Get_Text(4, strTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If strTemp <> "map " Then
-                            Load_WZ.Problem = "Unknown game.map identifier."
-                            Exit Function
-                        End If
+        Dim WZUnits(-1) As sWZUnit
+        Dim WZUnitCount As Integer = 0
+        Dim NewUnit As clsUnit
 
-                        If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Version <> 10UI Then
-                            'Load_WZ.Problem = "Unknown game.map version."
-                            'Exit Function
-                            If MsgBox("game.map version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                                Load_WZ.Problem = "Aborted."
-                                Exit Function
-                            End If
-                        End If
-                        If Not ByteLoadFile.Get_U32(MapWidth) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Not ByteLoadFile.Get_U32(MapHeight) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If MapWidth < 1 Or MapWidth > 1024 Or MapHeight < 1 Or MapHeight > 1024 Then Load_WZ.Problem = "Map size out of range." : Exit Function
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
 
-                        Terrain_Blank(MapWidth, MapHeight)
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+            If SplitPath.FilePath = GameFilesPath Then
+                If SplitPath.FileTitle = "feat.bjo" Then
+                    File.Begin(ZipStream, ZipEntry.Size)
 
-                        For Z = 0 To MapHeight - 1
-                            For X = 0 To MapWidth - 1
-                                If Not ByteLoadFile.Get_U8(uintTemp) Then Load_WZ.Problem = "Tile data read error." : Exit Function
-                                TerrainTile(X, Z).Texture.TextureNum = uintTemp
-                                If Not ByteLoadFile.Get_U8(Flip) Then Load_WZ.Problem = "Tile data read error." : Exit Function
-                                If Not ByteLoadFile.Get_U8(TerrainVertex(X, Z).Height) Then Load_WZ.Problem = "Tile data read error." : Exit Function
-                                'get flipx
-                                A = Int(Flip / 128.0#)
-                                Flip -= A * 128
-                                FlipX = (A = 1)
-                                'get flipy
-                                A = Int(Flip / 64.0#)
-                                Flip -= A * 64
-                                FlipZ = (A = 1)
-                                'get rotation
-                                A = Int(Flip / 16.0#)
-                                Flip -= A * 16
-                                Rotate = A
-                                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
-                                'get tri direction
-                                A = Int(Flip / 8.0#)
-                                Flip -= A * 8
-                                TerrainTile(X, Z).Tri = (A = 1)
-                            Next
-                        Next
-
-                        If Version <> 2UI Then
-                            If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Gateway version read error." : Exit Function
-                            If uintTemp <> 1 Then Load_WZ.Problem = "Bad gateway version number." : Exit Function
-
-                            If Not ByteLoadFile.Get_U32(GatewayCount) Then Load_WZ.Problem = "Gateway read error." : Exit Function
-                            ReDim Gateways(GatewayCount - 1)
-
-                            For A = 0 To GatewayCount - 1
-                                If Not ByteLoadFile.Get_U8(Gateways(A).PosA.X) Then Load_WZ.Problem = "Gateway read error." : Exit Function
-                                If Not ByteLoadFile.Get_U8(Gateways(A).PosA.Y) Then Load_WZ.Problem = "Gateway read error." : Exit Function
-                                If Not ByteLoadFile.Get_U8(Gateways(A).PosB.X) Then Load_WZ.Problem = "Gateway read error." : Exit Function
-                                If Not ByteLoadFile.Get_U8(Gateways(A).PosB.Y) Then Load_WZ.Problem = "Gateway read error." : Exit Function
-                            Next
-                        End If
-
-                        GotMapFile = True
-                        Exit Do
+                    Result = Read_WZ_Features(File, WZUnits, WZUnitCount)
+                    If Not Result.Success Then
+                        ZipStream.Close()
+                        Load_WZ.Problem = Result.Problem
+                        Exit Function
                     End If
-                End If
-            Loop
 
-            If Not GotMapFile Then
-                Load_WZ.Problem = "game.map file not found."
+                    Exit Do
+                End If
+            End If
+        Loop
+        ZipStream.Close()
+
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
+
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+            If SplitPath.FilePath = GameFilesPath Then
+                If SplitPath.FileTitle = "ttypes.ttp" Then
+                    File.Begin(ZipStream, ZipEntry.Size)
+
+                    Result = Read_WZ_TileTypes(File)
+                    If Not Result.Success Then
+                        ZipStream.Close()
+                        Load_WZ.Problem = Result.Problem
+                        Exit Function
+                    End If
+
+                    Exit Do
+                End If
+            End If
+        Loop
+        ZipStream.Close()
+
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
+
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+            If SplitPath.FilePath = GameFilesPath Then
+                If SplitPath.FileTitle = "struct.bjo" Then
+                    File.Begin(ZipStream, ZipEntry.Size)
+
+                    Result = Read_WZ_Structures(File, WZUnits, WZUnitCount)
+                    If Not Result.Success Then
+                        ZipStream.Close()
+                        Load_WZ.Problem = Result.Problem
+                        Exit Function
+                    End If
+
+                    Exit Do
+                End If
+            End If
+        Loop
+        ZipStream.Close()
+
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
+
+            SplitPath = New sZipSplitPath(ZipEntry.Name)
+            If SplitPath.FilePath = GameFilesPath Then
+                If SplitPath.FileTitle = "dinit.bjo" Then
+                    File.Begin(ZipStream, ZipEntry.Size)
+
+                    Result = Read_WZ_Droids(File, WZUnits, WZUnitCount)
+                    If Not Result.Success Then
+                        ZipStream.Close()
+                        Load_WZ.Problem = Result.Problem
+                        Exit Function
+                    End If
+
+                    Exit Do
+                End If
+            End If
+        Loop
+        ZipStream.Close()
+
+        For A = 0 To WZUnitCount - 1
+            NewUnit = New clsUnit
+            NewUnit.ID = WZUnits(A).ID
+            Result = FindUnitType(WZUnits(A).Code, WZUnits(A).LNDType, NewUnit.Type)
+            If Not Result.Success Then
+                Load_WZ.Problem = Result.Problem
                 Exit Function
             End If
+            NewUnit.PlayerNum = Math.Min(WZUnits(A).Player, FactionCountMax - 1)
+            NewUnit.Pos = WZUnits(A).Pos
+            NewUnit.Rotation = Math.Min(WZUnits(A).Rotation, 359UI)
+            Unit_Add(NewUnit, WZUnits(A).ID)
+        Next
 
-            Dim WZUnits(-1) As sWZUnit
-            Dim WZUnitCount As Integer = 0
-            Dim Unit_New As clsUnit
-
-            ZipStream.Close()
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-            ByteLoadFile = New clsByteReadFile
-
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then Exit Do
-
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-                If SplitPath.FilePath = GameFilesPath Then
-                    If SplitPath.FileTitle = "feat.bjo" Then
-                        ReDim ByteLoadFile.Bytes(ZipEntry.Size)
-                        ByteLoadFile.ByteCount = ZipEntry.Size
-                        ZipStream.Read(ByteLoadFile.Bytes, 0, ZipEntry.Size)
-
-                        If Not ByteLoadFile.Get_Text(4, strTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If strTemp <> "feat" Then
-                            Load_WZ.Problem = "Unknown feat.bjo identifier."
-                            Exit Function
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Version <> 8UI Then
-                            'Load_WZ.Problem = "Unknown feat.bjo version."
-                            'Exit Function
-                            If MsgBox("feat.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                                Load_WZ.Problem = "Aborted."
-                                Exit Function
-                            End If
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-
-                        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-                        For A = 0 To uintTemp - 1
-                            WZUnits(WZUnitCount).LNDType = 0
-                            If Not ByteLoadFile.Get_Text(40, WZUnits(WZUnitCount).Code) Then Load_WZ.Problem = "Read error." : Exit Function
-                            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-                            If B > 0 Then
-                                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-                            End If
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).ID) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Rotation) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Player) Then Load_WZ.Problem = "Read error." : Exit Function
-                            ByteLoadFile.Position += 12
-                            WZUnitCount += 1
-                        Next
-
-                        Exit Do
-                    End If
-                End If
-            Loop
-
-            ZipStream.Close()
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-            ByteLoadFile = New clsByteReadFile
-
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then Exit Do
-
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-                If SplitPath.FilePath = GameFilesPath Then
-                    If SplitPath.FileTitle = "ttypes.ttp" Then
-                        ReDim ByteLoadFile.Bytes(ZipEntry.Size)
-                        ByteLoadFile.ByteCount = ZipEntry.Size
-                        ZipStream.Read(ByteLoadFile.Bytes, 0, ZipEntry.Size)
-
-                        If Not ByteLoadFile.Get_Text(4, strTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If strTemp <> "ttyp" Then
-                            Load_WZ.Problem = "Unknown ttypes.ttp identifier."
-                            Exit Function
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Version <> 8UI Then
-                            'Load_WZ.Problem = "Unknown ttypes.ttp version."
-                            'Exit Function
-                            If MsgBox("ttypes.ttp version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                                Load_WZ.Problem = "Aborted."
-                                Exit Function
-                            End If
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-
-                        If Tileset IsNot Nothing Then
-                            For A = 0 To Math.Min(uintTemp, Tileset.TileCount) - 1
-                                If Not ByteLoadFile.Get_U16(ushortTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                                If ushortTemp > 11US Then
-                                    Load_WZ.Problem = "Unknown tile type."
-                                    Exit Function
-                                End If
-                                Tile_TypeNum(A) = ushortTemp
-                            Next
-                        End If
-
-                        Exit Do
-                    End If
-                End If
-            Loop
-
-            ZipStream.Close()
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-            ByteLoadFile = New clsByteReadFile
-
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then Exit Do
-
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-                If SplitPath.FilePath = GameFilesPath Then
-                    If SplitPath.FileTitle = "struct.bjo" Then
-                        ReDim ByteLoadFile.Bytes(ZipEntry.Size)
-                        ByteLoadFile.ByteCount = ZipEntry.Size
-                        ZipStream.Read(ByteLoadFile.Bytes, 0, ZipEntry.Size)
-
-                        If Not ByteLoadFile.Get_Text(4, strTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If strTemp <> "stru" Then
-                            Load_WZ.Problem = "Unknown struct.bjo identifier."
-                            Exit Function
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Version <> 8UI Then
-                            'Load_WZ.Problem = "Unknown struct.bjo version."
-                            'Exit Function
-                            If MsgBox("struct.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                                Load_WZ.Problem = "Aborted."
-                                Exit Function
-                            End If
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-
-                        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-                        For A = 0 To uintTemp - 1
-                            WZUnits(WZUnitCount).LNDType = 1
-                            If Not ByteLoadFile.Get_Text(40, WZUnits(WZUnitCount).Code) Then Load_WZ.Problem = "Read error." : Exit Function
-                            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-                            If B > 0 Then
-                                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-                            End If
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).ID) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Rotation) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Player) Then Load_WZ.Problem = "Read error." : Exit Function
-                            ByteLoadFile.Position += 56
-                            WZUnitCount += 1
-                        Next
-
-                        Exit Do
-                    End If
-                End If
-            Loop
-
-            ZipStream.Close()
-            ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-            ByteLoadFile = New clsByteReadFile
-
-            Do
-                ZipEntry = ZipStream.GetNextEntry
-                If ZipEntry Is Nothing Then Exit Do
-
-                SplitPath = New sZipSplitPath(ZipEntry.Name)
-                If SplitPath.FilePath = GameFilesPath Then
-                    If SplitPath.FileTitle = "dinit.bjo" Then
-                        ReDim ByteLoadFile.Bytes(ZipEntry.Size)
-                        ByteLoadFile.ByteCount = ZipEntry.Size
-                        ZipStream.Read(ByteLoadFile.Bytes, 0, ZipEntry.Size)
-
-                        If Not ByteLoadFile.Get_Text(4, strTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If strTemp <> "dint" Then
-                            Load_WZ.Problem = "Unknown dinit.bjo identifier."
-                            Exit Function
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(Version) Then Load_WZ.Problem = "Read error." : Exit Function
-                        If Version > 19UI Then
-                            'Load_WZ.Problem = "Unknown dinit.bjo version."
-                            'Exit Function
-                            If MsgBox("dinit.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                                Load_WZ.Problem = "Aborted."
-                                Exit Function
-                            End If
-                        End If
-
-                        If Not ByteLoadFile.Get_U32(uintTemp) Then Load_WZ.Problem = "Read error." : Exit Function
-
-                        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-                        For A = 0 To uintTemp - 1
-                            WZUnits(WZUnitCount).LNDType = 2
-                            If Not ByteLoadFile.Get_Text(40, WZUnits(WZUnitCount).Code) Then Load_WZ.Problem = "Read error." : Exit Function
-                            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-                            If B > 0 Then
-                                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-                            End If
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).ID) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Rotation) Then Load_WZ.Problem = "Read error." : Exit Function
-                            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Player) Then Load_WZ.Problem = "Read error." : Exit Function
-                            ByteLoadFile.Position += 12
-                            WZUnitCount += 1
-                        Next
-
-                        Exit Do
-                    End If
-                End If
-            Loop
-
-            ZipStream.Close()
-
-            For A = 0 To WZUnitCount - 1
-                Unit_New = New clsUnit
-                Unit_New.ID = WZUnits(A).ID
-                Result = FindUnitType(WZUnits(A).Code, WZUnits(A).LNDType, Unit_New.Type)
-                If Not Result.Success Then
-                    Load_WZ.Problem = Result.Problem
-                    Exit Function
-                End If
-                Unit_New.PlayerNum = Math.Min(WZUnits(A).Player, FactionCountMax - 1)
-                Unit_New.Pos = WZUnits(A).Pos
-                Unit_New.Rotation = Math.Min(WZUnits(A).Rotation, 359UI)
-                Unit_Add(Unit_New, WZUnits(A).ID)
-            Next
-
-            ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
-            ShadowSector_CreateAll()
-            AutoTextureChange = New clsAutoTextureChange(Me)
-            SectorChange = New clsSectorChange(Me)
-
-        Catch ex As Exception
-            If ZipStream IsNot Nothing Then
-                ZipStream.Close()
-            End If
-            Load_WZ.Problem = ex.Message
-            Exit Function
-        End Try
+        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ShadowSector_CreateAll()
+        AutoTextureChange = New clsAutoTextureChange(Me)
+        SectorChange = New clsSectorChange(Me)
 
         Load_WZ.Success = True
     End Function
@@ -5587,32 +5409,37 @@ LineDone:
     End Function
 
     Function Load_TTP(ByVal Path As String) As sResult
-        Load_TTP.Success = False
-        Load_TTP.Problem = ""
+        Dim File As New clsByteReadFile
 
-        Dim File_TTP As New clsByteReadFile
+        Load_TTP = File.Begin(Path)
+        If Not Load_TTP.Success Then
+            Exit Function
+        End If
+        Load_TTP = Read_TTP(File)
+        File.Close()
+    End Function
 
-        File_TTP.Bytes = IO.File.ReadAllBytes(Path)
-        File_TTP.ByteCount = File_TTP.Bytes.GetUpperBound(0) + 1
-        File_TTP.Position = 0
+    Private Function Read_TTP(ByVal File As clsByteReadFile) As sResult
+        Read_TTP.Success = False
+        Read_TTP.Problem = ""
 
         Dim strTemp As String = ""
         Dim uintTemp As UInteger
         Dim ushortTemp As UShort
         Dim A As Integer
 
-        If Not File_TTP.Get_Text(4, strTemp) Then Load_TTP.Problem = "Read error." : Exit Function
-        If strTemp <> "ttyp" Then Load_TTP.Problem = "Incorrect identifier." : Exit Function
-        If Not File_TTP.Get_U32(uintTemp) Then Load_TTP.Problem = "Read error." : Exit Function
-        If uintTemp <> 8UI Then Load_TTP.Problem = "Unknown version." : Exit Function
-        If Not File_TTP.Get_U32(uintTemp) Then Load_TTP.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then Read_TTP.Problem = "Unable to read identifier." : Exit Function
+        If strTemp <> "ttyp" Then Read_TTP.Problem = "Incorrect identifier." : Exit Function
+        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read version." : Exit Function
+        If uintTemp <> 8UI Then Read_TTP.Problem = "Unknown version." : Exit Function
+        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read tile count." : Exit Function
         For A = 0 To Math.Min(uintTemp, CUInt(Tileset.TileCount)) - 1
-            If Not File_TTP.Get_U16(ushortTemp) Then Load_TTP.Problem = "Read error." : Exit Function
-            If ushortTemp > 11 Then Load_TTP.Problem = "Unknown tile type number." : Exit Function
+            If Not File.Get_U16(ushortTemp) Then Read_TTP.Problem = "Unable to read tile type number." : Exit Function
+            If ushortTemp > 11 Then Read_TTP.Problem = "Unknown tile type number." : Exit Function
             Tile_TypeNum(A) = ushortTemp
         Next
 
-        Load_TTP.Success = True
+        Read_TTP.Success = True
     End Function
 
     Sub AutoSave_Test()
@@ -6717,4 +6544,276 @@ LineDone:
             Painter.RoadBrush_Add(NewRoadBrush)
         End If
     End Sub
+
+    Private Function Read_WZ_Droids(ByVal ByteLoadFile As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+        Read_WZ_Droids.Success = False
+        Read_WZ_Droids.Problem = ""
+
+        Dim strTemp As String = Nothing
+        Dim Version As UInteger
+        Dim uintTemp As UInteger
+        Dim A As Integer
+        Dim B As Integer
+
+        If Not ByteLoadFile.Get_Text(4, strTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If strTemp <> "dint" Then
+            Read_WZ_Droids.Problem = "Unknown dinit.bjo identifier."
+            Exit Function
+        End If
+
+        If Not ByteLoadFile.Get_U32(Version) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If Version > 19UI Then
+            'Load_WZ.Problem = "Unknown dinit.bjo version."
+            'Exit Function
+            If MsgBox("dinit.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                Read_WZ_Droids.Problem = "Aborted."
+                Exit Function
+            End If
+        End If
+
+        If Not ByteLoadFile.Get_U32(uintTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+
+        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
+        For A = 0 To uintTemp - 1
+            WZUnits(WZUnitCount).LNDType = 2
+            If Not ByteLoadFile.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
+            If B > 0 Then
+                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+            End If
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            ByteLoadFile.Position += 12
+            WZUnitCount += 1
+        Next
+
+        Read_WZ_Droids.Success = True
+    End Function
+
+    Private Function Read_WZ_Game(ByVal File As clsByteReadFile) As sResult
+        Read_WZ_Game.Success = False
+        Read_WZ_Game.Problem = ""
+
+        Dim strTemp As String = Nothing
+        Dim Version As UInteger
+        Dim MapWidth As UInteger
+        Dim MapHeight As UInteger
+        Dim uintTemp As UInteger
+        Dim Flip As Byte
+        Dim FlipX As Boolean
+        Dim FlipZ As Boolean
+        Dim Rotate As Byte
+        Dim TextureNum As Byte
+        Dim A As Integer
+        Dim X As Integer
+        Dim Z As Integer
+
+        If Not File.Get_Text(4, strTemp) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If strTemp <> "map " Then
+            Read_WZ_Game.Problem = "Unknown game.map identifier."
+            Exit Function
+        End If
+
+        If Not File.Get_U32(Version) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If Version <> 10UI Then
+            'Load_WZ.Problem = "Unknown game.map version."
+            'Exit Function
+            If MsgBox("game.map version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                Read_WZ_Game.Problem = "Aborted."
+                Exit Function
+            End If
+        End If
+        If Not File.Get_U32(MapWidth) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(MapHeight) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If MapWidth < 1UI Or MapWidth > 1024UI Or MapHeight < 1UI Or MapHeight > 1024UI Then Read_WZ_Game.Problem = "Map size out of range." : Exit Function
+
+        Terrain_Blank(CInt(MapWidth), CInt(MapHeight))
+
+        For Z = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                If Not File.Get_U8(TextureNum) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
+                TerrainTile(X, Z).Texture.TextureNum = TextureNum
+                If Not File.Get_U8(Flip) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
+                If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
+                'get flipx
+                A = Int(Flip / 128.0#)
+                Flip -= A * 128
+                FlipX = (A = 1)
+                'get flipy
+                A = Int(Flip / 64.0#)
+                Flip -= A * 64
+                FlipZ = (A = 1)
+                'get rotation
+                A = Int(Flip / 16.0#)
+                Flip -= A * 16
+                Rotate = A
+                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
+                'get tri direction
+                A = Int(Flip / 8.0#)
+                Flip -= A * 8
+                TerrainTile(X, Z).Tri = (A = 1)
+            Next
+        Next
+
+        If Version <> 2UI Then
+            If Not File.Get_U32(uintTemp) Then Read_WZ_Game.Problem = "Gateway version read error." : Exit Function
+            If uintTemp <> 1 Then Read_WZ_Game.Problem = "Bad gateway version number." : Exit Function
+
+            If Not File.Get_U32(GatewayCount) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+            ReDim Gateways(GatewayCount - 1)
+
+            For A = 0 To GatewayCount - 1
+                If Not File.Get_U8(Gateways(A).PosA.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+                If Not File.Get_U8(Gateways(A).PosA.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+                If Not File.Get_U8(Gateways(A).PosB.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+                If Not File.Get_U8(Gateways(A).PosB.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+            Next
+        End If
+
+        Read_WZ_Game.Success = True
+    End Function
+
+    Private Function Read_WZ_Features(ByVal File As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+        Read_WZ_Features.Success = False
+        Read_WZ_Features.Problem = ""
+
+        Dim strTemp As String = Nothing
+        Dim Version As UInteger
+        Dim uintTemp As UInteger
+        Dim A As Integer
+        Dim B As Integer
+
+        If Not File.Get_Text(4, strTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+        If strTemp <> "feat" Then
+            Read_WZ_Features.Problem = "Unknown feat.bjo identifier."
+            Exit Function
+        End If
+
+        If Not File.Get_U32(Version) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+        If Version <> 8UI Then
+            'Load_WZ.Problem = "Unknown feat.bjo version."
+            'Exit Function
+            If MsgBox("feat.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                Read_WZ_Features.Problem = "Aborted."
+                Exit Function
+            End If
+        End If
+
+        If Not File.Get_U32(uintTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+
+        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
+        For A = 0 To uintTemp - 1
+            WZUnits(WZUnitCount).LNDType = 0
+            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
+            If B > 0 Then
+                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+            End If
+            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            File.Position += 12
+            WZUnitCount += 1
+        Next
+
+        Read_WZ_Features.Success = True
+    End Function
+
+    Private Function Read_WZ_TileTypes(ByVal File As clsByteReadFile) As sResult
+        Read_WZ_TileTypes.Success = False
+        Read_WZ_TileTypes.Problem = ""
+
+        Dim strTemp As String = Nothing
+        Dim Version As UInteger
+        Dim uintTemp As UInteger
+        Dim ushortTemp As UShort
+        Dim A As Integer
+
+        If Not File.Get_Text(4, strTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+        If strTemp <> "ttyp" Then
+            Read_WZ_TileTypes.Problem = "Unknown ttypes.ttp identifier."
+            Exit Function
+        End If
+
+        If Not File.Get_U32(Version) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+        If Version <> 8UI Then
+            'Load_WZ.Problem = "Unknown ttypes.ttp version."
+            'Exit Function
+            If MsgBox("ttypes.ttp version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                Read_WZ_TileTypes.Problem = "Aborted."
+                Exit Function
+            End If
+        End If
+
+        If Not File.Get_U32(uintTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+
+        If Tileset IsNot Nothing Then
+            For A = 0 To Math.Min(uintTemp, Tileset.TileCount) - 1
+                If Not File.Get_U16(ushortTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+                If ushortTemp > 11US Then
+                    Read_WZ_TileTypes.Problem = "Unknown tile type."
+                    Exit Function
+                End If
+                Tile_TypeNum(A) = ushortTemp
+            Next
+        End If
+
+        Read_WZ_TileTypes.Success = True
+    End Function
+
+    Private Function Read_WZ_Structures(ByVal File As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+        Read_WZ_Structures.Success = False
+        Read_WZ_Structures.Problem = ""
+
+        Dim strTemp As String = Nothing
+        Dim Version As UInteger
+        Dim uintTemp As UInteger
+        Dim A As Integer
+        Dim B As Integer
+
+        If Not File.Get_Text(4, strTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+        If strTemp <> "stru" Then
+            Read_WZ_Structures.Problem = "Unknown struct.bjo identifier."
+            Exit Function
+        End If
+
+        If Not File.Get_U32(Version) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+        If Version <> 8UI Then
+            'Load_WZ.Problem = "Unknown struct.bjo version."
+            'Exit Function
+            If MsgBox("struct.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
+                Read_WZ_Structures.Problem = "Aborted."
+                Exit Function
+            End If
+        End If
+
+        If Not File.Get_U32(uintTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+
+        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
+        For A = 0 To uintTemp - 1
+            WZUnits(WZUnitCount).LNDType = 1
+            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
+            If B > 0 Then
+                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+            End If
+            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            File.Position += 56
+            WZUnitCount += 1
+        Next
+
+        Read_WZ_Structures.Success = True
+    End Function
 End Class

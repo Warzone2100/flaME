@@ -59,12 +59,6 @@
         SubDirStructureWeapons = "stats" & ospathseperator & "structureweapons.txt"
     End Sub
 
-    Public Enum enumPIE_Purpose As Byte
-        Base
-        Propulsion
-        Component
-    End Enum
-
     'structure type
     Structure sStructure
         Dim Code As String
@@ -175,14 +169,6 @@
         Dim PIECount As Integer
     End Structure
 
-    Const Component_Type_Body As Integer = 0
-    Const Component_Type_Propulsion As Integer = 1
-    Const Component_Type_Weapon As Integer = 2
-    Const Component_Type_Construction As Integer = 3
-    Const Component_Type_Sensor As Integer = 4
-    Const Component_Type_Repair As Integer = 5
-    Const Component_Type_Brain As Integer = 6
-
     'template type
     Structure sTemplate
         Dim Code As String
@@ -252,7 +238,7 @@
     End Structure
 
     Structure sFileData_Entry_Num_List
-        Dim Result_Entry_Num() As Integer
+        Dim ResultEntryNum() As Integer
         Dim ResultCount As Integer
     End Structure
 
@@ -264,9 +250,9 @@
         End With
     End Sub
 
-    Function Data_Load(ByVal Path As String) As sResult
-        Data_Load.Success = False
-        Data_Load.Problem = ""
+    Function DataLoad(ByVal Path As String) As sResult
+        DataLoad.Success = False
+        DataLoad.Problem = ""
 
         EndWithPathSeperator(Path)
 
@@ -289,79 +275,79 @@
         Dim DataStructureWeapons As New sFileData
         Dim Result As sResult
 
-        Result = Names_File_Load(Path & SubDirNames, DataNames)
+        Result = NamesFileLoad(Path & SubDirNames, DataNames)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirStructures, DataStructures)
+        Result = CommaFileLoad(Path & SubDirStructures, DataStructures)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirBrain, DataBrain)
+        Result = CommaFileLoad(Path & SubDirBrain, DataBrain)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirBody, DataBody)
+        Result = CommaFileLoad(Path & SubDirBody, DataBody)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirPropulsion, DataPropulsion)
+        Result = CommaFileLoad(Path & SubDirPropulsion, DataPropulsion)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirBodyPropulsion, DataBodyPropulsion)
+        Result = CommaFileLoad(Path & SubDirBodyPropulsion, DataBodyPropulsion)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirConstruction, DataConstruction)
+        Result = CommaFileLoad(Path & SubDirConstruction, DataConstruction)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirSensor, DataSensor)
+        Result = CommaFileLoad(Path & SubDirSensor, DataSensor)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirRepair, DataRepair)
+        Result = CommaFileLoad(Path & SubDirRepair, DataRepair)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirTemplates, DataTemplates)
+        Result = CommaFileLoad(Path & SubDirTemplates, DataTemplates)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirECM, DataECM)
+        Result = CommaFileLoad(Path & SubDirECM, DataECM)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirFeatures, DataFeatures)
+        Result = CommaFileLoad(Path & SubDirFeatures, DataFeatures)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirAssignWeapons, DataAssignWeapons)
+        Result = CommaFileLoad(Path & SubDirAssignWeapons, DataAssignWeapons)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirWeapons, DataWeapons)
+        Result = CommaFileLoad(Path & SubDirWeapons, DataWeapons)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
-        Result = Comma_File_Load(Path & SubDirStructureWeapons, DataStructureWeapons)
+        Result = CommaFileLoad(Path & SubDirStructureWeapons, DataStructureWeapons)
         If Not Result.Success Then
-            Data_Load.Problem = Result.Problem
+            DataLoad.Problem = Result.Problem
             Exit Function
         End If
 
@@ -371,157 +357,157 @@
         'check there are the correct number of fields in names data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataNames, 2, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Invalid entries in names.txt."
+            DataLoad.Problem = "Invalid entries in names.txt."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataNames, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in names.txt."
+            DataLoad.Problem = "There are two entries for the same code in names.txt."
             Exit Function
         End If
         'check there are the correct number of fields in structure data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataStructures, 25, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in structures.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in structures.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataStructures, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in structures.txt."
+            DataLoad.Problem = "There are two entries for the same code in structures.txt."
             Exit Function
         End If
         'check there are the correct number of fields in brain data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBrain, 9, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in brain.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in brain.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataBrain, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in brain.txt."
+            DataLoad.Problem = "There are two entries for the same code in brain.txt."
             Exit Function
         End If
         'check there are the correct number of fields in body data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBody, 25, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in body.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in body.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataBody, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in body.txt."
+            DataLoad.Problem = "There are two entries for the same code in body.txt."
             Exit Function
         End If
         'check there are the correct number of fields in propulsion data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataPropulsion, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in propulsion.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in propulsion.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataPropulsion, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in propulsion.txt."
+            DataLoad.Problem = "There are two entries for the same code in propulsion.txt."
             Exit Function
         End If
         'check there are the correct number of fields in construction data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataConstruction, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in construction.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in construction.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataConstruction, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in construction.txt."
+            DataLoad.Problem = "There are two entries for the same code in construction.txt."
             Exit Function
         End If
         'check there are the correct number of fields in sensor data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataSensor, 16, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in sensor.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in sensor.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataSensor, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in sensor.txt."
+            DataLoad.Problem = "There are two entries for the same code in sensor.txt."
             Exit Function
         End If
         'check there are the correct number of fields in repair data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataRepair, 14, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in repair.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in repair.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataRepair, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in repair.txt."
+            DataLoad.Problem = "There are two entries for the same code in repair.txt."
             Exit Function
         End If
         'check there are the correct number of fields in templates data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataTemplates, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in templates.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in templates.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataTemplates, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in templates.txt."
+            DataLoad.Problem = "There are two entries for the same code in templates.txt."
             Exit Function
         End If
         'check there are the correct number of fields in ecm data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataECM, 14, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in ecm.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in ecm.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataECM, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in ecm.txt."
+            DataLoad.Problem = "There are two entries for the same code in ecm.txt."
             Exit Function
         End If
         'check there are the correct number of fields in feature data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataFeatures, 11, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in features.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in features.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataFeatures, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in features.txt."
+            DataLoad.Problem = "There are two entries for the same code in features.txt."
             Exit Function
         End If
         'check there are the correct number of fields in assignweapons data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataAssignWeapons, 5, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in assignweapons.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in assignweapons.txt with wrong number of fields."
             Exit Function
         End If
         'check there are the correct number of fields in weapon data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataWeapons, 53, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in weapons.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in weapons.txt with wrong number of fields."
             Exit Function
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataWeapons, 0) Then
-            Data_Load.Problem = "There are two entries for the same code in features.txt."
+            DataLoad.Problem = "There are two entries for the same code in features.txt."
             Exit Function
         End If
         'check there are the correct number of fields in bodypropulsion data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBodyPropulsion, 5, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in bodypropulsionimd.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in bodypropulsionimd.txt with wrong number of fields."
             Exit Function
         End If
         'check there are the correct number of fields in structureweapons data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataStructureWeapons, 6, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            Data_Load.Problem = "Entries in structureweapons.txt with wrong number of fields."
+            DataLoad.Problem = "Entries in structureweapons.txt with wrong number of fields."
             Exit Function
         End If
 
         'interpret data
 
-        Dim Mod_Data_New As New sMod_Data
+        Dim NewModData As New sMod_Data
 
         Dim Structure_Num As Integer
         Dim Brain_Num As Integer
@@ -534,7 +520,7 @@
         Dim ECM_Num As Integer
         Dim Feature_Num As Integer
 
-        With Mod_Data_New
+        With NewModData
 
             'interpret body
             With .Body_List
@@ -544,9 +530,9 @@
                     .Bodies(Body_Num).Code = DataBody.Entry(Body_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Bodies(Body_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Bodies(Body_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Bodies(Body_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for body component " & .Bodies(Body_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for body component " & .Bodies(Body_Num).Code & "."
                         Exit Function
                     End If
                     .Bodies(Body_Num).PIE = LCase(DataBody.Entry(Body_Num).FieldValue(7))
@@ -563,9 +549,9 @@
                     .Propulsions(Propulsion_Num).Code = DataPropulsion.Entry(Propulsion_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Propulsions(Propulsion_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Propulsions(Propulsion_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Propulsions(Propulsion_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & "."
                         Exit Function
                     End If
                     .Propulsions(Propulsion_Num).PIE = LCase(DataPropulsion.Entry(Propulsion_Num).FieldValue(8))
@@ -582,9 +568,9 @@
                     .Constructions(Construction_Num).Code = DataConstruction.Entry(Construction_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Constructions(Construction_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Constructions(Construction_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Constructions(Construction_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for construction component " & .Constructions(Construction_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for construction component " & .Constructions(Construction_Num).Code & "."
                         Exit Function
                     End If
                     .Constructions(Construction_Num).PIE = LCase(DataConstruction.Entry(Construction_Num).FieldValue(8))
@@ -613,9 +599,9 @@
                     .Sensors(Sensor_Num).Code = DataSensor.Entry(Sensor_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Sensors(Sensor_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Sensors(Sensor_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Sensors(Sensor_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & "."
                         Exit Function
                     End If
                     .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entry(Sensor_Num).FieldValue(8))
@@ -633,9 +619,9 @@
                     .Repairs(Repair_Num).Code = DataRepair.Entry(Repair_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Repairs(Repair_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Repairs(Repair_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Repairs(Repair_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for repair component " & .Repairs(Repair_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for repair component " & .Repairs(Repair_Num).Code & "."
                         Exit Function
                     End If
                     .Repairs(Repair_Num).PIE = LCase(DataRepair.Entry(Repair_Num).FieldValue(9))
@@ -652,9 +638,9 @@
                     .Brains(Brain_Num).Code = DataBrain.Entry(Brain_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Brains(Brain_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Brains(Brain_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Brains(Brain_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for brain component " & .Brains(Brain_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for brain component " & .Brains(Brain_Num).Code & "."
                         Exit Function
                     End If
                 Next Brain_Num
@@ -669,9 +655,9 @@
                     .ECMs(ECM_Num).Code = DataECM.Entry(ECM_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .ECMs(ECM_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .ECMs(ECM_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .ECMs(ECM_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & "."
                         Exit Function
                     End If
                     .ECMs(ECM_Num).PIE = LCase(DataECM.Entry(ECM_Num).FieldValue(8))
@@ -686,9 +672,9 @@
                     .Features(Feature_Num).Code = DataFeatures.Entry(Feature_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Features(Feature_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Features(Feature_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Features(Feature_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for feature " & .Features(Feature_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for feature " & .Features(Feature_Num).Code & "."
                         Exit Function
                     End If
                     .Features(Feature_Num).PIE = LCase(DataFeatures.Entry(Feature_Num).FieldValue(6))
@@ -709,8 +695,8 @@
             Dim BodyPropNum As Integer
             For BodyPropNum = 0 To DataBodyPropulsion.EntryCount - 1
                 With DataBodyPropulsion.Entry(BodyPropNum)
-                    Body_Num = Body_Num_Get_From_Code(Mod_Data_New, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(0))
-                    Propulsion_Num = Propulsion_Num_Get_From_Code(Mod_Data_New, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(1))
+                    Body_Num = GetBodyNumFromCode(NewModData, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(0))
+                    Propulsion_Num = GetPropulsionNumFromCode(NewModData, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(1))
                     If Body_Num >= 0 And Propulsion_Num >= 0 Then
                         If DataAssignWeapons.Entry(BodyPropNum).FieldValue(2) <> "0" Then
                             BodyPropulsions(Body_Num, Propulsion_Num).LeftPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(2))
@@ -730,18 +716,18 @@
                     .Templates(Template_Num).Code = DataTemplates.Entry(Template_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Templates(Template_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Templates(Template_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Templates(Template_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for template component " & .Templates(Template_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for template component " & .Templates(Template_Num).Code & "."
                         Exit Function
                     End If
-                    .Templates(Template_Num).Body = Body_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(2))
-                    .Templates(Template_Num).Propulsion = Propulsion_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(7))
-                    .Templates(Template_Num).Brain = Brain_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(3))
-                    .Templates(Template_Num).Construction = Construction_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(4))
-                    .Templates(Template_Num).Repair = Repair_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(8))
-                    .Templates(Template_Num).ECM = ECM_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(5))
-                    .Templates(Template_Num).Sensor = Sensor_Num_Get_From_Code(Mod_Data_New, DataTemplates.Entry(Template_Num).FieldValue(10))
+                    .Templates(Template_Num).Body = GetBodyNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(2))
+                    .Templates(Template_Num).Propulsion = GetPropulsionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(7))
+                    .Templates(Template_Num).Brain = GetBrainNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(3))
+                    .Templates(Template_Num).Construction = GetConstructionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(4))
+                    .Templates(Template_Num).Repair = GetRepairNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(8))
+                    .Templates(Template_Num).ECM = GetECMNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(5))
+                    .Templates(Template_Num).Sensor = GetSensorNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(10))
                     .Templates(Template_Num).Weapon1 = -1
                     .Templates(Template_Num).Weapon2 = -1
                     .Templates(Template_Num).Weapon3 = -1
@@ -751,16 +737,16 @@
             Dim AssignedWeapon_Num As Integer
             For AssignedWeapon_Num = 0 To DataAssignWeapons.EntryCount - 1
                 With DataAssignWeapons.Entry(AssignedWeapon_Num)
-                    Template_Num = Template_Num_Get_From_Code(Mod_Data_New, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0))
+                    Template_Num = GetTemplateNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0))
                     If Template_Num >= 0 Then
                         If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(1) <> "NULL" Then
-                            Mod_Data_New.Template_List.Templates(Template_Num).Weapon1 = Weapon_Num_Get_From_Code(Mod_Data_New, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(1))
+                            NewModData.Template_List.Templates(Template_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(1))
                         End If
                         If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(2) <> "NULL" Then
-                            Mod_Data_New.Template_List.Templates(Template_Num).Weapon2 = Weapon_Num_Get_From_Code(Mod_Data_New, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(2))
+                            NewModData.Template_List.Templates(Template_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(2))
                         End If
                         If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(3) <> "NULL" Then
-                            Mod_Data_New.Template_List.Templates(Template_Num).Weapon3 = Weapon_Num_Get_From_Code(Mod_Data_New, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(3))
+                            NewModData.Template_List.Templates(Template_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(3))
                         End If
                     Else
                         'Data_Load.Problem = "Weapons assigned to missing template " & DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0) & "."
@@ -777,9 +763,9 @@
                     .Structures(Structure_Num).Code = DataStructures.Entry(Structure_Num).FieldValue(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Structures(Structure_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Structures(Structure_Num).Name = DataNames.Entry(Entry_Num_List.Result_Entry_Num(0)).FieldValue(1)
+                        .Structures(Structure_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        Data_Load.Problem = "No name in names.txt for structure " & .Structures(Structure_Num).Code & "."
+                        DataLoad.Problem = "No name in names.txt for structure " & .Structures(Structure_Num).Code & "."
                         Exit Function
                     End If
                     .Structures(Structure_Num).Type = DataStructures.Entry(Structure_Num).FieldValue(1)
@@ -791,8 +777,8 @@
                     .Structures(Structure_Num).Weapon2 = -1
                     .Structures(Structure_Num).Weapon3 = -1
                     .Structures(Structure_Num).Weapon4 = -1
-                    .Structures(Structure_Num).ECM = ECM_Num_Get_From_Code(Mod_Data_New, DataStructures.Entry(Structure_Num).FieldValue(18))
-                    .Structures(Structure_Num).Sensor = Sensor_Num_Get_From_Code(Mod_Data_New, DataStructures.Entry(Structure_Num).FieldValue(19))
+                    .Structures(Structure_Num).ECM = GetECMNumFromCode(NewModData, DataStructures.Entry(Structure_Num).FieldValue(18))
+                    .Structures(Structure_Num).Sensor = GetSensorNumFromCode(NewModData, DataStructures.Entry(Structure_Num).FieldValue(19))
                 Next Structure_Num
             End With
             DataStructures.EntryCount = 0
@@ -801,19 +787,19 @@
             Dim StructureWeaponNum As Integer
             For StructureWeaponNum = 0 To DataStructureWeapons.EntryCount - 1
                 With DataStructureWeapons.Entry(StructureWeaponNum)
-                    Structure_Num = Structure_Num_Get_From_Code(Mod_Data_New, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(0))
+                    Structure_Num = GetStructureNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(0))
                     If Structure_Num >= 0 Then
                         If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(1) <> "NULL" Then
-                            Mod_Data_New.Structure_List.Structures(Structure_Num).Weapon1 = Weapon_Num_Get_From_Code(Mod_Data_New, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(1))
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(1))
                         End If
                         If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(2) <> "NULL" Then
-                            Mod_Data_New.Structure_List.Structures(Structure_Num).Weapon2 = Weapon_Num_Get_From_Code(Mod_Data_New, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(2))
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(2))
                         End If
                         If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(3) <> "NULL" Then
-                            Mod_Data_New.Structure_List.Structures(Structure_Num).Weapon3 = Weapon_Num_Get_From_Code(Mod_Data_New, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(3))
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(3))
                         End If
                         If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(4) <> "NULL" Then
-                            Mod_Data_New.Structure_List.Structures(Structure_Num).Weapon4 = Weapon_Num_Get_From_Code(Mod_Data_New, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(4))
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon4 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(4))
                         End If
                     Else
                         'Data_Load.Problem = "Weapons assigned to missing template " & DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0) & "."
@@ -825,7 +811,7 @@
 
         'set the main variables to the new variables
 
-        Mod_Data_Main = Mod_Data_New
+        Mod_Data_Main = NewModData
 
         'load texpages
 
@@ -834,7 +820,7 @@
         Try
             TexFiles = IO.Directory.GetFiles(Path & SubDirTexpages)
         Catch ex As Exception
-            Data_Load.Problem = ex.Message
+            DataLoad.Problem = ex.Message
             Exit Function
         End Try
 
@@ -852,15 +838,15 @@
                     tmpBitmap = New clsFileBitmap()
                     Result = tmpBitmap.Load(tmpString)
                     If Not Result.Success Then
-                        Data_Load.Problem = "Failed loading " & tmpString & "; " & Result.Problem
+                        DataLoad.Problem = "Failed loading " & tmpString & "; " & Result.Problem
                         Exit Function
                     End If
-                    TexturePages(TexturePageCount).GLTexture_Num = tmpBitmap.GL_Texture_Create()
+                    TexturePages(TexturePageCount).GLTexture_Num = tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, False)
                     InstrPos2 = InStrRev(tmpString, OSPathSeperator)
                     TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
                 Else
-                    Data_Load.Problem = "Texture page missing (" & tmpString & ")."
+                    DataLoad.Problem = "Texture page missing (" & tmpString & ")."
                     Exit Function
                 End If
             End If
@@ -877,7 +863,7 @@
         Try
             PIE_Files = IO.Directory.GetFiles(Path & SubDirPIEs)
         Catch ex As Exception
-            Data_Load.Problem = "Unable to access PIE files."
+            DataLoad.Problem = "Unable to access PIE files."
             Exit Function
         End Try
 
@@ -1112,7 +1098,7 @@
             Next
         End With
 
-        Data_Load.Success = True
+        DataLoad.Success = True
     End Function
 
     Function FileData_Field_Check_Unique(ByRef FileData As sFileData, ByVal Field_Num As Integer) As Boolean
@@ -1137,56 +1123,56 @@
         Dim Entry_Num As Integer
 
         Output_Entry_Num_List.ResultCount = 0
-        ReDim Output_Entry_Num_List.Result_Entry_Num(FileData.EntryCount - 1)
+        ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
                 With .Entry(Entry_Num)
                     If Not .FieldCount = FieldCount Then
-                        ReDim Preserve Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount)
-                        Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount) = Entry_Num
+                        ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount)
+                        Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
                         Output_Entry_Num_List.ResultCount += 1
                     End If
                 End With
             Next Entry_Num
         End With
-        ReDim Preserve Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount - 1)
+        ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount - 1)
     End Sub
 
     Sub FileData_Entries_Get_From_Not_FieldCount_InRange(ByRef FileData As sFileData, ByVal FieldCountMin As Integer, ByVal FieldCountMax As Integer, ByRef Output_Entry_Num_List As sFileData_Entry_Num_List)
         Dim Entry_Num As Integer
 
         Output_Entry_Num_List.ResultCount = 0
-        ReDim Output_Entry_Num_List.Result_Entry_Num(FileData.EntryCount - 1)
+        ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
                 With .Entry(Entry_Num)
                     If (.FieldCount < FieldCountMin Or .FieldCount > FieldCountMax) Then
-                        ReDim Preserve Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount)
-                        Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount) = Entry_Num
+                        ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount)
+                        Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
                         Output_Entry_Num_List.ResultCount += 1
                     End If
                 End With
             Next Entry_Num
         End With
-        ReDim Preserve Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount - 1)
+        ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount - 1)
     End Sub
 
     Sub FileData_Entries_Get_From_Field_Value(ByRef FileData As sFileData, ByVal Search_Field_Num As Integer, ByVal Search_String As String, ByRef Output_Entry_Num_List As sFileData_Entry_Num_List)
         Dim Entry_Num As Integer
 
         Output_Entry_Num_List.ResultCount = 0
-        ReDim Output_Entry_Num_List.Result_Entry_Num(FileData.EntryCount - 1)
+        ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
                 With .Entry(Entry_Num)
                     If .FieldValue(Search_Field_Num) = Search_String Then
-                        Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount) = Entry_Num
+                        Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
                         Output_Entry_Num_List.ResultCount += 1
                     End If
                 End With
             Next Entry_Num
         End With
-        ReDim Preserve Output_Entry_Num_List.Result_Entry_Num(Output_Entry_Num_List.ResultCount - 1)
+        ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount - 1)
     End Sub
 
     Sub BytesToLines(ByRef Bytes() As Byte, ByRef OutputLines() As String)
@@ -1247,7 +1233,7 @@
         ReDim Preserve OutputLines(LineCount - 1)
     End Sub
 
-    Sub Lines_Remove_Comments(ByRef Lines() As String)
+    Sub LinesRemoveComments(ByRef Lines() As String)
         Dim LineNum As Integer
         Dim LineCount As Integer = Lines.GetUpperBound(0) + 1
         Dim InCommentBlock As Boolean
@@ -1303,9 +1289,9 @@
         Next
     End Sub
 
-    Function Comma_File_Load(ByVal Path As String, ByRef FileData As sFileData) As sResult
-        Comma_File_Load.Problem = ""
-        Comma_File_Load.Success = False
+    Function CommaFileLoad(ByVal Path As String, ByRef FileData As sFileData) As sResult
+        CommaFileLoad.Problem = ""
+        CommaFileLoad.Success = False
 
         Dim Bytes() As Byte
         Dim LineData(-1) As String
@@ -1319,13 +1305,13 @@
         Try
             Bytes = IO.File.ReadAllBytes(Path)
         Catch ex As Exception
-            Comma_File_Load.Problem = ex.Message
+            CommaFileLoad.Problem = ex.Message
             Exit Function
         End Try
 
         BytesToLines(Bytes, LineData)
 
-        Lines_Remove_Comments(LineData)
+        LinesRemoveComments(LineData)
         LineCount = LineData.GetUpperBound(0) + 1
 
         With FileData
@@ -1359,12 +1345,12 @@
             ReDim Preserve .Entry(.EntryCount - 1)
         End With
 
-        Comma_File_Load.Success = True
+        CommaFileLoad.Success = True
     End Function
 
-    Function Names_File_Load(ByVal Path As String, ByRef FileData As sFileData) As sResult
-        Names_File_Load.Problem = ""
-        Names_File_Load.Success = False
+    Function NamesFileLoad(ByVal Path As String, ByRef FileData As sFileData) As sResult
+        NamesFileLoad.Problem = ""
+        NamesFileLoad.Success = False
 
         Dim Bytes() As Byte
         Dim LineData(-1) As String
@@ -1379,13 +1365,13 @@
         Try
             Bytes = IO.File.ReadAllBytes(Path)
         Catch ex As Exception
-            Names_File_Load.Problem = ex.Message
+            NamesFileLoad.Problem = ex.Message
             Exit Function
         End Try
 
         BytesToLines(Bytes, LineData)
 
-        Lines_Remove_Comments(LineData)
+        LinesRemoveComments(LineData)
         LineCount = LineData.GetUpperBound(0) + 1
 
         'output as entries with fields
@@ -1433,147 +1419,147 @@
             ReDim Preserve .Entry(.EntryCount - 1)
         End With
 
-        Names_File_Load.Success = True
+        NamesFileLoad.Success = True
     End Function
 
-    Function Construction_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetConstructionNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Construction_Num As Integer
 
         With Mod_Data.Construction_List
             For Construction_Num = 0 To .ConstructionCount - 1
                 If .Constructions(Construction_Num).Code = Code Then
-                    Construction_Num_Get_From_Code = Construction_Num
+                    GetConstructionNumFromCode = Construction_Num
                     Exit Function
                 End If
             Next
         End With
-        Construction_Num_Get_From_Code = -1
+        GetConstructionNumFromCode = -1
     End Function
 
-    Function Body_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetBodyNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Body_Num As Integer
 
         With Mod_Data.Body_List
             For Body_Num = 0 To .BodyCount - 1
                 If .Bodies(Body_Num).Code = Code Then
-                    Body_Num_Get_From_Code = Body_Num
+                    GetBodyNumFromCode = Body_Num
                     Exit Function
                 End If
             Next
         End With
-        Body_Num_Get_From_Code = -1
+        GetBodyNumFromCode = -1
     End Function
 
-    Function Brain_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetBrainNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Brain_Num As Integer
 
         With Mod_Data.Brain_List
             For Brain_Num = 0 To .BrainCount - 1
                 If .Brains(Brain_Num).Code = Code Then
-                    Brain_Num_Get_From_Code = Brain_Num
+                    GetBrainNumFromCode = Brain_Num
                     Exit Function
                 End If
             Next
         End With
-        Brain_Num_Get_From_Code = -1
+        GetBrainNumFromCode = -1
     End Function
 
-    Function Propulsion_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetPropulsionNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Propulsion_Num As Integer
 
         With Mod_Data.Propulsion_List
             For Propulsion_Num = 0 To .PropulsionCount - 1
                 If .Propulsions(Propulsion_Num).Code = Code Then
-                    Propulsion_Num_Get_From_Code = Propulsion_Num
+                    GetPropulsionNumFromCode = Propulsion_Num
                     Exit Function
                 End If
             Next
         End With
-        Propulsion_Num_Get_From_Code = -1
+        GetPropulsionNumFromCode = -1
     End Function
 
-    Function Repair_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetRepairNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Repair_Num As Integer
 
         With Mod_Data.Repair_List
             For Repair_Num = 0 To .RepairCount - 1
                 If .Repairs(Repair_Num).Code = Code Then
-                    Repair_Num_Get_From_Code = Repair_Num
+                    GetRepairNumFromCode = Repair_Num
                     Exit Function
                 End If
             Next
         End With
-        Repair_Num_Get_From_Code = -1
+        GetRepairNumFromCode = -1
     End Function
 
-    Function ECM_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetECMNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim ECM_Num As Integer
 
         With Mod_Data.ECM_List
             For ECM_Num = 0 To .ECMCount - 1
                 If .ECMs(ECM_Num).Code = Code Then
-                    ECM_Num_Get_From_Code = ECM_Num
+                    GetECMNumFromCode = ECM_Num
                     Exit Function
                 End If
             Next
         End With
-        ECM_Num_Get_From_Code = -1
+        GetECMNumFromCode = -1
     End Function
 
-    Function Sensor_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetSensorNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Sensor_Num As Integer
 
         With Mod_Data.Sensor_List
             For Sensor_Num = 0 To .SensorCount - 1
                 If .Sensors(Sensor_Num).Code = Code Then
-                    Sensor_Num_Get_From_Code = Sensor_Num
+                    GetSensorNumFromCode = Sensor_Num
                     Exit Function
                 End If
             Next
         End With
-        Sensor_Num_Get_From_Code = -1
+        GetSensorNumFromCode = -1
     End Function
 
-    Function Weapon_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetWeaponNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Weapon_Num As Integer
 
         With Mod_Data.Weapon_List
             For Weapon_Num = 0 To .WeaponCount - 1
                 If .Weapons(Weapon_Num).Code = Code Then
-                    Weapon_Num_Get_From_Code = Weapon_Num
+                    GetWeaponNumFromCode = Weapon_Num
                     Exit Function
                 End If
             Next
         End With
-        Weapon_Num_Get_From_Code = -1
+        GetWeaponNumFromCode = -1
     End Function
 
-    Function Template_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetTemplateNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Template_Num As Integer
 
         With Mod_Data.Template_List
             For Template_Num = 0 To .TemplateCount - 1
                 If .Templates(Template_Num).Code = Code Then
-                    Template_Num_Get_From_Code = Template_Num
+                    GetTemplateNumFromCode = Template_Num
                     Exit Function
                 End If
             Next
         End With
-        Template_Num_Get_From_Code = -1
+        GetTemplateNumFromCode = -1
     End Function
 
-    Function Structure_Num_Get_From_Code(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
+    Function GetStructureNumFromCode(ByRef Mod_Data As sMod_Data, ByVal Code As String) As Integer
         Dim Structure_Num As Integer
 
         With Mod_Data.Structure_List
             For Structure_Num = 0 To .StructureCount - 1
                 If .Structures(Structure_Num).Code = Code Then
-                    Structure_Num_Get_From_Code = Structure_Num
+                    GetStructureNumFromCode = Structure_Num
                     Exit Function
                 End If
             Next
         End With
-        Structure_Num_Get_From_Code = -1
+        GetStructureNumFromCode = -1
     End Function
 
     Function GetModelForPIE(ByRef PIE_List As sPIE_List, ByVal PIE_LCaseFileTitle As String, ByVal PIE_FullPath As String) As clsModel

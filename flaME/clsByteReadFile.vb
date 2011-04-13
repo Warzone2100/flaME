@@ -1,140 +1,248 @@
-﻿Public Class clsByteReadFile
+﻿Imports ICSharpCode.SharpZipLib
 
-    Public Bytes(-1) As Byte
-    Public ByteCount As Integer
-    Public Position As Integer
+Public Class clsByteReadFile
+
+    Private Const DefaultBufferLength As Integer = 524288
+    Private _ByteBufferLength As Integer = DefaultBufferLength
+    Private Enum enumStreamType As Byte
+        None
+        FileStream
+        FixedBytes
+    End Enum
+    Private Type As enumStreamType = enumStreamType.None
+    Private FileStream As IO.FileStream
+    Private FilePosition As Integer
+    Private FileNextPosition As Integer
+    Private Bytes() As Byte
+    Private ByteCount As Integer
+    Private BytesPosition As Integer
+
+    Public Property BufferLength As Integer
+        Get
+            Return _ByteBufferLength
+        End Get
+        Set(ByVal value As Integer)
+            If value = _ByteBufferLength Or value < 8 Then
+                Exit Property
+            End If
+            _ByteBufferLength = value
+            RedimBytes()
+        End Set
+    End Property
+
+    Public Sub New()
+
+        RedimBytes()
+    End Sub
+
+    Private Sub RedimBytes()
+
+        ReDim Bytes(_ByteBufferLength - 1)
+    End Sub
+
+    Public Property Position As Integer
+        Get
+            Return FilePosition + BytesPosition
+        End Get
+        Set(ByVal NewPosition As Integer)
+            If NewPosition < FilePosition Then
+                FilePosition = NewPosition
+                ReadBlock()
+            ElseIf NewPosition >= FilePosition + ByteCount Then
+                FilePosition = NewPosition
+                ReadBlock()
+            Else
+                BytesPosition = NewPosition - FilePosition
+            End If
+        End Set
+    End Property
+
+    Private Function FindLength(ByVal Length As Integer) As Boolean
+
+        If Length < 0 Or Length > _ByteBufferLength Then
+            Stop
+            Return False
+        End If
+        If BytesPosition + Length > ByteCount Then
+            Return ReadBlock()
+        Else
+            Return True
+        End If
+    End Function
 
     Function Get_U8(ByRef Output As Byte) As Boolean
 
-        If Position < ByteCount Then
-            Output = Bytes(Position)
-            Position += 1
-            Get_U8 = True
+        If FindLength(1) Then
+            Output = Bytes(BytesPosition)
+            BytesPosition += 1
+            Return True
         Else
-            Get_U8 = False
+            Return False
         End If
     End Function
 
     Function Get_U16(ByRef Output As UShort) As Boolean
 
-        If Position + 2 <= ByteCount Then
-            Output = BitConverter.ToUInt16(Bytes, Position)
-            Position += 2
-            Get_U16 = True
+        If FindLength(2) Then
+            Output = BitConverter.ToUInt16(Bytes, BytesPosition)
+            BytesPosition += 2
+            Return True
         Else
-            Get_U16 = False
+            Return False
         End If
     End Function
 
     Function Get_U32(ByRef Output As UInteger) As Boolean
 
-        If Position + 4 <= ByteCount Then
-            Output = BitConverter.ToUInt32(Bytes, Position)
-            Position += 4
-            Get_U32 = True
+        If FindLength(4) Then
+            Output = BitConverter.ToUInt32(Bytes, BytesPosition)
+            BytesPosition += 4
+            Return True
         Else
-            Get_U32 = False
+            Return False
         End If
     End Function
 
     Function Get_U64(ByRef Output As ULong) As Boolean
 
-        If Position + 8 <= ByteCount Then
-            Output = BitConverter.ToUInt64(Bytes, Position)
-            Position += 8
-            Get_U64 = True
+        If FindLength(8) Then
+            Output = BitConverter.ToUInt64(Bytes, BytesPosition)
+            BytesPosition += 8
+            Return True
         Else
-            Get_U64 = False
+            Return False
         End If
     End Function
 
     Function Get_S16(ByRef Output As Short) As Boolean
 
-        If Position + 2 <= ByteCount Then
-            Output = BitConverter.ToInt16(Bytes, Position)
-            Position += 2
-            Get_S16 = True
+        If FindLength(2) Then
+            Output = BitConverter.ToInt16(Bytes, BytesPosition)
+            BytesPosition += 2
+            Return True
         Else
-            Get_S16 = False
+            Return False
         End If
     End Function
 
     Function Get_S32(ByRef Output As Integer) As Boolean
 
-        If Position + 4 <= ByteCount Then
-            Output = BitConverter.ToInt32(Bytes, Position)
-            Position += 4
-            Get_S32 = True
+        If FindLength(4) Then
+            Output = BitConverter.ToInt32(Bytes, BytesPosition)
+            BytesPosition += 4
+            Return True
         Else
-            Get_S32 = False
+            Return False
         End If
     End Function
 
     Function Get_F32(ByRef Output As Single) As Boolean
 
-        If Position + 4 <= ByteCount Then
-            Output = BitConverter.ToSingle(Bytes, Position)
-            Position += 4
-            Get_F32 = True
+        If FindLength(4) Then
+            Output = BitConverter.ToSingle(Bytes, BytesPosition)
+            BytesPosition += 4
+            Return True
         Else
-            Get_F32 = False
+            Return False
         End If
     End Function
 
     Function Get_Text_VariableLength(ByRef Output As String) As Boolean
         Static Length As Integer
         Static uintTemp As UInteger
-        Static Chars() As Char
-        Static A As Integer
 
         If Not Get_U32(uintTemp) Then
-            Get_Text_VariableLength = False
-            Exit Function
+            Return False
         End If
         Length = uintTemp
-        If Position + Length <= ByteCount Then
-            ReDim Chars(Length - 1)
-            For A = 0 To Length - 1
-                Chars(A) = Chr(Bytes(Position + A))
-            Next
-            Output = New String(Chars)
-            Position += Length
-            Get_Text_VariableLength = True
-        Else
-            Get_Text_VariableLength = False
-        End If
+        Return Get_Text(Length, Output)
     End Function
 
     Function Get_Text(ByVal Length As Integer, ByRef Output As String) As Boolean
-        Static A As Integer
         Static Chars() As Char
+        Static ReadLength As Integer
+        Static Offset As Integer
+        Static A As Integer
 
-        If Position + Length <= ByteCount Then
-            ReDim Chars(Length - 1)
-            For A = 0 To Length - 1
-                Chars(A) = Chr(Bytes(Position + A))
+        'read in buffer length blocks, for long strings
+        ReDim Chars(Length - 1)
+        Offset = 0
+        Do While Offset < Length
+            ReadLength = Math.Min(Length - Offset, _ByteBufferLength)
+            If Not FindLength(ReadLength) Then
+                Return False
+            End If
+            For A = 0 To ReadLength - 1
+                Chars(Offset + A) = Chr(Bytes(BytesPosition + A))
             Next
-            Output = New String(Chars)
-            Position += Length
-            Get_Text = True
-        Else
-            Get_Text = False
-        End If
+            BytesPosition += ReadLength
+            Offset += ReadLength
+        Loop
+        Output = New String(Chars)
+        Return True
     End Function
 
-    Function File_Read(ByVal Path As String) As sResult
-        File_Read.Success = False
-        File_Read.Problem = ""
+    Public Function Begin(ByVal Path As String) As sResult
+        Begin.Success = False
+        Begin.Problem = ""
 
+        Close()
+        Type = enumStreamType.None
         Try
-            Bytes = IO.File.ReadAllBytes(Path)
-            ByteCount = Bytes.GetUpperBound(0) + 1
+            FileStream = New IO.FileStream(Path, IO.FileMode.Open, IO.FileAccess.Read, IO.FileShare.Read)
         Catch ex As Exception
-            File_Read.Problem = ex.Message
+            Begin.Problem = ex.Message
             Exit Function
         End Try
-        Position = 0
+        Type = enumStreamType.FileStream
+        FilePosition = 0
+        ByteCount = 0
+        ReadBlock()
 
-        File_Read.Success = True
+        Begin.Success = True
     End Function
+
+    Public Sub Begin(ByVal Stream As Zip.ZipInputStream, ByVal ReadLength As Integer)
+
+        Close()
+        If Stream Is Nothing Then
+            Type = enumStreamType.None
+            Exit Sub
+        End If
+        Type = enumStreamType.FixedBytes
+        FilePosition = 0
+        BufferLength = ReadLength
+        ByteCount = Stream.Read(Bytes, 0, _ByteBufferLength)
+        BytesPosition = 0
+    End Sub
+
+    Private Function ReadBlock() As Boolean
+
+        If Type <> enumStreamType.FileStream Then
+            Return False
+        End If
+
+        Try
+            FilePosition += BytesPosition
+            FileStream.Seek(FilePosition, IO.SeekOrigin.Begin)
+            ByteCount = FileStream.Read(Bytes, 0, _ByteBufferLength)
+        Catch ex As Exception
+            Return False
+        End Try
+        BytesPosition = 0
+
+        Return True
+    End Function
+
+    Public Sub Close()
+
+        BufferLength = DefaultBufferLength
+
+        If Type <> enumStreamType.FileStream Then
+            Exit Sub
+        End If
+
+        FileStream.Close()
+        FileStream = Nothing
+    End Sub
 End Class

@@ -1,14 +1,20 @@
 ﻿Public Module modProgram
 
 #If OS = 0.0# Then
-    Public Const ProgramVersion As String = "1.16 Windows"
+    Public Const ProgramVersion As String = "1.17 Windows"
 #Else
-    Public Const ProgramVersion As String = "1.16 Mono"
+    Public Const ProgramVersion As String = "1.17 Mono"
 #End If
 
     Public Const SaveVersion As UInteger = 6UI
 
     Public Const FactionCountMax As Integer = 11
+
+#If OS = 0.0# Then
+    Public Const MinimapDelay As Integer = 100
+#Else
+    Public Const MinimapDelay As Integer = 1000
+#End If
 
     Public OSPathSeperator As Char
 
@@ -164,12 +170,6 @@
         Dim SizeY As Single
         Dim Colour As sRGBA_sng
         Dim Pos As sXY_int
-    End Structure
-
-    Public Structure sRGB_byte
-        Dim Red As Byte
-        Dim Green As Byte
-        Dim Blue As Byte
     End Structure
 
     Public Structure sRGB_sng
@@ -336,10 +336,11 @@
     End Sub
 
     Public Function Get_TexturePage_GLTexture(ByVal FileTitle As String) As Integer
+        Dim LCaseTitle As String = LCase(FileTitle)
         Dim A As Integer
 
         For A = 0 To TexturePageCount - 1
-            If LCase(TexturePages(A).FileTitle) = LCase(FileTitle) Then
+            If LCase(TexturePages(A).FileTitle) = LCaseTitle Then
                 Return TexturePages(A).GLTexture_Num
             End If
         Next

@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 
 Public Class ctrlMapView
 #If OS <> 0.0# Then
@@ -7,9 +8,7 @@ Public Class ctrlMapView
 
     Public DrawPending As Boolean
 
-    Public GL_Num As Byte = 11
-
-    Public OpenGL As OpenTK.GLControl
+    Public OpenGLControl As OpenTK.GLControl
 
     Public GLSize As sXY_int
     Public GLSize_XPerY As Double
@@ -56,35 +55,30 @@ Public Class ctrlMapView
 
     Public VisionSectors As sBrushTiles
 
+    Private GLInitializeDelayTimer As Timer
+    Public IsGLInitialized As Boolean = False
+
     Sub New()
         ' This call is required by the Windows Form Designer.
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        OpenGL = New OpenTK.GLControl(New OpenTK.Graphics.GraphicsMode(New OpenTK.Graphics.ColorFormat(32), 24, 1))
-        GLInitialize()
-        OpenGL_Size_Calc()
-        pnlDraw.Controls.Add(OpenGL)
+        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 24, 1))
+        OpenGLControl.MakeCurrent() 'mono version fails without this
+        pnlDraw.Controls.Add(OpenGLControl)
+
+        GLInitializeDelayTimer = New Timer
+        GLInitializeDelayTimer.Interval = 1
+        AddHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
+        GLInitializeDelayTimer.Enabled = True
 
         UndoMessageTimer.Interval = 4000
-
-        AddHandler OpenGL.MouseDown, AddressOf OpenGL_MouseDown
-        AddHandler OpenGL.MouseUp, AddressOf OpenGL_MouseUp
-        AddHandler OpenGL.MouseWheel, AddressOf OpenGL_MouseWheel
-        AddHandler OpenGL.MouseMove, AddressOf OpenGL_MouseMove
-        AddHandler OpenGL.MouseEnter, AddressOf OpenGL_MouseEnter
-        AddHandler OpenGL.MouseLeave, AddressOf OpenGL_MouseLeave
-        AddHandler OpenGL.Resize, AddressOf OpenGL_Resize
-        AddHandler OpenGL.LostFocus, AddressOf OpenGL_LostFocus
-        AddHandler OpenGL.PreviewKeyDown, AddressOf OpenGL_KeyDown
-        AddHandler OpenGL.KeyUp, AddressOf OpenGL_KeyUp
-        AddHandler OpenGL.Paint, AddressOf OpenGL_Paint
     End Sub
 
     Sub OpenGL_Size_Calc()
 
-        OpenGL.Width = pnlDraw.Width
-        OpenGL.Height = pnlDraw.Height
+        OpenGLControl.Width = pnlDraw.Width
+        OpenGLControl.Height = pnlDraw.Height
         Viewport_Resize()
     End Sub
 
@@ -126,11 +120,31 @@ Public Class ctrlMapView
         DrawViewLater()
     End Sub
 
-    Private Sub GLInitialize()
+    Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        IsGLInitialized = True
+
+        GLInitializeDelayTimer.Enabled = False
+        RemoveHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
+        GLInitializeDelayTimer.Dispose()
+        GLInitializeDelayTimer = Nothing
+
+        OpenGL_Size_Calc()
+
+        AddHandler OpenGLControl.MouseDown, AddressOf OpenGL_MouseDown
+        AddHandler OpenGLControl.MouseUp, AddressOf OpenGL_MouseUp
+        AddHandler OpenGLControl.MouseWheel, AddressOf OpenGL_MouseWheel
+        AddHandler OpenGLControl.MouseMove, AddressOf OpenGL_MouseMove
+        AddHandler OpenGLControl.MouseEnter, AddressOf OpenGL_MouseEnter
+        AddHandler OpenGLControl.MouseLeave, AddressOf OpenGL_MouseLeave
+        AddHandler OpenGLControl.Resize, AddressOf OpenGL_Resize
+        AddHandler OpenGLControl.LostFocus, AddressOf OpenGL_LostFocus
+        AddHandler OpenGLControl.PreviewKeyDown, AddressOf OpenGL_KeyDown
+        AddHandler OpenGLControl.KeyUp, AddressOf OpenGL_KeyUp
+        AddHandler OpenGLControl.Paint, AddressOf OpenGL_Paint
+
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         GL.ClearColor(0.0F, 0.0F, 0.0F, 1.0F)
@@ -190,15 +204,14 @@ Public Class ctrlMapView
 
     Sub Viewport_Resize()
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
         GL.Viewport(0, 0, GLSize.X, GLSize.Y)
 
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.Flush()
-        OpenGL.SwapBuffers()
+        OpenGLControl.SwapBuffers()
         Refresh()
 
         DrawViewLater()
@@ -316,7 +329,7 @@ Public Class ctrlMapView
         Static XYZ_dbl2 As sXYZ_dbl
         'Static XYZ_dbl3 As sXYZ_dbl
         Static XYZ_int As sXYZ_int
-        Static Unit_Type_New As clsUnitType
+        Static NewUnitType As clsUnitType
         Static PosA As sXY_dbl
         Static PosB As sXY_dbl
         Static PosC As sXY_dbl
@@ -339,26 +352,25 @@ Public Class ctrlMapView
         Static X3 As Integer
         Static Z3 As Integer
 
-        If Not DrawView_Enabled Then
+        If Not (DrawView_Enabled And IsGLInitialized) Then
             Exit Sub
         End If
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         GL.Enable(EnableCap.DepthTest)
         GL.ClearColor(BGColor.Red, BGColor.Green, BGColor.Blue, 1.0F)
         GL.Clear(ClearBufferMask.ColorBufferBit Or ClearBufferMask.DepthBufferBit)
         GL.MatrixMode(MatrixMode.Projection)
-        GL.LoadMatrix(OpenTK.Matrix4.CreatePerspectiveFieldOfView(FieldOfViewY, GLSize_XPerY, 8.0#, 65536.0#))
+        GL.LoadMatrix(OpenTK.Matrix4.CreatePerspectiveFieldOfView(FieldOfViewY, GLSize_XPerY, 8.0F, 65536.0F))
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        Matrix_Set_PY(matrixA, New sAnglePY(-SunPitch, SunHeading))
-        Matrix2_Rotate(ViewAngleMatrix_Inverted, matrixA, matrixB)
-        VectorForward_Matrix_Rotate(matrixB, XYZ_dbl)
+        MatrixSetToPY(matrixA, New sAnglePY(-SunPitch, SunHeading))
+        MatrixRotationByMatrix(ViewAngleMatrix_Inverted, matrixA, matrixB)
+        VectorForwardRotationByMatrix(matrixB, XYZ_dbl)
         light_position(0) = XYZ_dbl.X
         light_position(1) = XYZ_dbl.Y
         light_position(2) = -XYZ_dbl.Z
@@ -390,7 +402,7 @@ Public Class ctrlMapView
                 DrawCentre.Y = ViewPos.Z + XYZ_dbl.Z * VisionRadius * 2.0# / dblTemp2
             End If
         Else
-            VectorForward_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl)
+            VectorForwardRotationByMatrix(ViewAngleMatrix, XYZ_dbl)
             dblTemp2 = VisionRadius * 2.0# / Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Z * XYZ_dbl.Z)
             DrawCentre.X = ViewPos.X + XYZ_dbl.X * dblTemp2
             DrawCentre.Y = ViewPos.Z + XYZ_dbl.Z * dblTemp2
@@ -407,8 +419,7 @@ Public Class ctrlMapView
         X2 = DrawCentreSector.X
         Z2 = DrawCentreSector.Y
 
-        GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill)
-        GL.PolygonMode(MaterialFace.Back, PolygonMode.Point)
+        GL.Enable(EnableCap.CullFace)
 
         If Draw_TileTextures Then
             GL.Enable(EnableCap.Texture2D)
@@ -437,8 +448,7 @@ Public Class ctrlMapView
 
         If DisplayTileOrientation Then
 
-            GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill)
-            GL.PolygonMode(MaterialFace.Back, PolygonMode.Fill)
+            GL.Disable(EnableCap.CullFace)
 
             GL.Begin(BeginMode.Triangles)
             GL.Color3(1.0F, 1.0F, 0.0F)
@@ -453,8 +463,7 @@ Public Class ctrlMapView
             Next
             GL.End()
 
-            GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill)
-            GL.PolygonMode(MaterialFace.Back, PolygonMode.Point)
+            GL.Enable(EnableCap.CullFace)
         End If
 
         'draw autotexture terrain type markers
@@ -488,28 +497,28 @@ Public Class ctrlMapView
                                         XYZ_dbl2.X = 10.0#
                                         XYZ_dbl2.Y = 10.0#
                                         XYZ_dbl2.Z = 0.0#
-                                        Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                        VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
                                         Vertex0.X = XYZ_dbl.X + XYZ_dbl3.X
                                         Vertex0.Y = XYZ_dbl.Y + XYZ_dbl3.Y
                                         Vertex0.Z = XYZ_dbl.Z + XYZ_dbl3.Z
                                         XYZ_dbl2.X = -10.0#
                                         XYZ_dbl2.Y = 10.0#
                                         XYZ_dbl2.Z = 0.0#
-                                        Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                        VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
                                         Vertex1.X = XYZ_dbl.X + XYZ_dbl3.X
                                         Vertex1.Y = XYZ_dbl.Y + XYZ_dbl3.Y
                                         Vertex1.Z = XYZ_dbl.Z + XYZ_dbl3.Z
                                         XYZ_dbl2.X = -10.0#
                                         XYZ_dbl2.Y = -10.0#
                                         XYZ_dbl2.Z = 0.0#
-                                        Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                        VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
                                         Vertex2.X = XYZ_dbl.X + XYZ_dbl3.X
                                         Vertex2.Y = XYZ_dbl.Y + XYZ_dbl3.Y
                                         Vertex2.Z = XYZ_dbl.Z + XYZ_dbl3.Z
                                         XYZ_dbl2.X = 10.0#
                                         XYZ_dbl2.Y = -10.0#
                                         XYZ_dbl2.Z = 0.0#
-                                        Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                        VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
                                         Vertex3.X = XYZ_dbl.X + XYZ_dbl3.X
                                         Vertex3.Y = XYZ_dbl.Y + XYZ_dbl3.Y
                                         Vertex3.Z = XYZ_dbl.Z + XYZ_dbl3.Z
@@ -558,7 +567,7 @@ Public Class ctrlMapView
                 End If
             End If
             If DrawIt Then
-                Vector_Matrix_Rotate(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                VectorRotationByMatrix(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
                 If Pos_Get_Screen_XY(XYZ_dbl2, ScreenX, ScreenY) Then
                     If ScreenX >= 0 And ScreenX <= GLSize.X And ScreenY >= 0 And ScreenY <= GLSize.Y Then
                         SelectionLabel.Colour.Red = 1.0F
@@ -1037,8 +1046,7 @@ Public Class ctrlMapView
 
         GL.Enable(EnableCap.DepthTest)
 
-        GL.PolygonMode(MaterialFace.Front, PolygonMode.Point)
-        GL.PolygonMode(MaterialFace.Back, PolygonMode.Fill)
+        GL.Disable(EnableCap.CullFace)
 
         GL.LoadIdentity()
         GL.Rotate(AngleClamp(-ViewAngleRPY.Roll) / RadOf1Deg, 0.0F, 0.0F, 1.0F)
@@ -1080,7 +1088,7 @@ Public Class ctrlMapView
                                 Draw_Unit_Label = True
                             End If
                             If Draw_Unit_Label And UnitTextLabelCount <= 63 Then
-                                Vector_Matrix_Rotate(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                                VectorRotationByMatrix(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
                                 If Pos_Get_Screen_XY(XYZ_dbl2, ScreenX, ScreenY) Then
                                     If ScreenX >= 0 And ScreenX <= GLSize.X And ScreenY >= 0 And ScreenY <= GLSize.Y Then
                                         UnitTextLabels(UnitTextLabelCount) = New sTextLabel
@@ -1116,31 +1124,31 @@ Public Class ctrlMapView
             GL.Enable(EnableCap.Texture2D)
             If Tool = enumTool.Object_Unit Then
                 If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                    Unit_Type_New = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
+                    NewUnitType = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
+                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y, ViewPos.Z + XYZ_int.Z)
-                    Unit_Type_New.LoadedInfo.GLDraw(0.0F)
+                    NewUnitType.LoadedInfo.GLDraw(0.0F)
                     GL.PopMatrix()
                 End If
             End If
             If Tool = enumTool.Object_Structure Then
                 If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                    Unit_Type_New = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
+                    NewUnitType = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
+                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y, ViewPos.Z + XYZ_int.Z)
-                    Unit_Type_New.LoadedInfo.GLDraw(0.0F)
+                    NewUnitType.LoadedInfo.GLDraw(0.0F)
                     GL.PopMatrix()
                 End If
             End If
             If Tool = enumTool.Object_Feature Then
                 If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                    Unit_Type_New = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
+                    NewUnitType = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
+                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y, ViewPos.Z + XYZ_int.Z)
-                    Unit_Type_New.LoadedInfo.GLDraw(0.0F)
+                    NewUnitType.LoadedInfo.GLDraw(0.0F)
                     GL.PopMatrix()
                 End If
             End If
@@ -1183,8 +1191,6 @@ Public Class ctrlMapView
             End If
         Next
         GL.End()
-
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill)
 
         GL.MatrixMode(MatrixMode.Projection)
         GL.LoadMatrix(OpenTK.Matrix4.CreateOrthographicOffCenter(0.0F, CSng(GLSize.X), CSng(GLSize.Y), 0.0F, -1.0F, 1.0F))
@@ -1321,21 +1327,21 @@ Public Class ctrlMapView
         End If
 
         GL.Flush()
-        OpenGL.SwapBuffers()
+        OpenGLControl.SwapBuffers()
 
         Refresh()
     End Sub
 
-    Sub View_Pos_Set(ByVal View_Pos_New As sXYZ_int)
+    Sub ViewPosSet(ByVal NewViewPos As sXYZ_int)
 
-        ViewPos.X = Clamp(View_Pos_New.X, -Map.TerrainSize.X * TerrainGridSpacing - 2048, Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
-        ViewPos.Z = Clamp(View_Pos_New.Z, -Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Map.TerrainSize.X * TerrainGridSpacing + 2048)
-        ViewPos.Y = Clamp(View_Pos_New.Y, CInt(Math.Ceiling(Map.GetTerrainHeight(ViewPos.X, -ViewPos.Z))) + 16, 49152)
+        ViewPos.X = Clamp(NewViewPos.X, -Map.TerrainSize.X * TerrainGridSpacing - 2048, Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
+        ViewPos.Z = Clamp(NewViewPos.Z, -Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Map.TerrainSize.X * TerrainGridSpacing + 2048)
+        ViewPos.Y = Clamp(NewViewPos.Y, CInt(Math.Ceiling(Map.GetTerrainHeight(ViewPos.X, -ViewPos.Z))) + 16, 49152)
 
         DrawViewLater()
     End Sub
 
-    Sub View_Pos_Change(ByVal Displacement As sXYZ_int)
+    Sub ViewPosChange(ByVal Displacement As sXYZ_int)
 
         ViewPos.X = Clamp(ViewPos.X + Displacement.X, -Map.TerrainSize.X * TerrainGridSpacing - 2048, Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
         ViewPos.Z = Clamp(ViewPos.Z + Displacement.Z, -Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Map.TerrainSize.X * TerrainGridSpacing + 2048)
@@ -1346,10 +1352,10 @@ Public Class ctrlMapView
 
     Sub View_Angle_Set(ByRef NewMatrix() As Double)
 
-        Matrix_Copy(NewMatrix, ViewAngleMatrix)
-        Matrix_Normalize(ViewAngleMatrix)
-        Matrix_Invert(ViewAngleMatrix, ViewAngleMatrix_Inverted)
-        Matrix_Get_RPY(ViewAngleMatrix, ViewAngleRPY)
+        MatrixCopy(NewMatrix, ViewAngleMatrix)
+        MatrixNormalize(ViewAngleMatrix)
+        MatrixInvert(ViewAngleMatrix, ViewAngleMatrix_Inverted)
+        MatrixToRPY(ViewAngleMatrix, ViewAngleRPY)
 
         DrawViewLater()
     End Sub
@@ -1357,9 +1363,9 @@ Public Class ctrlMapView
     Sub View_Rotate(ByRef ChangeMatrix() As Double)
         Static matrixA(8) As Double
 
-        Matrix2_Rotate(ViewAngleMatrix, ChangeMatrix, matrixA)
-        Matrix_Copy(matrixA, ViewAngleMatrix)
-        Matrix_Invert(ViewAngleMatrix, ViewAngleMatrix_Inverted)
+        MatrixRotationByMatrix(ViewAngleMatrix, ChangeMatrix, matrixA)
+        MatrixCopy(matrixA, ViewAngleMatrix)
+        MatrixInvert(ViewAngleMatrix, ViewAngleMatrix_Inverted)
 
         DrawViewLater()
     End Sub
@@ -1380,9 +1386,11 @@ Public Class ctrlMapView
         Static TerrainPos As sXYZ_lng
 
         MouseOverUnit_Clear()
-        If MouseOver_ScreenPos.X < 0 Or MouseOver_ScreenPos.Y < 0 Then
-            MouseOver_Pos_Exists = False
-        ElseIf IsViewPosOverMinimap(MouseOver_ScreenPos) Then
+        'commented to allow dragging beyond the borders of the view
+        'If MouseOver_ScreenPos.X < 0 Or MouseOver_ScreenPos.Y < 0 Then
+        '    MouseOver_Pos_Exists = False
+        'Else
+        If IsViewPosOverMinimap(MouseOver_ScreenPos) Then
             MouseOver_Pos_Exists = False
 
             If IsMinimap_MouseDown Then
@@ -1514,12 +1522,13 @@ Public Class ctrlMapView
 
     Sub OpenGL_MouseLeave(ByVal sender As Object, ByVal e As System.EventArgs)
 
-        MouseOver_Exists = False
-        MouseLeftIsDown = False
-        MouseRightIsDown = False
-        MouseOver_ScreenPos.X = -1
-        MouseOver_ScreenPos.Y = -1
-        MouseOver_Pos_Calc()
+        'commented to allow dragging beyond the borders of the view
+        'MouseOver_Exists = False
+        'MouseLeftIsDown = False
+        'MouseRightIsDown = False
+        'MouseOver_ScreenPos.X = -1
+        'MouseOver_ScreenPos.Y = -1
+        'MouseOver_Pos_Calc()
     End Sub
 
     Sub LookAtTile(ByVal X As Integer, ByVal Z As Integer)
@@ -1530,7 +1539,7 @@ Public Class ctrlMapView
         Dim matrixA(8) As Double
         Dim AnglePY As sAnglePY
 
-        VectorForward_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl)
+        VectorForwardRotationByMatrix(ViewAngleMatrix, XYZ_dbl)
         dblTemp = Map.GetTerrainHeight((X + 0.5#) * TerrainGridSpacing, (Z + 0.5#) * TerrainGridSpacing)
         A = Math.Ceiling(dblTemp) + 128
         If ViewPos.Y < A Then
@@ -1539,7 +1548,7 @@ Public Class ctrlMapView
         If XYZ_dbl.Y > -0.33333333333333331# Then
             XYZ_dbl.Y = -0.33333333333333331#
             GetAnglePY(XYZ_dbl, AnglePY)
-            Matrix_Set_PY(matrixA, AnglePY)
+            MatrixSetToPY(matrixA, AnglePY)
             View_Angle_Set(matrixA)
         End If
         dblTemp = (ViewPos.Y - dblTemp) / XYZ_dbl.Y
@@ -1548,7 +1557,7 @@ Public Class ctrlMapView
         XYZ_int.Y = ViewPos.Y
         XYZ_int.Z = -(Z + 0.5#) * TerrainGridSpacing + dblTemp * XYZ_dbl.Z
 
-        View_Pos_Set(XYZ_int)
+        ViewPosSet(XYZ_int)
     End Sub
 
     Sub Apply_Terrain()
@@ -2226,8 +2235,8 @@ Public Class ctrlMapView
 
     Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
         Static XY_int As sXY_int
-        Static Unit_Type_New As clsUnitType
-        Static Unit_New As clsMap.clsUnit
+        Static NewUnitType As clsUnitType
+        Static NewUnit As clsMap.clsUnit
         Static A As Integer
         Static Deselected As Boolean
 
@@ -2351,39 +2360,39 @@ Public Class ctrlMapView
                         End If
                     ElseIf Tool = enumTool.Object_Unit Then
                         If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                            Unit_Type_New = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
-                            Unit_New = New clsMap.clsUnit
-                            Unit_New.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            Unit_New.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
-                            Unit_New.Rotation = 0
-                            Unit_New.Type = Unit_Type_New
-                            Map.Unit_Add_StoreChange(Unit_New)
+                            NewUnitType = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
+                            NewUnit = New clsMap.clsUnit
+                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
+                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
+                            NewUnit.Rotation = 0
+                            NewUnit.Type = NewUnitType
+                            Map.Unit_Add_StoreChange(NewUnit)
                             Map.UndoStepCreate("Place Droid")
                             Map.Minimap_Make()
                             DrawViewLater()
                         End If
                     ElseIf Tool = enumTool.Object_Structure Then
                         If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                            Unit_Type_New = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
-                            Unit_New = New clsMap.clsUnit
-                            Unit_New.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            Unit_New.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
-                            Unit_New.Rotation = 0
-                            Unit_New.Type = Unit_Type_New
-                            Map.Unit_Add_StoreChange(Unit_New)
+                            NewUnitType = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
+                            NewUnit = New clsMap.clsUnit
+                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
+                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
+                            NewUnit.Rotation = 0
+                            NewUnit.Type = NewUnitType
+                            Map.Unit_Add_StoreChange(NewUnit)
                             Map.UndoStepCreate("Place Structure")
                             Map.Minimap_Make()
                             DrawViewLater()
                         End If
                     ElseIf Tool = enumTool.Object_Feature Then
                         If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                            Unit_Type_New = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
-                            Unit_New = New clsMap.clsUnit
-                            Unit_New.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            Unit_New.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_Type_New.LoadedInfo.Footprint)
-                            Unit_New.Rotation = 0
-                            Unit_New.Type = Unit_Type_New
-                            Map.Unit_Add_StoreChange(Unit_New)
+                            NewUnitType = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
+                            NewUnit = New clsMap.clsUnit
+                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
+                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
+                            NewUnit.Rotation = 0
+                            NewUnit.Type = NewUnitType
+                            Map.Unit_Add_StoreChange(NewUnit)
                             Map.UndoStepCreate("Place Feature")
                             Map.Minimap_Make()
                             DrawViewLater()
@@ -2501,10 +2510,10 @@ Public Class ctrlMapView
         If Control_View_Reset.Active Then
             FOV_Multiplier_Set(FOVDefault)
             If ViewMoveType = ctrlMapView.enumView_Move_Type.Free Then
-                Matrix_Set_Rotate_X(matrixA, Math.Atan(2.0#))
+                MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
                 View_Angle_Set(matrixA)
             ElseIf ViewMoveType = ctrlMapView.enumView_Move_Type.RTS Then
-                Matrix_Set_Rotate_X(matrixA, Math.Atan(2.0#))
+                MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
                 View_Angle_Set(matrixA)
             End If
         End If
@@ -2563,21 +2572,21 @@ Public Class ctrlMapView
             If Control_Unit_Move.Active Then
                 If MouseOver_Pos_Exists Then
                     If Map.SelectedUnitCount = 1 Then
-                        Dim Unit_New As clsMap.clsUnit
+                        Dim NewUnit As clsMap.clsUnit
                         Dim ID As UInteger
-                        Unit_New = New clsMap.clsUnit(Map.SelectedUnits(0))
+                        NewUnit = New clsMap.clsUnit(Map.SelectedUnits(0))
                         ID = Map.SelectedUnits(0).ID
                         If Map.SelectedUnits(0).Type.LoadedInfo Is Nothing Then
                             Dim tmpXY_int As sXY_int
                             tmpXY_int.X = 1
                             tmpXY_int.Y = 1
-                            Unit_New.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, tmpXY_int)
+                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, tmpXY_int)
                         Else
-                            Unit_New.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, Unit_New.Type.LoadedInfo.Footprint)
+                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnit.Type.LoadedInfo.Footprint)
                         End If
                         Map.Unit_Remove_StoreChange(Map.SelectedUnits(0).Num)
-                        Map.Unit_Add_StoreChange(Unit_New, ID)
-                        Map.SelectedUnit_Add(Unit_New)
+                        Map.Unit_Add_StoreChange(NewUnit, ID)
+                        Map.SelectedUnit_Add(NewUnit)
                         Map.UndoStepCreate("Object Moved")
                         Map.Minimap_Make()
                         frmMainInstance.Selected_Object_Changed()
@@ -2587,15 +2596,15 @@ Public Class ctrlMapView
             End If
             If Control_Clockwise.Active Then
                 If Map.SelectedUnitCount = 1 Then
-                    Dim Unit_New As New clsMap.clsUnit(Map.SelectedUnits(0))
+                    Dim NewUnit As New clsMap.clsUnit(Map.SelectedUnits(0))
                     Dim ID As UInteger = Map.SelectedUnits(0).ID
                     Map.Unit_Remove_StoreChange(Map.SelectedUnits(0).Num)
-                    Unit_New.Rotation -= 90
-                    If Unit_New.Rotation < 0 Then
-                        Unit_New.Rotation += 360
+                    NewUnit.Rotation -= 90
+                    If NewUnit.Rotation < 0 Then
+                        NewUnit.Rotation += 360
                     End If
-                    Map.Unit_Add_StoreChange(Unit_New, ID)
-                    Map.SelectedUnit_Add(Unit_New)
+                    Map.Unit_Add_StoreChange(NewUnit, ID)
+                    Map.SelectedUnit_Add(NewUnit)
                     frmMainInstance.Selected_Object_Changed()
                     Map.UndoStepCreate("Object Rotated")
                     DrawViewLater()
@@ -2603,15 +2612,15 @@ Public Class ctrlMapView
             End If
             If Control_Anticlockwise.Active Then
                 If Map.SelectedUnitCount = 1 Then
-                    Dim Unit_New As New clsMap.clsUnit(Map.SelectedUnits(0))
+                    Dim NewUnit As New clsMap.clsUnit(Map.SelectedUnits(0))
                     Dim ID As UInteger = Map.SelectedUnits(0).ID
                     Map.Unit_Remove_StoreChange(Map.SelectedUnits(0).Num)
-                    Unit_New.Rotation += 90
-                    If Unit_New.Rotation > 359 Then
-                        Unit_New.Rotation -= 360
+                    NewUnit.Rotation += 90
+                    If NewUnit.Rotation > 359 Then
+                        NewUnit.Rotation -= 360
                     End If
-                    Map.Unit_Add_StoreChange(Unit_New, ID)
-                    Map.SelectedUnit_Add(Unit_New)
+                    Map.Unit_Add_StoreChange(NewUnit, ID)
+                    Map.SelectedUnit_Add(NewUnit)
                     frmMainInstance.Selected_Object_Changed()
                     Map.UndoStepCreate("Object Rotated")
                     DrawViewLater()
@@ -2757,7 +2766,7 @@ Public Class ctrlMapView
 
     Private Sub pnlDraw_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles pnlDraw.Resize
 
-        If OpenGL IsNot Nothing Then
+        If OpenGLControl IsNot Nothing Then
             OpenGL_Size_Calc()
         End If
     End Sub
@@ -2796,7 +2805,7 @@ Public Class ctrlMapView
             XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenY) * dblTemp2
             XYZ_dbl.Z = 1.0#
             'factor in the view angle
-            Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
+            VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
             'get distance to cover the height
             dblTemp = (PlaneHeight - ViewPos.Y) / XYZ_dbl2.Y
             ResultPos.X = ViewPos.X + XYZ_dbl2.X * dblTemp
@@ -2840,7 +2849,7 @@ Public Class ctrlMapView
             XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenY) * FOVMultiplier
             XYZ_dbl.Z = 1.0#
             'rotate the vector so that it points forward and level
-            Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl, TerrainViewVector)
+            VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, TerrainViewVector)
             TerrainViewVector.Y = -TerrainViewVector.Y 'get the amount of looking down, not up
             TerrainViewVector.Z = -TerrainViewVector.Z 'convert to terrain coordinates from view coordinates
             'get range of possible tiles
@@ -2979,7 +2988,7 @@ Public Class ctrlMapView
             XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenY) * dblTemp2
             XYZ_dbl.Z = 1.0#
             'factor in the view angle
-            Vector_Matrix_Rotate(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
+            VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
             'get distance to cover the height
             If XYZ_dbl2.Y > 0.0# Then
                 Return False
@@ -3035,9 +3044,11 @@ Public Class ctrlMapView
 
     Sub OpenGL_Resize(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs)
 
-        GLSize.X = OpenGL.Width
-        GLSize.Y = OpenGL.Height
-        GLSize_XPerY = GLSize.X / GLSize.Y
+        GLSize.X = OpenGLControl.Width
+        GLSize.Y = OpenGLControl.Height
+        If GLSize.Y <> 0 Then
+            GLSize_XPerY = GLSize.X / GLSize.Y
+        End If
         Viewport_Resize()
         FOV_Calc()
     End Sub
@@ -3045,7 +3056,7 @@ Public Class ctrlMapView
     Sub OpenGL_MouseEnter(ByVal sender As Object, ByVal e As System.EventArgs)
 
         If Form.ActiveForm Is frmMainInstance Then
-            OpenGL.Focus()
+            OpenGLControl.Focus()
         End If
     End Sub
 
@@ -3055,19 +3066,18 @@ Public Class ctrlMapView
         Dim A As Integer
 
         For A = 0 To Math.Abs(e.Delta / 120)
-            VectorForward_Matrix_Rotate(ViewAngleMatrix, Math.Sign(e.Delta) * Math.Max(ViewPos.Y, 512.0#) / 24.0#, XYZ_dbl)
+            VectorForwardRotationByMatrix(ViewAngleMatrix, Math.Sign(e.Delta) * Math.Max(ViewPos.Y, 512.0#) / 24.0#, XYZ_dbl)
             Move.X = XYZ_dbl.X
             Move.Y = XYZ_dbl.Y
             Move.Z = XYZ_dbl.Z
-            View_Pos_Change(Move)
+            ViewPosChange(Move)
         Next
     End Sub
 
     Public Function CreateGLFont(ByVal BaseFont As Font) As GLFont
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
@@ -3143,14 +3153,14 @@ Public Class ctrlMapView
 
         frmMainInstance.txtHeightSetL.Text = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height
         frmMainInstance.txtHeightSetL.Focus()
-        OpenGL.Focus()
+        OpenGLControl.Focus()
     End Sub
 
     Public Sub HeightPickerR()
 
         frmMainInstance.txtHeightSetR.Text = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height
         frmMainInstance.txtHeightSetR.Focus()
-        OpenGL.Focus()
+        OpenGLControl.Focus()
     End Sub
 
     Public Sub ObjectPicker(ByVal UnitType As clsUnitType)

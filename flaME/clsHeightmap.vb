@@ -508,7 +508,7 @@
         Dim X As Integer
         Dim HeightRange As Long
         Dim HeightMin As Long
-        Dim MinMax As sMinMax = New sMinMax
+        Dim MinMax As New sMinMax
 
         Source.MinMaxGet(MinMax)
         HeightRange = MinMax.Max - MinMax.Min
@@ -529,7 +529,7 @@
         Dim X As Integer
         Dim HeightRange As Long
         Dim HeightMin As Long
-        Dim MinMax As sMinMax = New sMinMax
+        Dim MinMax As New sMinMax
 
         Source.MinMaxGet(MinMax)
         HeightRange = MinMax.Max - MinMax.Min
@@ -548,7 +548,7 @@
     Sub Rescale(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
         Dim Y As Integer
         Dim X As Integer
-        Dim MinMax As sMinMax = New sMinMax
+        Dim MinMax As New sMinMax
 
         Source.MinMaxGet(MinMax)
 
@@ -581,7 +581,7 @@
     Sub ShiftToZero(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
-        Dim MinMax As sMinMax = New sMinMax
+        Dim MinMax As New sMinMax
         Dim dblTemp As Double = Source.HeightScale / HeightScale
 
         Source.MinMaxGet(MinMax)

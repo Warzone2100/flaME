@@ -39,6 +39,6 @@ Global
 		$6.MessageStyle = $7
 		$7.LineAlign = 0
 		$6.inheritsSet = Mono
-		version = 1.16
+		version = 1.17
 	EndGlobalSection
 EndGlobal

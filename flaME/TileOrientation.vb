@@ -1,4 +1,4 @@
-﻿Public Module modTileOrientation
+﻿Public Module TileOrientation
 
     Public Structure sTileOrientation
         Public ResultXFlip As Boolean

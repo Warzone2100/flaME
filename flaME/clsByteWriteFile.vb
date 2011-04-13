@@ -46,19 +46,6 @@
         Next
     End Sub
 
-    Sub String_ZeroTerminated_Append(ByVal Text As String)
-        Static Num As Integer
-        Static A As Integer
-        Static B As Integer
-
-        B = Text.Length
-        Num = Make_Length(B + 1)
-        For A = 0 To B - 1
-            Bytes(Num + A) = Asc(Text.Chars(A))
-        Next
-        Bytes(B) = 0
-    End Sub
-
     Sub U8_Append(ByVal Value As Byte)
         Static Num As Integer
 

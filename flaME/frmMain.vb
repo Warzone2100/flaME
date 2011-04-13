@@ -1,5 +1,4 @@
-﻿Imports OpenTK.Graphics.OpenGL
-Imports ICSharpCode.SharpZipLib
+﻿Imports ICSharpCode.SharpZipLib
 
 Public Class frmMain
 #If OS <> 0.0# Then
@@ -26,6 +25,8 @@ Public Class frmMain
 		'The copied InitializeComponent for mono needs the interface images path, so it is done later
 #End If
 
+        View = New ctrlMapView
+        TextureView = New ctrlTextureView
     End Sub
 
     Private Sub frmMain_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
@@ -41,6 +42,9 @@ Public Class frmMain
 
     Public Sub Initialize(ByVal sender As System.Object, ByVal e As System.EventArgs)
         If InitializeDone Then
+            Exit Sub
+        End If
+        If Not (View.IsGLInitialized And TextureView.IsGLInitialized) Then
             Exit Sub
         End If
 
@@ -152,18 +156,9 @@ Public Class frmMain
 
         Map = New clsMap(1, 1)
 
-        View = New ctrlMapView
-
         View.BGColor.Red = 0.75F
         View.BGColor.Green = 0.5F
         View.BGColor.Blue = 0.25F
-
-        If GL_Current <> View.GL_Num Then
-            View.OpenGL.MakeCurrent()
-            GL_Current = View.GL_Num
-        End If
-
-        TextureView = New ctrlTextureView
 
         Result = LoadTilesets()
         If Not Result.Success Then
@@ -174,7 +169,7 @@ Public Class frmMain
         NoTile_Texture_Load()
         cmbTileType_Refresh()
 
-        Result = Data_Load(My.Application.Info.DirectoryPath & OSPathSeperator & "default" & OSPathSeperator)
+        Result = DataLoad(My.Application.Info.DirectoryPath & OSPathSeperator & "default" & OSPathSeperator)
         If Not Result.Success Then
             MsgBox("Failed loading unit data: " & Result.Problem)
         End If
@@ -220,7 +215,7 @@ Public Class frmMain
         tabHeightSetR_SelectedIndexChanged(Nothing, Nothing)
 
         Dim matrixA(8) As Double
-        Matrix_Set_Rotate_X(matrixA, Math.Atan(2.0#))
+        MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
         View.View_Angle_Set(matrixA)
 
         View.ViewPos.Y = 3072
@@ -244,9 +239,9 @@ Public Class frmMain
 
         TextureView.DrawView_SetEnabled(True)
 
+		WindowState = FormWindowState.Maximized
 #If OS = 0.0# Then
         frmSplashInstance.Hide()
-        WindowState = FormWindowState.Maximized
         Show()
         frmCompileInstance.Show()
         frmCompileInstance.Hide()
@@ -264,7 +259,7 @@ Public Class frmMain
 
         InitializeDelay = New Timer
         AddHandler InitializeDelay.Tick, AddressOf Initialize
-        InitializeDelay.Interval = 1
+        InitializeDelay.Interval = 100
         InitializeDelay.Enabled = True
     End Sub
 
@@ -274,6 +269,10 @@ Public Class frmMain
     End Sub
 
     Private Sub tmrKey_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrKey.Tick
+        If Not InitializeDone Then
+            Exit Sub
+        End If
+
         Static XYZ_dbl As sXYZ_dbl
         Static Rate As Double
         Static Move As Double
@@ -304,37 +303,37 @@ Public Class frmMain
             If View.ViewMoveType = ctrlMapView.enumView_Move_Type.Free Then
                 ViewPosChange = New sXYZ_int
                 If Control_View_Move_Forward.Active Then
-                    VectorForward_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorForwardRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Backward.Active Then
-                    VectorBackward_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorBackwardRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Left.Active Then
-                    VectorLeft_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorLeftRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Right.Active Then
-                    VectorRight_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorRightRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Up.Active Then
-                    VectorUp_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorUpRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Down.Active Then
-                    VectorDown_Matrix_Rotate(View.ViewAngleMatrix, Move, XYZ_dbl)
+                    VectorDownRotationByMatrix(View.ViewAngleMatrix, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
@@ -343,78 +342,78 @@ Public Class frmMain
                 ViewAngleChange = New sXYZ_dbl
                 PanRate = View.FieldOfViewY / 16.0# * Rate
                 If Control_View_Left.Active Then
-                    VectorForward_Matrix_Rotate(View.ViewAngleMatrix, Rate * 5.0# * RadOf1Deg, XYZ_dbl)
+                    VectorForwardRotationByMatrix(View.ViewAngleMatrix, Rate * 5.0# * RadOf1Deg, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Right.Active Then
-                    VectorBackward_Matrix_Rotate(View.ViewAngleMatrix, Rate * 5.0# * RadOf1Deg, XYZ_dbl)
+                    VectorBackwardRotationByMatrix(View.ViewAngleMatrix, Rate * 5.0# * RadOf1Deg, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Backward.Active Then
-                    VectorLeft_Matrix_Rotate(View.ViewAngleMatrix, PanRate, XYZ_dbl)
+                    VectorLeftRotationByMatrix(View.ViewAngleMatrix, PanRate, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Forward.Active Then
-                    VectorRight_Matrix_Rotate(View.ViewAngleMatrix, PanRate, XYZ_dbl)
+                    VectorRightRotationByMatrix(View.ViewAngleMatrix, PanRate, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Roll_Left.Active Then
-                    VectorDown_Matrix_Rotate(View.ViewAngleMatrix, PanRate, XYZ_dbl)
+                    VectorDownRotationByMatrix(View.ViewAngleMatrix, PanRate, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Roll_Right.Active Then
-                    VectorUp_Matrix_Rotate(View.ViewAngleMatrix, PanRate, XYZ_dbl)
+                    VectorUpRotationByMatrix(View.ViewAngleMatrix, PanRate, XYZ_dbl)
                     ViewAngleChange.X += XYZ_dbl.X
                     ViewAngleChange.Y += XYZ_dbl.Y
                     ViewAngleChange.Z += XYZ_dbl.Z
                 End If
 
                 If ViewPosChange.X <> 0.0# Or ViewPosChange.Y <> 0.0# Or ViewPosChange.Z <> 0.0# Then
-                    View.View_Pos_Change(ViewPosChange)
+                    View.ViewPosChange(ViewPosChange)
                 End If
                 'do rotation
                 If ViewAngleChange.X <> 0.0# Or ViewAngleChange.Y <> 0.0# Or ViewAngleChange.Z <> 0.0# Then
                     GetAnglePY(ViewAngleChange, AnglePY)
-                    Matrix_Set_PY(matrixA, AnglePY)
+                    MatrixSetToPY(matrixA, AnglePY)
                     GetDist(ViewAngleChange, dblTemp)
-                    Matrix_Rotate2(View.ViewAngleMatrix, matrixA, dblTemp, matrixB)
+                    MatrixRotationAroundAxis(View.ViewAngleMatrix, matrixA, dblTemp, matrixB)
                     View.View_Angle_Set(matrixB)
                 End If
             ElseIf View.ViewMoveType = ctrlMapView.enumView_Move_Type.RTS Then
                 ViewPosChange = New sXYZ_int
 
-                Matrix_Get_PY(View.ViewAngleMatrix, AnglePY)
-                Matrix_Set_Rotate_Y(matrixA, AnglePY.Yaw)
+                MatrixToPY(View.ViewAngleMatrix, AnglePY)
+                MatrixSetToYAngle(matrixA, AnglePY.Yaw)
                 If Control_View_Move_Forward.Active Then
-                    VectorForward_Matrix_Rotate(matrixA, Move, XYZ_dbl)
+                    VectorForwardRotationByMatrix(matrixA, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Backward.Active Then
-                    VectorBackward_Matrix_Rotate(matrixA, Move, XYZ_dbl)
+                    VectorBackwardRotationByMatrix(matrixA, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Left.Active Then
-                    VectorLeft_Matrix_Rotate(matrixA, Move, XYZ_dbl)
+                    VectorLeftRotationByMatrix(matrixA, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
                 End If
                 If Control_View_Move_Right.Active Then
-                    VectorRight_Matrix_Rotate(matrixA, Move, XYZ_dbl)
+                    VectorRightRotationByMatrix(matrixA, Move, XYZ_dbl)
                     ViewPosChange.X += XYZ_dbl.X
                     ViewPosChange.Y += XYZ_dbl.Y
                     ViewPosChange.Z += XYZ_dbl.Z
@@ -452,10 +451,10 @@ Public Class frmMain
                 'ViewPosChange.Y = ViewPosChange.Y + HeightChange
 
                 If ViewPosChange.X <> 0.0# Or ViewPosChange.Y <> 0.0# Or ViewPosChange.Z <> 0.0# Then
-                    View.View_Pos_Change(ViewPosChange)
+                    View.ViewPosChange(ViewPosChange)
                 End If
                 If AngleChanged Then
-                    Matrix_Set_PY(matrixA, AnglePY)
+                    MatrixSetToPY(matrixA, AnglePY)
                     View.View_Angle_Set(matrixA)
                 End If
             End If
@@ -694,19 +693,19 @@ Public Class frmMain
 
     Function Load_Map(ByVal Path As String) As sResult
         Dim SplitPath As New sSplitPath(Path)
-        Dim Map_New As New clsMap
+        Dim NewMap As New clsMap
         Dim Result As sResult
 
         If SplitPath.FileExtension = "lnd" Then
-            Result = Map_New.Load_LND(Path)
+            Result = NewMap.Load_LND(Path)
         ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
-            Result = Map_New.Load_FME(Path)
+            Result = NewMap.Load_FME(Path)
             If Result.Success Then
-                Map_New.QuickSave_Path = Path
+                NewMap.QuickSave_Path = Path
                 tsbSave.Enabled = False
             End If
         ElseIf SplitPath.FileExtension = "wz" Then
-            Result = Map_New.Load_WZ(Path)
+            Result = NewMap.Load_WZ(Path)
         Else
             Result.Success = False
             Result.Problem = "File extension not recognised."
@@ -714,7 +713,7 @@ Public Class frmMain
         If Result.Success Then
             Map.Deallocate()
 
-            Map = Map_New
+            Map = NewMap
 
             Resize_Update()
             HeightMultiplier_Update()
@@ -729,7 +728,7 @@ Public Class frmMain
             DrawView()
             Title_Text_Update()
         Else
-            Map_New.Deallocate()
+            NewMap.Deallocate()
         End If
         Return Result
     End Function
@@ -1052,6 +1051,9 @@ Error_Exit:
     End Sub
 
     Private Sub tmrTool_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrTool.Tick
+        If Not InitializeDone Then
+            Exit Sub
+        End If
 
         If View IsNot Nothing Then
             If Tool = enumTool.Height_Smooth_Brush Then
@@ -1069,22 +1071,22 @@ Error_Exit:
     End Sub
 
     Private Sub btnResize_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnResize.Click
-        Dim Size_New As sXY_int
+        Dim NewSize As sXY_int
 
         If MsgBox("Resizing can't be undone. Continue?", vbOKCancel + vbQuestion, "") <> MsgBoxResult.Ok Then
             Exit Sub
         End If
 
-        Size_New.X = Clamp(Val(txtSizeX.Text), 1.0#, 512.0#)
-        Size_New.Y = Clamp(Val(txtSizeY.Text), 1.0#, 512.0#)
+        NewSize.X = Clamp(Val(txtSizeX.Text), 1.0#, 512.0#)
+        NewSize.Y = Clamp(Val(txtSizeY.Text), 1.0#, 512.0#)
 
-        If Size_New.X > 250 Or Size_New.Y > 250 Then
+        If NewSize.X > 250 Or NewSize.Y > 250 Then
             If MsgBox("Warzone doesn't support map sizes above 250. Continue anyway?", MsgBoxStyle.YesNo, "") <> MsgBoxResult.Yes Then
                 Exit Sub
             End If
         End If
 
-        Map.Terrain_Resize(Clamp(Val(txtOffsetX.Text), -512.0#, 512.0#), Clamp(Val(txtOffsetY.Text), -512, 512.0#), Size_New.X, Size_New.Y)
+        Map.Terrain_Resize(Clamp(Val(txtOffsetX.Text), -512.0#, 512.0#), Clamp(Val(txtOffsetY.Text), -512, 512.0#), NewSize.X, NewSize.Y)
         View.MouseOver_Exists = False
 
         Resize_Update()
@@ -1590,7 +1592,7 @@ Error_Exit:
             txtObjectPriority.Text = ""
         End If
         'this steals focus, so give it back
-        View.OpenGL.Focus()
+        View.OpenGLControl.Focus()
     End Sub
 
     Private Sub btnMapTexturer_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnMapTexturer.Click
@@ -1806,10 +1808,10 @@ Error_Exit:
         'GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 64, 64, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Texture)
 
         If Bitmap.Load(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "notile.png").Success Then
-            GLTexture_NoTile = Bitmap.GL_Texture_Create
+            GLTexture_NoTile = Bitmap.GLTexture(View.OpenGLControl, False)
         End If
         If Bitmap.Load(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "overflow.png").Success Then
-            GLTexture_OverflowTile = Bitmap.GL_Texture_Create
+            GLTexture_OverflowTile = Bitmap.GLTexture(View.OpenGLControl, False)
         End If
     End Sub
 
@@ -1884,103 +1886,103 @@ Error_Exit:
     End Sub
 
     Private Sub CreateTileTypes()
-        Dim TileType_New As sTileType
+        Dim NewTileType As sTileType
 
-        With TileType_New
+        With NewTileType
             .Name = "Sand"
             .DisplayColour.Red = 1.0F
             .DisplayColour.Green = 1.0F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Sandy Brush"
             .DisplayColour.Red = 0.5F
             .DisplayColour.Green = 0.5F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Rubble"
             .DisplayColour.Red = 0.25F
             .DisplayColour.Green = 0.25F
             .DisplayColour.Blue = 0.25F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Green Mud"
             .DisplayColour.Red = 0.0F
             .DisplayColour.Green = 0.5F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Red Brush"
             .DisplayColour.Red = 1.0F
             .DisplayColour.Green = 0.0F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Pink Rock"
             .DisplayColour.Red = 1.0F
             .DisplayColour.Green = 0.5F
             .DisplayColour.Blue = 0.5F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Road"
             .DisplayColour.Red = 0.0F
             .DisplayColour.Green = 0.0F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Water"
             .DisplayColour.Red = 0.0F
             .DisplayColour.Green = 0.0F
             .DisplayColour.Blue = 1.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Cliff Face"
             .DisplayColour.Red = 0.5F
             .DisplayColour.Green = 0.5F
             .DisplayColour.Blue = 0.5F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Baked Earth"
             .DisplayColour.Red = 0.5F
             .DisplayColour.Green = 0.0F
             .DisplayColour.Blue = 0.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Sheet Ice"
             .DisplayColour.Red = 1.0F
             .DisplayColour.Green = 1.0F
             .DisplayColour.Blue = 1.0F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
 
-        With TileType_New
+        With NewTileType
             .Name = "Slush"
             .DisplayColour.Red = 0.75F
             .DisplayColour.Green = 0.75F
             .DisplayColour.Blue = 0.75F
         End With
-        TileType_Add(TileType_New)
+        TileType_Add(NewTileType)
     End Sub
 
     Private Sub menuExportMapTileTypes_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuExportMapTileTypes.Click
@@ -2033,14 +2035,14 @@ Error_Exit:
             OpenFileDialog.InitialDirectory = AutoSavePath
             If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then Exit Sub
 
-            Dim Map_New As clsMap
+            Dim NewMap As clsMap
             Dim Result As sResult
-            Map_New = New clsMap
-            Result = Map_New.Load_FME(OpenFileDialog.FileName)
+            NewMap = New clsMap
+            Result = NewMap.Load_FME(OpenFileDialog.FileName)
             If Result.Success Then
                 Map.Deallocate()
 
-                Map = Map_New
+                Map = NewMap
 
                 Resize_Update()
                 HeightMultiplier_Update()
@@ -2055,7 +2057,7 @@ Error_Exit:
                 DrawView()
                 Title_Text_Update()
             Else
-                Map_New.Deallocate()
+                NewMap.Deallocate()
                 MsgBox("Autosave load error; " & Result.Problem)
             End If
         End If
@@ -2078,40 +2080,46 @@ Error_Exit:
 
     Private Sub Settings_Load()
 
-        If IO.File.Exists(SettingsPath) Then
-            Dim ByteFile As New clsByteReadFile
+        Dim File As New clsByteReadFile
 
-            ByteFile.File_Read(SettingsPath)
-
-            Dim uintTemp As UInteger
-            Dim byteTemp As Byte
-            Dim strTemp As String = ""
-
-            If Not ByteFile.Get_U32(uintTemp) Then Exit Sub
-            If uintTemp <> 4UI Then Exit Sub
-            If Not ByteFile.Get_U32(uintTemp) Then Exit Sub
-            Undo_Limit = uintTemp
-            If Not ByteFile.Get_U32(uintTemp) Then Exit Sub
-            AutoSave_MinInterval_s = uintTemp
-            If Not ByteFile.Get_U32(uintTemp) Then Exit Sub
-            AutoSave_MinChanges = uintTemp
-            If Not ByteFile.Get_U8(byteTemp) Then Exit Sub
-            menuAutosaveEnabled.Checked = (byteTemp > 0)
-            If Not ByteFile.Get_U8(byteTemp) Then Exit Sub
-            DirectPointer = (byteTemp > 0)
-            If Not ByteFile.Get_Text_VariableLength(strTemp) Then Exit Sub
-            If UnitLabelFont IsNot Nothing Then
-                UnitLabelFont.Deallocate()
-            End If
-            If TextureViewFont IsNot Nothing Then
-                TextureViewFont.Deallocate()
-            End If
-            Dim tmpFont As New Font(strTemp, 1.0F)
-            UnitLabelFont = View.CreateGLFont(tmpFont)
-            TextureViewFont = TextureView.CreateGLFont(tmpFont)
-            If Not ByteFile.Get_F32(UnitLabelFontSize) Then Exit Sub
-        End If
+        File.Begin(SettingsPath)
+        Settings_Read(File)
+        File.Close()
     End Sub
+
+    Private Function Settings_Read(ByVal File As clsByteReadFile) As Boolean
+        Settings_Read = False
+
+        Dim uintTemp As UInteger
+        Dim byteTemp As Byte
+        Dim strTemp As String = ""
+
+        If Not File.Get_U32(uintTemp) Then Exit Function
+        If uintTemp <> 4UI Then Exit Function
+        If Not File.Get_U32(uintTemp) Then Exit Function
+        Undo_Limit = uintTemp
+        If Not File.Get_U32(uintTemp) Then Exit Function
+        AutoSave_MinInterval_s = uintTemp
+        If Not File.Get_U32(uintTemp) Then Exit Function
+        AutoSave_MinChanges = uintTemp
+        If Not File.Get_U8(byteTemp) Then Exit Function
+        menuAutosaveEnabled.Checked = (byteTemp > 0)
+        If Not File.Get_U8(byteTemp) Then Exit Function
+        DirectPointer = (byteTemp > 0)
+        If Not File.Get_Text_VariableLength(strTemp) Then Exit Function
+        If UnitLabelFont IsNot Nothing Then
+            UnitLabelFont.Deallocate()
+        End If
+        If TextureViewFont IsNot Nothing Then
+            TextureViewFont.Deallocate()
+        End If
+        Dim tmpFont As New Font(strTemp, 1.0F)
+        UnitLabelFont = View.CreateGLFont(tmpFont)
+        TextureViewFont = TextureView.CreateGLFont(tmpFont)
+        If Not File.Get_F32(UnitLabelFontSize) Then Exit Function
+
+        Settings_Read = True
+    End Function
 
     Private Sub Settings_Write()
 

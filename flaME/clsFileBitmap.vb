@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 
 Public Class clsFileBitmap
 
@@ -60,50 +61,18 @@ Public Class clsFileBitmap
         Save.Success = True
     End Function
 
-    Function GL_Texture_Create() As Integer
+    Function GLTexture(ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal IsMipmapped As Boolean) As Integer
 
         Dim tmpData As Drawing.Imaging.BitmapData = CurrentBitmap.LockBits(New Rectangle(0, 0, CurrentBitmap.Width, CurrentBitmap.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot GLControlToGiveTo.Context Then
+            GLControlToGiveTo.MakeCurrent()
         End If
 
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        GL_Texture_Create = 0
-        GL.GenTextures(1, GL_Texture_Create)
-        GL.BindTexture(TextureTarget.Texture2D, GL_Texture_Create)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, CurrentBitmap.Width, CurrentBitmap.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
-
-        CurrentBitmap.UnlockBits(tmpData)
-    End Function
-
-    Function GL_Texture_Create2(ByVal GLNum As Integer, ByVal IsMipmapped As Boolean) As Integer
-
-        Dim tmpData As Drawing.Imaging.BitmapData = CurrentBitmap.LockBits(New Rectangle(0, 0, CurrentBitmap.Width, CurrentBitmap.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
-
-        If GLNum = frmMainInstance.View.GL_Num Then
-            If GL_Current <> frmMainInstance.View.GL_Num Then
-                frmMainInstance.View.OpenGL.MakeCurrent()
-                GL_Current = frmMainInstance.View.GL_Num
-            End If
-        ElseIf GLNum = frmMainInstance.TextureView.GL_Num Then
-            If GL_Current <> frmMainInstance.TextureView.GL_Num Then
-                frmMainInstance.TextureView.OpenGL.MakeCurrent()
-                GL_Current = frmMainInstance.TextureView.GL_Num
-            End If
-        Else
-            Return 0
-        End If
-
-        GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        GL_Texture_Create2 = 0
-        GL.GenTextures(1, GL_Texture_Create2)
-        GL.BindTexture(TextureTarget.Texture2D, GL_Texture_Create2)
+        GLTexture = 0
+        GL.GenTextures(1, GLTexture)
+        GL.BindTexture(TextureTarget.Texture2D, GLTexture)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
@@ -118,13 +87,12 @@ Public Class clsFileBitmap
         CurrentBitmap.UnlockBits(tmpData)
     End Function
 
-    Sub GL_Texture_Create3(ByVal GLTextureNum As Integer, ByVal Level As Integer)
+    Sub GLTexture(ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal GLTextureNum As Integer, ByVal MipMapLevel As Integer)
 
         Dim tmpData As Drawing.Imaging.BitmapData = CurrentBitmap.LockBits(New Rectangle(0, 0, CurrentBitmap.Width, CurrentBitmap.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
 
-        If GL_Current <> frmMainInstance.View.GL_Num Then
-            frmMainInstance.View.OpenGL.MakeCurrent()
-            GL_Current = frmMainInstance.View.GL_Num
+        If GraphicsContext.CurrentContext IsNot GLControlToGiveTo.Context Then
+            GLControlToGiveTo.MakeCurrent()
         End If
 
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
@@ -133,7 +101,7 @@ Public Class clsFileBitmap
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.NearestMipmapNearest)
-        GL.TexImage2D(TextureTarget.Texture2D, Level, PixelInternalFormat.Rgba, CurrentBitmap.Width, CurrentBitmap.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
+        GL.TexImage2D(TextureTarget.Texture2D, MipMapLevel, PixelInternalFormat.Rgba, CurrentBitmap.Width, CurrentBitmap.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
 
         CurrentBitmap.UnlockBits(tmpData)
     End Sub

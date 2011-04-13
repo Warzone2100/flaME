@@ -353,7 +353,7 @@
             For B = 0 To UnitTypeCount - 1
                 If UnitTypes(B).Type = clsUnitType.enumType.PlayerStructure Then
                     If PlayerUnitTypeUnitCount(A, B) > 255 Then
-                        ValidateMap.Problem = "Player " & A & " has too many (" & PlayerUnitTypeUnitCount(A, B) & ") of structure " & Chr(34) & UnitTypes(B).Code & Chr(34) & ". The limit is 255 of any one structure type."
+                        ValidateMap.Problem = "Player " & A & " has too many (" & PlayerUnitTypeUnitCount(A, B) & ") of structure " & ControlChars.Quote & UnitTypes(B).Code & ControlChars.Quote & ". The limit is 255 of any one structure type."
                         Exit Function
                     End If
                 End If

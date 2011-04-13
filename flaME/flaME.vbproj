@@ -23,7 +23,7 @@
     </ManifestKeyFile>
     <GenerateManifests>false</GenerateManifests>
     <SignManifests>false</SignManifests>
-    <ApplicationIcon>flame2.ico</ApplicationIcon>
+    <ApplicationIcon>flaME.ico</ApplicationIcon>
     <TargetZone>LocalIntranet</TargetZone>
     <ExcludedPermissions>
     </ExcludedPermissions>
@@ -46,8 +46,8 @@
     <ProductName>flaME</ProductName>
     <PublisherName>flaME</PublisherName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>56</ApplicationRevision>
-    <ApplicationVersion>1.16.0.56</ApplicationVersion>
+    <ApplicationRevision>57</ApplicationRevision>
+    <ApplicationVersion>1.17.0.57</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -178,7 +178,6 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="modData.vb" />
-    <Compile Include="modWZME.vb" />
     <Compile Include="modMath.vb" />
     <Compile Include="modMatrix.vb" />
     <Compile Include="modProgram.vb" />
@@ -245,7 +244,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="flame2.ico" />
+    <Content Include="flaME.ico" />
     <Content Include="notile.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

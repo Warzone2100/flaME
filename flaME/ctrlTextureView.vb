@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 
 Public Class ctrlTextureView
 #If OS <> 0.0# Then
@@ -7,13 +8,10 @@ Public Class ctrlTextureView
 
     Public DrawPending As Boolean
 
-    Public GL_Num As Byte = 44
-
-    Public OpenGL As OpenTK.GLControl
+    Public OpenGLControl As OpenTK.GLControl
 
     Public GLSize As sXY_int
-
-    Public ScreenSize_X_Per_Y As Double
+    Public GLSize_XPerY As Double
 
     Public View_Pos As sXY_int
 
@@ -25,25 +23,28 @@ Public Class ctrlTextureView
     Public DisplayTileTypes As Boolean = False
     Public DisplayTileNumbers As Boolean = False
 
+    Private GLInitializeDelayTimer As Timer
+    Public IsGLInitialized As Boolean = False
+
     Sub New()
         ' This call is required by the Windows Form Designer.
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        OpenGL = New OpenTK.GLControl(New OpenTK.Graphics.GraphicsMode(New OpenTK.Graphics.ColorFormat(32), 0, 0, 1))
-        GLInitialize()
-        OpenGL_Size_Calc()
-        pnlDraw.Controls.Add(OpenGL)
+        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0, 1))
+        OpenGLControl.MakeCurrent() 'mono version fails without this
+        pnlDraw.Controls.Add(OpenGLControl)
 
-        AddHandler OpenGL.MouseDown, AddressOf OpenGL_MouseDown
-        AddHandler OpenGL.Resize, AddressOf OpenGL_Resize
-        AddHandler OpenGL.Paint, AddressOf OpenGL_Paint
+        GLInitializeDelayTimer = New Timer
+        GLInitializeDelayTimer.Interval = 1
+        AddHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
+        GLInitializeDelayTimer.Enabled = True
     End Sub
 
     Sub OpenGL_Size_Calc()
 
-        OpenGL.Width = pnlDraw.Width
-        OpenGL.Height = pnlDraw.Height
+        OpenGLControl.Width = pnlDraw.Width
+        OpenGLControl.Height = pnlDraw.Height
 
         Viewport_Resize()
     End Sub
@@ -79,30 +80,42 @@ Public Class ctrlTextureView
         End If
     End Sub
 
-    Private Sub GLInitialize()
+    Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        IsGLInitialized = True
+
+        GLInitializeDelayTimer.Enabled = False
+        RemoveHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
+        GLInitializeDelayTimer.Dispose()
+        GLInitializeDelayTimer = Nothing
+
+        OpenGL_Size_Calc()
+
+        AddHandler OpenGLControl.MouseDown, AddressOf OpenGL_MouseDown
+        AddHandler OpenGLControl.Resize, AddressOf OpenGL_Resize
+        AddHandler OpenGLControl.Paint, AddressOf OpenGL_Paint
+
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         GL.ClearColor(0.0F, 0.0F, 0.0F, 1.0F)
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.Enable(EnableCap.Blend)
+        GL.Enable(EnableCap.CullFace)
         GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
     End Sub
 
     Sub Viewport_Resize()
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
         GL.Viewport(0, 0, GLSize.X, GLSize.Y)
 
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.Flush()
-        OpenGL.SwapBuffers()
+        OpenGLControl.SwapBuffers()
         Refresh()
 
         DrawViewLater()
@@ -117,16 +130,18 @@ Public Class ctrlTextureView
         Static Vertex0 As sXY_sng
         Static Vertex1 As sXY_sng
         Static Vertex2 As sXY_sng
-        Static Vertex3 As sXY_sng
         Static UnrotatedPos As sXY_sng
+        Static TexCoord0 As sXY_sng
+        Static TexCoord1 As sXY_sng
+        Static TexCoord2 As sXY_sng
+        Static TexCoord3 As sXY_sng
 
-        If Not DrawView_Enabled Then
+        If Not (DrawView_Enabled And IsGLInitialized) Then
             Exit Sub
         End If
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         GL.Clear(ClearBufferMask.ColorBufferBit)
@@ -135,26 +150,14 @@ Public Class ctrlTextureView
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill)
-
         If Map.Tileset IsNot Nothing Then
 
-            UnrotatedPos.X = 0.0F
-            UnrotatedPos.Y = 0.0F
-            Vertex0 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
-            UnrotatedPos.X = 1.0F
-            UnrotatedPos.Y = 0.0F
-            Vertex1 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
-            UnrotatedPos.X = 0.0F
-            UnrotatedPos.Y = 1.0F
-            Vertex2 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
-            UnrotatedPos.X = 1.0F
-            UnrotatedPos.Y = 1.0F
-            Vertex3 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
+            GetTileRotatedTexCoords(TextureOrientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
             GL.Enable(EnableCap.Texture2D)
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
             GL.Color4(0.0F, 0.0F, 0.0F, 1.0F)
+
             For Y = 0 To TextureCount.Y - 1
                 For X = 0 To TextureCount.X - 1
                     Num = (TextureYOffset + Y) * TextureCount.X + X
@@ -168,17 +171,18 @@ Public Class ctrlTextureView
                         GL.BindTexture(TextureTarget.Texture2D, A)
                     End If
                     GL.Begin(BeginMode.Quads)
-                    GL.TexCoord2(0.0F, 0.0F)
-                    GL.Vertex2(X * 64.0# + Vertex0.X * 64.0#, Y * 64.0# + Vertex0.Y * 64.0#)
-                    GL.TexCoord2(1.0F, 0.0F)
-                    GL.Vertex2(X * 64.0# + Vertex1.X * 64.0#, Y * 64.0# + Vertex1.Y * 64.0#)
-                    GL.TexCoord2(1.0F, 1.0F)
-                    GL.Vertex2(X * 64.0# + Vertex3.X * 64.0#, Y * 64.0# + Vertex3.Y * 64.0#)
-                    GL.TexCoord2(0.0F, 1.0F)
-                    GL.Vertex2(X * 64.0# + Vertex2.X * 64.0#, Y * 64.0# + Vertex2.Y * 64.0#)
+                    GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
+                    GL.Vertex2(X * 64.0#, Y * 64.0#)
+                    GL.TexCoord2(TexCoord2.X, TexCoord2.Y)
+                    GL.Vertex2(X * 64.0#, Y * 64.0# + 64.0#)
+                    GL.TexCoord2(TexCoord3.X, TexCoord3.Y)
+                    GL.Vertex2(X * 64.0# + 64.0#, Y * 64.0# + 64.0#)
+                    GL.TexCoord2(TexCoord1.X, TexCoord1.Y)
+                    GL.Vertex2(X * 64.0# + 64.0#, Y * 64.0#)
                     GL.End()
                 Next
             Next
+
 EndOfTextures1:
 
             GL.Disable(EnableCap.Texture2D)
@@ -194,9 +198,9 @@ EndOfTextures1:
                         A = Map.Tile_TypeNum(Num)
                         GL.Color3(TileTypes(A).DisplayColour.Red, TileTypes(A).DisplayColour.Green, TileTypes(A).DisplayColour.Blue)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 24.0#)
-                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 24.0#)
-                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 40.0#)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 40.0#)
+                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 40.0#)
+                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 24.0#)
                     Next
                 Next
 EndOfTextures2:
@@ -223,8 +227,8 @@ EndOfTextures2:
                             GoTo EndOfTextures3
                         End If
                         GL.Vertex2(X * 64.0# + Vertex0.X * 64.0#, Y * 64.0# + Vertex0.Y * 64.0#)
-                        GL.Vertex2(X * 64.0# + Vertex1.X * 64.0#, Y * 64.0# + Vertex1.Y * 64.0#)
                         GL.Vertex2(X * 64.0# + Vertex2.X * 64.0#, Y * 64.0# + Vertex2.Y * 64.0#)
+                        GL.Vertex2(X * 64.0# + Vertex1.X * 64.0#, Y * 64.0# + Vertex1.Y * 64.0#)
                     Next
                 Next
 EndOfTextures3:
@@ -264,15 +268,15 @@ EndOfTextures4:
                 GL.Begin(BeginMode.LineLoop)
                 GL.Color3(1.0F, 1.0F, 0.0F)
                 GL.Vertex2(XY_int.X * 64.0#, XY_int.Y * 64.0#)
-                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0#)
-                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0# + 64.0#)
                 GL.Vertex2(XY_int.X * 64.0#, XY_int.Y * 64.0# + 64.0#)
+                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0# + 64.0#)
+                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0#)
                 GL.End()
             End If
         End If
 
         GL.Flush()
-        OpenGL.SwapBuffers()
+        OpenGLControl.SwapBuffers()
 
         Refresh()
     End Sub
@@ -319,7 +323,7 @@ EndOfTextures4:
 
     Private Sub pnlDraw_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles pnlDraw.Resize
 
-        If OpenGL IsNot Nothing Then
+        If OpenGLControl IsNot Nothing Then
             OpenGL_Size_Calc()
             TextureCount.X = Math.Floor(GLSize.X / 64.0#)
             TextureCount.Y = Math.Ceiling(GLSize.Y / 64.0#)
@@ -358,9 +362,11 @@ EndOfTextures4:
 
     Sub OpenGL_Resize(ByVal sender As Object, ByVal e As System.EventArgs)
 
-        GLSize.X = OpenGL.Width
-        GLSize.Y = OpenGL.Height
-        ScreenSize_X_Per_Y = GLSize.X / GLSize.Y
+        GLSize.X = OpenGLControl.Width
+        GLSize.Y = OpenGLControl.Height
+        If GLSize.Y <> 0 Then
+        	GLSize_XPerY = GLSize.X / GLSize.Y
+        End If
         Viewport_Resize()
     End Sub
 
@@ -373,9 +379,8 @@ EndOfTextures4:
 
     Public Function CreateGLFont(ByVal BaseFont As Font) As GLFont
 
-        If GL_Current <> GL_Num Then
-            OpenGL.MakeCurrent()
-            GL_Current = GL_Num
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
         End If
 
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
@@ -418,12 +423,12 @@ EndOfTextures4:
                 GL.Begin(BeginMode.Quads)
                 GL.TexCoord2(0.0F, 0.0F)
                 GL.Vertex2(LetterPosA, PosY1)
-                GL.TexCoord2(TexRatio.X, 0.0F)
-                GL.Vertex2(LetterPosB, PosY1)
-                GL.TexCoord2(TexRatio.X, TexRatio.Y)
-                GL.Vertex2(LetterPosB, PosY2)
                 GL.TexCoord2(0.0F, TexRatio.Y)
                 GL.Vertex2(LetterPosA, PosY2)
+                GL.TexCoord2(TexRatio.X, TexRatio.Y)
+                GL.Vertex2(LetterPosB, PosY2)
+                GL.TexCoord2(TexRatio.X, 0.0F)
+                GL.Vertex2(LetterPosB, PosY1)
                 GL.End()
                 LetterPosA = LetterPosB + CharSpacing
             End If

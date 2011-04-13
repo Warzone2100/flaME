@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 
 Public Class clsTileset
 
@@ -18,38 +19,45 @@ Public Class clsTileset
     Public TileCount As UInteger
 
     Function Default_TileTypes_Load(ByVal Path As String) As sResult
-        Default_TileTypes_Load.Success = False
-        Default_TileTypes_Load.Problem = ""
+        Dim File As New clsByteReadFile
 
-        Dim ByteFile As New clsByteReadFile
-        Dim Result As sResult = ByteFile.File_Read(Path)
-        If Not Result.Success Then Default_TileTypes_Load.Problem = Result.Problem : Exit Function
+        Default_TileTypes_Load = File.Begin(Path)
+        If Not Default_TileTypes_Load.Success Then
+            Exit Function
+        End If
+        Default_TileTypes_Load = Default_TileTypes_Read(File)
+        File.Close()
+    End Function
+
+    Private Function Default_TileTypes_Read(ByVal File As clsByteReadFile) As sResult
+        Default_TileTypes_Read.Success = False
+        Default_TileTypes_Read.Problem = ""
 
         Dim uintTemp As UInteger
         Dim A As Integer
         Dim ushortTemp As UShort
         Dim strTemp As String = ""
 
-        If Not ByteFile.Get_Text(4, strTemp) Then Default_TileTypes_Load.Problem = "Read Error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
         If strTemp <> "ttyp" Then
-            Default_TileTypes_Load.Problem = "Bad identifier."
+            Default_TileTypes_Read.Problem = "Bad identifier."
             Exit Function
         End If
 
-        If Not ByteFile.Get_U32(uintTemp) Then Default_TileTypes_Load.Problem = "Read Error." : Exit Function
-        If Not uintTemp = 8UI Then Default_TileTypes_Load.Problem = "Unknown version." : Exit Function
+        If Not File.Get_U32(uintTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
+        If Not uintTemp = 8UI Then Default_TileTypes_Read.Problem = "Unknown version." : Exit Function
 
-        If Not ByteFile.Get_U32(uintTemp) Then Default_TileTypes_Load.Problem = "Read Error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
         TileCount = uintTemp
         ReDim Tiles(TileCount - 1UI)
 
         For A = 0 To Math.Min(uintTemp, TileCount) - 1
-            If Not ByteFile.Get_U16(ushortTemp) Then Default_TileTypes_Load.Problem = "Read Error." : Exit Function
-            If ushortTemp > 11US Then Default_TileTypes_Load.Problem = "Unknown tile type." : Exit Function
+            If Not File.Get_U16(ushortTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
+            If ushortTemp > 11US Then Default_TileTypes_Read.Problem = "Unknown tile type." : Exit Function
             Tiles(A).Default_Type = ushortTemp
         Next
 
-        Default_TileTypes_Load.Success = True
+        Default_TileTypes_Read.Success = True
     End Function
 
     Public Function LoadDirectory(ByVal Path As String) As sResult
@@ -150,8 +158,8 @@ Public Class clsTileset
             Tiles(TileNum).Average_Color.Green = GreenTotal / PixelCountForAverage
             Tiles(TileNum).Average_Color.Blue = BlueTotal / PixelCountForAverage
 
-            Tiles(TileNum).TextureView_GL_Texture_Num = tmpBitmap.GL_Texture_Create2(frmMainInstance.TextureView.GL_Num, False)
-            Tiles(TileNum).MapView_GL_Texture_Num = tmpBitmap.GL_Texture_Create2(frmMainInstance.View.GL_Num, True)
+            Tiles(TileNum).TextureView_GL_Texture_Num = tmpBitmap.GLTexture(frmMainInstance.TextureView.OpenGLControl, False)
+            Tiles(TileNum).MapView_GL_Texture_Num = tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, True)
 
             '-------- 64 --------
 
@@ -169,7 +177,7 @@ Public Class clsTileset
                 Exit Function
             End If
 
-            tmpBitmap.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 1)
+            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 1)
 
             '-------- 32 --------
 
@@ -187,7 +195,7 @@ Public Class clsTileset
                 Exit Function
             End If
 
-            tmpBitmap.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 2)
+            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 2)
 
             '-------- 16 --------
 
@@ -205,7 +213,7 @@ Public Class clsTileset
                 Exit Function
             End If
 
-            tmpBitmap.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 3)
+            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 3)
 
             '-------- 8 --------
 
@@ -223,11 +231,11 @@ Public Class clsTileset
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap8.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red,Green,Blue)))
+                    tmpBitmap8.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap8.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 4)
+            tmpBitmap8.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 4)
 
             '-------- 4 --------
 
@@ -245,11 +253,11 @@ Public Class clsTileset
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap4.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red,Green,Blue)))
+                    tmpBitmap4.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap4.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 5)
+            tmpBitmap4.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 5)
 
             '-------- 2 --------
 
@@ -267,11 +275,11 @@ Public Class clsTileset
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap2.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red,Green,Blue)))
+                    tmpBitmap2.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap2.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 6)
+            tmpBitmap2.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 6)
 
             '-------- 1 --------
 
@@ -289,9 +297,9 @@ Public Class clsTileset
             Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
             Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
             Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-            tmpBitmap1.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red,Green,Blue)))
+            tmpBitmap1.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
 
-            tmpBitmap1.GL_Texture_Create3(Tiles(TileNum).MapView_GL_Texture_Num, 7)
+            tmpBitmap1.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 7)
         Next
     End Function
 End Class

@@ -14,7 +14,7 @@
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
-    <ReleaseVersion>1.16</ReleaseVersion>
+    <ReleaseVersion>1.17</ReleaseVersion>
     <OptionInfer>On</OptionInfer>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
   </PropertyGroup>
@@ -35,6 +35,7 @@
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
     <ConsolePause>false</ConsolePause>
+    <DefineConstants>OS=1.0</DefineConstants>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
   <ItemGroup>
@@ -61,7 +62,6 @@
     <Compile Include="modMath.vb" />
     <Compile Include="modMatrix.vb" />
     <Compile Include="modProgram.vb" />
-    <Compile Include="modWZME.vb" />
     <Compile Include="sPainter.vb" />
     <Compile Include="TileOrientation.vb" />
     <Compile Include="Application.vb" />
@@ -88,4 +88,11 @@
     <Import Include="System.Drawing" />
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Deployment.LinuxDeployData generateScript="false" />
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
 </Project>

@@ -1,109 +1,109 @@
 ﻿Module modMatrix
 
-    Function DotProduct(ByVal VectorA As sXYZ_dbl, ByVal VectorB As sXYZ_dbl) As Double
+    Function VectorDotProduct(ByVal VectorA As sXYZ_dbl, ByVal VectorB As sXYZ_dbl) As Double
 
-        DotProduct = VectorA.Z * VectorB.Z + VectorA.Y * VectorB.Y + VectorA.X * VectorB.X
+        VectorDotProduct = VectorA.Z * VectorB.Z + VectorA.Y * VectorB.Y + VectorA.X * VectorB.X
     End Function
 
-    Sub CrossProduct(ByVal VectorA As sXYZ_dbl, ByVal VectorB As sXYZ_dbl, ByRef Vector_Output As sXYZ_dbl)
+    Sub VectorCrossProduct(ByVal VectorA As sXYZ_dbl, ByVal VectorB As sXYZ_dbl, ByRef Vector_Output As sXYZ_dbl)
 
         Vector_Output.X = VectorA.Y * VectorB.Z - VectorB.Y * VectorA.Z
         Vector_Output.Y = VectorA.Z * VectorB.X - VectorB.Z * VectorA.X
         Vector_Output.Z = VectorA.X * VectorB.Y - VectorB.X * VectorA.Y
     End Sub
 
-    Sub Vector_Matrix_Rotate(ByRef Matrix() As Double, ByVal Vector As sXYZ_dbl, ByRef Vector_Output As sXYZ_dbl)
+    Sub VectorRotationByMatrix(ByRef Matrix() As Double, ByVal Vector As sXYZ_dbl, ByRef Vector_Output As sXYZ_dbl)
 
         Vector_Output.X = Vector.X * Matrix(0) + Vector.Y * Matrix(1) + Vector.Z * Matrix(2)
         Vector_Output.Y = Vector.X * Matrix(3) + Vector.Y * Matrix(4) + Vector.Z * Matrix(5)
         Vector_Output.Z = Vector.X * Matrix(6) + Vector.Y * Matrix(7) + Vector.Z * Matrix(8)
     End Sub
 
-    Sub VectorUp_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorUpRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(1)
         Output_Vector.Y = Input_Matrix(4)
         Output_Vector.Z = Input_Matrix(7)
     End Sub
 
-    Sub VectorUp_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorUpRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(1) * Scale
         Output_Vector.Y = Input_Matrix(4) * Scale
         Output_Vector.Z = Input_Matrix(7) * Scale
     End Sub
 
-    Sub VectorDown_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorDownRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = -Input_Matrix(1)
         Output_Vector.Y = -Input_Matrix(4)
         Output_Vector.Z = -Input_Matrix(7)
     End Sub
 
-    Sub VectorDown_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorDownRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(1) * -Scale
         Output_Vector.Y = Input_Matrix(4) * -Scale
         Output_Vector.Z = Input_Matrix(7) * -Scale
     End Sub
 
-    Sub VectorLeft_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorLeftRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = -Input_Matrix(0)
         Output_Vector.Y = -Input_Matrix(3)
         Output_Vector.Z = -Input_Matrix(6)
     End Sub
 
-    Sub VectorLeft_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorLeftRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(0) * -Scale
         Output_Vector.Y = Input_Matrix(3) * -Scale
         Output_Vector.Z = Input_Matrix(6) * -Scale
     End Sub
 
-    Sub VectorRight_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorRightRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(0)
         Output_Vector.Y = Input_Matrix(3)
         Output_Vector.Z = Input_Matrix(6)
     End Sub
 
-    Sub VectorRight_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorRightRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(0) * Scale
         Output_Vector.Y = Input_Matrix(3) * Scale
         Output_Vector.Z = Input_Matrix(6) * Scale
     End Sub
 
-    Sub VectorForward_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorForwardRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(2)
         Output_Vector.Y = Input_Matrix(5)
         Output_Vector.Z = Input_Matrix(8)
     End Sub
 
-    Sub VectorForward_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorForwardRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(2) * Scale
         Output_Vector.Y = Input_Matrix(5) * Scale
         Output_Vector.Z = Input_Matrix(8) * Scale
     End Sub
 
-    Sub VectorBackward_Matrix_Rotate(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorBackwardRotationByMatrix(ByRef Input_Matrix() As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = -Input_Matrix(2)
         Output_Vector.Y = -Input_Matrix(5)
         Output_Vector.Z = -Input_Matrix(8)
     End Sub
 
-    Sub VectorBackward_Matrix_Rotate(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
+    Sub VectorBackwardRotationByMatrix(ByRef Input_Matrix() As Double, ByVal Scale As Double, ByRef Output_Vector As sXYZ_dbl)
 
         Output_Vector.X = Input_Matrix(2) * -Scale
         Output_Vector.Y = Input_Matrix(5) * -Scale
         Output_Vector.Z = Input_Matrix(8) * -Scale
     End Sub
 
-    Sub Matrix2_Rotate(ByRef Rotation_Matrix() As Double, ByRef Base_Matrix() As Double, ByRef Output_Matrix() As Double)
+    Sub MatrixRotationByMatrix(ByRef Rotation_Matrix() As Double, ByRef Base_Matrix() As Double, ByRef Output_Matrix() As Double)
 
         Output_Matrix(0) = Rotation_Matrix(0) * Base_Matrix(0) + Rotation_Matrix(1) * Base_Matrix(3) + Rotation_Matrix(2) * Base_Matrix(6)
         Output_Matrix(1) = Rotation_Matrix(0) * Base_Matrix(1) + Rotation_Matrix(1) * Base_Matrix(4) + Rotation_Matrix(2) * Base_Matrix(7)
@@ -116,7 +116,7 @@
         Output_Matrix(8) = Rotation_Matrix(6) * Base_Matrix(2) + Rotation_Matrix(7) * Base_Matrix(5) + Rotation_Matrix(8) * Base_Matrix(8)
     End Sub
 
-    Sub Matrix_Set_Rotate_Z(ByRef Matrix() As Double, ByVal Z As Double)
+    Sub MatrixSetToZAngle(ByRef Matrix() As Double, ByVal Z As Double)
 
         Matrix(0) = Math.Cos(Z)
         Matrix(1) = -Math.Sin(Z)
@@ -129,7 +129,7 @@
         Matrix(8) = 1.0#
     End Sub
 
-    Sub Matrix_Set_Rotate_Y(ByRef Matrix() As Double, ByVal Y As Double)
+    Sub MatrixSetToYAngle(ByRef Matrix() As Double, ByVal Y As Double)
 
         Matrix(0) = Math.Cos(Y)
         Matrix(1) = 0.0#
@@ -142,7 +142,7 @@
         Matrix(8) = Math.Cos(Y)
     End Sub
 
-    Sub Matrix_Set_Rotate_X(ByRef Matrix() As Double, ByVal X As Double)
+    Sub MatrixSetToXAngle(ByRef Matrix() As Double, ByVal X As Double)
 
         Matrix(0) = 1.0#
         Matrix(1) = 0.0#
@@ -155,7 +155,7 @@
         Matrix(8) = Math.Cos(X)
     End Sub
 
-    Sub Matrix_Set_Identity(ByRef Matrix() As Double)
+    Sub MatrixSetToIdentity(ByRef Matrix() As Double)
 
         Matrix(0) = 1.0#
         Matrix(1) = 0.0#
@@ -168,33 +168,33 @@
         Matrix(8) = 1.0#
     End Sub
 
-    Sub Matrix_Get_RPY(ByRef Matrix() As Double, ByRef Output_RPY As sAngleRPY)
+    Sub MatrixToRPY(ByRef Matrix() As Double, ByRef Output_RPY As sAngleRPY)
         Dim XYZ_dbl As sXYZ_dbl
         Dim XYZ_dbl2 As sXYZ_dbl
         Dim AnglePY As sAnglePY
         Dim matrixX(8) As Double
         Dim matrixY(8) As Double
 
-        VectorForward_Matrix_Rotate(Matrix, XYZ_dbl2)
+        VectorForwardRotationByMatrix(Matrix, XYZ_dbl2)
         GetAnglePY(XYZ_dbl2, AnglePY)
         Output_RPY.Pitch = AnglePY.Pitch
         Output_RPY.Yaw = AnglePY.Yaw
-        VectorRight_Matrix_Rotate(Matrix, XYZ_dbl2)
-        Matrix_Set_Rotate_X(matrixX, -AnglePY.Pitch)
-        Matrix_Set_Rotate_Y(matrixY, -AnglePY.Yaw)
-        Vector_Matrix_Rotate(matrixY, XYZ_dbl2, XYZ_dbl)
-        Vector_Matrix_Rotate(matrixX, XYZ_dbl, XYZ_dbl2)
+        VectorRightRotationByMatrix(Matrix, XYZ_dbl2)
+        MatrixSetToXAngle(matrixX, -AnglePY.Pitch)
+        MatrixSetToYAngle(matrixY, -AnglePY.Yaw)
+        VectorRotationByMatrix(matrixY, XYZ_dbl2, XYZ_dbl)
+        VectorRotationByMatrix(matrixX, XYZ_dbl, XYZ_dbl2)
         Output_RPY.Roll = Math.Atan2(XYZ_dbl2.Y, XYZ_dbl2.X)
     End Sub
 
-    Sub Matrix_Get_PY(ByRef Matrix() As Double, ByRef Output_PY As sAnglePY)
+    Sub MatrixToPY(ByRef Matrix() As Double, ByRef Output_PY As sAnglePY)
         Dim XYZ_dbl As sXYZ_dbl
 
-        VectorForward_Matrix_Rotate(Matrix, XYZ_dbl)
+        VectorForwardRotationByMatrix(Matrix, XYZ_dbl)
         GetAnglePY(XYZ_dbl, Output_PY)
     End Sub
 
-    Sub Matrix_Copy(ByRef Matrix_Input() As Double, ByRef Matrix_Output() As Double)
+    Sub MatrixCopy(ByRef Matrix_Input() As Double, ByRef Matrix_Output() As Double)
 
         Matrix_Output(0) = Matrix_Input(0)
         Matrix_Output(1) = Matrix_Input(1)
@@ -207,7 +207,7 @@
         Matrix_Output(8) = Matrix_Input(8)
     End Sub
 
-    Sub Matrix_Invert(ByRef matrixInput() As Double, ByRef matrixOutput() As Double)
+    Sub MatrixInvert(ByRef matrixInput() As Double, ByRef matrixOutput() As Double)
         Dim A As Double
         Dim B As Double
         Dim C As Double
@@ -261,44 +261,44 @@
         matrixOutput(8) = ID * I2
     End Sub
 
-    Sub Matrix_Rotate2(ByRef matrixInput() As Double, ByRef matrixRotationAxis() As Double, ByVal Rotation_Angle As Double, ByRef matrixOutput() As Double)
+    Sub MatrixRotationAroundAxis(ByRef MatrixInput() As Double, ByRef MatrixRotationAxis() As Double, ByVal RotationAngle As Double, ByRef MatrixOutput() As Double)
         Dim matrixA(8) As Double
         Dim matrixB(8) As Double
         Dim matrixC(8) As Double
 
-        Matrix_Invert(matrixRotationAxis, matrixA)
-        Matrix2_Rotate(matrixA, matrixInput, matrixB)
-        Matrix_Set_Rotate_Z(matrixA, Rotation_Angle)
-        Matrix2_Rotate(matrixA, matrixB, matrixC)
-        Matrix2_Rotate(matrixRotationAxis, matrixC, matrixOutput)
+        MatrixInvert(MatrixRotationAxis, matrixA)
+        MatrixRotationByMatrix(matrixA, MatrixInput, matrixB)
+        MatrixSetToZAngle(matrixA, RotationAngle)
+        MatrixRotationByMatrix(matrixA, matrixB, matrixC)
+        MatrixRotationByMatrix(MatrixRotationAxis, matrixC, MatrixOutput)
     End Sub
 
-    Sub Matrix_Set_RPY(ByRef Matrix_Output() As Double, ByRef AngleRPY As sAngleRPY)
+    Sub MatrixSetToRPY(ByRef Matrix_Output() As Double, ByRef AngleRPY As sAngleRPY)
         Dim matrixZ(8) As Double
         Dim matrixX(8) As Double
         Dim matrixY(8) As Double
         Dim matrixA(8) As Double
 
-        Matrix_Set_Rotate_Z(matrixZ, AngleRPY.Roll)
-        Matrix_Set_Rotate_X(matrixX, AngleRPY.Pitch)
-        Matrix_Set_Rotate_Y(matrixY, AngleRPY.Yaw)
-        Matrix2_Rotate(matrixX, matrixZ, matrixA)
-        Matrix2_Rotate(matrixY, matrixA, Matrix_Output)
+        MatrixSetToZAngle(matrixZ, AngleRPY.Roll)
+        MatrixSetToXAngle(matrixX, AngleRPY.Pitch)
+        MatrixSetToYAngle(matrixY, AngleRPY.Yaw)
+        MatrixRotationByMatrix(matrixX, matrixZ, matrixA)
+        MatrixRotationByMatrix(matrixY, matrixA, Matrix_Output)
     End Sub
 
-    Sub Matrix_Set_PY(ByRef Matrix_Output() As Double, ByVal AnglePY As sAnglePY)
+    Sub MatrixSetToPY(ByRef Matrix_Output() As Double, ByVal AnglePY As sAnglePY)
         Dim matrixX(8) As Double
         Dim matrixY(8) As Double
 
-        Matrix_Set_Rotate_X(matrixX, AnglePY.Pitch)
-        Matrix_Set_Rotate_Y(matrixY, AnglePY.Yaw)
-        Matrix2_Rotate(matrixY, matrixX, Matrix_Output)
+        MatrixSetToXAngle(matrixX, AnglePY.Pitch)
+        MatrixSetToYAngle(matrixY, AnglePY.Yaw)
+        MatrixRotationByMatrix(matrixY, matrixX, Matrix_Output)
     End Sub
 
-    Sub Matrix_Normalize(ByRef Matrix() As Double)
-        Dim tmpAngle_RPY As sAngleRPY
+    Sub MatrixNormalize(ByRef Matrix() As Double)
+        Dim AngleRPY As sAngleRPY
 
-        Matrix_Get_RPY(Matrix, tmpAngle_RPY)
-        Matrix_Set_RPY(Matrix, tmpAngle_RPY)
+        MatrixToRPY(Matrix, AngleRPY)
+        MatrixSetToRPY(Matrix, AngleRPY)
     End Sub
 End Module

@@ -160,7 +160,7 @@
 
     Private Sub btnDo_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnDo.Click
 
-        Do_Tiles()
+        Perform()
 
         Map.SectorAll_Set_Changed()
         Map.SectorAll_GL_Update()
@@ -170,7 +170,7 @@
         frmMainInstance.DrawView()
     End Sub
 
-    Sub Do_Tiles()
+    Sub Perform()
 
         Dim X As Integer
         Dim Y As Integer
@@ -322,7 +322,9 @@
 
         OpenFileDialog.FileName = ""
         OpenFileDialog.Filter = "Bitmap Images (*.bmp)|*.bmp|All Files (*.*)|*.*"
-        If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then Exit Sub
+        If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
 
         Dim Result As sResult
         Dim hmA As clsHeightmap = New clsHeightmap
@@ -348,31 +350,31 @@
         Layer_Items_Refresh()
     End Sub
 
-    Sub Profile_Layer_Insert(ByVal Position_Num As Integer, ByVal Layer_New As clsLayer)
+    Sub Profile_Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
         Dim A As Integer
 
         ReDim Preserve Layer(LayerCount)
         'shift the ones below down
-        For A = LayerCount - 1 To Position_Num Step -1
+        For A = LayerCount - 1 To PositionNum Step -1
             Layer(A + 1) = Layer(A)
         Next A
         'insert the new entry
-        Layer(Position_Num) = Layer_New
+        Layer(PositionNum) = NewLayer
         LayerCount += 1
 
         For A = 0 To LayerCount - 1
-            If Layer(A).Within_Layer >= Position_Num Then
+            If Layer(A).Within_Layer >= PositionNum Then
                 Layer(A).Within_Layer = Layer(A).Within_Layer + 1
             End If
             ReDim Preserve Layer(A).Avoid_Layer(LayerCount - 1)
-            For B = LayerCount - 2 To Position_Num Step -1
+            For B = LayerCount - 2 To PositionNum Step -1
                 Layer(A).Avoid_Layer(B + 1) = Layer(A).Avoid_Layer(B)
             Next
-            Layer(A).Avoid_Layer(Position_Num) = False
+            Layer(A).Avoid_Layer(PositionNum) = False
         Next
     End Sub
 
-    Sub Profile_Layer_Rem(ByVal Layer_Num As Integer)
+    Sub Profile_Layer_Remove(ByVal Layer_Num As Integer)
         Dim A As Integer
         Dim B As Integer
 
@@ -445,7 +447,7 @@
     End Sub
 
     Private Sub lstLayer_KeyDown(ByVal eventSender As System.Object, ByVal eventArgs As System.Windows.Forms.KeyEventArgs) Handles lstLayer.KeyDown
-        Dim Layer_New As clsLayer
+        Dim NewLayer As clsLayer
         Dim Position_Num As Integer
 
         If eventArgs.KeyCode = 189 Then '-
@@ -464,20 +466,20 @@
             Else
                 Position_Num = lstLayer.SelectedIndex + 1
             End If
-            Layer_New = New clsLayer
-            Layer_New.Within_Layer = -1
-            Layer_New.Terrain = Nothing
-            Layer_New.HeightMin = 0.0F
-            Layer_New.HeightMax = 255.0F
-            Layer_New.SlopeMin = 0
-            Layer_New.SlopeMax = RadOf90Deg
-            Layer_New.Terrainmap = New clsBooleanMap
-            Layer_New.Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
-            Profile_Layer_Insert(Position_Num, Layer_New)
+            NewLayer = New clsLayer
+            NewLayer.Within_Layer = -1
+            NewLayer.Terrain = Nothing
+            NewLayer.HeightMin = 0.0F
+            NewLayer.HeightMax = 255.0F
+            NewLayer.SlopeMin = 0
+            NewLayer.SlopeMax = RadOf90Deg
+            NewLayer.Terrainmap = New clsBooleanMap
+            NewLayer.Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
+            Profile_Layer_Insert(Position_Num, NewLayer)
             lstLayer_Refresh(Position_Num)
         ElseIf eventArgs.KeyCode = System.Windows.Forms.Keys.Delete And eventArgs.Shift Then
             If Not lstLayer.SelectedIndex = -1 Then
-                Profile_Layer_Rem(lstLayer.SelectedIndex)
+                Profile_Layer_Remove(lstLayer.SelectedIndex)
                 lstLayer_Refresh(Math.Min(lstLayer.SelectedIndex, LayerCount - 1))
             End If
         End If
@@ -510,18 +512,18 @@
     Sub bmDisplay()
         Dim X As Integer
         Dim Y As Integer
-        Dim Bitmap_New As Bitmap = New Bitmap(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
+        Dim tmpBitmap As Bitmap = New Bitmap(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
 
         For Y = 0 To Map.TerrainSize.Y
             For X = 0 To Map.TerrainSize.X
                 If Layer(lstLayer.SelectedIndex).Terrainmap.ValueData.Value(Y, X) Then
-                    Bitmap_New.SetPixel(X, Y, Color.White)
+                    tmpBitmap.SetPixel(X, Y, Color.White)
                 Else
-                    Bitmap_New.SetPixel(X, Y, Color.Black)
+                    tmpBitmap.SetPixel(X, Y, Color.Black)
                 End If
             Next
         Next
-        picHeightmap.Image = Bitmap_New
+        picHeightmap.Image = tmpBitmap
         picHeightmap.Visible = True
     End Sub
 

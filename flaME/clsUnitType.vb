@@ -1,4 +1,5 @@
-﻿Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics
+Imports OpenTK.Graphics.OpenGL
 
 Public Class clsUnitType
 
@@ -56,7 +57,8 @@ Public Class clsUnitType
             Public AttachmentCount As Integer
 
             Sub New()
-                Matrix_Set_Identity(Angle_Offset_Matrix)
+
+                MatrixSetToIdentity(Angle_Offset_Matrix)
             End Sub
 
             Sub GLDraw()
@@ -76,8 +78,8 @@ Public Class clsUnitType
 
                 For A = 0 To AttachmentCount - 1
                     GL.PushMatrix()
-                    Matrix_Invert(Attachments(A).Angle_Offset_Matrix, matrixA)
-                    Matrix_Get_RPY(matrixA, AngleRPY)
+                    MatrixInvert(Attachments(A).Angle_Offset_Matrix, matrixA)
+                    MatrixToRPY(matrixA, AngleRPY)
                     GL.Translate(Attachments(A).Pos_Offset.X, Attachments(A).Pos_Offset.Y, -Attachments(A).Pos_Offset.Z)
                     GL.Rotate(-AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, 1.0F)
                     GL.Rotate(AngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
