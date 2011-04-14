@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Configuration Condition=" '$(Configuration)' == '' ">Mono 2.10.1</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.21022</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{BD8012A0-2BFF-4CFA-9E78-DD15FDCB504B}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <StartupObject>flaME.My.MyApplication</StartupObject>
     <RootNamespace>flaME</RootNamespace>
-    <AssemblyName>flaME</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
@@ -17,25 +16,21 @@
     <ReleaseVersion>1.17</ReleaseVersion>
     <OptionInfer>On</OptionInfer>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
+    <AssemblyName>flaME Mono</AssemblyName>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\Debug Mono</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <AdditionalParameters />
-    <DefineTrace>false</DefineTrace>
-    <DefineDebug>false</DefineDebug>
-    <ConsolePause>false</ConsolePause>
-    <DefineConstants>OS=1.0</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <OutputPath>bin\Release Mono</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1|AnyCPU' ">
+    <OutputPath>bin\MonoDevelop Mono 2.10.1</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
-    <ConsolePause>false</ConsolePause>
-    <DefineConstants>OS=1.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=1.0</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Microsoft .NET|AnyCPU' ">
+    <OutputPath>bin\MonoDevelop Microsoft .NET</OutputPath>
+    <DefineTrace>false</DefineTrace>
+    <AdditionalParameters />
+    <DefineDebug>false</DefineDebug>
+    <DefineConstants>MonoDevelop=1.0,Mono=0.0</DefineConstants>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
   <ItemGroup>

@@ -21,16 +21,11 @@
 
         If LengthDescriptor Then
             U32_Append(Text.Length)
-            Num = Make_Length(Text.Length)
-            For A = 0 To Text.Length - 1
-                Bytes(Num + A) = Asc(Text.Chars(A))
-            Next
-        Else
-            Num = Make_Length(Text.Length)
-            For A = 0 To Text.Length - 1
-                Bytes(Num + A) = Asc(Text.Chars(A))
-            Next
         End If
+        Num = Make_Length(Text.Length)
+        For A = 0 To Text.Length - 1
+            Bytes(Num + A) = Asc(Text.Chars(A))
+        Next
     End Sub
 
     Sub Text_Append(ByVal Text As String, ByVal Length As Integer)

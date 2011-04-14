@@ -2395,7 +2395,7 @@ LineDone:
         End If
     End Sub
 
-#If OS <> 0.0# Then
+#If Mono <> 0.0# Then
     Private MinimapBitmap As Bitmap
 #End If
     Private MinimapPending As Boolean
@@ -2436,7 +2436,7 @@ LineDone:
 
         If NewTextureSize <> Minimap_Texture_Size Then
             Minimap_Texture_Size = NewTextureSize
-#If OS <> 0.0# Then
+#If Mono <> 0.0# Then
             MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
 #End If
         End If
@@ -2447,7 +2447,7 @@ LineDone:
 
         Minimap_Texture_Fill(Pixels)
 
-#If OS <> 0.0# Then
+#If Mono <> 0.0# Then
         Dim Texture As New clsFileBitmap
 
         Texture.CurrentBitmap = MinimapBitmap
@@ -2471,7 +2471,7 @@ LineDone:
             Minimap_Texture = 0
         End If
 
-#If OS = 0.0# Then
+#If Mono = 0.0# Then
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
         GL.GenTextures(1, Minimap_Texture)
         GL.BindTexture(TextureTarget.Texture2D, Minimap_Texture)

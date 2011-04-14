@@ -1569,12 +1569,22 @@
         End If
 
         Dim A As Integer
+        Dim Result As sResult
 
         For A = 0 To PIE_List.PIECount - 1
             If PIE_List.PIEs(A).LCaseFileTitle = PIE_LCaseFileTitle Then
                 If PIE_List.PIEs(A).Model Is Nothing Then
                     PIE_List.PIEs(A).Model = New clsModel
-                    PIE_List.PIEs(A).Model.LoadPIE(PIE_FullPath)
+                    Try
+                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIE_FullPath)
+                        If Not Result.Success Then
+                            Stop
+                            Return Nothing
+                        End If
+                    Catch ex As Exception
+                        Stop
+                        Return Nothing
+                    End Try
                 End If
                 Return PIE_List.PIEs(A).Model
             End If

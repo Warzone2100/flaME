@@ -3,7 +3,8 @@ Imports OpenTK.Graphics.OpenGL
 
 Public Class clsModel
 
-    Public GL_Texture As Integer
+    Public GLTextureNum As Integer
+
     Structure sTriangle
         Dim PosA As sXYZ_sng
         Dim PosB As sXYZ_sng
@@ -46,7 +47,7 @@ Public Class clsModel
     Sub GLDraw()
         Dim A As Integer
 
-        GL.BindTexture(TextureTarget.Texture2D, GL_Texture)
+        GL.BindTexture(TextureTarget.Texture2D, GLTextureNum)
 
         GL.Begin(BeginMode.Triangles)
         For A = 0 To TriangleCount - 1
@@ -101,11 +102,6 @@ Public Class clsModel
 
         Dim LineData(-1) As String
 
-        If Not IO.File.Exists(Path) Then
-            LoadPIE.Problem = "PIE missing."
-            Exit Function
-        End If
-
         Dim tmpBytes() As Byte
         Try
             tmpBytes = IO.File.ReadAllBytes(Path)
@@ -119,8 +115,8 @@ Public Class clsModel
         Dim strTemp As String
         Dim SplitText() As String
         Dim LevelCount As Integer
-        Dim QuadCount As Integer
-        Dim TriCount As Integer
+        Dim NewQuadCount As Integer
+        Dim NewTriCount As Integer
         Dim C As Integer
         Dim TextureName As String = ""
         Dim LineNum As Integer
@@ -129,6 +125,7 @@ Public Class clsModel
         Dim GotText As Boolean
         Dim strTemp2 As String
         Dim D As Integer
+        Dim PIEVersion As Integer
 
         ReDim Level(-1)
         LineNum = -1
@@ -142,11 +139,27 @@ Public Class clsModel
 
 Reeval:
             If Left(strTemp, 3) = "PIE" Then
+                PIEVersion = Val(Right(strTemp, strTemp.Length - 4))
+                If PIEVersion <> 2 And PIEVersion <> 3 Then
+                    LoadPIE.Problem = "Version is unknown."
+                    Exit Function
+                End If
             ElseIf Left(strTemp, 4) = "TYPE" Then
             ElseIf Left(strTemp, 7) = "TEXTURE" Then
                 TextureName = Right(strTemp, strTemp.Length - 10)
-                A = InStr(TextureName, " ")
-                TextureName = Left(TextureName, A - 1)
+                A = InStrRev(TextureName, " ")
+                If A > 0 Then
+                    A = InStrRev(TextureName, " ", A - 1)
+                Else
+                    LoadPIE.Problem = "Bad texture name."
+                    Exit Function
+                End If
+                If A > 0 Then
+                    TextureName = Left(TextureName, A - 1)
+                Else
+                    LoadPIE.Problem = "Bad texture name."
+                    Exit Function
+                End If
             ElseIf Left(strTemp, 6) = "LEVELS" Then
                 LevelCount = Right(strTemp, strTemp.Length - 7)
                 ReDim Level(LevelCount - 1)
@@ -229,19 +242,19 @@ Reeval:
                         D = 0
                         Do
                             'flag, numpoints, points[], x4 ignore if animated, texcoord[]xy
-                            Level(LevelNum).Polygon(A).PointCount = SplitText(D + 1)
+                            Level(LevelNum).Polygon(A).PointCount = Val(SplitText(D + 1))
                             ReDim Level(LevelNum).Polygon(A).PointNum(Level(LevelNum).Polygon(A).PointCount - 1)
                             ReDim Level(LevelNum).Polygon(A).TexCoord(Level(LevelNum).Polygon(A).PointCount - 1)
                             If Level(LevelNum).Polygon(A).PointCount = 3 Then
-                                TriCount += 1
+                                NewTriCount += 1
                             ElseIf Level(LevelNum).Polygon(A).PointCount = 4 Then
-                                QuadCount += 1
+                                NewQuadCount += 1
                             End If
                             For B = 0 To Level(LevelNum).Polygon(A).PointCount - 1
-                                Level(LevelNum).Polygon(A).PointNum(B) = SplitText(D + 2 + B)
+                                Level(LevelNum).Polygon(A).PointNum(B) = Val(SplitText(D + 2 + B))
                             Next
                             C = D + 2 + Level(LevelNum).Polygon(A).PointCount
-                            If SplitText(D) = "4200" Or SplitText(D) = "4000" Or SplitText(D) = "6a00" Or SplitText(D) = "4a00" Or SplitText(D) = "6200" Then
+                            If SplitText(D) = "4200" Or SplitText(D) = "4000" Or SplitText(D) = "6a00" Or SplitText(D) = "4a00" Or SplitText(D) = "6200" Or SplitText(D) = "14200" Or SplitText(D) = "14a00" Or SplitText(D) = "16a00" Then
                                 C += 4
                             End If
                             For B = 0 To Level(LevelNum).Polygon(A).PointCount - 1
@@ -302,45 +315,45 @@ Reeval:
             End If
         Loop
 
-        GL_Texture = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
+        GLTextureNum = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
 
         'If GL_Texture = 0 Then
         '   MsgBox("PIE (" & Path & ") cant find OpenGL texture for " & TextureName & ".")
         'End If
 
-        TriangleCount = TriCount
-        QuadCount = QuadCount
+        TriangleCount = NewTriCount
+        QuadCount = NewQuadCount
         ReDim Triangles(TriangleCount - 1)
         ReDim Quads(QuadCount - 1)
-        TriCount = 0
-        QuadCount = 0
+        NewTriCount = 0
+        NewQuadCount = 0
         For LevelNum = 0 To LevelCount - 1
             For A = 0 To Level(LevelNum).PolygonCount - 1
                 If Level(LevelNum).Polygon(A).PointCount = 3 Then
-                    Triangles(TriCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
-                    Triangles(TriCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
-                    Triangles(TriCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
-                    Triangles(TriCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
-                    Triangles(TriCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
-                    Triangles(TriCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
-                    Triangles(TriCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
-                    Triangles(TriCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
-                    Triangles(TriCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
-                    TriCount += 1
+                    Triangles(NewTriCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
+                    Triangles(NewTriCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
+                    Triangles(NewTriCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
+                    Triangles(NewTriCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
+                    Triangles(NewTriCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
+                    Triangles(NewTriCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
+                    Triangles(NewTriCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
+                    Triangles(NewTriCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
+                    Triangles(NewTriCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
+                    NewTriCount += 1
                 ElseIf Level(LevelNum).Polygon(A).PointCount = 4 Then
-                    Quads(QuadCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
-                    Quads(QuadCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
-                    Quads(QuadCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
-                    Quads(QuadCount).PosD = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(3))
-                    Quads(QuadCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
-                    Quads(QuadCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
-                    Quads(QuadCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
-                    Quads(QuadCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
-                    Quads(QuadCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
-                    Quads(QuadCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
-                    Quads(QuadCount).TexCoordD.X = Level(LevelNum).Polygon(A).TexCoord(3).X / 255.0#
-                    Quads(QuadCount).TexCoordD.Y = Level(LevelNum).Polygon(A).TexCoord(3).Y / 255.0#
-                    QuadCount += 1
+                    Quads(NewQuadCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
+                    Quads(NewQuadCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
+                    Quads(NewQuadCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
+                    Quads(NewQuadCount).PosD = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(3))
+                    Quads(NewQuadCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
+                    Quads(NewQuadCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
+                    Quads(NewQuadCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
+                    Quads(NewQuadCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
+                    Quads(NewQuadCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
+                    Quads(NewQuadCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
+                    Quads(NewQuadCount).TexCoordD.X = Level(LevelNum).Polygon(A).TexCoord(3).X / 255.0#
+                    Quads(NewQuadCount).TexCoordD.Y = Level(LevelNum).Polygon(A).TexCoord(3).Y / 255.0#
+                    NewQuadCount += 1
                 End If
             Next
         Next

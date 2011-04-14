@@ -57,12 +57,12 @@
     <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\VB 2010\</OutputPath>
     <DocumentationFile>flaME.xml</DocumentationFile>
     <NoWarn>41999,42016</NoWarn>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Optimize>true</Optimize>
-    <DefineConstants>OS=0.0#</DefineConstants>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

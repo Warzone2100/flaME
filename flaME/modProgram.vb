@@ -1,16 +1,20 @@
 ﻿Public Module modProgram
 
-#If OS = 0.0# Then
-    Public Const ProgramVersion As String = "1.17 Windows"
+#If MonoDevelop = 0.0# Then
+    Public Const ProgramVersion As String = "1.17 Visual Basic 2010"
 #Else
-    Public Const ProgramVersion As String = "1.17 Mono"
+    #If Mono = 0.0# Then
+        Public Const ProgramVersion As String = "1.17 MonoDevelop Mono 2.10.1"
+    #Else
+        Public Const ProgramVersion As String = "1.17 MonoDevelop Microsoft .NET"
+    #End If 
 #End If
 
     Public Const SaveVersion As UInteger = 6UI
 
     Public Const FactionCountMax As Integer = 11
 
-#If OS = 0.0# Then
+#If Mono = 0.0# Then
     Public Const MinimapDelay As Integer = 100
 #Else
     Public Const MinimapDelay As Integer = 1000
@@ -18,24 +22,25 @@
 
     Public OSPathSeperator As Char
 
-    Public TilesetPath As String
-
     Public MyDocumentsPath As String
 
     Public SettingsPath As String
     Public AutoSavePath As String
+    Public TilesetsPath As String
+    Public ObjectDataPath As String
 
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Public InterfaceImagesPath As String
 #End If
 
     Public Sub SetProgramSubDirs()
 
-        TilesetPath = EndWithPathSeperator(My.Application.Info.DirectoryPath) & "tilesets" & OSPathSeperator
         MyDocumentsPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
         SettingsPath = MyDocumentsPath & OSPathSeperator & "settings"
         AutoSavePath = MyDocumentsPath & OSPathSeperator & "autosave" & OSPathSeperator
-#If OS <> 0.0# Then
+        TilesetsPath = MyDocumentsPath & OSPathSeperator & "tilesets" & OSPathSeperator
+        ObjectDataPath = MyDocumentsPath & OSPathSeperator & "objectdata" & OSPathSeperator
+#If MonoDevelop <> 0.0# Then
         InterfaceImagesPath = My.Application.Info.DirectoryPath & OSPathSeperator & "interface" & OSPathSeperator
 #End If
     End Sub
@@ -58,7 +63,7 @@
     Public SunPitch As Double = 22.5# * RadOf1Deg
 
     Public frmMainInstance As New frmMain
-#If OS = 0.0# Then
+#If MonoDevelop = 0.0# Then
     Public frmSplashInstance As New frmSplash
 #End If
     Public frmCompileInstance As New frmCompile
@@ -304,6 +309,7 @@
         Dim Z As Integer
         Dim Radius2 As Double
         Dim Radius3 As Double
+        Dim A As Integer
 
         Radius2 = Radius / TileSize
         Output.ZMax = Math.Floor(Radius2)
@@ -313,8 +319,9 @@
         Radius3 = Radius2 * Radius2
         For Z = Output.ZMin To Output.ZMax
             X = Math.Sqrt(Radius3 - Z * Z)
-            Output.XMax(Z - Output.ZMin) = Math.Floor(X)
-            Output.XMin(Z - Output.ZMin) = -Output.XMax(Z - Output.ZMin)
+            A = Z - Output.ZMin
+            Output.XMax(A) = Math.Floor(X)
+            Output.XMin(A) = -Output.XMax(A)
         Next
     End Sub
 
@@ -405,7 +412,7 @@
     End Sub
 
     Public Function OSRGB(ByVal Red As Integer, ByVal Green As Integer, ByVal Blue As Integer) As Integer
-#If OS = 0.0# Then
+#If Mono = 0.0# Then
         OSRGB = RGB(Red, Green, Blue)
 #Else
         OSRGB = RGB(Blue, Green, Red)

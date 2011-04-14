@@ -11,8 +11,7 @@ Public Class clsByteReadFile
     End Enum
     Private Type As enumStreamType = enumStreamType.None
     Private FileStream As IO.FileStream
-    Private FilePosition As Integer
-    Private FileNextPosition As Integer
+    Private FilePosition As Long
     Private Bytes() As Byte
     Private ByteCount As Integer
     Private BytesPosition As Integer
@@ -26,25 +25,22 @@ Public Class clsByteReadFile
                 Exit Property
             End If
             _ByteBufferLength = value
-            RedimBytes()
+            If Type <> enumStreamType.None Then
+                RedimBytesToBufferLength()
+            End If
         End Set
     End Property
 
-    Public Sub New()
-
-        RedimBytes()
-    End Sub
-
-    Private Sub RedimBytes()
+    Private Sub RedimBytesToBufferLength()
 
         ReDim Bytes(_ByteBufferLength - 1)
     End Sub
 
-    Public Property Position As Integer
+    Public Property Position As Long
         Get
             Return FilePosition + BytesPosition
         End Get
-        Set(ByVal NewPosition As Integer)
+        Set(ByVal NewPosition As Long)
             If NewPosition < FilePosition Then
                 FilePosition = NewPosition
                 ReadBlock()
@@ -154,29 +150,38 @@ Public Class clsByteReadFile
         If Not Get_U32(uintTemp) Then
             Return False
         End If
-        Length = uintTemp
+        Try
+            Length = uintTemp
+        Catch ex As Exception
+            Return False
+        End Try
         Return Get_Text(Length, Output)
     End Function
 
     Function Get_Text(ByVal Length As Integer, ByRef Output As String) As Boolean
         Static Chars() As Char
+        Static CharOffset As Integer
+        Static CharsLeft As Integer
         Static ReadLength As Integer
-        Static Offset As Integer
-        Static A As Integer
+        Static ReadNum As Integer
 
         'read in buffer length blocks, for long strings
         ReDim Chars(Length - 1)
-        Offset = 0
-        Do While Offset < Length
-            ReadLength = Math.Min(Length - Offset, _ByteBufferLength)
-            If Not FindLength(ReadLength) Then
-                Return False
+        CharOffset = 0
+        Do While CharOffset < Length
+            CharsLeft = Length - CharOffset
+            ReadLength = Math.Min(CharsLeft, _ByteBufferLength - BytesPosition)
+            If ReadLength = 0 Then
+                ReadLength = Math.Min(CharsLeft, _ByteBufferLength)
+                If Not FindLength(ReadLength) Then
+                    Return False
+                End If
             End If
-            For A = 0 To ReadLength - 1
-                Chars(Offset + A) = Chr(Bytes(BytesPosition + A))
+            For ReadNum = 0 To ReadLength - 1
+                Chars(CharOffset + ReadNum) = Chr(Bytes(BytesPosition + ReadNum))
             Next
             BytesPosition += ReadLength
-            Offset += ReadLength
+            CharOffset += ReadLength
         Loop
         Output = New String(Chars)
         Return True
@@ -195,8 +200,9 @@ Public Class clsByteReadFile
             Exit Function
         End Try
         Type = enumStreamType.FileStream
-        FilePosition = 0
+        FilePosition = 0L
         ByteCount = 0
+        RedimBytesToBufferLength()
         ReadBlock()
 
         Begin.Success = True
@@ -210,7 +216,7 @@ Public Class clsByteReadFile
             Exit Sub
         End If
         Type = enumStreamType.FixedBytes
-        FilePosition = 0
+        FilePosition = 0L
         BufferLength = ReadLength
         ByteCount = Stream.Read(Bytes, 0, _ByteBufferLength)
         BytesPosition = 0
@@ -222,27 +228,27 @@ Public Class clsByteReadFile
             Return False
         End If
 
+        FilePosition += BytesPosition
+        BytesPosition = 0
         Try
-            FilePosition += BytesPosition
             FileStream.Seek(FilePosition, IO.SeekOrigin.Begin)
             ByteCount = FileStream.Read(Bytes, 0, _ByteBufferLength)
         Catch ex As Exception
             Return False
         End Try
-        BytesPosition = 0
 
         Return True
     End Function
 
     Public Sub Close()
 
+        Type = enumStreamType.None
         BufferLength = DefaultBufferLength
+        Erase Bytes
 
-        If Type <> enumStreamType.FileStream Then
-            Exit Sub
+        If Type = enumStreamType.FileStream Then
+            FileStream.Close()
+            FileStream = Nothing
         End If
-
-        FileStream.Close()
-        FileStream = Nothing
     End Sub
 End Class

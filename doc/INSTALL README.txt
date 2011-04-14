@@ -1,0 +1,20 @@
+flaME
+
+This is a map editor for the versions of Warzone 2100 found at www.wz2100.net
+
+Mono Installation:
+------------------
+(Only applies if you are try to run this on Mono)
+
+Mono runtime with Visual Basic .NET support must be installed to use this.
+MacOS users should download the package provided here:
+http://www.go-mono.com/mono-downloads/download.html
+Linux users are advised to use packages from the repositories of their distribution instead.
+
+Extract the entire contents of the archive.
+cd to the directory and run the program as "mono flaME.exe"
+
+Tileset/Object Data Installation:
+---------------------------------
+
+This program also needs tileset and object data which is provided seperately. Extract the contents of these archives to your "MyDocuments/.flaME/" folder, or equivalent.

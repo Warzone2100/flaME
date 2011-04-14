@@ -2,7 +2,7 @@
 Imports OpenTK.Graphics.OpenGL
 
 Public Class ctrlMapView
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Inherits UserControl
 #End If
 
@@ -1522,13 +1522,12 @@ Public Class ctrlMapView
 
     Sub OpenGL_MouseLeave(ByVal sender As Object, ByVal e As System.EventArgs)
 
-        'commented to allow dragging beyond the borders of the view
-        'MouseOver_Exists = False
-        'MouseLeftIsDown = False
-        'MouseRightIsDown = False
-        'MouseOver_ScreenPos.X = -1
-        'MouseOver_ScreenPos.Y = -1
-        'MouseOver_Pos_Calc()
+        MouseOver_Exists = False
+        MouseLeftIsDown = False
+        MouseRightIsDown = False
+        MouseOver_ScreenPos.X = -1
+        MouseOver_ScreenPos.Y = -1
+        MouseOver_Pos_Calc()
     End Sub
 
     Sub LookAtTile(ByVal X As Integer, ByVal Z As Integer)
@@ -3238,7 +3237,7 @@ Public Class ctrlMapView
         DrawViewLater()
     End Sub
 
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
         Me.tmrDraw = New System.Windows.Forms.Timer()
         Me.tmrDraw_Delay = New System.Windows.Forms.Timer()

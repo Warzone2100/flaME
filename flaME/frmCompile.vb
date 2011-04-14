@@ -1,10 +1,10 @@
 ﻿Public Class frmCompile
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Inherits Form
 #End If
 
     Public Sub New()
-        InitializeComponent() 'required for mono too
+        InitializeComponent() 'required for monodevelop too
 
     End Sub
 
@@ -375,13 +375,13 @@
                     If Map.TerrainTile(X, Y).Texture.TextureNum >= 0 Then
                         If Map.Tileset.Tiles(Map.TerrainTile(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
                             Found = True
-                            GoTo Found
+                            GoTo ExitLoop
                         End If
                     End If
                 End If
             Next
         Next
-Found:
+ExitLoop:
         If Found Then
             If MsgBox("One or more water tiles have an incorrect triangle direction. Do you want them to be set correctly? Choosing " & ControlChars.Quote & "No" & ControlChars.Quote & " might leave graphical glitches on those tiles.", MsgBoxStyle.YesNo, "") = MsgBoxResult.Yes Then
                 Map.WaterTriCorrection()
@@ -392,7 +392,7 @@ Found:
         End If
     End Sub
 
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmCompile))
         Me.txtName = New System.Windows.Forms.TextBox()

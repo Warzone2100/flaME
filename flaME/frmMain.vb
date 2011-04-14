@@ -1,7 +1,7 @@
 ﻿Imports ICSharpCode.SharpZipLib
 
 Public Class frmMain
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Inherits Form
 #End If
 
@@ -19,12 +19,30 @@ Public Class frmMain
     Public WithEvents ObjectPlayerNum As New ctrlPlayerNum
 
     Public Sub New()
-#If OS = 0.0# Then
-        InitializeComponent() 'required for mono too
-#Else
-		'The copied InitializeComponent for mono needs the interface images path, so it is done later
-#End If
 
+		Select Case Environment.OSVersion.Platform
+            Case PlatformID.Unix
+                OSPathSeperator = "/"c
+            Case PlatformID.MacOSX
+                OSPathSeperator = "/"c
+            Case PlatformID.Win32NT
+                OSPathSeperator = "\"c
+            Case PlatformID.Win32S
+                OSPathSeperator = "\"c
+            Case PlatformID.Win32Windows
+                OSPathSeperator = "\"c
+            Case PlatformID.WinCE
+                OSPathSeperator = "\"c
+            Case Else
+                OSPathSeperator = "\"c
+        End Select
+
+        'these depend on ospathseperator
+        SetProgramSubDirs()
+        SetDataSubDirs()
+
+        InitializeComponent() 'required for monodevelop too
+        
         View = New ctrlMapView
         TextureView = New ctrlTextureView
     End Sub
@@ -54,30 +72,8 @@ Public Class frmMain
         RemoveHandler InitializeDelay.Tick, AddressOf Initialize
         InitializeDelay.Dispose()
         InitializeDelay = Nothing
-
-        Select Case Environment.OSVersion.Platform
-            Case PlatformID.Unix
-                OSPathSeperator = "/"c
-            Case PlatformID.MacOSX
-                OSPathSeperator = "/"c
-            Case PlatformID.Win32NT
-                OSPathSeperator = "\"c
-            Case PlatformID.Win32S
-                OSPathSeperator = "\"c
-            Case PlatformID.Win32Windows
-                OSPathSeperator = "\"c
-            Case PlatformID.WinCE
-                OSPathSeperator = "\"c
-            Case Else
-                OSPathSeperator = "\"c
-        End Select
-
-        'these depend on ospathseperator
-        SetProgramSubDirs()
-        SetDataSubDirs()
         
-#If OS <> 0.0# Then
-        InitializeComponent()
+#If Mono <> 0.0# Then
         AddHandler nudAutoCliffBrushRadius.ValueChanged, AddressOf nudAutoCliffBrushRadius_LostFocus
         AddHandler nudAutoTextureRadius.ValueChanged, AddressOf nudAutoTextureRadius_LostFocus
         AddHandler nudHeightBrushRadius.ValueChanged, AddressOf nudHeightBrushRadius_LostFocus
@@ -87,6 +83,13 @@ Public Class frmMain
         Icon = flaMEIcon
         frmCompileInstance.Icon = flaMEIcon
         frmMapTexturerInstance.Icon = flaMEIcon
+#If MonoDevelop = 0.0# Then
+        frmSplashInstance.Icon = flaMEIcon
+#End If
+#If False Then
+		'if using splash in monodevelop
+        frmSplashInstance.BackgroundImage = New Bitmap(InterfaceImagesPath & "splash.png")
+#End If
 
         Dim Result As sResult
 
@@ -162,16 +165,16 @@ Public Class frmMain
 
         Result = LoadTilesets()
         If Not Result.Success Then
-            MsgBox("Failed loading tilesets: " & Result.Problem)
+            MsgBox("Error loading tilesets: " & Result.Problem)
         End If
         cmbTileset_CreateItems(-1)
 
         NoTile_Texture_Load()
         cmbTileType_Refresh()
 
-        Result = DataLoad(My.Application.Info.DirectoryPath & OSPathSeperator & "default" & OSPathSeperator)
+        Result = DataLoad(ObjectDataPath)
         If Not Result.Success Then
-            MsgBox("Failed loading unit data: " & Result.Problem)
+            MsgBox("Error loading object data: " & Result.Problem)
         End If
 
         Settings_Load()
@@ -233,18 +236,16 @@ Public Class frmMain
             Dim Path As String = My.Application.CommandLineArgs(0)
             Result = Load_Map(Path)
             If Not Result.Success Then
-                MsgBox("Failed to open the command-line map file at " & Path & ". Reason; " & Result.Problem)
+                MsgBox("Error opening command-line map file at " & Path & ". Reason; " & Result.Problem)
             End If
         End If
 
         TextureView.DrawView_SetEnabled(True)
 
 		WindowState = FormWindowState.Maximized
-#If OS = 0.0# Then
+#If MonoDevelop = 0.0# Then
         frmSplashInstance.Hide()
         Show()
-        frmCompileInstance.Show()
-        frmCompileInstance.Hide()
 #End If
     End Sub
 
@@ -252,14 +253,14 @@ Public Class frmMain
 
     Private Sub frmMain_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
 
-#If OS = 0.0# Then
+#If MonoDevelop = 0.0# Then
         Hide()
         frmSplashInstance.Show()
 #End If
 
         InitializeDelay = New Timer
         AddHandler InitializeDelay.Tick, AddressOf Initialize
-        InitializeDelay.Interval = 100
+        InitializeDelay.Interval = 50
         InitializeDelay.Enabled = True
     End Sub
 
@@ -1125,7 +1126,7 @@ Error_Exit:
     Sub Save_LND_Prompt()
 
         SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "lnd Files (*.lnd)|*.lnd"
+        SaveFileDialog.Filter = "Editworld Files (*.lnd)|*.lnd"
         If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
             Dim Result As sResult
             Result = Map.Write_LND(SaveFileDialog.FileName, True)
@@ -1137,30 +1138,24 @@ Error_Exit:
 
     Sub Save_FME_Prompt()
 
-        If Map.Tileset Is Nothing Then
-            MsgBox("Please select a tileset before saving.", MsgBoxStyle.OkOnly, "")
-        Else
-            SaveFileDialog.FileName = ""
-            SaveFileDialog.Filter = "FME Files (*.fme)|*.fme"
-            If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-                Dim Result As sResult
-                Result = Map.Write_FME(SaveFileDialog.FileName, True)
-                If Result.Success Then
-                    Map.QuickSave_Path = SaveFileDialog.FileName
-                    tsbSave.Enabled = False
-                    Title_Text_Update()
-                Else
-                    MsgBox("There was a problem saving the file; " & Result.Problem)
-                End If
+        SaveFileDialog.FileName = ""
+        SaveFileDialog.Filter = "flaME Map Files (*.fme)|*.fme"
+        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+            Dim Result As sResult
+            Result = Map.Write_FME(SaveFileDialog.FileName, True)
+            If Result.Success Then
+                Map.QuickSave_Path = SaveFileDialog.FileName
+                tsbSave.Enabled = False
+                Title_Text_Update()
+            Else
+                MsgBox("There was a problem saving the file; " & Result.Problem)
             End If
         End If
     End Sub
 
     Sub Save_FME_Quick()
 
-        If Map.Tileset Is Nothing Then
-            MsgBox("Please select a tileset before saving.", MsgBoxStyle.OkOnly, "")
-        ElseIf Map.QuickSave_Path = "" Then
+        If Map.QuickSave_Path = "" Then
             Save_FME_Prompt()
         Else
             Dim Result As sResult = Map.Write_FME(Map.QuickSave_Path, True)
@@ -2470,12 +2465,13 @@ Error_Exit:
         LoadTilesets.Problem = ""
         LoadTilesets.Success = False
 
-        If Not IO.Directory.Exists(TilesetPath) Then
-            LoadTilesets.Problem = "Tilesets directory is missing."
+        Dim TilesetDirs() As String
+        Try
+            TilesetDirs = IO.Directory.GetDirectories(TilesetsPath)
+        Catch ex As Exception
+            LoadTilesets.Problem = ex.Message
             Exit Function
-        End If
-
-        Dim TilesetDirs() As String = IO.Directory.GetDirectories(TilesetPath)
+        End Try
         Dim A As Integer
 
         If TilesetDirs Is Nothing Then
@@ -2657,7 +2653,7 @@ Error_Exit:
         DrawView()
     End Sub
 
-#If OS <> 0.0# Then
+#If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
         Me.tmrKey = New System.Windows.Forms.Timer()
