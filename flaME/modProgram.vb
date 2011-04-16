@@ -20,6 +20,10 @@
     Public Const MinimapDelay As Integer = 1000
 #End If
 
+    Public Const SectorTileSize As Integer = 8
+
+    Public Const FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
+
     Public OSPathSeperator As Char
 
     Public MyDocumentsPath As String
@@ -45,8 +49,6 @@
 #End If
     End Sub
 
-    Public Const SectorTileSize As Integer = 8
-
     Public Undo_Limit As UInteger = 256UI
 
     Public AutoSave_MinInterval_s As UInteger = 180UI
@@ -68,6 +70,7 @@
 #End If
     Public frmCompileInstance As New frmCompile
     Public frmMapTexturerInstance As New frmMapTexturer
+    Public frmGeneratorInstance As New frmGenerator
 
     Public IsViewKeyDown(255) As Boolean
 
@@ -88,6 +91,7 @@
     Public Control_View_Wireframe As clsInputControl
     Public Control_View_Units As clsInputControl
     Public Control_View_Move_Type As clsInputControl
+    Public Control_View_Rotate_Type As clsInputControl
     Public Control_View_Move_Left As clsInputControl
     Public Control_View_Move_Right As clsInputControl
     Public Control_View_Move_Forward As clsInputControl
@@ -126,8 +130,6 @@
     Public InputControls() As clsInputControl
     Public InputControlCount As Integer
 
-    Public Const FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
-
     Public DisplayTileOrientation As Boolean
 
     Public Enum enumTool As Byte
@@ -162,7 +164,8 @@
     Public TileTypes(-1) As sTileType
     Public TileTypeCount As Integer
 
-    Public TileType_WaterNum As Integer = 7
+    Public Const TileType_WaterNum As Integer = 7
+    Public Const TileType_CliffNum As Integer = 8
 
     Public Structure sResult
         Dim Success As Boolean
@@ -291,8 +294,6 @@
     Public TextureViewFont As GLFont
     Public UnitLabelFontSize As Single
 
-    Public GL_Current As Byte = 0
-
     Public PlayerColour(15) As sRGB_sng
 
     Public Sub VisionRadius_2E_Changed()
@@ -412,10 +413,15 @@
     End Sub
 
     Public Function OSRGB(ByVal Red As Integer, ByVal Green As Integer, ByVal Blue As Integer) As Integer
-#If Mono = 0.0# Then
+#If Mono = 0.0# And Mono267 = 0.0# Then
         OSRGB = RGB(Red, Green, Blue)
 #Else
         OSRGB = RGB(Blue, Green, Red)
 #End If
+    End Function
+
+    Public Function NewMapQuestion() As Boolean
+
+        Return (MsgBox("Lose any unsaved changes to this map?", MsgBoxStyle.Question + MsgBoxStyle.OkCancel, "") = MsgBoxResult.Ok)
     End Function
 End Module

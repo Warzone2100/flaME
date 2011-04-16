@@ -1,18 +1,28 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Basic Express 2010
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "flaME", "flaME\flaME.vbproj", "{35445AD6-5363-42FB-8005-68D8371789A5}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "flaME", "flaME\flaME VB 2010.vbproj", "{35445AD6-5363-42FB-8005-68D8371789A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{35445AD6-5363-42FB-8005-68D8371789A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{35445AD6-5363-42FB-8005-68D8371789A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{35445AD6-5363-42FB-8005-68D8371789A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35445AD6-5363-42FB-8005-68D8371789A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{35445AD6-5363-42FB-8005-68D8371789A5}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

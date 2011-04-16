@@ -83,13 +83,7 @@
     <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL" />
     <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL" />
     <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Web.Extensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core">
@@ -98,16 +92,12 @@
     <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Import Include="Microsoft.VisualBasic" />
     <Import Include="System" />
     <Import Include="System.Collections" />
     <Import Include="System.Collections.Generic" />
-    <Import Include="System.Data" />
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
@@ -116,9 +106,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
-    <Compile Include="clsByteReadFile.vb" />
-    <Compile Include="clsByteWriteFile.vb" />
-    <Compile Include="clsFileBitmap.vb" />
+    <Compile Include="clsReadFile.vb" />
+    <Compile Include="clsWriteFile.vb" />
+    <Compile Include="clsBitmapFile.vb" />
+    <Compile Include="clsGeneratorMap.vb" />
+    <Compile Include="clsGeneratorTileset.vb" />
+    <Compile Include="frmGenerator.Designer.vb">
+      <DependentUpon>frmGenerator.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmGenerator.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="GLFont.vb" />
     <Compile Include="clsHeightmap.vb" />
     <Compile Include="clsInputControl.vb" />
@@ -137,6 +135,11 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Application.vb" />
+    <Compile Include="modGenerator.vb" />
+    <Compile Include="PathfinderConnection.vb" />
+    <Compile Include="PathfinderLayer.vb" />
+    <Compile Include="PathfinderNetwork.vb" />
+    <Compile Include="PathfinderNode.vb" />
     <Compile Include="sPainter.vb" />
     <Compile Include="clsTileset.vb" />
     <Compile Include="clsUnitType.vb" />
@@ -197,6 +200,9 @@
     <EmbeddedResource Include="frmCompile.resx">
       <DependentUpon>frmCompile.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmGenerator.resx">
+      <DependentUpon>frmGenerator.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.vb</DependentUpon>
       <SubType>Designer</SubType>
@@ -245,7 +251,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="flaME.ico" />
-    <Content Include="notile.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

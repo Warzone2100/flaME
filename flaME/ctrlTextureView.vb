@@ -102,8 +102,8 @@ Public Class ctrlTextureView
         GL.ClearColor(0.0F, 0.0F, 0.0F, 1.0F)
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.Enable(EnableCap.Blend)
-        GL.Enable(EnableCap.CullFace)
         GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
+        GL.Enable(EnableCap.CullFace)
     End Sub
 
     Sub Viewport_Resize()

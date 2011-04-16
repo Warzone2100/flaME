@@ -221,6 +221,33 @@
         End If
     End Function
 
+    Public Function GetTileRotatedPos(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_dbl) As sXY_dbl
+
+        If TileOrientation.SwitchedAxes Then
+            If TileOrientation.ResultXFlip Then
+                GetTileRotatedPos.X = 1.0# - Pos.Y
+            Else
+                GetTileRotatedPos.X = Pos.Y
+            End If
+            If TileOrientation.ResultZFlip Then
+                GetTileRotatedPos.Y = 1.0# - Pos.X
+            Else
+                GetTileRotatedPos.Y = Pos.X
+            End If
+        Else
+            If TileOrientation.ResultXFlip Then
+                GetTileRotatedPos.X = 1.0# - Pos.X
+            Else
+                GetTileRotatedPos.X = Pos.X
+            End If
+            If TileOrientation.ResultZFlip Then
+                GetTileRotatedPos.Y = 1.0# - Pos.Y
+            Else
+                GetTileRotatedPos.Y = Pos.Y
+            End If
+        End If
+    End Function
+
     Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
         Static XFlip As Boolean
         Static ZFlip As Boolean

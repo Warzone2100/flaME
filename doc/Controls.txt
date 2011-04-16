@@ -1,9 +1,7 @@
-flaME
-
-Controls:
 
 View
 f1 - camera movement mode
+f2 - camera rotation mode
 f5 - terrain on/off
 f6 - grid on/off
 f7 - units on/off

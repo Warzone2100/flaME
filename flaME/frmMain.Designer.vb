@@ -122,6 +122,7 @@ Partial Class frmMain
         Me.Label5 = New System.Windows.Forms.Label()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.tpAutoHeight = New System.Windows.Forms.TabPage()
+        Me.btnGenerator = New System.Windows.Forms.Button()
         Me.btnWaterTri = New System.Windows.Forms.Button()
         Me.btnReinterpretTerrain = New System.Windows.Forms.Button()
         Me.btnAutoTri = New System.Windows.Forms.Button()
@@ -255,6 +256,7 @@ Partial Class frmMain
         Me.TabPage24 = New System.Windows.Forms.TabPage()
         Me.FontDialog = New System.Windows.Forms.FontDialog()
         Me.ilInterface = New System.Windows.Forms.ImageList(Me.components)
+        Me.menuMiniShowCliffs = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
@@ -1485,6 +1487,7 @@ Partial Class frmMain
         '
         'tpAutoHeight
         '
+        Me.tpAutoHeight.Controls.Add(Me.btnGenerator)
         Me.tpAutoHeight.Controls.Add(Me.btnWaterTri)
         Me.tpAutoHeight.Controls.Add(Me.btnReinterpretTerrain)
         Me.tpAutoHeight.Controls.Add(Me.btnAutoTri)
@@ -1495,6 +1498,17 @@ Partial Class frmMain
         Me.tpAutoHeight.TabIndex = 3
         Me.tpAutoHeight.Text = "Misc"
         Me.tpAutoHeight.UseVisualStyleBackColor = True
+        '
+        'btnGenerator
+        '
+        Me.btnGenerator.Location = New System.Drawing.Point(11, 122)
+        Me.btnGenerator.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnGenerator.Name = "btnGenerator"
+        Me.btnGenerator.Size = New System.Drawing.Size(223, 30)
+        Me.btnGenerator.TabIndex = 3
+        Me.btnGenerator.Text = "Generator"
+        Me.btnGenerator.UseCompatibleTextRendering = True
+        Me.btnGenerator.UseVisualStyleBackColor = True
         '
         'btnWaterTri
         '
@@ -2290,7 +2304,7 @@ Partial Class frmMain
         'ToolStripDropDownButton1
         '
         Me.ToolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.ToolStripDropDownButton1.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuMiniShowTex, Me.menuMiniShowHeight, Me.menuMiniShowUnits, Me.menuMiniShowGateways, Me.menuMinimapSize})
+        Me.ToolStripDropDownButton1.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuMiniShowTex, Me.menuMiniShowHeight, Me.menuMiniShowCliffs, Me.menuMiniShowUnits, Me.menuMiniShowGateways, Me.menuMinimapSize})
         Me.ToolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.ToolStripDropDownButton1.Name = "ToolStripDropDownButton1"
         Me.ToolStripDropDownButton1.Size = New System.Drawing.Size(81, 24)
@@ -2321,7 +2335,7 @@ Partial Class frmMain
         Me.menuMiniShowUnits.CheckState = System.Windows.Forms.CheckState.Checked
         Me.menuMiniShowUnits.Name = "menuMiniShowUnits"
         Me.menuMiniShowUnits.Size = New System.Drawing.Size(181, 24)
-        Me.menuMiniShowUnits.Text = "Show Units"
+        Me.menuMiniShowUnits.Text = "Show Objects"
         '
         'menuMiniShowGateways
         '
@@ -2703,6 +2717,13 @@ Partial Class frmMain
         Me.ilInterface.Images.SetKeyName(10, "selectionrotateanticlockwise.png")
         Me.ilInterface.Images.SetKeyName(11, "selectionrotateclockwise.png")
         '
+        'menuMiniShowCliffs
+        '
+        Me.menuMiniShowCliffs.CheckOnClick = True
+        Me.menuMiniShowCliffs.Name = "menuMiniShowCliffs"
+        Me.menuMiniShowCliffs.Size = New System.Drawing.Size(181, 24)
+        Me.menuMiniShowCliffs.Text = "Show Cliffs"
+        '
         'frmMain
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -3000,4 +3021,6 @@ Partial Class frmMain
     Friend WithEvents menuSelPasteGateways As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ilInterface As System.Windows.Forms.ImageList
+    Friend WithEvents btnGenerator As System.Windows.Forms.Button
+    Friend WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
 End Class

@@ -75,7 +75,7 @@ Partial Class ctrlMapView
         Me.lblPos.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblPos.Margin = New System.Windows.Forms.Padding(2, 3, 2, 2)
         Me.lblPos.Name = "lblPos"
-        Me.lblPos.Size = New System.Drawing.Size(256, 27)
+        Me.lblPos.Size = New System.Drawing.Size(320, 27)
         Me.lblPos.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'pnlDraw

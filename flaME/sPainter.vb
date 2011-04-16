@@ -6,7 +6,7 @@
         Public Tiles As sTileList
     End Class
     Public Terrains() As clsTerrain
-    Public TerrainCount As UInteger
+    Public TerrainCount As Integer
     Public Structure sTileList
         Public Structure sTile_Orientation_Chance
             Public TextureNum As Integer
@@ -76,9 +76,9 @@
         Public Tiles_Corner_Out As sTileList
     End Structure
     Public TransitionBrushes() As sTransition_Brush
-    Public TransitionBrushCount As UInteger
+    Public TransitionBrushCount As Integer
     Public CliffBrushes() As sCliff_Brush
-    Public CliffBrushCount As UInteger
+    Public CliffBrushCount As Integer
 
     Public Class clsRoad
         Public Num As Integer
@@ -96,7 +96,7 @@
         Dim Tile_End As sTileList
     End Structure
     Public RoadBrushes() As sRoad_Brush
-    Public RoadBrushCount As UInteger
+    Public RoadBrushCount As Integer
 
     Public Sub TransitionBrush_Add(ByVal NewBrush As sTransition_Brush)
 

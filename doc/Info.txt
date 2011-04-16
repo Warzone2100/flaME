@@ -1,4 +1,3 @@
-flaME
 
 "Terrain Painter" tab
 ---------------------

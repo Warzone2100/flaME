@@ -1,7 +1,7 @@
 ﻿Imports OpenTK.Graphics
 Imports OpenTK.Graphics.OpenGL
 
-Public Class clsFileBitmap
+Public Class clsBitmapFile
 
     Public CurrentBitmap As Bitmap
 

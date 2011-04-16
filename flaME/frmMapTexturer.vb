@@ -3,18 +3,120 @@
     Inherits Form
 #End If
 
-    Class clsLayer
-        Public Within_Layer As Integer
-        Public Avoid_Layer() As Boolean
-        Public Terrain As sPainter.clsTerrain
-        Public Terrainmap As clsBooleanMap
-        Public HeightMin As Single
-        Public HeightMax As Single
-        Public SlopeMin As Single
-        Public SlopeMax As Single
-    End Class
-    Public Layer() As clsLayer
-    Public LayerCount As Integer
+    Public Structure sLayerList
+        Public Class clsLayer
+            Public WithinLayer As Integer
+            Public AvoidLayers() As Boolean
+            Public Terrain As sPainter.clsTerrain
+            Public Terrainmap As clsBooleanMap
+            Public HeightMin As Single
+            Public HeightMax As Single
+            Public SlopeMin As Single
+            Public SlopeMax As Single
+            'for generator only
+            Public Scale As Single
+            Public Density As Single
+        End Class
+        Public Layers() As clsLayer
+        Public LayerCount As Integer
+
+        Sub Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
+            Dim A As Integer
+
+            ReDim Preserve Layers(LayerCount)
+            'shift the ones below down
+            For A = LayerCount - 1 To PositionNum Step -1
+                Layers(A + 1) = Layers(A)
+            Next A
+            'insert the new entry
+            Layers(PositionNum) = NewLayer
+            LayerCount += 1
+
+            For A = 0 To LayerCount - 1
+                If Layers(A).WithinLayer >= PositionNum Then
+                    Layers(A).WithinLayer = Layers(A).WithinLayer + 1
+                End If
+                ReDim Preserve Layers(A).AvoidLayers(LayerCount - 1)
+                For B = LayerCount - 2 To PositionNum Step -1
+                    Layers(A).AvoidLayers(B + 1) = Layers(A).AvoidLayers(B)
+                Next
+                Layers(A).AvoidLayers(PositionNum) = False
+            Next
+        End Sub
+
+        Sub Layer_Remove(ByVal Layer_Num As Integer)
+            Dim A As Integer
+            Dim B As Integer
+
+            LayerCount = LayerCount - 1
+            For A = Layer_Num To LayerCount - 1
+                Layers(A) = Layers(A + 1)
+            Next A
+            ReDim Preserve Layers(LayerCount - 1)
+
+            For A = 0 To LayerCount - 1
+                If Layers(A).WithinLayer = Layer_Num Then
+                    Layers(A).WithinLayer = -1
+                ElseIf Layers(A).WithinLayer > Layer_Num Then
+                    Layers(A).WithinLayer = Layers(A).WithinLayer - 1
+                End If
+                For B = Layer_Num To LayerCount - 1
+                    Layers(A).AvoidLayers(B) = Layers(A).AvoidLayers(B + 1)
+                Next
+                ReDim Preserve Layers(A).AvoidLayers(LayerCount - 1)
+            Next
+        End Sub
+
+        Sub Layer_Move(ByVal Layer_Num As Integer, ByVal Layer_Dest_Num As Integer)
+            Dim Layer_Temp As clsLayer
+            Dim boolTemp As Boolean
+            Dim A As Integer
+            Dim B As Integer
+
+            If Layer_Dest_Num < Layer_Num Then
+                'move the variables
+                Layer_Temp = Layers(Layer_Num)
+                For A = Layer_Num - 1 To Layer_Dest_Num Step -1
+                    Layers(A + 1) = Layers(A)
+                Next A
+                Layers(Layer_Dest_Num) = Layer_Temp
+                'update the layer nums
+                For A = 0 To LayerCount - 1
+                    If Layers(A).WithinLayer = Layer_Num Then
+                        Layers(A).WithinLayer = Layer_Dest_Num
+                    ElseIf Layers(A).WithinLayer >= Layer_Dest_Num And Layers(A).WithinLayer < Layer_Num Then
+                        Layers(A).WithinLayer = Layers(A).WithinLayer + 1
+                    End If
+                    boolTemp = Layers(A).AvoidLayers(Layer_Num)
+                    For B = Layer_Num - 1 To Layer_Dest_Num Step -1
+                        Layers(A).AvoidLayers(B + 1) = Layers(A).AvoidLayers(B)
+                    Next
+                    Layers(A).AvoidLayers(Layer_Dest_Num) = boolTemp
+                Next
+            ElseIf Layer_Dest_Num > Layer_Num Then
+                'move the variables
+                Layer_Temp = Layers(Layer_Num)
+                For A = Layer_Num To Layer_Dest_Num - 1
+                    Layers(A) = Layers(A + 1)
+                Next A
+                Layers(Layer_Dest_Num) = Layer_Temp
+                'update the layer nums
+                For A = 0 To LayerCount - 1
+                    If Layers(A).WithinLayer = Layer_Num Then
+                        Layers(A).WithinLayer = Layer_Dest_Num
+                    ElseIf Layers(A).WithinLayer > Layer_Num And Layers(A).WithinLayer <= Layer_Dest_Num Then
+                        Layers(A).WithinLayer = Layers(A).WithinLayer - 1
+                    End If
+                    boolTemp = Layers(A).AvoidLayers(Layer_Num)
+                    For B = Layer_Num To Layer_Dest_Num - 1
+                        Layers(A).AvoidLayers(B) = Layers(A).AvoidLayers(B + 1)
+                    Next
+                    Layers(A).AvoidLayers(Layer_Dest_Num) = boolTemp
+                Next
+            End If
+        End Sub
+    End Structure
+    Public LayerList As sLayerList
 
     Public Sub New()
         InitializeComponent() 'required for mono too
@@ -24,8 +126,8 @@
     Sub Map_Size_Refresh()
         Dim A As Integer
 
-        For A = 0 To LayerCount - 1
-            Layer(A).Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
+        For A = 0 To LayerList.LayerCount - 1
+            LayerList.Layers(A).Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
         Next
     End Sub
 
@@ -43,9 +145,9 @@
         Dim A As Integer
 
         cmbWithin.Items.Clear()
-        For A = 0 To LayerCount - 1
-            If Layer(A).Terrain IsNot Nothing Then
-                cmbWithin.Items.Add(Layer(A).Terrain.Name)
+        For A = 0 To LayerList.LayerCount - 1
+            If LayerList.Layers(A).Terrain IsNot Nothing Then
+                cmbWithin.Items.Add(LayerList.Layers(A).Terrain.Name)
             Else
                 cmbWithin.Items.Add("Nothing")
             End If
@@ -58,9 +160,9 @@
 
         lstLayer.SelectedIndex = -1 'so that the items get disabled
         lstLayer.Items.Clear()
-        For A = 0 To LayerCount - 1
-            If Layer(A).Terrain IsNot Nothing Then
-                lstLayer.Items.Add(Layer(A).Terrain.Name)
+        For A = 0 To LayerList.LayerCount - 1
+            If LayerList.Layers(A).Terrain IsNot Nothing Then
+                lstLayer.Items.Add(LayerList.Layers(A).Terrain.Name)
             Else
                 lstLayer.Items.Add("Nothing")
             End If
@@ -74,11 +176,11 @@
         Dim A As Integer
 
         clstAvoid.Items.Clear()
-        For A = 0 To LayerCount - 1
-            If Layer(A).Terrain IsNot Nothing Then
-                clstAvoid.Items.Add(Layer(A).Terrain.Name, Layer(lstLayer.SelectedIndex).Avoid_Layer(A))
+        For A = 0 To LayerList.LayerCount - 1
+            If LayerList.Layers(A).Terrain IsNot Nothing Then
+                clstAvoid.Items.Add(LayerList.Layers(A).Terrain.Name, LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(A))
             Else
-                clstAvoid.Items.Add("Nothing", Layer(lstLayer.SelectedIndex).Avoid_Layer(A))
+                clstAvoid.Items.Add("Nothing", LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(A))
             End If
         Next A
         clstAvoid.SelectedIndex = NewSelectedIndex
@@ -109,9 +211,9 @@
             btnWithinClear.Enabled = False
         Else
             cmbLayer_Terrain.Enabled = False
-            If Layer(lstLayer.SelectedIndex).Terrain IsNot Nothing Then
-                If Layer(lstLayer.SelectedIndex).Terrain.Num >= 0 Then
-                    cmbLayer_Terrain.SelectedIndex = Layer(lstLayer.SelectedIndex).Terrain.Num
+            If LayerList.Layers(lstLayer.SelectedIndex).Terrain IsNot Nothing Then
+                If LayerList.Layers(lstLayer.SelectedIndex).Terrain.Num >= 0 Then
+                    cmbLayer_Terrain.SelectedIndex = LayerList.Layers(lstLayer.SelectedIndex).Terrain.Num
                 Else
                     cmbLayer_Terrain.SelectedIndex = -1
                 End If
@@ -120,16 +222,16 @@
             End If
             cmbLayer_Terrain.Enabled = True
             txtLayer_HeightMin.Enabled = False
-            txtLayer_HeightMin.Text = CStr(Layer(lstLayer.SelectedIndex).HeightMin)
+            txtLayer_HeightMin.Text = CStr(LayerList.Layers(lstLayer.SelectedIndex).HeightMin)
             txtLayer_HeightMin.Enabled = True
             txtLayer_HeightMax.Enabled = False
-            txtLayer_HeightMax.Text = CStr(Layer(lstLayer.SelectedIndex).HeightMax)
+            txtLayer_HeightMax.Text = CStr(LayerList.Layers(lstLayer.SelectedIndex).HeightMax)
             txtLayer_HeightMax.Enabled = True
             txtLayer_SlopeMin.Enabled = False
-            txtLayer_SlopeMin.Text = CStr(Int(Layer(lstLayer.SelectedIndex).SlopeMin / RadOf1Deg * 100.0# + 0.5#) / 100.0#)
+            txtLayer_SlopeMin.Text = CStr(Int(LayerList.Layers(lstLayer.SelectedIndex).SlopeMin / RadOf1Deg * 100.0# + 0.5#) / 100.0#)
             txtLayer_SlopeMin.Enabled = True
             txtLayer_SlopeMax.Enabled = False
-            txtLayer_SlopeMax.Text = CStr(Int(Layer(lstLayer.SelectedIndex).SlopeMax / RadOf1Deg * 100.0# + 0.5#) / 100.0#)
+            txtLayer_SlopeMax.Text = CStr(Int(LayerList.Layers(lstLayer.SelectedIndex).SlopeMax / RadOf1Deg * 100.0# + 0.5#) / 100.0#)
             txtLayer_SlopeMax.Enabled = True
             btnhmImport.Enabled = True
             btnTerrain_Rem.Enabled = True
@@ -140,7 +242,7 @@
             clstAvoid_Refresh(-1)
             clstAvoid.Enabled = True
             cmbWithin.Enabled = False
-            cmbWithin_Refresh(Layer(lstLayer.SelectedIndex).Within_Layer)
+            cmbWithin_Refresh(LayerList.Layers(lstLayer.SelectedIndex).WithinLayer)
             cmbWithin.Enabled = True
             btnWithinClear.Enabled = True
             bmDisplay()
@@ -153,14 +255,14 @@
         End If
 
         If cmbLayer_Terrain.SelectedIndex >= 0 Then
-            Layer(lstLayer.SelectedIndex).Terrain = Map.Painter.Terrains(cmbLayer_Terrain.SelectedIndex)
+            LayerList.Layers(lstLayer.SelectedIndex).Terrain = Map.Painter.Terrains(cmbLayer_Terrain.SelectedIndex)
             lstLayer_Refresh(lstLayer.SelectedIndex)
         End If
     End Sub
 
     Private Sub btnDo_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnDo.Click
 
-        Perform()
+        Map.MapTexturer(LayerList)
 
         Map.SectorAll_Set_Changed()
         Map.SectorAll_GL_Update()
@@ -168,154 +270,6 @@
         Map.UndoStepCreate("Entire Map Painter")
 
         frmMainInstance.DrawView()
-    End Sub
-
-    Sub Perform()
-
-        Dim X As Integer
-        Dim Y As Integer
-        Dim A As Integer
-        Dim Terrain(,) As sPainter.clsTerrain
-        Dim Slope(,) As Single
-
-        Dim Terrain_Inner As sPainter.clsTerrain
-
-        Dim bmA As clsBooleanMap = New clsBooleanMap
-        Dim Layer_Num As Integer
-        Dim LayerResult(LayerCount - 1) As clsBooleanMap
-        Dim bmB As clsBooleanMap = New clsBooleanMap
-        Dim BestSlope As Double
-        Dim CurrentSlope As Double
-
-        ReDim Terrain(Map.TerrainSize.X, Map.TerrainSize.Y)
-        ReDim Slope(Map.TerrainSize.X, Map.TerrainSize.Y)
-        For Y = 0 To Map.TerrainSize.Y
-            For X = 0 To Map.TerrainSize.X
-                'get slope
-                BestSlope = 0.0#
-                If Y > 0 Then
-                    If X > 0 Then
-                        If Map.TerrainTile(X - 1, Y - 1).Tri Then
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.25#) * TerrainGridSpacing, (Y - 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.75#) * TerrainGridSpacing, (Y - 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        Else
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.25#) * TerrainGridSpacing, (Y - 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.75#) * TerrainGridSpacing, (Y - 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        End If
-                    End If
-                    If X < Map.TerrainSize.X Then
-                        If Map.TerrainTile(X, Y - 1).Tri Then
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y - 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y - 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        Else
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y - 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y - 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        End If
-                    End If
-                End If
-                If Y < Map.TerrainSize.Y Then
-                    If X > 0 Then
-                        If Map.TerrainTile(X - 1, Y).Tri Then
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        Else
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X - 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        End If
-                    End If
-                    If X < Map.TerrainSize.X Then
-                        If Map.TerrainTile(X, Y).Tri Then
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        Else
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                            CurrentSlope = Map.GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                            If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                        End If
-                    End If
-                End If
-                Slope(X, Y) = BestSlope
-            Next
-        Next
-        For Layer_Num = 0 To LayerCount - 1
-            Terrain_Inner = Layer(Layer_Num).Terrain
-            If Terrain_Inner IsNot Nothing Then
-                'do other layer constraints
-                LayerResult(Layer_Num) = New clsBooleanMap
-                LayerResult(Layer_Num).Copy(Layer(Layer_Num).Terrainmap)
-                If Layer(Layer_Num).Within_Layer >= 0 Then
-                    If Layer(Layer_Num).Within_Layer < Layer_Num Then
-                        bmA.Within(LayerResult(Layer_Num), LayerResult(Layer(Layer_Num).Within_Layer))
-                        LayerResult(Layer_Num).ValueData = bmA.ValueData
-                        bmA.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                End If
-                For A = 0 To Layer_Num - 1
-                    If Layer(Layer_Num).Avoid_Layer(A) Then
-                        bmA.Expand_One_Tile(LayerResult(A))
-                        bmB.Remove(LayerResult(Layer_Num), bmA)
-                        LayerResult(Layer_Num).ValueData = bmB.ValueData
-                        bmB.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                Next
-                'do height and slope constraints
-                For Y = 0 To Map.TerrainSize.Y
-                    For X = 0 To Map.TerrainSize.X
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            If Map.TerrainVertex(X, Y).Height < Layer(Layer_Num).HeightMin _
-                            Or Map.TerrainVertex(X, Y).Height > Layer(Layer_Num).HeightMax Then
-                                LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                            End If
-                            If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                                If Slope(X, Y) < Layer(Layer_Num).SlopeMin _
-                                Or Slope(X, Y) > Layer(Layer_Num).SlopeMax Then
-                                    LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                                End If
-                            End If
-                        End If
-                    Next
-                Next
-
-                LayerResult(Layer_Num).Remove_Diagonals()
-
-                For Y = 0 To Map.TerrainSize.Y
-                    For X = 0 To Map.TerrainSize.X
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            Terrain(X, Y) = Terrain_Inner
-                        End If
-                    Next
-                Next
-            End If
-        Next
-
-        'set vertex terrain by terrain map
-        For Y = 0 To Map.TerrainSize.Y
-            For X = 0 To Map.TerrainSize.X
-                If Terrain(X, Y) IsNot Nothing Then
-                    Map.TerrainVertex(X, Y).Terrain = Terrain(X, Y)
-                End If
-            Next
-        Next
-        For Y = 0 To Map.TerrainSize.Y - 1
-            For X = 0 To Map.TerrainSize.X - 1
-                Map.Tile_AutoTexture_Changed(X, Y)
-            Next
-        Next
     End Sub
 
     Private Sub btnhmImport_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnhmImport.Click
@@ -339,7 +293,7 @@
             MsgBox("Heightmap sizes do not equal map size + 1.", MsgBoxStyle.OkOnly, "Error")
             Exit Sub
         End If
-        Layer(lstLayer.SelectedIndex).Terrainmap.Convert_Heightmap(hmA, 1275000L)
+        LayerList.Layers(lstLayer.SelectedIndex).Terrainmap.Convert_Heightmap(hmA, 1275000L)
 
         bmDisplay()
     End Sub
@@ -350,124 +304,28 @@
         Layer_Items_Refresh()
     End Sub
 
-    Sub Profile_Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
-        Dim A As Integer
-
-        ReDim Preserve Layer(LayerCount)
-        'shift the ones below down
-        For A = LayerCount - 1 To PositionNum Step -1
-            Layer(A + 1) = Layer(A)
-        Next A
-        'insert the new entry
-        Layer(PositionNum) = NewLayer
-        LayerCount += 1
-
-        For A = 0 To LayerCount - 1
-            If Layer(A).Within_Layer >= PositionNum Then
-                Layer(A).Within_Layer = Layer(A).Within_Layer + 1
-            End If
-            ReDim Preserve Layer(A).Avoid_Layer(LayerCount - 1)
-            For B = LayerCount - 2 To PositionNum Step -1
-                Layer(A).Avoid_Layer(B + 1) = Layer(A).Avoid_Layer(B)
-            Next
-            Layer(A).Avoid_Layer(PositionNum) = False
-        Next
-    End Sub
-
-    Sub Profile_Layer_Remove(ByVal Layer_Num As Integer)
-        Dim A As Integer
-        Dim B As Integer
-
-        LayerCount = LayerCount - 1
-        For A = Layer_Num To LayerCount - 1
-            Layer(A) = Layer(A + 1)
-        Next A
-        ReDim Preserve Layer(LayerCount - 1)
-
-        For A = 0 To LayerCount - 1
-            If Layer(A).Within_Layer = Layer_Num Then
-                Layer(A).Within_Layer = -1
-            ElseIf Layer(A).Within_Layer > Layer_Num Then
-                Layer(A).Within_Layer = Layer(A).Within_Layer - 1
-            End If
-            For B = Layer_Num To LayerCount - 1
-                Layer(A).Avoid_Layer(B) = Layer(A).Avoid_Layer(B + 1)
-            Next
-            ReDim Preserve Layer(A).Avoid_Layer(LayerCount - 1)
-        Next
-    End Sub
-
-    Sub Profile_Layer_Move(ByVal Layer_Num As Integer, ByVal Layer_Dest_Num As Integer)
-        Dim Layer_Temp As clsLayer
-        Dim boolTemp As Boolean
-        Dim A As Integer
-        Dim B As Integer
-
-        If Layer_Dest_Num < Layer_Num Then
-            'move the variables
-            Layer_Temp = Layer(Layer_Num)
-            For A = Layer_Num - 1 To Layer_Dest_Num Step -1
-                Layer(A + 1) = Layer(A)
-            Next A
-            Layer(Layer_Dest_Num) = Layer_Temp
-            'update the layer nums
-            For A = 0 To LayerCount - 1
-                If Layer(A).Within_Layer = Layer_Num Then
-                    Layer(A).Within_Layer = Layer_Dest_Num
-                ElseIf Layer(A).Within_Layer >= Layer_Dest_Num And Layer(A).Within_Layer < Layer_Num Then
-                    Layer(A).Within_Layer = Layer(A).Within_Layer + 1
-                End If
-                boolTemp = Layer(A).Avoid_Layer(Layer_Num)
-                For B = Layer_Num - 1 To Layer_Dest_Num Step -1
-                    Layer(A).Avoid_Layer(B + 1) = Layer(A).Avoid_Layer(B)
-                Next
-                Layer(A).Avoid_Layer(Layer_Dest_Num) = boolTemp
-            Next
-        ElseIf Layer_Dest_Num > Layer_Num Then
-            'move the variables
-            Layer_Temp = Layer(Layer_Num)
-            For A = Layer_Num To Layer_Dest_Num - 1
-                Layer(A) = Layer(A + 1)
-            Next A
-            Layer(Layer_Dest_Num) = Layer_Temp
-            'update the layer nums
-            For A = 0 To LayerCount - 1
-                If Layer(A).Within_Layer = Layer_Num Then
-                    Layer(A).Within_Layer = Layer_Dest_Num
-                ElseIf Layer(A).Within_Layer > Layer_Num And Layer(A).Within_Layer <= Layer_Dest_Num Then
-                    Layer(A).Within_Layer = Layer(A).Within_Layer - 1
-                End If
-                boolTemp = Layer(A).Avoid_Layer(Layer_Num)
-                For B = Layer_Num To Layer_Dest_Num - 1
-                    Layer(A).Avoid_Layer(B) = Layer(A).Avoid_Layer(B + 1)
-                Next
-                Layer(A).Avoid_Layer(Layer_Dest_Num) = boolTemp
-            Next
-        End If
-    End Sub
-
     Private Sub lstLayer_KeyDown(ByVal eventSender As System.Object, ByVal eventArgs As System.Windows.Forms.KeyEventArgs) Handles lstLayer.KeyDown
-        Dim NewLayer As clsLayer
+        Dim NewLayer As sLayerList.clsLayer
         Dim Position_Num As Integer
 
         If eventArgs.KeyCode = 189 Then '-
             If Not (lstLayer.SelectedIndex = -1 Or lstLayer.SelectedIndex = 0) Then
-                Profile_Layer_Move(lstLayer.SelectedIndex, lstLayer.SelectedIndex - 1)
+                LayerList.Layer_Move(lstLayer.SelectedIndex, lstLayer.SelectedIndex - 1)
                 lstLayer_Refresh(lstLayer.SelectedIndex - 1)
             End If
         ElseIf eventArgs.KeyCode = 187 Then  '+
-            If Not (lstLayer.SelectedIndex = -1 Or lstLayer.SelectedIndex = LayerCount - 1) Then
-                Profile_Layer_Move(lstLayer.SelectedIndex, lstLayer.SelectedIndex + 1)
+            If Not (lstLayer.SelectedIndex = -1 Or lstLayer.SelectedIndex = LayerList.LayerCount - 1) Then
+                LayerList.Layer_Move(lstLayer.SelectedIndex, lstLayer.SelectedIndex + 1)
                 lstLayer_Refresh(lstLayer.SelectedIndex + 1)
             End If
         ElseIf eventArgs.KeyCode = System.Windows.Forms.Keys.Insert Then
             If lstLayer.SelectedIndex = -1 Then
-                Position_Num = LayerCount
+                Position_Num = LayerList.LayerCount
             Else
                 Position_Num = lstLayer.SelectedIndex + 1
             End If
-            NewLayer = New clsLayer
-            NewLayer.Within_Layer = -1
+            NewLayer = New sLayerList.clsLayer
+            NewLayer.WithinLayer = -1
             NewLayer.Terrain = Nothing
             NewLayer.HeightMin = 0.0F
             NewLayer.HeightMax = 255.0F
@@ -475,12 +333,12 @@
             NewLayer.SlopeMax = RadOf90Deg
             NewLayer.Terrainmap = New clsBooleanMap
             NewLayer.Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
-            Profile_Layer_Insert(Position_Num, NewLayer)
+            LayerList.Layer_Insert(Position_Num, NewLayer)
             lstLayer_Refresh(Position_Num)
         ElseIf eventArgs.KeyCode = System.Windows.Forms.Keys.Delete And eventArgs.Shift Then
             If Not lstLayer.SelectedIndex = -1 Then
-                Profile_Layer_Remove(lstLayer.SelectedIndex)
-                lstLayer_Refresh(Math.Min(lstLayer.SelectedIndex, LayerCount - 1))
+                LayerList.Layer_Remove(lstLayer.SelectedIndex)
+                lstLayer_Refresh(Math.Min(lstLayer.SelectedIndex, LayerList.LayerCount - 1))
             End If
         End If
     End Sub
@@ -488,25 +346,25 @@
     Private Sub txtLayer_HeightMax_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_HeightMax.TextChanged
         If Not txtLayer_HeightMax.Enabled Then Exit Sub
 
-        Layer(lstLayer.SelectedIndex).HeightMax = Val(txtLayer_HeightMax.Text)
+        LayerList.Layers(lstLayer.SelectedIndex).HeightMax = Val(txtLayer_HeightMax.Text)
     End Sub
 
     Private Sub txtLayer_HeightMin_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_HeightMin.TextChanged
         If Not txtLayer_HeightMin.Enabled Then Exit Sub
 
-        Layer(lstLayer.SelectedIndex).HeightMin = Val(txtLayer_HeightMin.Text)
+        LayerList.Layers(lstLayer.SelectedIndex).HeightMin = Val(txtLayer_HeightMin.Text)
     End Sub
 
     Private Sub txtLayer_SlopeMax_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_SlopeMax.TextChanged
         If Not txtLayer_SlopeMax.Enabled Then Exit Sub
 
-        Layer(lstLayer.SelectedIndex).SlopeMax = Val(txtLayer_SlopeMax.Text) * RadOf1Deg
+        LayerList.Layers(lstLayer.SelectedIndex).SlopeMax = Val(txtLayer_SlopeMax.Text) * RadOf1Deg
     End Sub
 
     Private Sub txtLayer_SlopeMin_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_SlopeMin.TextChanged
         If Not txtLayer_SlopeMin.Enabled Then Exit Sub
 
-        Layer(lstLayer.SelectedIndex).SlopeMin = Val(txtLayer_SlopeMin.Text) * RadOf1Deg
+        LayerList.Layers(lstLayer.SelectedIndex).SlopeMin = Val(txtLayer_SlopeMin.Text) * RadOf1Deg
     End Sub
 
     Sub bmDisplay()
@@ -516,7 +374,7 @@
 
         For Y = 0 To Map.TerrainSize.Y
             For X = 0 To Map.TerrainSize.X
-                If Layer(lstLayer.SelectedIndex).Terrainmap.ValueData.Value(Y, X) Then
+                If LayerList.Layers(lstLayer.SelectedIndex).Terrainmap.ValueData.Value(Y, X) Then
                     tmpBitmap.SetPixel(X, Y, Color.White)
                 Else
                     tmpBitmap.SetPixel(X, Y, Color.Black)
@@ -533,20 +391,14 @@
     End Sub
 
     Private Sub btnGen_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnGen.Click
-        Dim FeatureScale As Single
-        Dim Density As Double
+        Dim Scale As Single
+        Dim Density As Single
 
-        Dim hmB As clsHeightmap = New clsHeightmap
-        Dim hmC As clsHeightmap = New clsHeightmap
-
-        FeatureScale = Clamp(CSng(Val(txtScale.Text)), 0.0F, 8.0F)
-        txtScale.Text = CStr(FeatureScale)
+        Scale = Clamp(CSng(Val(txtScale.Text)), 0.0F, 8.0F)
+        txtScale.Text = CStr(Scale)
         Density = Clamp(Val(txtDensity.Text) / 100.0#, 0.0#, 1.0#)
         txtDensity.Text = CStr(Density * 100.0#)
-
-        hmB.GenerateNewOfSize(Map.TerrainSize.Y + 1, Map.TerrainSize.X + 1, FeatureScale, 1.0#)
-        hmC.Rescale(hmB, 0.0#, 1.0#)
-        Layer(lstLayer.SelectedIndex).Terrainmap.Convert_Heightmap(hmC, (1.0# - Density) / hmC.HeightScale)
+        LayerList.Layers(lstLayer.SelectedIndex).Terrainmap = Map.GenerateTerrainMap(Scale, Density)
 
         bmDisplay()
     End Sub
@@ -563,12 +415,12 @@
 
     Private Sub clstAvoid_ItemCheck(ByVal sender As Object, ByVal e As System.Windows.Forms.ItemCheckEventArgs) Handles clstAvoid.ItemCheck
 
-        Layer(lstLayer.SelectedIndex).Avoid_Layer(e.Index) = e.NewValue
+        LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(e.Index) = e.NewValue
     End Sub
 
     Private Sub cmbWithin_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmbWithin.SelectedIndexChanged
 
-        Layer(lstLayer.SelectedIndex).Within_Layer = cmbWithin.SelectedIndex
+        LayerList.Layers(lstLayer.SelectedIndex).WithinLayer = cmbWithin.SelectedIndex
     End Sub
 
     Private Sub frmMapTexturer_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing

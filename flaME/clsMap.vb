@@ -27,11 +27,12 @@ Public Class clsMap
         Public Road As sPainter.clsRoad
     End Structure
     Public TerrainVertex(-1, -1) As sTerrainVertex
-    Public TerrainTile(-1, -1) As sTerrainTile
+    Public TerrainTiles(-1, -1) As sTerrainTile
     Public TerrainSideH(-1, -1) As sTerrainSide
     Public TerrainSideV(-1, -1) As sTerrainSide
 
     Class clsSector
+        Public Pos As sXY_int
         Public GLList_Textured As Integer
         Public GLList_Wireframe As Integer
         Public Unit(-1) As clsUnit
@@ -70,11 +71,12 @@ Public Class clsMap
             ReDim Preserve Unit_SectorNum(UnitCount - 1)
         End Sub
 
-        Sub New()
+        Sub New(ByVal NewPos As sXY_int)
 
+            Pos = NewPos
         End Sub
     End Class
-    Public Sector(-1, -1) As clsSector
+    Public Sectors(-1, -1) As clsSector
     Public SectorCount As sXY_int
 
     Class clsShadowSector
@@ -84,7 +86,7 @@ Public Class clsMap
         Public TerrainSideH(-1, -1) As sTerrainSide
         Public TerrainSideV(-1, -1) As sTerrainSide
     End Class
-    Public ShadowSector(-1, -1) As clsShadowSector
+    Public ShadowSectors(-1, -1) As clsShadowSector
 
     Public Structure sUnitChange
         Public Enum enumType As Byte
@@ -102,7 +104,7 @@ Public Class clsMap
         Public UnitChanges() As sUnitChange
         Public UnitChangeCount As Integer
     End Class
-    Public Undo() As clsUndo
+    Public Undos() As clsUndo
     Public UndoCount As Integer
     Public Undo_Pos As Integer
 
@@ -211,10 +213,10 @@ Public Class clsMap
 
             Parent_Map.Tile_Get_Sector(X, Z, SectorNum)
             If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
-                Parent_Map.Sector(SectorNum.X, SectorNum.Y).Changed = True
+                Parent_Map.Sectors(SectorNum.X, SectorNum.Y).Changed = True
                 SectorIsChanged(SectorNum.X, SectorNum.Y) = True
                 ChangedSectors(ChangedSectorsCount) = SectorNum
-                ChangedSectorsCount = ChangedSectorsCount + 1
+                ChangedSectorsCount += 1
             End If
         End Sub
 
@@ -315,7 +317,7 @@ Public Class clsMap
                     SectorIsChanged(X, Z) = False
                 Next
                 ChangedSectorsCount = 0
-                Parent_Map.Minimap_Make()
+                Parent_Map.MinimapMakeLater()
             End If
         End Sub
 
@@ -337,8 +339,8 @@ Public Class clsMap
                     X = ChangedSectors(A).X
                     Z = ChangedSectors(A).Y
                     Parent_Map.Sector_GLList_Make(X, Z)
-                    For B = 0 To Parent_Map.Sector(X, Z).UnitCount - 1
-                        tmpUnit = Parent_Map.Sector(X, Z).Unit(B)
+                    For B = 0 To Parent_Map.Sectors(X, Z).UnitCount - 1
+                        tmpUnit = Parent_Map.Sectors(X, Z).Unit(B)
                         For C = 0 To OldUnitCount - 1
                             If OldUnits(C) Is tmpUnit Then
                                 Exit For
@@ -360,7 +362,7 @@ Public Class clsMap
                     Parent_Map.Unit_Add_StoreChange(NewUnit, ID)
                 Next
                 ChangedSectorsCount = 0
-                Parent_Map.Minimap_Make()
+                Parent_Map.MinimapMakeLater()
             End If
         End Sub
     End Class
@@ -442,6 +444,44 @@ Public Class clsMap
     End Class
     Public AutoTextureChange As clsAutoTextureChange
 
+    Public Class clsSectorGLUpdateList
+        Public ParentMap As clsMap
+
+        Public SectorIsInList(,) As Boolean
+        Public Sectors() As sXY_int
+        Public SectorCount As Integer
+
+        Public Sub New(ByVal NewParentMap As clsMap)
+
+            ParentMap = NewParentMap
+            ReDim Sectors(ParentMap.SectorCount.X * ParentMap.SectorCount.Y - 1)
+            ReDim SectorIsInList(ParentMap.SectorCount.X - 1, ParentMap.SectorCount.Y - 1)
+        End Sub
+
+        Public Sub Add(ByVal NewSector As sXY_int)
+
+            If SectorIsInList(NewSector.X, NewSector.Y) Then
+                Exit Sub
+            End If
+
+            SectorIsInList(NewSector.X, NewSector.Y) = True
+
+            Sectors(SectorCount) = NewSector
+            SectorCount += 1
+        End Sub
+
+        Public Sub Update()
+            Dim A As Integer
+
+            For A = 0 To SectorCount - 1
+                ParentMap.Sector_GLList_Make(Sectors(A).X, Sectors(A).Y)
+                SectorIsInList(Sectors(A).X, Sectors(A).Y) = False
+            Next
+            SectorCount = 0
+        End Sub
+    End Class
+    Public SectorGLUpdateList As clsSectorGLUpdateList
+
     Sub New()
 
         MakeMinimapTimer = New Timer
@@ -454,7 +494,7 @@ Public Class clsMap
         MakeMinimapTimer.Interval = MinimapDelay
 
         Terrain_Blank(TileSizeX, TileSizeZ)
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange = New clsSectorChange(Me)
@@ -485,13 +525,13 @@ Public Class clsMap
         TerrainSize.X = Area.X
         TerrainSize.Y = Area.Y
         ReDim TerrainVertex(TerrainSize.X, TerrainSize.Y)
-        ReDim TerrainTile(TerrainSize.X - 1, TerrainSize.Y - 1)
+        ReDim TerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
         ReDim TerrainSideV(TerrainSize.X, TerrainSize.Y - 1)
 
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTile(X, Z).Texture.TextureNum = -1
+                TerrainTiles(X, Z).Texture.TextureNum = -1
             Next
         Next
 
@@ -502,7 +542,7 @@ Public Class clsMap
         Next
         For Z = StartZ To EndZ - 1
             For X = StartX To EndX - 1
-                TerrainTile(X, Z) = Map_To_Copy.TerrainTile(Offset.X + X, Offset.Y + Z)
+                TerrainTiles(X, Z) = Map_To_Copy.TerrainTiles(Offset.X + X, Offset.Y + Z)
             Next
         Next
         For Z = StartZ To EndZ
@@ -518,10 +558,10 @@ Public Class clsMap
 
         SectorCount.X = Math.Ceiling(Area.X / SectorTileSize)
         SectorCount.Y = Math.Ceiling(Area.Y / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
 
@@ -553,7 +593,7 @@ Public Class clsMap
             End If
         Next
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange = New clsSectorChange(Me)
@@ -567,17 +607,21 @@ Public Class clsMap
         TerrainSize.Y = TileSizeZ
         SectorCount.X = Math.Ceiling(TileSizeX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileSizeZ / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
         ReDim TerrainVertex(TerrainSize.X, TerrainSize.Y)
-        ReDim TerrainTile(TerrainSize.X - 1, TerrainSize.Y - 1)
+        ReDim TerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
         ReDim TerrainSideV(TerrainSize.X, TerrainSize.Y - 1)
         Clear_Textures()
+        If SectorGLUpdateList IsNot Nothing Then
+            SectorGLUpdateList.ParentMap = Nothing
+        End If
+        SectorGLUpdateList = New clsSectorGLUpdateList(Me)
     End Sub
 
     Function GetTerrainSlopeAngle(ByVal X As Integer, ByVal Z As Integer) As Double
@@ -592,6 +636,11 @@ Public Class clsMap
         Static GradientX As Double
         Static GradientZ As Double
         Static Offset As Double
+        Static XYZ_dbl As sXYZ_dbl
+        Static XYZ_dbl2 As sXYZ_dbl
+        Static XYZ_dbl3 As sXYZ_dbl
+        Static AnglePY As sAnglePY
+
         XG = Int(X / TerrainGridSpacing)
         ZG = Int(Z / TerrainGridSpacing)
         InTileX = Clamp(X / TerrainGridSpacing - XG, 0.0#, 1.0#)
@@ -600,7 +649,7 @@ Public Class clsMap
         Z1 = Clamp(ZG, 0, TerrainSize.Y - 1)
         X2 = Clamp(XG + 1, 0, TerrainSize.X)
         Z2 = Clamp(ZG + 1, 0, TerrainSize.Y)
-        If TerrainTile(X1, Z1).Tri Then
+        If TerrainTiles(X1, Z1).Tri Then
             If InTileZ <= 1.0# - InTileX Then
                 Offset = TerrainVertex(X1, Z1).Height
                 GradientX = TerrainVertex(X2, Z1).Height - Offset
@@ -622,11 +671,6 @@ Public Class clsMap
             End If
         End If
 
-        Static XYZ_dbl As sXYZ_dbl
-        Static XYZ_dbl2 As sXYZ_dbl
-        Static XYZ_dbl3 As sXYZ_dbl
-        Static AnglePY As sAnglePY
-
         XYZ_dbl.X = TerrainGridSpacing
         XYZ_dbl.Y = GradientX * HeightMultiplier
         XYZ_dbl.Z = 0.0#
@@ -636,9 +680,9 @@ Public Class clsMap
         VectorCrossProduct(XYZ_dbl, XYZ_dbl2, XYZ_dbl3)
         If XYZ_dbl3.X <> 0.0# Or XYZ_dbl3.Z <> 0.0# Then
             GetAnglePY(XYZ_dbl3, AnglePY)
-            GetTerrainSlopeAngle = RadOf90Deg - Math.Abs(AnglePY.Pitch)
+            Return RadOf90Deg - Math.Abs(AnglePY.Pitch)
         Else
-            GetTerrainSlopeAngle = 0.0#
+            Return 0.0#
         End If
     End Function
 
@@ -656,6 +700,7 @@ Public Class clsMap
         Static Offset As Double
         Static RatioX As Double
         Static RatioZ As Double
+
         XG = Int(X / TerrainGridSpacing)
         ZG = Int(Z / TerrainGridSpacing)
         InTileX = Clamp(X / TerrainGridSpacing - XG, 0.0#, 1.0#)
@@ -664,7 +709,7 @@ Public Class clsMap
         Z1 = Clamp(ZG, 0, TerrainSize.Y - 1)
         X2 = Clamp(XG + 1, 0, TerrainSize.X)
         Z2 = Clamp(ZG + 1, 0, TerrainSize.Y)
-        If TerrainTile(X1, Z1).Tri Then
+        If TerrainTiles(X1, Z1).Tri Then
             If InTileZ <= 1.0# - InTileX Then
                 Offset = TerrainVertex(X1, Z1).Height
                 GradientX = TerrainVertex(X2, Z1).Height - Offset
@@ -693,7 +738,7 @@ Public Class clsMap
                 RatioZ = 1.0# - InTileZ
             End If
         End If
-        GetTerrainHeight = (Offset + GradientX * RatioX + GradientZ * RatioZ) * HeightMultiplier
+        Return (Offset + GradientX * RatioX + GradientZ * RatioZ) * HeightMultiplier
     End Function
 
     Function TerrainVertexNormalCalc(ByVal X As Integer, ByVal Z As Integer) As sXYZ_sng
@@ -744,24 +789,32 @@ Public Class clsMap
 
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                If Sector(X, Z).GLList_Textured > 0 Then
-                    GL.DeleteLists(Sector(X, Z).GLList_Textured, 1)
-                    Sector(X, Z).GLList_Textured = 0
+                If Sectors(X, Z).GLList_Textured > 0 Then
+                    GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
+                    Sectors(X, Z).GLList_Textured = 0
                 End If
-                If Sector(X, Z).GLList_Wireframe > 0 Then
-                    GL.DeleteLists(Sector(X, Z).GLList_Wireframe, 1)
-                    Sector(X, Z).GLList_Wireframe = 0
+                If Sectors(X, Z).GLList_Wireframe > 0 Then
+                    GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
+                    Sectors(X, Z).GLList_Wireframe = 0
                 End If
             Next
         Next
     End Sub
 
-    Sub Deallocate()
+    Public Overridable Sub Deallocate()
+
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
+            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        End If
 
         Do While UnitCount > 0
             Unit_Remove(UnitCount - 1)
         Loop
         SectorAll_GLLists_Delete()
+        If SectorGLUpdateList IsNot Nothing Then
+            SectorGLUpdateList.ParentMap = Nothing
+            SectorGLUpdateList = Nothing
+        End If
         If Minimap_Texture > 0 Then
             GL.DeleteTextures(1, Minimap_Texture)
         End If
@@ -814,7 +867,7 @@ Public Class clsMap
         Next
         For Z = StartZ To EndZ - 1
             For X = StartX To EndX - 1
-                tmpTerrainTile(X, Z) = TerrainTile(TileOffsetX + X, TileOffsetZ + Z)
+                tmpTerrainTile(X, Z) = TerrainTiles(TileOffsetX + X, TileOffsetZ + Z)
             Next
         Next
         For Z = StartZ To EndZ
@@ -889,10 +942,10 @@ Public Class clsMap
         Sectors_Deallocate()
         SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
 
@@ -905,7 +958,7 @@ Public Class clsMap
                 Unit_Remove(A)
             Else
                 Unit_Sectors_Calc(A)
-                A = A + 1
+                A += 1
             End If
         Loop
         A = 0
@@ -920,18 +973,18 @@ Public Class clsMap
               Or Gateways(A).PosB.Y >= TileCountZ Then
                 Gateway_Remove(A)
             Else
-                A = A + 1
+                A += 1
             End If
         Loop
 
         TerrainSize.X = TileCountX
         TerrainSize.Y = TileCountZ
         TerrainVertex = tmpTerrainVertex
-        TerrainTile = tmpTerrainTile
+        TerrainTiles = tmpTerrainTile
         TerrainSideH = tmpTerrainSideH
         TerrainSideV = tmpTerrainSideV
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
@@ -946,18 +999,19 @@ Public Class clsMap
         Static StartZ As Integer
         Static FinishX As Integer
         Static FinishZ As Integer
+        Static UnitNum As Integer
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        If Sector(X, Z).GLList_Textured > 0 Then
-            GL.DeleteLists(Sector(X, Z).GLList_Textured, 1)
-            Sector(X, Z).GLList_Textured = 0
+        If Sectors(X, Z).GLList_Textured > 0 Then
+            GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
+            Sectors(X, Z).GLList_Textured = 0
         End If
-        If Sector(X, Z).GLList_Wireframe > 0 Then
-            GL.DeleteLists(Sector(X, Z).GLList_Wireframe, 1)
-            Sector(X, Z).GLList_Wireframe = 0
+        If Sectors(X, Z).GLList_Wireframe > 0 Then
+            GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
+            Sectors(X, Z).GLList_Wireframe = 0
         End If
 
         StartX = X * SectorTileSize
@@ -965,19 +1019,46 @@ Public Class clsMap
         FinishX = Math.Min(StartX + SectorTileSize, TerrainSize.X) - 1
         FinishZ = Math.Min(StartZ + SectorTileSize, TerrainSize.Y) - 1
 
-        Sector(X, Z).GLList_Textured = GL.GenLists(1)
-        GL.NewList(Sector(X, Z).GLList_Textured, ListMode.Compile)
+        Sectors(X, Z).GLList_Textured = GL.GenLists(1)
+        GL.NewList(Sectors(X, Z).GLList_Textured, ListMode.Compile)
 
-        For TileZ = StartZ To FinishZ
-            For TileX = StartX To FinishX
-                DrawTile(TileX, TileZ)
+        If frmMainInstance.View.Draw_Units Then
+            Dim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1) As Boolean
+            Dim tmpUnit As clsUnit
+            Dim BaseOffset As sXY_int
+            For UnitNum = 0 To Sectors(X, Z).UnitCount - 1
+                tmpUnit = Sectors(X, Z).Unit(UnitNum)
+                If tmpUnit.Type.LoadedInfo IsNot Nothing Then
+                    BaseOffset.X = CInt((tmpUnit.Type.LoadedInfo.Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
+                    BaseOffset.Y = CInt((tmpUnit.Type.LoadedInfo.Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
+                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing Then
+                        For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Z - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Z + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
+                            For TileX = Math.Max(CInt(Int((tmpUnit.Pos.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
+                                IsBasePlate(TileX - StartX, TileZ - StartZ) = True
+                            Next
+                        Next
+                    End If
+                End If
             Next
-        Next
+            For TileZ = StartZ To FinishZ
+                For TileX = StartX To FinishX
+                    If Not IsBasePlate(TileX - StartX, TileZ - StartZ) Then
+                        DrawTile(TileX, TileZ)
+                    End If
+                Next
+            Next
+        Else
+            For TileZ = StartZ To FinishZ
+                For TileX = StartX To FinishX
+                    DrawTile(TileX, TileZ)
+                Next
+            Next
+        End If
 
         GL.EndList()
 
-        Sector(X, Z).GLList_Wireframe = GL.GenLists(1)
-        GL.NewList(Sector(X, Z).GLList_Wireframe, ListMode.Compile)
+        Sectors(X, Z).GLList_Wireframe = GL.GenLists(1)
+        GL.NewList(Sectors(X, Z).GLList_Wireframe, ListMode.Compile)
 
         For TileZ = StartZ To FinishZ
             For TileX = StartX To FinishX
@@ -1014,8 +1095,7 @@ Public Class clsMap
         Vertex3.Z = -(TileZ + 1) * TerrainGridSpacing
 
         GL.Begin(BeginMode.Lines)
-        GL.Color3(0.0F, 1.0F, 0.0F)
-        If TerrainTile(TileX, TileZ).Tri Then
+        If TerrainTiles(TileX, TileZ).Tri Then
             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
             GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
             GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
@@ -1055,7 +1135,7 @@ Public Class clsMap
         Static Vertex1 As sXYZ_int
         Static Vertex2 As sXYZ_int
 
-        TileOrientation = TerrainTile(TileX, TileZ).Texture.Orientation
+        TileOrientation = TerrainTiles(TileX, TileZ).Texture.Orientation
 
         UnrotatedPos.X = 0.25F
         UnrotatedPos.Y = 0.25F
@@ -1102,12 +1182,12 @@ Public Class clsMap
         Static TexCoord3 As sXY_sng
         Static A As Integer
 
-        If TerrainTile(TileX, TileZ).Texture.TextureNum < 0 Then
+        If TerrainTiles(TileX, TileZ).Texture.TextureNum < 0 Then
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_NoTile)
         ElseIf Tileset Is Nothing Then
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
-        ElseIf TerrainTile(TileX, TileZ).Texture.TextureNum < Tileset.TileCount Then
-            A = Tileset.Tiles(TerrainTile(TileX, TileZ).Texture.TextureNum).MapView_GL_Texture_Num
+        ElseIf TerrainTiles(TileX, TileZ).Texture.TextureNum < Tileset.TileCount Then
+            A = Tileset.Tiles(TerrainTiles(TileX, TileZ).Texture.TextureNum).MapView_GL_Texture_Num
             If A = 0 Then
                 GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
             Else
@@ -1122,7 +1202,7 @@ Public Class clsMap
         TileTerrainHeight(2) = TerrainVertex(TileX, TileZ + 1).Height
         TileTerrainHeight(3) = TerrainVertex(TileX + 1, TileZ + 1).Height
 
-        GetTileRotatedTexCoords(TerrainTile(TileX, TileZ).Texture.Orientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
+        GetTileRotatedTexCoords(TerrainTiles(TileX, TileZ).Texture.Orientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
         Vertex0.X = TileX * TerrainGridSpacing
         Vertex0.Y = TileTerrainHeight(0) * HeightMultiplier
@@ -1143,7 +1223,7 @@ Public Class clsMap
         Normal3 = TerrainVertexNormalCalc(TileX + 1, TileZ + 1)
 
         GL.Begin(BeginMode.Triangles)
-        If TerrainTile(TileX, TileZ).Tri Then
+        If TerrainTiles(TileX, TileZ).Tri Then
             GL.Normal3(Normal0.X, Normal0.Y, -Normal0.Z)
             GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1296,7 +1376,7 @@ Public Class clsMap
                 A = InStr(1, strTemp, "Textures {")
                 If A = 0 Then
                 Else
-                    Line_Num = Line_Num + 1
+                    Line_Num += 1
                     strTemp = LineData(Line_Num)
 
                     strTemp2 = LCase(strTemp)
@@ -1320,7 +1400,7 @@ Public Class clsMap
                 A = InStr(1, strTemp, "Tiles {")
                 If A = 0 Or GotTiles Then
                 Else
-                    Line_Num = Line_Num + 1
+                    Line_Num += 1
                     Do While Line_Num < LineCount
                         strTemp = LineData(Line_Num)
 
@@ -1613,7 +1693,7 @@ LineDone:
                 For X = 0 To TerrainSize.X - 1
                     Tile_Num = Z * TerrainSize.X + X
 
-                    TerrainTile(X, Z).Texture.TextureNum = LNDTile(Tile_Num).TID - 1
+                    TerrainTiles(X, Z).Texture.TextureNum = LNDTile(Tile_Num).TID - 1
 
                     'ignore higher values
                     A = Int(LNDTile(Tile_Num).F / 64.0#)
@@ -1637,11 +1717,11 @@ LineDone:
 
                     A = Int(LNDTile(Tile_Num).F / 2.0#)
                     LNDTile(Tile_Num).F -= A * 2
-                    TerrainTile(X, Z).Tri = (A = 1)
+                    TerrainTiles(X, Z).Tri = (A = 1)
 
                     'vf, tf, ignore
 
-                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
+                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
                 Next
             Next
 
@@ -1682,7 +1762,7 @@ LineDone:
                 Next
             End If
 
-            ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+            ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
             ShadowSector_CreateAll()
             AutoTextureChange = New clsAutoTextureChange(Me)
             SectorChange = New clsSectorChange(Me)
@@ -1759,24 +1839,25 @@ LineDone:
         Load_FME.Success = False
         Load_FME.Problem = ""
 
-        Dim File As New clsByteReadFile
+        Dim File As New clsReadFile
 
         Load_FME = File.Begin(Path)
         If Not Load_FME.Success Then
             Exit Function
         End If
         Load_FME = Read_FME(File)
+        File.Close()
         If Not Load_FME.Success Then
             Exit Function
         End If
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange = New clsSectorChange(Me)
     End Function
 
-    Private Function Read_FME(ByVal File As clsByteReadFile) As sResult
+    Private Function Read_FME(ByVal File As clsReadFile) As sResult
         Read_FME.Problem = ""
         Read_FME.Success = False
 
@@ -1853,14 +1934,14 @@ LineDone:
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
                     If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
-                    TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
+                    TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
 
                     If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
 
                     intTemp = 128
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
+                    TerrainTiles(X, Z).Terrain_IsCliff = (A = 1)
 
                     intTemp = 32
                     A = CInt(Int(byteTemp / intTemp))
@@ -1877,29 +1958,29 @@ LineDone:
                     byteTemp -= A * intTemp
                     FlipZ = (A = 1)
 
-                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
+                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
 
                     intTemp = 4
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Tri = (A = 1)
+                    TerrainTiles(X, Z).Tri = (A = 1)
 
                     intTemp = 2
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    If TerrainTile(X, Z).Tri Then
-                        TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
+                    If TerrainTiles(X, Z).Tri Then
+                        TerrainTiles(X, Z).TriTopLeftIsCliff = (A = 1)
                     Else
-                        TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
+                        TerrainTiles(X, Z).TriBottomLeftIsCliff = (A = 1)
                     End If
 
                     intTemp = 1
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    If TerrainTile(X, Z).Tri Then
-                        TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
+                    If TerrainTiles(X, Z).Tri Then
+                        TerrainTiles(X, Z).TriBottomRightIsCliff = (A = 1)
                     Else
-                        TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
+                        TerrainTiles(X, Z).TriTopRightIsCliff = (A = 1)
                     End If
 
                     'attributes2
@@ -1915,17 +1996,17 @@ LineDone:
                     byteTemp -= A * intTemp
                     Select Case A
                         Case 1
-                            TerrainTile(X, Z).DownSide = TileDirection_Top
+                            TerrainTiles(X, Z).DownSide = TileDirection_Top
                         Case 3
-                            TerrainTile(X, Z).DownSide = TileDirection_Right
+                            TerrainTiles(X, Z).DownSide = TileDirection_Right
                         Case 5
-                            TerrainTile(X, Z).DownSide = TileDirection_Bottom
+                            TerrainTiles(X, Z).DownSide = TileDirection_Bottom
                         Case 7
-                            TerrainTile(X, Z).DownSide = TileDirection_Left
+                            TerrainTiles(X, Z).DownSide = TileDirection_Left
                         Case 8
-                            TerrainTile(X, Z).DownSide = TileDirection_None
+                            TerrainTiles(X, Z).DownSide = TileDirection_None
                         Case Else
-                            TerrainTile(X, Z).DownSide = TileDirection_None
+                            TerrainTiles(X, Z).DownSide = TileDirection_None
                             'Load_FME.Problem = "Cliff down-side is out of range."
                             'Exit Function
                     End Select
@@ -2073,51 +2154,51 @@ LineDone:
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
                     If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
-                    TerrainTile(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
+                    TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
 
                     If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
 
                     intTemp = 128
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Terrain_IsCliff = (A = 1)
+                    TerrainTiles(X, Z).Terrain_IsCliff = (A = 1)
 
                     intTemp = 64
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Texture.Orientation.SwitchedAxes = (A = 1)
+                    TerrainTiles(X, Z).Texture.Orientation.SwitchedAxes = (A = 1)
 
                     intTemp = 32
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Texture.Orientation.ResultXFlip = (A = 1)
+                    TerrainTiles(X, Z).Texture.Orientation.ResultXFlip = (A = 1)
 
                     intTemp = 16
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Texture.Orientation.ResultZFlip = (A = 1)
+                    TerrainTiles(X, Z).Texture.Orientation.ResultZFlip = (A = 1)
 
                     intTemp = 4
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    TerrainTile(X, Z).Tri = (A = 1)
+                    TerrainTiles(X, Z).Tri = (A = 1)
 
                     intTemp = 2
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    If TerrainTile(X, Z).Tri Then
-                        TerrainTile(X, Z).TriTopLeftIsCliff = (A = 1)
+                    If TerrainTiles(X, Z).Tri Then
+                        TerrainTiles(X, Z).TriTopLeftIsCliff = (A = 1)
                     Else
-                        TerrainTile(X, Z).TriBottomLeftIsCliff = (A = 1)
+                        TerrainTiles(X, Z).TriBottomLeftIsCliff = (A = 1)
                     End If
 
                     intTemp = 1
                     A = CInt(Int(byteTemp / intTemp))
                     byteTemp -= A * intTemp
-                    If TerrainTile(X, Z).Tri Then
-                        TerrainTile(X, Z).TriBottomRightIsCliff = (A = 1)
+                    If TerrainTiles(X, Z).Tri Then
+                        TerrainTiles(X, Z).TriBottomRightIsCliff = (A = 1)
                     Else
-                        TerrainTile(X, Z).TriTopRightIsCliff = (A = 1)
+                        TerrainTiles(X, Z).TriTopRightIsCliff = (A = 1)
                     End If
 
                     'attributes2
@@ -2125,15 +2206,15 @@ LineDone:
 
                     Select Case byteTemp
                         Case 0
-                            TerrainTile(X, Z).DownSide = TileDirection_None
+                            TerrainTiles(X, Z).DownSide = TileDirection_None
                         Case 1
-                            TerrainTile(X, Z).DownSide = TileDirection_Top
+                            TerrainTiles(X, Z).DownSide = TileDirection_Top
                         Case 2
-                            TerrainTile(X, Z).DownSide = TileDirection_Left
+                            TerrainTiles(X, Z).DownSide = TileDirection_Left
                         Case 3
-                            TerrainTile(X, Z).DownSide = TileDirection_Right
+                            TerrainTiles(X, Z).DownSide = TileDirection_Right
                         Case 4
-                            TerrainTile(X, Z).DownSide = TileDirection_Bottom
+                            TerrainTiles(X, Z).DownSide = TileDirection_Bottom
                         Case Else
                             Read_FME.Problem = "Cliff down-side value out of range."
                             Exit Function
@@ -2279,7 +2360,7 @@ LineDone:
         Read_FME.Success = True
     End Function
 
-    Sub Minimap_Texture_Fill(ByRef Texture(,,) As Byte)
+    Private Sub MinimapTextureFill(ByRef Texture(,,) As Byte)
         Static X As Integer
         Static Z As Integer
         Static A As Integer
@@ -2298,8 +2379,8 @@ LineDone:
             If Tileset IsNot Nothing Then
                 For Z = 0 To TerrainSize.Y - 1
                     For X = 0 To TerrainSize.X - 1
-                        If TerrainTile(X, Z).Texture.TextureNum >= 0 And TerrainTile(X, Z).Texture.TextureNum < Tileset.TileCount Then
-                            RGB_sng = Tileset.Tiles(TerrainTile(X, Z).Texture.TextureNum).Average_Color
+                        If TerrainTiles(X, Z).Texture.TextureNum >= 0 And TerrainTiles(X, Z).Texture.TextureNum < Tileset.TileCount Then
+                            RGB_sng = Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Average_Color
                             Texture(Z, X, 0) = Math.Min(CInt(RGB_sng.Red * 255.0F), 255)
                             Texture(Z, X, 1) = Math.Min(CInt(RGB_sng.Green * 255.0F), 255)
                             Texture(Z, X, 2) = Math.Min(CInt(RGB_sng.Blue * 255.0F), 255)
@@ -2328,6 +2409,19 @@ LineDone:
                     Texture(Z, X, 2) = Height
                 Next
             Next
+        End If
+        If frmMainInstance.menuMiniShowCliffs.Checked Then
+            If Tileset IsNot Nothing Then
+                For Z = 0 To TerrainSize.Y - 1
+                    For X = 0 To TerrainSize.X - 1
+                        If TerrainTiles(X, Z).Texture.TextureNum >= 0 And TerrainTiles(X, Z).Texture.TextureNum < Tileset.TileCount Then
+                            If Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Default_Type = TileType_CliffNum Then
+                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 255S) / 2.0#
+                            End If
+                        End If
+                    Next
+                Next
+            End If
         End If
         If frmMainInstance.menuMiniShowGateways.Checked Then
             For A = 0 To GatewayCount - 1
@@ -2402,21 +2496,21 @@ LineDone:
     Private WithEvents MakeMinimapTimer As Timer
     Public SuppressMinimap As Boolean
 
-    Sub MinimapTimer_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles Makeminimaptimer.tick
+    Private Sub MinimapTimer_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles MakeMinimapTimer.Tick
 
         If MinimapPending Then
             If SuppressMinimap Then
                 'should restart the timer here, but i cant find a good way to
             Else
                 MinimapPending = False
-                Minimap_Make_Now()
+                MinimapMake()
             End If
         Else
             MakeMinimapTimer.Enabled = False
         End If
     End Sub
 
-    Sub Minimap_Make()
+    Public Sub MinimapMakeLater()
 
         If MakeMinimapTimer.enabled Then
             MinimapPending = True
@@ -2425,12 +2519,12 @@ LineDone:
             If SuppressMinimap Then
                 MinimapPending = True
             Else
-                Minimap_Make_Now()
+                MinimapMake()
             End If
         End If
     End Sub
 
-    Sub Minimap_Make_Now()
+    Public Sub MinimapMake()
 
         Dim NewTextureSize As Integer = Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(TerrainSize.X, TerrainSize.Y)) / Math.Log(2.0#)))
 
@@ -2445,10 +2539,10 @@ LineDone:
 
         Dim Pixels(Size, Size, 3) As Byte
 
-        Minimap_Texture_Fill(Pixels)
+        MinimapTextureFill(Pixels)
 
 #If Mono <> 0.0# Then
-        Dim Texture As New clsFileBitmap
+        Dim Texture As New clsBitmapFile
 
         Texture.CurrentBitmap = MinimapBitmap
 
@@ -2487,7 +2581,7 @@ LineDone:
         frmMainInstance.DrawView()
     End Sub
 
-    Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer)
+    Public Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer)
         Static Terrain_Inner As sPainter.clsTerrain
         Static Terrain_Outer As sPainter.clsTerrain
         Static Road As sPainter.clsRoad
@@ -2499,7 +2593,7 @@ LineDone:
         Static RoadBottom As Boolean
 
         'apply centre brushes
-        If Not TerrainTile(X, Z).Terrain_IsCliff Then
+        If Not TerrainTiles(X, Z).Terrain_IsCliff Then
             For Brush_Num = 0 To Painter.TerrainCount - 1
                 Terrain_Inner = Painter.Terrains(Brush_Num)
                 If TerrainVertex(X, Z).Terrain Is Terrain_Inner Then
@@ -2507,7 +2601,7 @@ LineDone:
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'i i i i
-                                TerrainTile(X, Z).Texture = OrientateTile(Terrain_Inner.Tiles.GetRandom(), TileDirection_None)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Terrain_Inner.Tiles.GetRandom(), TileDirection_None)
                             End If
                         End If
                     End If
@@ -2516,7 +2610,7 @@ LineDone:
         End If
 
         'apply transition brushes
-        If Not TerrainTile(X, Z).Terrain_IsCliff Then
+        If Not TerrainTiles(X, Z).Terrain_IsCliff Then
             For Brush_Num = 0 To Painter.TransitionBrushCount - 1
                 Terrain_Inner = Painter.TransitionBrushes(Brush_Num).Terrain_Inner
                 Terrain_Outer = Painter.TransitionBrushes(Brush_Num).Terrain_Outer
@@ -2529,17 +2623,17 @@ LineDone:
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'i i i o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomRight)
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'i i o i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomLeft)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'i i o o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
                                 Exit For
                             End If
                         End If
@@ -2547,21 +2641,21 @@ LineDone:
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'i o i i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopRight)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'i o i o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'i o o i
-                                TerrainTile(X, Z).Texture.TextureNum = -1
+                                TerrainTiles(X, Z).Texture.TextureNum = -1
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'i o o o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomRight)
                                 Exit For
                             End If
                         End If
@@ -2571,21 +2665,21 @@ LineDone:
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'o i i i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopLeft)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'o i i o
-                                TerrainTile(X, Z).Texture.TextureNum = -1
+                                TerrainTiles(X, Z).Texture.TextureNum = -1
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'o i o i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'o i o o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomLeft)
                                 Exit For
                             End If
                         End If
@@ -2593,17 +2687,17 @@ LineDone:
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'o o i i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'o o i o
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopRight)
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'o o o i
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopLeft)
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'o o o o
@@ -2617,9 +2711,9 @@ LineDone:
         End If
 
         'set cliff tiles
-        If TerrainTile(X, Z).Tri Then
-            If TerrainTile(X, Z).TriTopLeftIsCliff Then
-                If TerrainTile(X, Z).TriBottomRightIsCliff Then
+        If TerrainTiles(X, Z).Tri Then
+            If TerrainTiles(X, Z).TriTopLeftIsCliff Then
+                If TerrainTiles(X, Z).TriBottomRightIsCliff Then
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
                         Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
                         Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
@@ -2630,26 +2724,26 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 3 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TerrainTile(X, Z).DownSide)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TerrainTiles(X, Z).DownSide)
                                 Exit For
                             End If
                         End If
                         If ((TerrainVertex(X, Z).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Outer And TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Outer Or TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Inner And TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Inner Or TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
                             Exit For
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTile(X, Z).Texture.TextureNum = -1
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
                     End If
                 Else
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
@@ -2661,7 +2755,7 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 2 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopLeft)
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z).Terrain Is Terrain_Inner Then
@@ -2670,16 +2764,16 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then A += 1
                             If A >= 2 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomRight)
                                 Exit For
                             End If
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTile(X, Z).Texture.TextureNum = -1
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
                     End If
                 End If
-            ElseIf TerrainTile(X, Z).TriBottomRightIsCliff Then
+            ElseIf TerrainTiles(X, Z).TriBottomRightIsCliff Then
                 For Brush_Num = 0 To Painter.CliffBrushCount - 1
                     Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
                     Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
@@ -2689,7 +2783,7 @@ LineDone:
                         If TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner Then A += 1
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then A += 1
                         If A >= 2 Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomRight)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomRight)
                             Exit For
                         End If
                     ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
@@ -2698,21 +2792,21 @@ LineDone:
                         If TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer Then A += 1
                         If TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then A += 1
                         If A >= 2 Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopLeft)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopLeft)
                             Exit For
                         End If
                     End If
                 Next Brush_Num
                 If Brush_Num = Painter.CliffBrushCount Then
-                    TerrainTile(X, Z).Texture.TextureNum = -1
+                    TerrainTiles(X, Z).Texture.TextureNum = -1
                 End If
             Else
                 'no cliff
             End If
         Else
             'default tri orientation
-            If TerrainTile(X, Z).TriTopRightIsCliff Then
-                If TerrainTile(X, Z).TriBottomLeftIsCliff Then
+            If TerrainTiles(X, Z).TriTopRightIsCliff Then
+                If TerrainTiles(X, Z).TriBottomLeftIsCliff Then
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
                         Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
                         Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
@@ -2723,26 +2817,26 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 3 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TerrainTile(X, Z).DownSide)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TerrainTiles(X, Z).DownSide)
                                 Exit For
                             End If
                         End If
                         If ((TerrainVertex(X, Z).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Bottom)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Outer And TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Outer Or TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Left)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer) And (TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Top)
                             Exit For
                         ElseIf ((TerrainVertex(X, Z).Terrain Is Terrain_Inner And TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer Or TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Or ((TerrainVertex(X, Z).Terrain Is Terrain_Inner Or TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner) And (TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer And TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer)) Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Straight.GetRandom(), TileDirection_Right)
                             Exit For
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTile(X, Z).Texture.TextureNum = -1
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
                     End If
                 Else
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
@@ -2754,7 +2848,7 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 2 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopRight)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_TopRight)
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner Then
@@ -2763,16 +2857,16 @@ LineDone:
                             If TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then A += 1
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then A += 1
                             If A >= 2 Then
-                                TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomLeft)
+                                TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_BottomLeft)
                                 Exit For
                             End If
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTile(X, Z).Texture.TextureNum = -1
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
                     End If
                 End If
-            ElseIf TerrainTile(X, Z).TriBottomLeftIsCliff Then
+            ElseIf TerrainTiles(X, Z).TriBottomLeftIsCliff Then
                 For Brush_Num = 0 To Painter.CliffBrushCount - 1
                     Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
                     Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
@@ -2782,7 +2876,7 @@ LineDone:
                         If TerrainVertex(X + 1, Z).Terrain Is Terrain_Inner Then A += 1
                         If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then A += 1
                         If A >= 2 Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomLeft)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_In.GetRandom(), TileDirection_BottomLeft)
                             Exit For
                         End If
                     ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Inner Then
@@ -2791,13 +2885,13 @@ LineDone:
                         If TerrainVertex(X + 1, Z).Terrain Is Terrain_Outer Then A += 1
                         If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then A += 1
                         If A >= 2 Then
-                            TerrainTile(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopRight)
+                            TerrainTiles(X, Z).Texture = OrientateTile(Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out.GetRandom(), TileDirection_TopRight)
                             Exit For
                         End If
                     End If
                 Next Brush_Num
                 If Brush_Num = Painter.CliffBrushCount Then
-                    TerrainTile(X, Z).Texture.TextureNum = -1
+                    TerrainTiles(X, Z).Texture.TextureNum = -1
                 End If
             Else
                 'no cliff
@@ -2836,7 +2930,7 @@ LineDone:
                 End If
             Next
 
-            TerrainTile(X, Z).Texture.TextureNum = -1
+            TerrainTiles(X, Z).Texture.TextureNum = -1
 
             If Brush_Num < Painter.RoadBrushCount Then
                 RoadTop = (TerrainSideH(X, Z).Road Is Road)
@@ -2845,47 +2939,47 @@ LineDone:
                 RoadBottom = (TerrainSideH(X, Z + 1).Road Is Road)
                 'do cross intersection
                 If RoadTop And RoadLeft And RoadRight And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_CrossIntersection.GetRandom(), TileDirection_None)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_CrossIntersection.GetRandom(), TileDirection_None)
                     'do T intersection
                 ElseIf RoadTop And RoadLeft And RoadRight Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Top)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Top)
                 ElseIf RoadTop And RoadLeft And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Left)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Left)
                 ElseIf RoadTop And RoadRight And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Right)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Right)
                 ElseIf RoadLeft And RoadRight And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Bottom)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_TIntersection.GetRandom(), TileDirection_Bottom)
                     'do straight
                 ElseIf RoadTop And RoadBottom Then
                     If Rnd() >= 0.5F Then
-                        TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Top)
+                        TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Top)
                     Else
-                        TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Bottom)
+                        TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Bottom)
                     End If
                 ElseIf RoadLeft And RoadRight Then
                     If Rnd() >= 0.5F Then
-                        TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Left)
+                        TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Left)
                     Else
-                        TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Right)
+                        TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Straight.GetRandom(), TileDirection_Right)
                     End If
                     'do corner
                 ElseIf RoadTop And RoadLeft Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_TopLeft)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_TopLeft)
                 ElseIf RoadTop And RoadRight Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_TopRight)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_TopRight)
                 ElseIf RoadLeft And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_BottomLeft)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_BottomLeft)
                 ElseIf RoadRight And RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_BottomRight)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_Corner_In.GetRandom(), TileDirection_BottomRight)
                     'do end
                 ElseIf RoadTop Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Top)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Top)
                 ElseIf RoadLeft Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Left)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Left)
                 ElseIf RoadRight Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Right)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Right)
                 ElseIf RoadBottom Then
-                    TerrainTile(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Bottom)
+                    TerrainTiles(X, Z).Texture = OrientateTile(Painter.RoadBrushes(Brush_Num).Tile_End.GetRandom(), TileDirection_Bottom)
                 End If
             End If
         End If
@@ -2897,7 +2991,7 @@ LineDone:
 
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTile(X, Z).Texture.TextureNum = -1
+                TerrainTiles(X, Z).Texture.TextureNum = -1
             Next
         Next
         For Z = 0 To TerrainSize.Y
@@ -2990,13 +3084,13 @@ LineDone:
             Dim EndChar As String = Chr(10)
             Dim Text As String
 
-            Dim File_LEV As New clsByteWriteFile
-            Dim File_MAP As New clsByteWriteFile
-            Dim File_GAM As New clsByteWriteFile
-            Dim File_featBJO As New clsByteWriteFile
-            Dim File_TTP As New clsByteWriteFile
-            Dim File_structBJO As New clsByteWriteFile
-            Dim File_droidBJO As New clsByteWriteFile
+            Dim File_LEV As New clsWriteFile
+            Dim File_MAP As New clsWriteFile
+            Dim File_GAM As New clsWriteFile
+            Dim File_featBJO As New clsWriteFile
+            Dim File_TTP As New clsWriteFile
+            Dim File_structBJO As New clsWriteFile
+            Dim File_droidBJO As New clsWriteFile
 
             Dim PlayersPrefix As String = ""
 
@@ -3118,16 +3212,16 @@ LineDone:
             Dim DoFlipX As Boolean
             For Y = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    TileOrientation_To_OldOrientation(TerrainTile(X, Y).Texture.Orientation, Rotation, DoFlipX)
+                    TileOrientation_To_OldOrientation(TerrainTiles(X, Y).Texture.Orientation, Rotation, DoFlipX)
                     Flip = 0
-                    If TerrainTile(X, Y).Tri Then
+                    If TerrainTiles(X, Y).Tri Then
                         Flip += 8
                     End If
                     Flip += Rotation * 16
                     If DoFlipX Then
                         Flip += 128
                     End If
-                    File_MAP.U8_Append(Clamp(TerrainTile(X, Y).Texture.TextureNum, 0, 255))
+                    File_MAP.U8_Append(Clamp(TerrainTiles(X, Y).Texture.TextureNum, 0, 255))
                     File_MAP.U8_Append(Flip)
                     File_MAP.U8_Append(TerrainVertex(X, Y).Height)
                 Next
@@ -3316,7 +3410,7 @@ LineDone:
 
                 Try
 
-                    Dim Crc32 As New ICSharpCode.SharpZipLib.Checksums.Crc32
+                    Dim Crc32 As New Checksums.Crc32
                     Dim ZippedFile As Zip.ZipEntry
 
                     WZStream.SetLevel(9)
@@ -3501,7 +3595,7 @@ LineDone:
             Quote = ControlChars.Quote
             EndChar = Chr(10)
 
-            Dim ByteFile As clsByteWriteFile = New clsByteWriteFile
+            Dim ByteFile As clsWriteFile = New clsWriteFile
 
             If Tileset Is Tileset_Arizona Then
                 Text = "DataSet WarzoneDataC1.eds" & EndChar
@@ -3567,9 +3661,9 @@ LineDone:
             ByteFile.Text_Append(Text)
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    TileOrientation_To_OldOrientation(TerrainTile(X, Z).Texture.Orientation, Rotation, FlipX)
+                    TileOrientation_To_OldOrientation(TerrainTiles(X, Z).Texture.Orientation, Rotation, FlipX)
                     Flip = 0
-                    If TerrainTile(X, Z).Tri Then
+                    If TerrainTiles(X, Z).Tri Then
                         Flip += 2
                     End If
                     If FlipX Then
@@ -3580,7 +3674,7 @@ LineDone:
                     'End If
                     Flip += Rotation * 16
 
-                    If TerrainTile(X, Z).Tri Then
+                    If TerrainTiles(X, Z).Tri Then
                         VF = 1
                     Else
                         VF = 0
@@ -3591,7 +3685,7 @@ LineDone:
                         TF = 0
                     End If
 
-                    Text = "        TID " & TerrainTile(X, Z).Texture.TextureNum + 1 & " VF " & VF & " TF " & TF & " F " & Flip & " VH " & TerrainVertex(X, Z).Height & " " & TerrainVertex(X + 1, Z).Height & " " & TerrainVertex(X + 1, Z + 1).Height & " " & TerrainVertex(X, Z + 1).Height & EndChar
+                    Text = "        TID " & TerrainTiles(X, Z).Texture.TextureNum + 1 & " VF " & VF & " TF " & TF & " F " & Flip & " VH " & TerrainVertex(X, Z).Height & " " & TerrainVertex(X + 1, Z).Height & " " & TerrainVertex(X + 1, Z + 1).Height & " " & TerrainVertex(X, Z + 1).Height & EndChar
                     ByteFile.Text_Append(Text)
                 Next
             Next
@@ -3755,7 +3849,7 @@ LineDone:
 
             Dim X As Integer
             Dim Z As Integer
-            Dim ByteFile As New clsByteWriteFile
+            Dim ByteFile As New clsWriteFile
 
             ByteFile.U32_Append(SaveVersion)
 
@@ -3790,46 +3884,46 @@ LineDone:
             Next
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    ByteFile.U8_Append(TerrainTile(X, Z).Texture.TextureNum + 1)
+                    ByteFile.U8_Append(TerrainTiles(X, Z).Texture.TextureNum + 1)
 
                     TileAttributes = 0
-                    If TerrainTile(X, Z).Terrain_IsCliff Then
+                    If TerrainTiles(X, Z).Terrain_IsCliff Then
                         TileAttributes += 128
                     End If
-                    If TerrainTile(X, Z).Texture.Orientation.SwitchedAxes Then
+                    If TerrainTiles(X, Z).Texture.Orientation.SwitchedAxes Then
                         TileAttributes += 64
                     End If
-                    If TerrainTile(X, Z).Texture.Orientation.ResultXFlip Then
+                    If TerrainTiles(X, Z).Texture.Orientation.ResultXFlip Then
                         TileAttributes += 32
                     End If
-                    If TerrainTile(X, Z).Texture.Orientation.ResultZFlip Then
+                    If TerrainTiles(X, Z).Texture.Orientation.ResultZFlip Then
                         TileAttributes += 16
                     End If
                     '8 is free
-                    If TerrainTile(X, Z).Tri Then
+                    If TerrainTiles(X, Z).Tri Then
                         TileAttributes += 4
-                        If TerrainTile(X, Z).TriTopLeftIsCliff Then
+                        If TerrainTiles(X, Z).TriTopLeftIsCliff Then
                             TileAttributes += 2
                         End If
-                        If TerrainTile(X, Z).TriBottomRightIsCliff Then
+                        If TerrainTiles(X, Z).TriBottomRightIsCliff Then
                             TileAttributes += 1
                         End If
                     Else
-                        If TerrainTile(X, Z).TriBottomLeftIsCliff Then
+                        If TerrainTiles(X, Z).TriBottomLeftIsCliff Then
                             TileAttributes += 2
                         End If
-                        If TerrainTile(X, Z).TriTopRightIsCliff Then
+                        If TerrainTiles(X, Z).TriTopRightIsCliff Then
                             TileAttributes += 1
                         End If
                     End If
                     ByteFile.U8_Append(TileAttributes)
-                    If IdenticalTileOrientations(TerrainTile(X, Z).DownSide, TileDirection_Top) Then
+                    If IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Top) Then
                         DownSideData = 1
-                    ElseIf IdenticalTileOrientations(TerrainTile(X, Z).DownSide, TileDirection_Left) Then
+                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Left) Then
                         DownSideData = 2
-                    ElseIf IdenticalTileOrientations(TerrainTile(X, Z).DownSide, TileDirection_Right) Then
+                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Right) Then
                         DownSideData = 3
-                    ElseIf IdenticalTileOrientations(TerrainTile(X, Z).DownSide, TileDirection_Bottom) Then
+                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Bottom) Then
                         DownSideData = 4
                     Else
                         DownSideData = 0
@@ -3950,11 +4044,11 @@ LineDone:
         Dim X As Integer
         Dim Z As Integer
 
-        Dim MinimapBitmap As New clsFileBitmap(TerrainSize.X, TerrainSize.Y)
+        Dim MinimapBitmap As New clsBitmapFile(TerrainSize.X, TerrainSize.Y)
 
         Dim Texture(TerrainSize.Y - 1, TerrainSize.X - 1, 3) As Byte
 
-        Map.Minimap_Texture_Fill(Texture)
+        Map.MinimapTextureFill(Texture)
 
         For Z = 0 To Texture.GetUpperBound(0)
             For X = 0 To Texture.GetUpperBound(1)
@@ -3966,7 +4060,7 @@ LineDone:
     End Function
 
     Function Write_HeightmapBMP(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Dim HeightmapBitmap As New clsFileBitmap(TerrainSize.X + 1, TerrainSize.Y + 1)
+        Dim HeightmapBitmap As New clsBitmapFile(TerrainSize.X + 1, TerrainSize.Y + 1)
         Dim X As Integer
         Dim Y As Integer
 
@@ -4004,13 +4098,13 @@ LineDone:
         Dim A As Integer
         Dim ID As UInteger
 
-        ID = 0
+        ID = 0UI
         For A = 0 To UnitCount - 1
             If Units(A).ID >= ID Then
-                ID = Units(A).ID + 1
+                ID = Units(A).ID + 1UI
             End If
         Next
-        Unit_Add = Unit_Add(NewUnit, ID)
+        Return Unit_Add(NewUnit, ID)
     End Function
 
     Function Unit_Add(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
@@ -4022,8 +4116,7 @@ LineDone:
             End If
         Next
         If A <> UnitCount Then
-            Unit_Add = Unit_Add(NewUnit)
-            Exit Function
+            Return Unit_Add(NewUnit)
         End If
 
         NewUnit.ID = ID
@@ -4042,6 +4135,8 @@ LineDone:
         UnitCount += 1
 
         Unit_Sectors_Calc(UnitCount - 1)
+
+        UnitSectors_GLList(NewUnit)
     End Function
 
     Sub Unit_Remove_StoreChange(ByVal Num As Integer)
@@ -4056,6 +4151,8 @@ LineDone:
 
     Sub Unit_Remove(ByVal Num As Integer)
         Dim A As Integer
+
+        UnitSectors_GLList(Units(Num))
 
         A = 0
         Do While A < frmMainInstance.View.MouseOver_UnitCount
@@ -4134,7 +4231,7 @@ LineDone:
             Next
         Next
 
-        Minimap_Make()
+        MinimapMakeLater()
     End Sub
 
     Sub SectorAll_Set_Changed()
@@ -4143,7 +4240,7 @@ LineDone:
 
         For X = 0 To SectorCount.X - 1
             For Z = 0 To SectorCount.Y - 1
-                Sector(X, Z).Changed = True
+                Sectors(X, Z).Changed = True
             Next
         Next
     End Sub
@@ -4154,7 +4251,7 @@ LineDone:
 
         For X = 0 To SectorCount.X - 1
             For Z = 0 To SectorCount.Y - 1
-                Sector(X, Z).Changed = False
+                Sectors(X, Z).Changed = False
             Next
         Next
     End Sub
@@ -4207,8 +4304,8 @@ LineDone:
         A = 0
         For Z = Start.Y To Finish.Y
             For X = Start.X To Finish.X
-                Units(Num).Sectors(A) = Sector(X, Z)
-                Units(Num).Sectors_UnitNum(A) = Sector(X, Z).Unit_Add(Units(Num), A)
+                Units(Num).Sectors(A) = Sectors(X, Z)
+                Units(Num).Sectors_UnitNum(A) = Sectors(X, Z).Unit_Add(Units(Num), A)
                 A += 1
             Next
         Next
@@ -4228,9 +4325,9 @@ LineDone:
         ReDim NewUndo.ChangedSectors(SectorCount.X * SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                If Sector(X, Z).Changed Then
-                    Sector(X, Z).Changed = False
-                    NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSector(X, Z)
+                If Sectors(X, Z).Changed Then
+                    Sectors(X, Z).Changed = False
+                    NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSectors(X, Z)
                     NewUndo.ChangedSectorCount = NewUndo.ChangedSectorCount + 1
                     ShadowSector_Create(X, Z)
                 End If
@@ -4246,7 +4343,7 @@ LineDone:
 
         If NewUndo.ChangedSectorCount + NewUndo.UnitChangeCount > 0 Then
             UndoCount = Undo_Pos
-            ReDim Preserve Undo(UndoCount - 1) 'a new line has been started so remove redos
+            ReDim Preserve Undos(UndoCount - 1) 'a new line has been started so remove redos
 
             Undo_Append(NewUndo)
             Undo_Pos = UndoCount
@@ -4265,7 +4362,7 @@ LineDone:
         Dim LastTileZ As Integer
 
         tmpShadowSector = New clsShadowSector
-        ShadowSector(SectorX, SectorZ) = tmpShadowSector
+        ShadowSectors(SectorX, SectorZ) = tmpShadowSector
         tmpShadowSector.Num.X = SectorX
         tmpShadowSector.Num.Y = SectorZ
         ReDim tmpShadowSector.TerrainVertex(SectorTileSize, SectorTileSize)
@@ -4287,7 +4384,7 @@ LineDone:
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
                 TileZ = StartZ + Z
-                tmpShadowSector.TerrainTile(X, Z) = TerrainTile(TileX, TileZ)
+                tmpShadowSector.TerrainTile(X, Z) = TerrainTiles(TileX, TileZ)
             Next
         Next
         For Z = 0 To LastTileZ
@@ -4320,7 +4417,7 @@ LineDone:
     Sub Undo_Clear()
 
         UndoCount = 0
-        ReDim Undo(-1)
+        ReDim Undos(-1)
         Undo_Pos = UndoCount
         SectorAll_Set_NotChanged()
     End Sub
@@ -4339,48 +4436,49 @@ LineDone:
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
-            X = Undo(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undo(Undo_Pos).ChangedSectors(A).Num.Y
+        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
+            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
+            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'store existing state for redo
-            tmpShadow = ShadowSector(X, Z)
+            tmpShadow = ShadowSectors(X, Z)
             'remove graphics from sector
-            If Sector(X, Z).GLList_Textured > 0 Then
-                GL.DeleteLists(Sector(X, Z).GLList_Textured, 1)
-                Sector(X, Z).GLList_Textured = 0
+            If Sectors(X, Z).GLList_Textured > 0 Then
+                GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
+                Sectors(X, Z).GLList_Textured = 0
             End If
-            If Sector(X, Z).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sector(X, Z).GLList_Wireframe, 1)
-                Sector(X, Z).GLList_Wireframe = 0
+            If Sectors(X, Z).GLList_Wireframe > 0 Then
+                GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
+                Sectors(X, Z).GLList_Wireframe = 0
             End If
             'perform the undo
-            Undo_Sector_Rejoin(Undo(Undo_Pos).ChangedSectors(A))
+            Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
             'update the backup
             ShadowSector_Create(X, Z)
             'add old state to the redo step (that was this undo step)
-            Undo(Undo_Pos).ChangedSectors(A) = tmpShadow
+            Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
-        For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
-            X = Undo(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undo(Undo_Pos).ChangedSectors(A).Num.Y
+        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
+            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
+            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'update graphics on changed sector
             Sector_GLList_Make(X, Z)
         Next
 
-        For A = Undo(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
-            Select Case Undo(Undo_Pos).UnitChanges(A).Type
+        For A = Undos(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
+            Select Case Undos(Undo_Pos).UnitChanges(A).Type
                 Case sUnitChange.enumType.Added
                     'remove the unit from the map
-                    Unit_Remove(Undo(Undo_Pos).UnitChanges(A).Unit.Num)
+                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Num)
                 Case sUnitChange.enumType.Deleted
                     'add the unit back on to the map
-                    Unit_Add(Undo(Undo_Pos).UnitChanges(A).Unit, Undo(Undo_Pos).UnitChanges(A).Unit.ID)
+                    Unit_Add(Undos(Undo_Pos).UnitChanges(A).Unit, Undos(Undo_Pos).UnitChanges(A).Unit.ID)
                 Case Else
                     Stop
             End Select
         Next
 
-        Minimap_Make()
+        Map.SectorGLUpdateList.Update()
+        MinimapMakeLater()
         frmMainInstance.Selected_Object_Changed()
     End Sub
 
@@ -4394,42 +4492,42 @@ LineDone:
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
-            X = Undo(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undo(Undo_Pos).ChangedSectors(A).Num.Y
+        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
+            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
+            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'store existing state for undo
-            tmpShadow = ShadowSector(X, Z)
+            tmpShadow = ShadowSectors(X, Z)
             'remove graphics from sector
-            If Sector(X, Z).GLList_Textured > 0 Then
-                GL.DeleteLists(Sector(X, Z).GLList_Textured, 1)
-                Sector(X, Z).GLList_Textured = 0
+            If Sectors(X, Z).GLList_Textured > 0 Then
+                GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
+                Sectors(X, Z).GLList_Textured = 0
             End If
-            If Sector(X, Z).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sector(X, Z).GLList_Wireframe, 1)
-                Sector(X, Z).GLList_Wireframe = 0
+            If Sectors(X, Z).GLList_Wireframe > 0 Then
+                GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
+                Sectors(X, Z).GLList_Wireframe = 0
             End If
             'perform the redo
-            Undo_Sector_Rejoin(Undo(Undo_Pos).ChangedSectors(A))
+            Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
             'update the backup
             ShadowSector_Create(X, Z)
             'add old state to the undo step (that was this redo step)
-            Undo(Undo_Pos).ChangedSectors(A) = tmpShadow
+            Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
-        For A = 0 To Undo(Undo_Pos).ChangedSectorCount - 1
-            X = Undo(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undo(Undo_Pos).ChangedSectors(A).Num.Y
+        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
+            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
+            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'update graphics on changed sector
             Sector_GLList_Make(X, Z)
         Next
 
-        For A = 0 To Undo(Undo_Pos).UnitChangeCount - 1
-            Select Case Undo(Undo_Pos).UnitChanges(A).Type
+        For A = 0 To Undos(Undo_Pos).UnitChangeCount - 1
+            Select Case Undos(Undo_Pos).UnitChanges(A).Type
                 Case sUnitChange.enumType.Added
                     'add the unit back on to the map
-                    Unit_Add(Undo(Undo_Pos).UnitChanges(A).Unit, Undo(Undo_Pos).UnitChanges(A).Unit.ID)
+                    Unit_Add(Undos(Undo_Pos).UnitChanges(A).Unit, Undos(Undo_Pos).UnitChanges(A).Unit.ID)
                 Case sUnitChange.enumType.Deleted
                     'remove the unit from the map
-                    Unit_Remove(Undo(Undo_Pos).UnitChanges(A).Unit.Num)
+                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Num)
                 Case Else
                     Stop
             End Select
@@ -4437,7 +4535,8 @@ LineDone:
 
         Undo_Pos += 1
 
-        Minimap_Make()
+        Map.SectorGLUpdateList.Update()
+        MinimapMakeLater()
         frmMainInstance.Selected_Object_Changed()
     End Sub
 
@@ -4466,7 +4565,7 @@ LineDone:
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
                 TileZ = StartZ + Z
-                TerrainTile(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainTile(X, Z)
+                TerrainTiles(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainTile(X, Z)
             Next
         Next
         For Z = 0 To LastTileZ
@@ -4487,8 +4586,8 @@ LineDone:
 
     Function Undo_Append(ByVal NewUndo As clsUndo) As Integer
 
-        ReDim Preserve Undo(UndoCount)
-        Undo(UndoCount) = NewUndo
+        ReDim Preserve Undos(UndoCount)
+        Undos(UndoCount) = NewUndo
         Undo_Append = UndoCount
         UndoCount += 1
     End Function
@@ -4496,11 +4595,11 @@ LineDone:
     Sub Undo_Insert(ByVal Pos As Integer, ByVal NewUndo As clsUndo)
         Dim A As Integer
 
-        ReDim Preserve Undo(UndoCount)
+        ReDim Preserve Undos(UndoCount)
         For A = UndoCount - 1 To Pos
-            Undo(A + 1) = Undo(A)
+            Undos(A + 1) = Undos(A)
         Next
-        Undo(Pos) = NewUndo
+        Undos(Pos) = NewUndo
         UndoCount += 1
     End Sub
 
@@ -4527,7 +4626,7 @@ LineDone:
         End If
         For Z = SectorStart.Y To SectorFinish.Y
             For X = SectorStart.X To SectorFinish.X
-                Sector(X, Z).Changed = True
+                Sectors(X, Z).Changed = True
             Next
         Next
 
@@ -4539,7 +4638,7 @@ LineDone:
             Next
             For Z = 0 To AreaAdjusted.Y - 1
                 For X = 0 To AreaAdjusted.X - 1
-                    TerrainTile(Offset.X + X, Offset.Y + Z).Tri = Map_To_Insert.TerrainTile(X, Z).Tri
+                    TerrainTiles(Offset.X + X, Offset.Y + Z).Tri = Map_To_Insert.TerrainTiles(X, Z).Tri
                 Next
             Next
         End If
@@ -4552,9 +4651,9 @@ LineDone:
             Dim tmpTri As Boolean
             For Z = 0 To AreaAdjusted.Y - 1
                 For X = 0 To AreaAdjusted.X - 1
-                    tmpTri = TerrainTile(Offset.X + X, Offset.Y + Z).Tri
-                    TerrainTile(Offset.X + X, Offset.Y + Z) = Map_To_Insert.TerrainTile(X, Z)
-                    TerrainTile(Offset.X + X, Offset.Y + Z).Tri = tmpTri
+                    tmpTri = TerrainTiles(Offset.X + X, Offset.Y + Z).Tri
+                    TerrainTiles(Offset.X + X, Offset.Y + Z) = Map_To_Insert.TerrainTiles(X, Z)
+                    TerrainTiles(Offset.X + X, Offset.Y + Z).Tri = tmpTri
                 Next
             Next
             For Z = 0 To AreaAdjusted.Y
@@ -4611,8 +4710,8 @@ LineDone:
             Dim UnitToDeleteCount As Integer = 0
             For Z = SectorStart.Y To SectorFinish.Y
                 For X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Sector(X, Z).UnitCount - 1
-                        TempUnit = Sector(X, Z).Unit(A)
+                    For A = 0 To Sectors(X, Z).UnitCount - 1
+                        TempUnit = Sectors(X, Z).Unit(A)
                         If TempUnit.Pos.X >= Offset.X * TerrainGridSpacing And _
                         TempUnit.Pos.X < Finish.X * TerrainGridSpacing And _
                         TempUnit.Pos.Z >= Offset.Y * TerrainGridSpacing And _
@@ -4657,12 +4756,13 @@ LineDone:
             Next
         Next
 
-        Minimap_Make()
+        Map.SectorGLUpdateList.Update()
+        MinimapMakeLater()
     End Sub
 
     Sub Rotate_Clockwise(ByVal RotateUnits As Boolean)
-        Dim Z As Integer
         Dim X As Integer
+        Dim Z As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
         Dim tmpTerrainTile(,) As sTerrainTile
         Dim tmpTerrainSideH(,) As sTerrainSide
@@ -4688,15 +4788,15 @@ LineDone:
         For Z = 0 To TileCountZ - 1
             For X = 0 To TileCountX - 1
                 X2 = TerrainSize.Y - X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTile(Z, X2).Texture
+                tmpTerrainTile(X, Z).Texture = TerrainTiles(Z, X2).Texture
                 tmpTerrainTile(X, Z).Texture.Orientation.RotateClockwise()
-                tmpTerrainTile(X, Z).DownSide = TerrainTile(Z, X2).DownSide
+                tmpTerrainTile(X, Z).DownSide = TerrainTiles(Z, X2).DownSide
                 tmpTerrainTile(X, Z).DownSide.RotateClockwise()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTile(Z, X2).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTile(Z, X2).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTile(Z, X2).TriBottomRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTile(Z, X2).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTile(Z, X2).TriTopLeftIsCliff
+                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(Z, X2).Tri
+                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(Z, X2).TriBottomLeftIsCliff
+                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(Z, X2).TriBottomRightIsCliff
+                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(Z, X2).TriTopRightIsCliff
+                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(Z, X2).TriTopLeftIsCliff
             Next
         Next
         For Z = 0 To TileCountZ
@@ -4750,10 +4850,10 @@ LineDone:
         Sectors_Deallocate()
         SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
 
@@ -4773,12 +4873,12 @@ LineDone:
         TerrainSize.X = TileCountX
         TerrainSize.Y = TileCountZ
         TerrainVertex = tmpTerrainVertex
-        TerrainTile = tmpTerrainTile
+        TerrainTiles = tmpTerrainTile
         TerrainSideH = tmpTerrainSideH
         TerrainSideV = tmpTerrainSideV
         Gateways = tmpGateways
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
@@ -4787,8 +4887,8 @@ LineDone:
     End Sub
 
     Sub Rotate_Anticlockwise(ByVal RotateUnits As Boolean)
-        Dim Z As Integer
         Dim X As Integer
+        Dim Z As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
         Dim tmpTerrainTile(,) As sTerrainTile
         Dim tmpTerrainSideH(,) As sTerrainSide
@@ -4814,15 +4914,15 @@ LineDone:
         For Z = 0 To TileCountZ - 1
             Z2 = TerrainSize.X - Z - 1
             For X = 0 To TileCountX - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTile(Z2, X).Texture
+                tmpTerrainTile(X, Z).Texture = TerrainTiles(Z2, X).Texture
                 tmpTerrainTile(X, Z).Texture.Orientation.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).DownSide = TerrainTile(Z2, X).DownSide
+                tmpTerrainTile(X, Z).DownSide = TerrainTiles(Z2, X).DownSide
                 tmpTerrainTile(X, Z).DownSide.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTile(Z2, X).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTile(Z2, X).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTile(Z2, X).TriTopLeftIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTile(Z2, X).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTile(Z2, X).TriBottomRightIsCliff
+                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(Z2, X).Tri
+                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(Z2, X).TriTopRightIsCliff
+                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(Z2, X).TriTopLeftIsCliff
+                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(Z2, X).TriBottomLeftIsCliff
+                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(Z2, X).TriBottomRightIsCliff
             Next
         Next
         For Z = 0 To TileCountZ
@@ -4876,10 +4976,10 @@ LineDone:
         Sectors_Deallocate()
         SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
 
@@ -4899,12 +4999,12 @@ LineDone:
         TerrainSize.X = TileCountX
         TerrainSize.Y = TileCountZ
         TerrainVertex = tmpTerrainVertex
-        TerrainTile = tmpTerrainTile
+        TerrainTiles = tmpTerrainTile
         TerrainSideH = tmpTerrainSideH
         TerrainSideV = tmpTerrainSideV
         Gateways = tmpGateways
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
@@ -4912,7 +5012,7 @@ LineDone:
         SectorChange = New clsSectorChange(Me)
     End Sub
 
-    Sub FlipX()
+    Sub FlipX(ByVal RotateUnits As Boolean)
         Dim Z As Integer
         Dim X As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
@@ -4939,15 +5039,15 @@ LineDone:
         For Z = 0 To TileCountZ - 1
             For X = 0 To TileCountX - 1
                 X2 = TerrainSize.X - X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTile(X2, Z).Texture
+                tmpTerrainTile(X, Z).Texture = TerrainTiles(X2, Z).Texture
                 tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip = Not tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip
-                tmpTerrainTile(X, Z).DownSide = TerrainTile(X2, Z).DownSide
+                tmpTerrainTile(X, Z).DownSide = TerrainTiles(X2, Z).DownSide
                 tmpTerrainTile(X2, Z).DownSide.FlipX()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTile(X2, Z).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTile(X2, Z).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTile(X2, Z).TriBottomRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTile(X2, Z).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTile(X2, Z).TriTopLeftIsCliff
+                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(X2, Z).Tri
+                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(X2, Z).TriTopRightIsCliff
+                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(X2, Z).TriBottomRightIsCliff
+                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(X2, Z).TriBottomLeftIsCliff
+                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(X2, Z).TriTopLeftIsCliff
             Next
         Next
         For Z = 0 To TileCountZ
@@ -4965,9 +5065,11 @@ LineDone:
 
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            Units(A).Rotation -= 180
-            If Units(A).Rotation < 0 Then
-                Units(A).Rotation += 360
+            If RotateUnits Then
+                Units(A).Rotation -= 180
+                If Units(A).Rotation < 0 Then
+                    Units(A).Rotation += 360
+                End If
             End If
             Units(A).Pos.X = TerrainSize.X * TerrainGridSpacing - Units(A).Pos.X
             Units(A).Pos.Z = Units(A).Pos.Z
@@ -4988,10 +5090,10 @@ LineDone:
         Sectors_Deallocate()
         SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z) = New clsSector
+                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
             Next
         Next
 
@@ -5011,11 +5113,11 @@ LineDone:
         TerrainSize.X = TileCountX
         TerrainSize.Y = TileCountZ
         TerrainVertex = tmpTerrainVertex
-        TerrainTile = tmpTerrainTile
+        TerrainTiles = tmpTerrainTile
         TerrainSideH = tmpTerrainSideH
         TerrainSideV = tmpTerrainSideV
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
@@ -5168,7 +5270,7 @@ LineDone:
         Dim GameSplitPath As New sZipSplitPath(MapLoadName)
         Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & "/"
 
-        Dim File As New clsByteReadFile
+        Dim File As New clsReadFile
 
         'load map files
 
@@ -5321,7 +5423,7 @@ LineDone:
             Unit_Add(NewUnit, WZUnits(A).ID)
         Next
 
-        ReDim ShadowSector(SectorCount.X - 1, SectorCount.Y - 1)
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorChange = New clsSectorChange(Me)
@@ -5352,7 +5454,7 @@ LineDone:
 
         For Z = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sector(X, Z).Deallocate()
+                Sectors(X, Z).Deallocate()
             Next
         Next
     End Sub
@@ -5375,7 +5477,7 @@ LineDone:
         Write_TTP.Success = False
         Write_TTP.Problem = ""
 
-        Dim File_TTP As New clsByteWriteFile
+        Dim File_TTP As New clsWriteFile
 
         File_TTP.Text_Append("ttyp")
         File_TTP.U32_Append(8UI)
@@ -5409,7 +5511,7 @@ LineDone:
     End Function
 
     Function Load_TTP(ByVal Path As String) As sResult
-        Dim File As New clsByteReadFile
+        Dim File As New clsReadFile
 
         Load_TTP = File.Begin(Path)
         If Not Load_TTP.Success Then
@@ -5419,7 +5521,7 @@ LineDone:
         File.Close()
     End Function
 
-    Private Function Read_TTP(ByVal File As clsByteReadFile) As sResult
+    Private Function Read_TTP(ByVal File As clsReadFile) As sResult
         Read_TTP.Success = False
         Read_TTP.Problem = ""
 
@@ -5495,11 +5597,11 @@ LineDone:
         'count the terrains of influencing tiles
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                If TerrainTile(X, Z).Texture.TextureNum >= 0 Then
+                If TerrainTiles(X, Z).Texture.TextureNum >= 0 Then
                     For A = 0 To Painter.TerrainCount - 1
                         With Painter.Terrains(A)
                             For B = 0 To .Tiles.TileCount - 1
-                                If .Tiles.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tiles.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Num) += 1
@@ -5511,8 +5613,8 @@ LineDone:
                     For A = 0 To Painter.TransitionBrushCount - 1
                         With Painter.TransitionBrushes(A)
                             For B = 0 To .Tiles_Straight.TileCount - 1
-                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
@@ -5537,8 +5639,8 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tiles_Corner_In.TileCount - 1
-                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
@@ -5563,8 +5665,8 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tiles_Corner_Out.TileCount - 1
-                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
@@ -5593,8 +5695,8 @@ LineDone:
                     For A = 0 To Painter.CliffBrushCount - 1
                         With Painter.CliffBrushes(A)
                             For B = 0 To .Tiles_Straight.TileCount - 1
-                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
@@ -5616,101 +5718,101 @@ LineDone:
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
                                     End If
-                                    If TerrainTile(X, Z).Tri Then
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = True
+                                    If TerrainTiles(X, Z).Tri Then
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
                                     Else
-                                        TerrainTile(X, Z).TriTopRightIsCliff = True
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
                                     End If
-                                    TerrainTile(X, Z).Terrain_IsCliff = True
-                                    TerrainTile(X, Z).DownSide = Orientation
+                                    TerrainTiles(X, Z).Terrain_IsCliff = True
+                                    TerrainTiles(X, Z).DownSide = Orientation
                                 End If
                             Next
                             For B = 0 To .Tiles_Corner_In.TileCount - 1
-                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = True
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = True
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
                                     End If
-                                    TerrainTile(X, Z).Terrain_IsCliff = True
+                                    TerrainTiles(X, Z).Terrain_IsCliff = True
                                 End If
                             Next
                             For B = 0 To .Tiles_Corner_Out.TileCount - 1
-                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
+                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = True
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = False
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
                                         Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
                                         Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
                                         Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTile(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTile(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTile(X, Z).TriTopRightIsCliff = True
-                                        TerrainTile(X, Z).TriBottomLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
+                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
+                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
+                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
                                     End If
-                                    TerrainTile(X, Z).Terrain_IsCliff = True
+                                    TerrainTiles(X, Z).Terrain_IsCliff = True
                                 End If
                             Next
                         End With
@@ -5718,12 +5820,12 @@ LineDone:
                     For A = 0 To Painter.RoadBrushCount - 1
                         With Painter.RoadBrushes(A)
                             For B = 0 To .Tile_Corner_In.TileCount - 1
-                                If .Tile_Corner_In.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tile_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_Corner_In.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                    OrientationToDirection(.Tile_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
                                         SideH_Road_Count(X, Z, .Road.Num) += 1
                                         SideV_Road_Count(X, Z, .Road.Num) += 1
@@ -5740,7 +5842,7 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tile_CrossIntersection.TileCount - 1
-                                If .Tile_CrossIntersection.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tile_CrossIntersection.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
@@ -5752,12 +5854,12 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tile_End.TileCount - 1
-                                If .Tile_End.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tile_End.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_End.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                    OrientationToDirection(.Tile_End.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(X, Z, .Road.Num) += 1
                                     ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
@@ -5770,12 +5872,12 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tile_Straight.TileCount - 1
-                                If .Tile_Straight.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tile_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_Straight.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                    OrientationToDirection(.Tile_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(X, Z, .Road.Num) += 1
                                         SideH_Road_Count(X, Z + 1, .Road.Num) += 1
@@ -5792,12 +5894,12 @@ LineDone:
                                 End If
                             Next
                             For B = 0 To .Tile_TIntersection.TileCount - 1
-                                If .Tile_TIntersection.Tiles(B).TextureNum = TerrainTile(X, Z).Texture.TextureNum Then
+                                If .Tile_TIntersection.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
                                     Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
                                     Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_TIntersection.Tiles(B).Direction, TerrainTile(X, Z).Texture, Orientation)
+                                    OrientationToDirection(.Tile_TIntersection.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
                                     If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(X, Z, .Road.Num) += 1
                                         SideV_Road_Count(X, Z, .Road.Num) += 1
@@ -5933,10 +6035,10 @@ LineDone:
 
         For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                If TerrainTile(X, Y).Tri Then
-                    If TerrainTile(X, Y).Texture.TextureNum >= 0 Then
-                        If Tileset.Tiles(TerrainTile(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
-                            TerrainTile(X, Y).Tri = False
+                If TerrainTiles(X, Y).Tri Then
+                    If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
+                        If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
+                            TerrainTiles(X, Y).Tri = False
                             SectorChange.Tile_Set_Changed(X, Y)
                         End If
                     End If
@@ -6139,6 +6241,106 @@ LineDone:
             NewRoadBrush.Tile_Corner_In.Tile_Add(50, TileDirection_BottomRight, 1)
             NewRoadBrush.Tile_End.Tile_Add(52, TileDirection_Bottom, 1)
             Painter.RoadBrush_Add(NewRoadBrush)
+
+            With Generator_TilesetArizona
+                ReDim .OldTextureLayers.Layers(-1)
+                .OldTextureLayers.LayerCount = 0
+            End With
+
+            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Red
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Sand
+                .HeightMax = -1.0F 'signals water distribution
+                .SlopeMax = -1.0F 'signals water distribution
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 1
+                .Terrain = Terrain_Water
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .Terrain = Terrain_Brown
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F 'signals to use cliff angle
+                .Scale = 3.0F
+                .Density = 0.35F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(3) = True
+                .Terrain = Terrain_Yellow
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F 'signals to use cliff angle
+                .Scale = 2.0F
+                .Density = 0.6F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .WithinLayer = 4
+                .Terrain = Terrain_Sand
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 1.0F
+                .Density = 0.5F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetArizona
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .WithinLayer = 3
+                .Terrain = Terrain_Green
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 2.0F
+                .Density = 0.4F
+            End With
+
         ElseIf Tileset Is Tileset_Urban Then
             'urban
 
@@ -6327,6 +6529,136 @@ LineDone:
             NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
             NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
             Painter.RoadBrush_Add(NewRoadBrush)
+
+            With Generator_TilesetUrban
+                ReDim .OldTextureLayers.Layers(-1)
+                .OldTextureLayers.LayerCount = 0
+            End With
+
+            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Gray
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Water
+                .HeightMax = -1.0F
+                .SlopeMax = -1.0F
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .Terrain = Terrain_Blue
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 3.0F
+                .Density = 0.3F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(2) = True
+                .Terrain = Terrain_Orange
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 2.5F
+                .Density = 0.4F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(2) = True
+                .AvoidLayers(3) = True
+                .Terrain = Terrain_Concrete
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 1.5F
+                .Density = 0.6F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(2) = True
+                .AvoidLayers(3) = True
+                .AvoidLayers(4) = True
+                .Terrain = Terrain_Green
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 2.5F
+                .Density = 0.6F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 2
+                .Terrain = Terrain_Orange
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 1.5F
+                .Density = 0.5F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 3
+                .Terrain = Terrain_Blue
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 1.5F
+                .Density = 0.5F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetUrban
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 3
+                .AvoidLayers(7) = True
+                .Terrain = Terrain_Green
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 1.5F
+                .Density = 0.5F
+            End With
+
         ElseIf Tileset Is Tileset_Rockies Then
             'rockies
 
@@ -6542,10 +6874,130 @@ LineDone:
             NewRoadBrush.Tile_Corner_In.Tile_Add(50, TileDirection_BottomRight, 1)
             NewRoadBrush.Tile_End.Tile_Add(52, TileDirection_Bottom, 1)
             Painter.RoadBrush_Add(NewRoadBrush)
+
+            With Generator_TilesetRockies
+                ReDim .OldTextureLayers.Layers(-1)
+                .OldTextureLayers.LayerCount = 0
+            End With
+
+            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Gravel
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .Terrain = Terrain_Water
+                .HeightMax = -1.0F
+                .SlopeMax = -1.0F
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .Terrain = Terrain_Grass
+                .HeightMax = 60.0F
+                .SlopeMax = -1.0F
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(3) = True
+                .Terrain = Terrain_GravelSnow
+                .HeightMin = 150.0F
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 3
+                .AvoidLayers(1) = True
+                .Terrain = Terrain_Snow
+                .HeightMin = 200.0F
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 0.0F
+                .Density = 1.0F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .WithinLayer = 3
+                .AvoidLayers(4) = True
+                .Terrain = Terrain_Snow
+                .HeightMin = 150.0F
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 1.5F
+                .Density = 0.45F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .AvoidLayers(2) = True
+                .AvoidLayers(3) = True
+                .Terrain = Terrain_GravelSnow
+                .HeightMin = 0.0F
+                .HeightMax = 255.0F
+                .SlopeMax = -1.0F
+                .Scale = 1.5F
+                .Density = 0.45F
+            End With
+
+            NewLayer = New frmMapTexturer.sLayerList.clsLayer
+            With Generator_TilesetRockies
+                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
+            End With
+            With NewLayer
+                .AvoidLayers(1) = True
+                .WithinLayer = 2
+                .Terrain = Terrain_Dirt
+                .HeightMin = 0.0F
+                .HeightMax = 255.0F
+                .SlopeMax = RadOf90Deg
+                .Scale = 1.0F
+                .Density = 0.3F
+            End With
         End If
     End Sub
 
-    Private Function Read_WZ_Droids(ByVal ByteLoadFile As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+    Private Function Read_WZ_Droids(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
         Read_WZ_Droids.Success = False
         Read_WZ_Droids.Problem = ""
 
@@ -6555,13 +7007,13 @@ LineDone:
         Dim A As Integer
         Dim B As Integer
 
-        If Not ByteLoadFile.Get_Text(4, strTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
         If strTemp <> "dint" Then
             Read_WZ_Droids.Problem = "Unknown dinit.bjo identifier."
             Exit Function
         End If
 
-        If Not ByteLoadFile.Get_U32(Version) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
         If Version > 19UI Then
             'Load_WZ.Problem = "Unknown dinit.bjo version."
             'Exit Function
@@ -6571,30 +7023,30 @@ LineDone:
             End If
         End If
 
-        If Not ByteLoadFile.Get_U32(uintTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
 
         ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
         For A = 0 To uintTemp - 1
             WZUnits(WZUnitCount).LNDType = 2
-            If Not ByteLoadFile.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
             B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
             If B > 0 Then
                 WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
             End If
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not ByteLoadFile.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            ByteLoadFile.Position += 12
+            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            File.Seek(File.Position + 12UL)
             WZUnitCount += 1
         Next
 
         Read_WZ_Droids.Success = True
     End Function
 
-    Private Function Read_WZ_Game(ByVal File As clsByteReadFile) As sResult
+    Private Function Read_WZ_Game(ByVal File As clsReadFile) As sResult
         Read_WZ_Game.Success = False
         Read_WZ_Game.Problem = ""
 
@@ -6636,7 +7088,7 @@ LineDone:
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
                 If Not File.Get_U8(TextureNum) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                TerrainTile(X, Z).Texture.TextureNum = TextureNum
+                TerrainTiles(X, Z).Texture.TextureNum = TextureNum
                 If Not File.Get_U8(Flip) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
                 If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
                 'get flipx
@@ -6651,11 +7103,11 @@ LineDone:
                 A = Int(Flip / 16.0#)
                 Flip -= A * 16
                 Rotate = A
-                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTile(X, Z).Texture.Orientation)
+                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
                 'get tri direction
                 A = Int(Flip / 8.0#)
                 Flip -= A * 8
-                TerrainTile(X, Z).Tri = (A = 1)
+                TerrainTiles(X, Z).Tri = (A = 1)
             Next
         Next
 
@@ -6677,7 +7129,7 @@ LineDone:
         Read_WZ_Game.Success = True
     End Function
 
-    Private Function Read_WZ_Features(ByVal File As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+    Private Function Read_WZ_Features(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
         Read_WZ_Features.Success = False
         Read_WZ_Features.Problem = ""
 
@@ -6719,14 +7171,14 @@ LineDone:
             If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Features.Problem = "Read error." : Exit Function
             If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Features.Problem = "Read error." : Exit Function
             If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            File.Position += 12
+            File.Seek(File.Position + 12UL)
             WZUnitCount += 1
         Next
 
         Read_WZ_Features.Success = True
     End Function
 
-    Private Function Read_WZ_TileTypes(ByVal File As clsByteReadFile) As sResult
+    Private Function Read_WZ_TileTypes(ByVal File As clsReadFile) As sResult
         Read_WZ_TileTypes.Success = False
         Read_WZ_TileTypes.Problem = ""
 
@@ -6768,7 +7220,7 @@ LineDone:
         Read_WZ_TileTypes.Success = True
     End Function
 
-    Private Function Read_WZ_Structures(ByVal File As clsByteReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
+    Private Function Read_WZ_Structures(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
         Read_WZ_Structures.Success = False
         Read_WZ_Structures.Problem = ""
 
@@ -6810,10 +7262,316 @@ LineDone:
             If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
             If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
             If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            File.Position += 56
+            File.Seek(File.Position + 56UL)
             WZUnitCount += 1
         Next
 
         Read_WZ_Structures.Success = True
     End Function
+
+    Public Sub MapTexturer(ByRef LayerList As frmMapTexturer.sLayerList)
+        Dim X As Integer
+        Dim Y As Integer
+        Dim A As Integer
+        Dim Terrain(,) As sPainter.clsTerrain
+        Dim Slope(,) As Single
+        Dim tmpTerrain As sPainter.clsTerrain
+        Dim bmA As New clsBooleanMap
+        Dim bmB As New clsBooleanMap
+        Dim LayerNum As Integer
+        Dim LayerResult(LayerList.LayerCount - 1) As clsBooleanMap
+        Dim BestSlope As Double
+        Dim CurrentSlope As Double
+        Dim AllowSlope As Boolean
+
+        ReDim Terrain(TerrainSize.X, TerrainSize.Y)
+        ReDim Slope(TerrainSize.X - 1, TerrainSize.Y - 1)
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                'get slope
+                BestSlope = 0.0#
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                Slope(X, Y) = BestSlope
+            Next
+        Next
+        For LayerNum = 0 To LayerList.LayerCount - 1
+            tmpTerrain = LayerList.Layers(LayerNum).Terrain
+            If tmpTerrain IsNot Nothing Then
+                'do other layer constraints
+                LayerResult(LayerNum) = New clsBooleanMap
+                LayerResult(LayerNum).Copy(LayerList.Layers(LayerNum).Terrainmap)
+                If LayerList.Layers(LayerNum).WithinLayer >= 0 Then
+                    If LayerList.Layers(LayerNum).WithinLayer < LayerNum Then
+                        bmA.Within(LayerResult(LayerNum), LayerResult(LayerList.Layers(LayerNum).WithinLayer))
+                        LayerResult(LayerNum).ValueData = bmA.ValueData
+                        bmA.ValueData = New clsBooleanMap.clsValueData
+                    End If
+                End If
+                For A = 0 To LayerNum - 1
+                    If LayerList.Layers(LayerNum).AvoidLayers(A) Then
+                        bmA.Expand_One_Tile(LayerResult(A))
+                        bmB.Remove(LayerResult(LayerNum), bmA)
+                        LayerResult(LayerNum).ValueData = bmB.ValueData
+                        bmB.ValueData = New clsBooleanMap.clsValueData
+                    End If
+                Next
+                'do height and slope constraints
+                For Y = 0 To TerrainSize.Y
+                    For X = 0 To TerrainSize.X
+                        If LayerResult(LayerNum).ValueData.Value(Y, X) Then
+                            If TerrainVertex(X, Y).Height < LayerList.Layers(LayerNum).HeightMin _
+                            Or TerrainVertex(X, Y).Height > LayerList.Layers(LayerNum).HeightMax Then
+                                LayerResult(LayerNum).ValueData.Value(Y, X) = False
+                            End If
+                            If LayerResult(LayerNum).ValueData.Value(Y, X) Then
+                                AllowSlope = True
+                                If X > 0 Then
+                                    If Y > 0 Then
+                                        If Slope(X - 1, Y - 1) < LayerList.Layers(LayerNum).SlopeMin _
+                                        Or Slope(X - 1, Y - 1) > LayerList.Layers(LayerNum).SlopeMax Then
+                                            AllowSlope = False
+                                        End If
+                                    End If
+                                    If Y < TerrainSize.Y Then
+                                        If Slope(X - 1, Y) < LayerList.Layers(LayerNum).SlopeMin _
+                                        Or Slope(X - 1, Y) > LayerList.Layers(LayerNum).SlopeMax Then
+                                            AllowSlope = False
+                                        End If
+                                    End If
+                                End If
+                                If X < TerrainSize.X Then
+                                    If Y > 0 Then
+                                        If Slope(X, Y - 1) < LayerList.Layers(LayerNum).SlopeMin _
+                                        Or Slope(X, Y - 1) > LayerList.Layers(LayerNum).SlopeMax Then
+                                            AllowSlope = False
+                                        End If
+                                    End If
+                                    If Y < TerrainSize.Y Then
+                                        If Slope(X, Y) < LayerList.Layers(LayerNum).SlopeMin _
+                                        Or Slope(X, Y) > LayerList.Layers(LayerNum).SlopeMax Then
+                                            AllowSlope = False
+                                        End If
+                                    End If
+                                End If
+                                If Not AllowSlope Then
+                                    LayerResult(LayerNum).ValueData.Value(Y, X) = False
+                                End If
+                            End If
+                        End If
+                    Next
+                Next
+
+                LayerResult(LayerNum).Remove_Diagonals()
+
+                For Y = 0 To TerrainSize.Y
+                    For X = 0 To TerrainSize.X
+                        If LayerResult(LayerNum).ValueData.Value(Y, X) Then
+                            Terrain(X, Y) = tmpTerrain
+                        End If
+                    Next
+                Next
+            End If
+        Next
+
+        'set vertex terrain by terrain map
+        For Y = 0 To TerrainSize.Y
+            For X = 0 To TerrainSize.X
+                If Terrain(X, Y) IsNot Nothing Then
+                    TerrainVertex(X, Y).Terrain = Terrain(X, Y)
+                End If
+            Next
+        Next
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                Tile_AutoTexture_Changed(X, Y)
+            Next
+        Next
+    End Sub
+
+    Public Function GenerateTerrainMap(ByVal Scale As Single, ByVal Density As Single) As clsBooleanMap
+        Dim hmB As New clsHeightmap
+        Dim hmC As New clsHeightmap
+
+        hmB.GenerateNewOfSize(TerrainSize.Y + 1, TerrainSize.X + 1, Scale, 1.0#)
+        hmC.Rescale(hmB, 0.0#, 1.0#)
+        GenerateTerrainMap = New clsBooleanMap
+        GenerateTerrainMap.Convert_Heightmap(hmC, (1.0# - Density) / hmC.HeightScale)
+    End Function
+
+    Public Sub Apply_Cliff(ByVal Centre As sXY_int, ByVal Tiles As sBrushTiles, ByVal Angle As Double, ByVal SetTris As Boolean)
+        Dim A As Integer
+        Dim difA As Double
+        Dim difB As Double
+        Dim HeightA As Double
+        Dim HeightB As Double
+        Dim TriTopLeftMaxSlope As Double
+        Dim TriTopRightMaxSlope As Double
+        Dim TriBottomLeftMaxSlope As Double
+        Dim TriBottomRightMaxSlope As Double
+        Dim CliffChanged As Boolean
+        Dim TriChanged As Boolean
+        Dim NewVal As Boolean
+        Dim X As Integer
+        Dim Z As Integer
+        Dim X2 As Integer
+        Dim Z2 As Integer
+        Dim XLimit As Integer = TerrainSize.X - 1
+        Dim ZLimit As Integer = TerrainSize.Y - 1
+
+        For Z = Clamp(Tiles.ZMin + Centre.Y, 0, ZLimit) - Centre.Y To Clamp(Tiles.ZMax + Centre.Y, 0, ZLimit) - Centre.Y
+            Z2 = Centre.Y + Z
+            For X = Clamp(Tiles.XMin(Z - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Z - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X
+                X2 = Centre.X + X
+
+                HeightA = (CDbl(TerrainVertex(X2, Z2).Height) + TerrainVertex(X2 + 1, Z2).Height) / 2.0#
+                HeightB = (CDbl(TerrainVertex(X2, Z2 + 1).Height) + TerrainVertex(X2 + 1, Z2 + 1).Height) / 2.0#
+                difA = HeightB - HeightA
+                HeightA = (CDbl(TerrainVertex(X2, Z2).Height) + TerrainVertex(X2, Z2 + 1).Height) / 2.0#
+                HeightB = (CDbl(TerrainVertex(X2 + 1, Z2).Height) + TerrainVertex(X2 + 1, Z2 + 1).Height) / 2.0#
+                difB = HeightB - HeightA
+                If Math.Abs(difA) = Math.Abs(difB) Then
+                    A = Int(Rnd() * 4.0F)
+                    If A = 0 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Top
+                    ElseIf A = 1 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Right
+                    ElseIf A = 2 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Bottom
+                    ElseIf A = 3 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Left
+                    End If
+                ElseIf Math.Abs(difA) > Math.Abs(difB) Then
+                    If difA < 0 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Bottom
+                    ElseIf difA > 0 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Top
+                    End If
+                Else
+                    If difB < 0 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Right
+                    ElseIf difB > 0 Then
+                        TerrainTiles(X2, Z2).DownSide = TileDirection_Left
+                    End If
+                End If
+
+                CliffChanged = False
+                TriChanged = False
+
+                If SetTris Then
+                    difA = Math.Abs(CDbl(TerrainVertex(X2 + 1, Z2 + 1).Height) - TerrainVertex(X2, Z2).Height)
+                    difB = Math.Abs(CDbl(TerrainVertex(X2, Z2 + 1).Height) - TerrainVertex(X2 + 1, Z2).Height)
+                    If difA = difB Then
+                        If Rnd() >= 0.5F Then
+                            NewVal = False
+                        Else
+                            NewVal = True
+                        End If
+                    ElseIf difA < difB Then
+                        NewVal = False
+                    Else
+                        NewVal = True
+                    End If
+                    If TerrainTiles(X2, Z2).Tri <> NewVal Then
+                        TerrainTiles(X2, Z2).Tri = NewVal
+                        TriChanged = True
+                    End If
+                End If
+
+                If TerrainTiles(X2, Z2).Tri Then
+                    TriTopLeftMaxSlope = GetTerrainSlopeAngle((X2 + 0.25#) * TerrainGridSpacing, (Z2 + 0.25#) * TerrainGridSpacing)
+                    TriBottomRightMaxSlope = GetTerrainSlopeAngle((X2 + 0.75#) * TerrainGridSpacing, (Z2 + 0.75#) * TerrainGridSpacing)
+                Else
+                    TriTopRightMaxSlope = GetTerrainSlopeAngle((X2 + 0.75#) * TerrainGridSpacing, (Z2 + 0.25#) * TerrainGridSpacing)
+                    TriBottomLeftMaxSlope = GetTerrainSlopeAngle((X2 + 0.25#) * TerrainGridSpacing, (Z2 + 0.75#) * TerrainGridSpacing)
+                End If
+
+                If TerrainTiles(X2, Z2).Tri Then
+                    If TerrainTiles(X2, Z2).TriTopRightIsCliff Then
+                        TerrainTiles(X2, Z2).TriTopRightIsCliff = False
+                        CliffChanged = True
+                    End If
+                    If TerrainTiles(X2, Z2).TriBottomLeftIsCliff Then
+                        TerrainTiles(X2, Z2).TriBottomLeftIsCliff = False
+                        CliffChanged = True
+                    End If
+
+                    NewVal = (TriTopLeftMaxSlope >= Angle)
+                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriTopLeftIsCliff = NewVal)
+                    TerrainTiles(X2, Z2).TriTopLeftIsCliff = NewVal
+
+                    NewVal = (TriBottomRightMaxSlope >= Angle)
+                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriBottomRightIsCliff = NewVal)
+                    TerrainTiles(X2, Z2).TriBottomRightIsCliff = NewVal
+
+                    If TerrainTiles(X2, Z2).TriTopLeftIsCliff Or TerrainTiles(X2, Z2).TriBottomRightIsCliff Then
+                        TerrainTiles(X2, Z2).Terrain_IsCliff = True
+                    Else
+                        TerrainTiles(X2, Z2).Terrain_IsCliff = False
+                    End If
+                Else
+                    If TerrainTiles(X2, Z2).TriBottomRightIsCliff Then
+                        TerrainTiles(X2, Z2).TriBottomRightIsCliff = False
+                        CliffChanged = True
+                    End If
+                    If TerrainTiles(X2, Z2).TriTopLeftIsCliff Then
+                        TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
+                        CliffChanged = True
+                    End If
+
+                    NewVal = (TriTopRightMaxSlope >= Angle)
+                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriTopRightIsCliff = NewVal)
+                    TerrainTiles(X2, Z2).TriTopRightIsCliff = NewVal
+
+                    NewVal = (TriBottomLeftMaxSlope >= Angle)
+                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriBottomLeftIsCliff = NewVal)
+                    TerrainTiles(X2, Z2).TriBottomLeftIsCliff = NewVal
+
+                    If TerrainTiles(X2, Z2).TriTopRightIsCliff Or TerrainTiles(X2, Z2).TriBottomLeftIsCliff Then
+                        TerrainTiles(X2, Z2).Terrain_IsCliff = True
+                    Else
+                        TerrainTiles(X2, Z2).Terrain_IsCliff = False
+                    End If
+                End If
+
+                If CliffChanged Then
+                    Tile_AutoTexture_Changed(X2, Z2)
+                End If
+                If TriChanged Or CliffChanged Then
+                    SectorChange.Tile_Set_Changed(X2, Z2)
+                End If
+            Next
+        Next
+    End Sub
+
+    Private Sub UnitSectors_GLList(ByVal UnitToUpdateFor As clsUnit)
+        Dim A As Integer
+        Dim Pos As sXY_int
+
+        If SectorGLUpdateList IsNot Nothing Then
+            For A = 0 To UnitToUpdateFor.SectorCount - 1
+                Pos = UnitToUpdateFor.Sectors(A).Pos
+                SectorGLUpdateList.Add(Pos)
+            Next
+        End If
+    End Sub
+
+    Public Sub GLUpdateUnitSectors()
+        Dim X As Integer
+        Dim Z As Integer
+
+        For Z = 0 To SectorCount.Y - 1
+            For X = 0 To SectorCount.X - 1
+                If Sectors(X, Z).UnitCount > 0 Then
+                    SectorGLUpdateList.Add(New sXY_int(X, Z))
+                End If
+            Next
+        Next
+    End Sub
 End Class

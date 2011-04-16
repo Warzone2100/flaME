@@ -826,7 +826,7 @@
 
         Dim TexFile_Num As Integer
         Dim tmpString As String
-        Dim tmpBitmap As clsFileBitmap
+        Dim tmpBitmap As clsBitmapFile
         Dim InstrPos2 As Integer
 
         TexturePageCount = 0
@@ -835,7 +835,7 @@
             If LCase(Right(tmpString, 4)) = ".png" Then
                 If IO.File.Exists(tmpString) Then
                     ReDim Preserve TexturePages(TexturePageCount)
-                    tmpBitmap = New clsFileBitmap()
+                    tmpBitmap = New clsBitmapFile()
                     Result = tmpBitmap.Load(tmpString)
                     If Not Result.Success Then
                         DataLoad.Problem = "Failed loading " & tmpString & "; " & Result.Problem

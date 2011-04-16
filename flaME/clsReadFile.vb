@@ -1,12 +1,13 @@
 ﻿Imports ICSharpCode.SharpZipLib
 
-Public Class clsByteReadFile
+Public Class clsReadFile
 
     Private Const DefaultBufferLength As Integer = 524288
     Private _ByteBufferLength As Integer = DefaultBufferLength
     Private Enum enumStreamType As Byte
         None
         FileStream
+        ZipStream
         FixedBytes
     End Enum
     Private Type As enumStreamType = enumStreamType.None
@@ -36,21 +37,10 @@ Public Class clsByteReadFile
         ReDim Bytes(_ByteBufferLength - 1)
     End Sub
 
-    Public Property Position As Long
+    Public ReadOnly Property Position As Long
         Get
             Return FilePosition + BytesPosition
         End Get
-        Set(ByVal NewPosition As Long)
-            If NewPosition < FilePosition Then
-                FilePosition = NewPosition
-                ReadBlock()
-            ElseIf NewPosition >= FilePosition + ByteCount Then
-                FilePosition = NewPosition
-                ReadBlock()
-            Else
-                BytesPosition = NewPosition - FilePosition
-            End If
-        End Set
     End Property
 
     Private Function FindLength(ByVal Length As Integer) As Boolean
@@ -224,31 +214,44 @@ Public Class clsByteReadFile
 
     Private Function ReadBlock() As Boolean
 
-        If Type <> enumStreamType.FileStream Then
+        If Type <> enumStreamType.FileStream Then ' And Type <> enumStreamType.ZipStream Then
             Return False
         End If
 
         FilePosition += BytesPosition
         BytesPosition = 0
         Try
-            FileStream.Seek(FilePosition, IO.SeekOrigin.Begin)
             ByteCount = FileStream.Read(Bytes, 0, _ByteBufferLength)
+            Return (ByteCount > 0)
         Catch ex As Exception
             Return False
         End Try
-
-        Return True
     End Function
 
     Public Sub Close()
-
-        Type = enumStreamType.None
-        BufferLength = DefaultBufferLength
-        Erase Bytes
 
         If Type = enumStreamType.FileStream Then
             FileStream.Close()
             FileStream = Nothing
         End If
+
+        Type = enumStreamType.None
+        BufferLength = DefaultBufferLength
+        Erase Bytes
     End Sub
+
+    Public Function Seek(ByVal NewPosition As Long) As Boolean
+
+        If NewPosition < FilePosition Or NewPosition >= FilePosition + ByteCount Then
+            If Type <> enumStreamType.FileStream Then
+                Return False
+            End If
+            FilePosition = FileStream.Seek(NewPosition, IO.SeekOrigin.Begin)
+            BytesPosition = 0
+            Return ReadBlock()
+        Else
+            BytesPosition = NewPosition - FilePosition
+            Return True
+        End If
+    End Function
 End Class

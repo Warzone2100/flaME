@@ -16,28 +16,32 @@
     <ReleaseVersion>1.17</ReleaseVersion>
     <OptionInfer>On</OptionInfer>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
-    <AssemblyName>flaME Mono</AssemblyName>
+    <AssemblyName>flaME</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1|AnyCPU' ">
-    <OutputPath>bin\MonoDevelop Mono 2.10.1</OutputPath>
+    <OutputPath>bin\MonoDevelop 2.10.1</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
-    <DefineConstants>MonoDevelop=1.0,Mono=1.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Microsoft .NET|AnyCPU' ">
     <OutputPath>bin\MonoDevelop Microsoft .NET</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
-    <DefineConstants>MonoDevelop=1.0,Mono=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=0.0</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Microsoft .NET for 2.6.7|AnyCPU' ">
+    <OutputPath>bin\MonoDevelop Microsoft .NET for 2.6.7</OutputPath>
+    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=1.0</DefineConstants>
+    <AdditionalParameters />
+    <DefineTrace>false</DefineTrace>
+    <DefineDebug>false</DefineDebug>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
-    <Compile Include="clsByteReadFile.vb" />
-    <Compile Include="clsByteWriteFile.vb" />
-    <Compile Include="clsFileBitmap.vb" />
     <Compile Include="clsHeightmap.vb" />
     <Compile Include="clsInputControl.vb" />
     <Compile Include="clsMap.vb" />
@@ -60,6 +64,17 @@
     <Compile Include="sPainter.vb" />
     <Compile Include="TileOrientation.vb" />
     <Compile Include="Application.vb" />
+    <Compile Include="clsBitmapFile.vb" />
+    <Compile Include="clsReadFile.vb" />
+    <Compile Include="clsWriteFile.vb" />
+    <Compile Include="clsGeneratorMap.vb" />
+    <Compile Include="clsGeneratorTileset.vb" />
+    <Compile Include="frmGenerator.vb" />
+    <Compile Include="modGenerator.vb" />
+    <Compile Include="PathfinderConnection.vb" />
+    <Compile Include="PathfinderLayer.vb" />
+    <Compile Include="PathfinderNetwork.vb" />
+    <Compile Include="PathfinderNode.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -16,10 +16,10 @@ Public Class clsTileset
         Dim Default_Type As Byte
     End Structure
     Public Tiles() As sTile
-    Public TileCount As UInteger
+    Public TileCount As Integer
 
     Function Default_TileTypes_Load(ByVal Path As String) As sResult
-        Dim File As New clsByteReadFile
+        Dim File As New clsReadFile
 
         Default_TileTypes_Load = File.Begin(Path)
         If Not Default_TileTypes_Load.Success Then
@@ -29,7 +29,7 @@ Public Class clsTileset
         File.Close()
     End Function
 
-    Private Function Default_TileTypes_Read(ByVal File As clsByteReadFile) As sResult
+    Private Function Default_TileTypes_Read(ByVal File As clsReadFile) As sResult
         Default_TileTypes_Read.Success = False
         Default_TileTypes_Read.Problem = ""
 
@@ -49,7 +49,7 @@ Public Class clsTileset
 
         If Not File.Get_U32(uintTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
         TileCount = uintTemp
-        ReDim Tiles(TileCount - 1UI)
+        ReDim Tiles(TileCount - 1)
 
         For A = 0 To Math.Min(uintTemp, TileCount) - 1
             If Not File.Get_U16(ushortTemp) Then Default_TileTypes_Read.Problem = "Read Error." : Exit Function
@@ -61,11 +61,11 @@ Public Class clsTileset
     End Function
 
     Public Function LoadDirectory(ByVal Path As String) As sResult
-        Dim tmpBitmap As clsFileBitmap
-        Dim tmpBitmap8 As New clsFileBitmap
-        Dim tmpBitmap4 As New clsFileBitmap
-        Dim tmpBitmap2 As New clsFileBitmap
-        Dim tmpBitmap1 As New clsFileBitmap
+        Dim tmpBitmap As clsBitmapFile
+        Dim tmpBitmap8 As New clsBitmapFile
+        Dim tmpBitmap4 As New clsBitmapFile
+        Dim tmpBitmap2 As New clsBitmapFile
+        Dim tmpBitmap1 As New clsBitmapFile
         Dim SplitPath As New sSplitPath(Path)
         Dim SlashPath As String = EndWithPathSeperator(Path)
 
@@ -123,7 +123,7 @@ Public Class clsTileset
                 Exit Function
             End If
 
-            tmpBitmap = New clsFileBitmap
+            tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
                 LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
@@ -165,7 +165,7 @@ Public Class clsTileset
 
             GraphicPath = SlashPath & Name & "-64" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsFileBitmap
+            tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
                 LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
@@ -183,7 +183,7 @@ Public Class clsTileset
 
             GraphicPath = SlashPath & Name & "-32" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsFileBitmap
+            tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
                 LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
@@ -201,7 +201,7 @@ Public Class clsTileset
 
             GraphicPath = SlashPath & Name & "-16" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsFileBitmap
+            tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
                 LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem

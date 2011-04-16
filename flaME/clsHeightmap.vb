@@ -640,7 +640,7 @@
 
         Try
 
-            Dim HeightmapBitmap As New clsFileBitmap()
+            Dim HeightmapBitmap As New clsBitmapFile()
 
             HeightmapBitmap.Load(Path)
 
@@ -759,5 +759,40 @@
                 Next NewPixelY
             Next OldPixelX
         Next OldPixelY
+    End Sub
+
+    Friend Sub FadeMultiple(ByRef hmSource As clsHeightmap, ByRef hmAlteration() As clsHeightmap, ByRef AlterationHeight() As Double)
+        Dim Level As Integer
+        Dim Y As Integer
+        Dim X As Integer
+        Dim srcHeight As Single
+        Dim Ratio As Single
+        Dim AlterationHeight_Ubound As Integer = AlterationHeight.GetUpperBound(0)
+        Dim intTemp As Integer
+        Dim TempA As Single
+        Dim TempB As Single
+
+        SizeCopy(hmSource)
+        For Y = 0 To HeightData.SizeY - 1
+            For X = 0 To HeightData.SizeX - 1
+                srcHeight = hmSource.HeightData.Height(Y, X) * hmSource.HeightScale
+                For Level = 0 To AlterationHeight_Ubound
+                    If srcHeight <= AlterationHeight(Level) Then
+                        Exit For
+                    End If
+                Next
+                If Level = 0 Then
+                    HeightData.Height(Y, X) = hmAlteration(Level).HeightData.Height(Y, X) * hmAlteration(Level).HeightScale / HeightScale
+                ElseIf Level > AlterationHeight_Ubound Then
+                    HeightData.Height(Y, X) = hmAlteration(AlterationHeight_Ubound).HeightData.Height(Y, X) * hmAlteration(AlterationHeight_Ubound).HeightScale / HeightScale
+                Else
+                    intTemp = Level - 1
+                    TempA = AlterationHeight(intTemp)
+                    TempB = AlterationHeight(Level)
+                    Ratio = (srcHeight - TempA) / (TempB - TempA)
+                    HeightData.Height(Y, X) = (hmAlteration(intTemp).HeightData.Height(Y, X) * hmAlteration(intTemp).HeightScale * (1.0F - Ratio) + hmAlteration(Level).HeightData.Height(Y, X) * hmAlteration(Level).HeightScale * Ratio) / HeightScale
+                End If
+            Next
+        Next
     End Sub
 End Class
