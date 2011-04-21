@@ -7,7 +7,7 @@ Public Class clsMap
     Public TerrainSize As sXY_int
     Structure sTerrainVertex
         Public Height As Byte
-        Public Terrain As sPainter.clsTerrain
+        Public Terrain As clsPainter.clsTerrain
     End Structure
     Structure sTerrainTile
         Structure sTexture
@@ -24,7 +24,7 @@ Public Class clsMap
         Public DownSide As sTileDirection
     End Structure
     Structure sTerrainSide
-        Public Road As sPainter.clsRoad
+        Public Road As clsPainter.clsRoad
     End Structure
     Public TerrainVertex(-1, -1) As sTerrainVertex
     Public TerrainTiles(-1, -1) As sTerrainTile
@@ -35,23 +35,23 @@ Public Class clsMap
         Public Pos As sXY_int
         Public GLList_Textured As Integer
         Public GLList_Wireframe As Integer
-        Public Unit(-1) As clsUnit
+        Public Units(-1) As clsUnit
         Public Unit_SectorNum(-1) As Integer
         Public UnitCount As Integer
         Public Changed As Boolean
 
         Sub Deallocate()
 
-            ReDim Unit(-1)
+            ReDim Units(-1)
             ReDim Unit_SectorNum(-1)
             UnitCount = 0
         End Sub
 
         Function Unit_Add(ByVal NewUnit As clsMap.clsUnit, ByVal NewUnitSectorNum As Integer) As Integer
 
-            ReDim Preserve Unit(UnitCount)
+            ReDim Preserve Units(UnitCount)
             ReDim Preserve Unit_SectorNum(UnitCount)
-            Unit(UnitCount) = NewUnit
+            Units(UnitCount) = NewUnit
             Unit_SectorNum(UnitCount) = NewUnitSectorNum
             Unit_Add = UnitCount
             UnitCount += 1
@@ -59,15 +59,15 @@ Public Class clsMap
 
         Sub Unit_Remove(ByVal Num As Integer)
 
-            Unit(Num).Sectors_UnitNum(Unit_SectorNum(Num)) = -1
+            Units(Num).Sectors_UnitNum(Unit_SectorNum(Num)) = -1
 
             UnitCount = UnitCount - 1
             If Num <> UnitCount Then
-                Unit(UnitCount).Sectors_UnitNum(Unit_SectorNum(UnitCount)) = Num
-                Unit(Num) = Unit(UnitCount)
+                Units(UnitCount).Sectors_UnitNum(Unit_SectorNum(UnitCount)) = Num
+                Units(Num) = Units(UnitCount)
                 Unit_SectorNum(Num) = Unit_SectorNum(UnitCount)
             End If
-            ReDim Preserve Unit(UnitCount - 1)
+            ReDim Preserve Units(UnitCount - 1)
             ReDim Preserve Unit_SectorNum(UnitCount - 1)
         End Sub
 
@@ -111,7 +111,7 @@ Public Class clsMap
     Public UnitChanges(-1) As sUnitChange
     Public UnitChangeCount As Integer
 
-    Public HeightMultiplier As Integer = 2
+    Public HeightMultiplier As Integer = DefaultHeightMultiplier
 
     Public SelectedUnits() As clsUnit
     Public SelectedUnitCount As Integer
@@ -123,6 +123,8 @@ Public Class clsMap
     Public Selected_Area_VertexA_Exists As Boolean
     Public Selected_Area_VertexB As sXY_int
     Public Selected_Area_VertexB_Exists As Boolean
+    Public Unit_Selected_Area_VertexA As sXY_int
+    Public Unit_Selected_Area_VertexA_Exists As Boolean
 
     Public Unrecognised_UnitTypes(-1) As clsUnitType
     Public Unrecognised_UnitType_Count As Integer
@@ -182,7 +184,7 @@ Public Class clsMap
     End Class
     Public AutoSave As New clsAutoSave
 
-    Public Painter As New sPainter
+    Public Painter As New clsPainter
 
     Public Tile_TypeNum(-1) As Byte
 
@@ -198,7 +200,7 @@ Public Class clsMap
 
         Public SectorIsChanged(,) As Boolean
         Public ChangedSectors() As sXY_int
-        Public ChangedSectorsCount As Integer
+        Public ChangedSectorCount As Integer
 
         Sub New(ByVal NewMap As clsMap)
 
@@ -208,16 +210,30 @@ Public Class clsMap
             ReDim ChangedSectors(Parent_Map.SectorCount.X * Parent_Map.SectorCount.Y - 1)
         End Sub
 
+        Public Sub TerrainChanged(ByVal SectorNum As sXY_int)
+
+            Parent_Map.Sectors(SectorNum.X, SectorNum.Y).Changed = True 'do this every time. it can be changed by units without having this set
+            If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
+                SectorIsChanged(SectorNum.X, SectorNum.Y) = True
+                ChangedSectors(ChangedSectorCount) = SectorNum
+                ChangedSectorCount += 1
+            End If
+        End Sub
+
+        Public Sub UnitChanged(ByVal SectorNum As sXY_int)
+
+            If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
+                SectorIsChanged(SectorNum.X, SectorNum.Y) = True
+                ChangedSectors(ChangedSectorCount) = SectorNum
+                ChangedSectorCount += 1
+            End If
+        End Sub
+
         Sub Tile_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
             Static SectorNum As sXY_int
 
             Parent_Map.Tile_Get_Sector(X, Z, SectorNum)
-            If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
-                Parent_Map.Sectors(SectorNum.X, SectorNum.Y).Changed = True
-                SectorIsChanged(SectorNum.X, SectorNum.Y) = True
-                ChangedSectors(ChangedSectorsCount) = SectorNum
-                ChangedSectorsCount += 1
-            End If
+            TerrainChanged(SectorNum)
         End Sub
 
         Sub Vertex_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
@@ -305,65 +321,69 @@ Public Class clsMap
         End Sub
 
         Sub Update_Graphics()
-            Static A As Integer
-            Static X As Integer
-            Static Z As Integer
 
-            If ChangedSectorsCount > 0 Then
-                For A = 0 To ChangedSectorsCount - 1
-                    X = ChangedSectors(A).X
-                    Z = ChangedSectors(A).Y
-                    Parent_Map.Sector_GLList_Make(X, Z)
-                    SectorIsChanged(X, Z) = False
-                Next
-                ChangedSectorsCount = 0
-                Parent_Map.MinimapMakeLater()
+            If ChangedSectorCount = 0 Then
+                Exit Sub
             End If
+
+            Dim A As Integer
+            Dim X As Integer
+            Dim Z As Integer
+
+            For A = 0 To ChangedSectorCount - 1
+                X = ChangedSectors(A).X
+                Z = ChangedSectors(A).Y
+                Parent_Map.Sector_GLList_Make(X, Z)
+                SectorIsChanged(X, Z) = False
+            Next
+            ChangedSectorCount = 0
+            Parent_Map.MinimapMakeLater()
         End Sub
 
         Sub Update_Graphics_And_UnitHeights()
-            Static A As Integer
-            Static B As Integer
-            Static X As Integer
-            Static Z As Integer
-            Static NewUnit As clsUnit
-            Static ID As UInteger
-            Static tmpUnit As clsUnit
-            Static C As Integer
 
+            If ChangedSectorCount = 0 Then
+                Exit Sub
+            End If
+
+            Dim A As Integer
+            Dim B As Integer
+            Dim X As Integer
+            Dim Z As Integer
+            Dim NewUnit As clsUnit
+            Dim ID As UInteger
+            Dim tmpUnit As clsUnit
+            Dim C As Integer
             Dim OldUnits(Parent_Map.UnitCount - 1) As clsUnit
             Dim OldUnitCount As Integer = 0
 
-            If ChangedSectorsCount > 0 Then
-                For A = 0 To ChangedSectorsCount - 1
-                    X = ChangedSectors(A).X
-                    Z = ChangedSectors(A).Y
-                    Parent_Map.Sector_GLList_Make(X, Z)
-                    For B = 0 To Parent_Map.Sectors(X, Z).UnitCount - 1
-                        tmpUnit = Parent_Map.Sectors(X, Z).Unit(B)
-                        For C = 0 To OldUnitCount - 1
-                            If OldUnits(C) Is tmpUnit Then
-                                Exit For
-                            End If
-                        Next
-                        If C = OldUnitCount Then
-                            OldUnits(OldUnitCount) = tmpUnit
-                            OldUnitCount += 1
+            For A = 0 To ChangedSectorCount - 1
+                X = ChangedSectors(A).X
+                Z = ChangedSectors(A).Y
+                For B = 0 To Parent_Map.Sectors(X, Z).UnitCount - 1
+                    tmpUnit = Parent_Map.Sectors(X, Z).Units(B)
+                    'units can be in multiple sectors, so dont include multiple times
+                    For C = 0 To OldUnitCount - 1
+                        If OldUnits(C) Is tmpUnit Then
+                            Exit For
                         End If
                     Next
-                    SectorIsChanged(X, Z) = False
+                    If C = OldUnitCount Then
+                        OldUnits(OldUnitCount) = tmpUnit
+                        OldUnitCount += 1
+                    End If
                 Next
-                For A = 0 To OldUnitCount - 1
-                    tmpUnit = OldUnits(A)
-                    NewUnit = New clsUnit(tmpUnit)
-                    ID = tmpUnit.ID
-                    NewUnit.Pos.Y = Parent_Map.GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
-                    Parent_Map.Unit_Remove_StoreChange(tmpUnit.Num)
-                    Parent_Map.Unit_Add_StoreChange(NewUnit, ID)
-                Next
-                ChangedSectorsCount = 0
-                Parent_Map.MinimapMakeLater()
-            End If
+            Next
+            For A = 0 To OldUnitCount - 1
+                tmpUnit = OldUnits(A)
+                NewUnit = New clsUnit(tmpUnit)
+                ID = tmpUnit.ID
+                NewUnit.Pos.Y = Parent_Map.GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
+                'these create changed sectors and must be done before drawing the new sectors
+                Parent_Map.Unit_Remove_StoreChange(tmpUnit.Num)
+                Parent_Map.Unit_Add_StoreChange(NewUnit, ID)
+            Next
+            Update_Graphics()
         End Sub
     End Class
     Public SectorChange As clsSectorChange
@@ -443,44 +463,6 @@ Public Class clsMap
         End Sub
     End Class
     Public AutoTextureChange As clsAutoTextureChange
-
-    Public Class clsSectorGLUpdateList
-        Public ParentMap As clsMap
-
-        Public SectorIsInList(,) As Boolean
-        Public Sectors() As sXY_int
-        Public SectorCount As Integer
-
-        Public Sub New(ByVal NewParentMap As clsMap)
-
-            ParentMap = NewParentMap
-            ReDim Sectors(ParentMap.SectorCount.X * ParentMap.SectorCount.Y - 1)
-            ReDim SectorIsInList(ParentMap.SectorCount.X - 1, ParentMap.SectorCount.Y - 1)
-        End Sub
-
-        Public Sub Add(ByVal NewSector As sXY_int)
-
-            If SectorIsInList(NewSector.X, NewSector.Y) Then
-                Exit Sub
-            End If
-
-            SectorIsInList(NewSector.X, NewSector.Y) = True
-
-            Sectors(SectorCount) = NewSector
-            SectorCount += 1
-        End Sub
-
-        Public Sub Update()
-            Dim A As Integer
-
-            For A = 0 To SectorCount - 1
-                ParentMap.Sector_GLList_Make(Sectors(A).X, Sectors(A).Y)
-                SectorIsInList(Sectors(A).X, Sectors(A).Y) = False
-            Next
-            SectorCount = 0
-        End Sub
-    End Class
-    Public SectorGLUpdateList As clsSectorGLUpdateList
 
     Sub New()
 
@@ -618,10 +600,6 @@ Public Class clsMap
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
         ReDim TerrainSideV(TerrainSize.X, TerrainSize.Y - 1)
         Clear_Textures()
-        If SectorGLUpdateList IsNot Nothing Then
-            SectorGLUpdateList.ParentMap = Nothing
-        End If
-        SectorGLUpdateList = New clsSectorGLUpdateList(Me)
     End Sub
 
     Function GetTerrainSlopeAngle(ByVal X As Integer, ByVal Z As Integer) As Double
@@ -811,10 +789,6 @@ Public Class clsMap
             Unit_Remove(UnitCount - 1)
         Loop
         SectorAll_GLLists_Delete()
-        If SectorGLUpdateList IsNot Nothing Then
-            SectorGLUpdateList.ParentMap = Nothing
-            SectorGLUpdateList = Nothing
-        End If
         If Minimap_Texture > 0 Then
             GL.DeleteTextures(1, Minimap_Texture)
         End If
@@ -889,18 +863,18 @@ Public Class clsMap
         PosDifZ = -TileOffsetZ * TerrainGridSpacing
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            Units(A).Pos.X = Units(A).Pos.X + PosDifX
-            Units(A).Pos.Z = Units(A).Pos.Z + PosDifZ
+            Units(A).Pos.X += PosDifX
+            Units(A).Pos.Z += PosDifZ
         Next
         For A = 0 To GatewayCount - 1
-            Gateways(A).PosA.X = Gateways(A).PosA.X - TileOffsetX
-            Gateways(A).PosA.Y = Gateways(A).PosA.Y - TileOffsetZ
-            Gateways(A).PosB.X = Gateways(A).PosB.X - TileOffsetX
-            Gateways(A).PosB.Y = Gateways(A).PosB.Y - TileOffsetZ
+            Gateways(A).PosA.X -= TileOffsetX
+            Gateways(A).PosA.Y -= TileOffsetZ
+            Gateways(A).PosB.X -= TileOffsetX
+            Gateways(A).PosB.Y -= TileOffsetZ
         Next
         If Selected_Tile_A_Exists Then
-            Selected_Tile_A.X = Selected_Tile_A.X - TileOffsetX
-            Selected_Tile_A.Y = Selected_Tile_A.Y - TileOffsetZ
+            Selected_Tile_A.X -= TileOffsetX
+            Selected_Tile_A.Y -= TileOffsetZ
             If Selected_Tile_A.X < 0 _
               Or Selected_Tile_A.X >= TileCountX _
               Or Selected_Tile_A.Y < 0 _
@@ -909,8 +883,8 @@ Public Class clsMap
             End If
         End If
         If Selected_Tile_B_Exists Then
-            Selected_Tile_B.X = Selected_Tile_B.X - TileOffsetX
-            Selected_Tile_B.Y = Selected_Tile_B.Y - TileOffsetZ
+            Selected_Tile_B.X -= TileOffsetX
+            Selected_Tile_B.Y -= TileOffsetZ
             If Selected_Tile_B.X < 0 _
               Or Selected_Tile_B.X >= TileCountX _
               Or Selected_Tile_B.Y < 0 _
@@ -919,8 +893,8 @@ Public Class clsMap
             End If
         End If
         If Selected_Area_VertexA_Exists Then
-            Selected_Area_VertexA.X = Selected_Area_VertexA.X - TileOffsetX
-            Selected_Area_VertexA.Y = Selected_Area_VertexA.Y - TileOffsetZ
+            Selected_Area_VertexA.X -= TileOffsetX
+            Selected_Area_VertexA.Y -= TileOffsetZ
             If Selected_Area_VertexA.X < 0 _
               Or Selected_Area_VertexA.X > TileCountX _
               Or Selected_Area_VertexA.Y < 0 _
@@ -929,13 +903,23 @@ Public Class clsMap
             End If
         End If
         If Selected_Area_VertexB_Exists Then
-            Selected_Area_VertexB.X = Selected_Area_VertexB.X - TileOffsetX
-            Selected_Area_VertexB.Y = Selected_Area_VertexB.Y - TileOffsetZ
+            Selected_Area_VertexB.X -= TileOffsetX
+            Selected_Area_VertexB.Y -= TileOffsetZ
             If Selected_Area_VertexB.X < 0 _
               Or Selected_Area_VertexB.X > TileCountX _
               Or Selected_Area_VertexB.Y < 0 _
               Or Selected_Area_VertexB.Y > TileCountZ Then
                 Selected_Area_VertexB_Exists = False
+            End If
+        End If
+        If Unit_Selected_Area_VertexA_Exists Then
+            Unit_Selected_Area_VertexA.X -= TileOffsetX
+            Unit_Selected_Area_VertexA.Y -= TileOffsetZ
+            If Unit_Selected_Area_VertexA.X < 0 _
+              Or Unit_Selected_Area_VertexA.X > TileCountX _
+              Or Unit_Selected_Area_VertexA.Y < 0 _
+              Or Unit_Selected_Area_VertexA.Y > TileCountZ Then
+                Unit_Selected_Area_VertexA_Exists = False
             End If
         End If
 
@@ -1027,11 +1011,11 @@ Public Class clsMap
             Dim tmpUnit As clsUnit
             Dim BaseOffset As sXY_int
             For UnitNum = 0 To Sectors(X, Z).UnitCount - 1
-                tmpUnit = Sectors(X, Z).Unit(UnitNum)
+                tmpUnit = Sectors(X, Z).Units(UnitNum)
                 If tmpUnit.Type.LoadedInfo IsNot Nothing Then
                     BaseOffset.X = CInt((tmpUnit.Type.LoadedInfo.Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
                     BaseOffset.Y = CInt((tmpUnit.Type.LoadedInfo.Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
-                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing Then
+                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270) Then
                         For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Z - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Z + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
                             For TileX = Math.Max(CInt(Int((tmpUnit.Pos.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
                                 IsBasePlate(TileX - StartX, TileZ - StartZ) = True
@@ -2582,9 +2566,9 @@ LineDone:
     End Sub
 
     Public Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer)
-        Static Terrain_Inner As sPainter.clsTerrain
-        Static Terrain_Outer As sPainter.clsTerrain
-        Static Road As sPainter.clsRoad
+        Static Terrain_Inner As clsPainter.clsTerrain
+        Static Terrain_Outer As clsPainter.clsTerrain
+        Static Road As clsPainter.clsRoad
         Static A As Integer
         Static Brush_Num As Integer
         Static RoadTop As Boolean
@@ -4278,6 +4262,7 @@ LineDone:
     End Function
 
     Sub Unit_Sectors_Calc(ByVal Num As Integer)
+        Dim tmpUnit As clsUnit = Units(Num)
         Dim Start As sXY_int
         Dim Finish As sXY_int
         Dim Footprint As sXY_int
@@ -4285,27 +4270,27 @@ LineDone:
         Dim Z As Integer
         Dim A As Integer
 
-        If Units(Num).Type.LoadedInfo IsNot Nothing Then
-            Footprint = Units(Num).Type.LoadedInfo.Footprint
+        If tmpUnit.Type.LoadedInfo IsNot Nothing Then
+            Footprint = tmpUnit.Type.LoadedInfo.Footprint
         Else
             Footprint.X = 1
             Footprint.Y = 1
         End If
 
-        Pos_Get_Sector(Units(Num).Pos.X - Footprint.X * TerrainGridSpacing / 2.0#, Units(Num).Pos.Z - Footprint.Y * TerrainGridSpacing / 2.0#, Start)
-        Pos_Get_Sector(Units(Num).Pos.X + Footprint.X * TerrainGridSpacing / 2.0#, Units(Num).Pos.Z + Footprint.Y * TerrainGridSpacing / 2.0#, Finish)
+        Pos_Get_Sector(tmpUnit.Pos.X - Footprint.X * TerrainGridSpacing / 2.0#, tmpUnit.Pos.Z - Footprint.Y * TerrainGridSpacing / 2.0#, Start)
+        Pos_Get_Sector(tmpUnit.Pos.X + Footprint.X * TerrainGridSpacing / 2.0#, tmpUnit.Pos.Z + Footprint.Y * TerrainGridSpacing / 2.0#, Finish)
         Start.X = Clamp(Start.X, 0, SectorCount.X - 1)
         Start.Y = Clamp(Start.Y, 0, SectorCount.Y - 1)
         Finish.X = Clamp(Finish.X, 0, SectorCount.X - 1)
         Finish.Y = Clamp(Finish.Y, 0, SectorCount.Y - 1)
-        Units(Num).SectorCount = (Finish.X - Start.X + 1) * (Finish.Y - Start.Y + 1)
-        ReDim Units(Num).Sectors(Units(Num).SectorCount - 1)
-        ReDim Units(Num).Sectors_UnitNum(Units(Num).SectorCount - 1)
+        tmpUnit.SectorCount = (Finish.X - Start.X + 1) * (Finish.Y - Start.Y + 1)
+        ReDim tmpUnit.Sectors(tmpUnit.SectorCount - 1)
+        ReDim tmpUnit.Sectors_UnitNum(tmpUnit.SectorCount - 1)
         A = 0
         For Z = Start.Y To Finish.Y
             For X = Start.X To Finish.X
-                Units(Num).Sectors(A) = Sectors(X, Z)
-                Units(Num).Sectors_UnitNum(A) = Sectors(X, Z).Unit_Add(Units(Num), A)
+                tmpUnit.Sectors(A) = Sectors(X, Z)
+                tmpUnit.Sectors_UnitNum(A) = Sectors(X, Z).Unit_Add(tmpUnit, A)
                 A += 1
             Next
         Next
@@ -4458,10 +4443,7 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
-            'update graphics on changed sector
-            Sector_GLList_Make(X, Z)
+            SectorChange.TerrainChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = Undos(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
@@ -4477,7 +4459,7 @@ LineDone:
             End Select
         Next
 
-        Map.SectorGLUpdateList.Update()
+        SectorChange.Update_Graphics()
         MinimapMakeLater()
         frmMainInstance.Selected_Object_Changed()
     End Sub
@@ -4514,10 +4496,7 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
-            'update graphics on changed sector
-            Sector_GLList_Make(X, Z)
+            SectorChange.TerrainChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = 0 To Undos(Undo_Pos).UnitChangeCount - 1
@@ -4535,7 +4514,7 @@ LineDone:
 
         Undo_Pos += 1
 
-        Map.SectorGLUpdateList.Update()
+        Map.SectorChange.Update_Graphics()
         MinimapMakeLater()
         frmMainInstance.Selected_Object_Changed()
     End Sub
@@ -4711,7 +4690,7 @@ LineDone:
             For Z = SectorStart.Y To SectorFinish.Y
                 For X = SectorStart.X To SectorFinish.X
                     For A = 0 To Sectors(X, Z).UnitCount - 1
-                        TempUnit = Sectors(X, Z).Unit(A)
+                        TempUnit = Sectors(X, Z).Units(A)
                         If TempUnit.Pos.X >= Offset.X * TerrainGridSpacing And _
                         TempUnit.Pos.X < Finish.X * TerrainGridSpacing And _
                         TempUnit.Pos.Z >= Offset.Y * TerrainGridSpacing And _
@@ -4756,7 +4735,7 @@ LineDone:
             Next
         Next
 
-        Map.SectorGLUpdateList.Update()
+        Map.SectorChange.Update_Graphics()
         MinimapMakeLater()
     End Sub
 
@@ -5478,6 +5457,7 @@ LineDone:
         Write_TTP.Problem = ""
 
         Dim File_TTP As New clsWriteFile
+        Dim A As integer
 
         File_TTP.Text_Append("ttyp")
         File_TTP.U32_Append(8UI)
@@ -5978,7 +5958,9 @@ LineDone:
 
     Public Sub SelectedUnit_Add(ByVal NewSelectedUnit As clsUnit)
 
-        If NewSelectedUnit.SelectedUnitNum >= 0 Then Exit Sub
+        If NewSelectedUnit.SelectedUnitNum >= 0 Then
+            Exit Sub
+        End If
 
         NewSelectedUnit.SelectedUnitNum = SelectedUnitCount
 
@@ -6048,952 +6030,15 @@ LineDone:
     End Sub
 
     Public Sub SetPainterToDefaults()
-        Dim NewBrushCliff As sPainter.sCliff_Brush
-        Dim NewBrush As sPainter.sTransition_Brush
-        Dim NewRoadBrush As sPainter.sRoad_Brush
-
-        Painter = New sPainter
 
         If Tileset Is Tileset_Arizona Then
-            'arizona
-
-            Dim Terrain_Red As New sPainter.clsTerrain
-            Terrain_Red.Name = "Red"
-            Painter.Terrain_Add(Terrain_Red)
-
-            Dim Terrain_Yellow As New sPainter.clsTerrain
-            Terrain_Yellow.Name = "Yellow"
-            Painter.Terrain_Add(Terrain_Yellow)
-
-            Dim Terrain_Sand As New sPainter.clsTerrain
-            Terrain_Sand.Name = "Sand"
-            Painter.Terrain_Add(Terrain_Sand)
-
-            Dim Terrain_Brown As New sPainter.clsTerrain
-            Terrain_Brown.Name = "Brown"
-            Painter.Terrain_Add(Terrain_Brown)
-
-            Dim Terrain_Green As New sPainter.clsTerrain
-            Terrain_Green.Name = "Green"
-            Painter.Terrain_Add(Terrain_Green)
-
-            Dim Terrain_Concrete As New sPainter.clsTerrain
-            Terrain_Concrete.Name = "Concrete"
-            Painter.Terrain_Add(Terrain_Concrete)
-
-            Dim Terrain_Water As New sPainter.clsTerrain
-            Terrain_Water.Name = "Water"
-            Painter.Terrain_Add(Terrain_Water)
-
-            'red centre brush
-            Terrain_Red.Tiles.Tile_Add(48, TileDirection_None, 1)
-            Terrain_Red.Tiles.Tile_Add(53, TileDirection_None, 1)
-            Terrain_Red.Tiles.Tile_Add(54, TileDirection_None, 1)
-            Terrain_Red.Tiles.Tile_Add(76, TileDirection_None, 1)
-            'yellow centre brushTerrain_yellow
-            Terrain_Yellow.Tiles.Tile_Add(9, TileDirection_None, 1)
-            Terrain_Yellow.Tiles.Tile_Add(11, TileDirection_None, 1)
-            'sand centre brush
-            Terrain_Sand.Tiles.Tile_Add(12, TileDirection_None, 1)
-            'brown centre brush
-            Terrain_Brown.Tiles.Tile_Add(5, TileDirection_None, 1)
-            Terrain_Brown.Tiles.Tile_Add(6, TileDirection_None, 1)
-            Terrain_Brown.Tiles.Tile_Add(7, TileDirection_None, 1)
-            Terrain_Brown.Tiles.Tile_Add(8, TileDirection_None, 1)
-            'green centre brush
-            Terrain_Green.Tiles.Tile_Add(23, TileDirection_None, 1)
-            'concrete centre brush
-            Terrain_Concrete.Tiles.Tile_Add(22, TileDirection_None, 1)
-            'water centre brush
-            Terrain_Water.Tiles.Tile_Add(17, TileDirection_None, 1)
-            'red cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Red Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Red
-            NewBrushCliff.Terrain_Outer = Terrain_Red
-            NewBrushCliff.Tiles_Straight.Tile_Add(46, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Straight.Tile_Add(71, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(45, TileDirection_TopRight, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(75, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(45, TileDirection_BottomLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(75, TileDirection_BottomRight, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'water to sand transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water->Sand"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Sand
-            NewBrush.Tiles_Straight.Tile_Add(14, TileDirection_Bottom, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(16, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(15, TileDirection_BottomLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'water to green transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water->Green"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Green
-            NewBrush.Tiles_Straight.Tile_Add(31, TileDirection_Top, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(33, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(32, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'yellow to red transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Yellow->Red"
-            NewBrush.Terrain_Inner = Terrain_Yellow
-            NewBrush.Terrain_Outer = Terrain_Red
-            NewBrush.Tiles_Straight.Tile_Add(27, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(28, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(29, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'sand to red transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Sand->Red"
-            NewBrush.Terrain_Inner = Terrain_Sand
-            NewBrush.Terrain_Outer = Terrain_Red
-            NewBrush.Tiles_Straight.Tile_Add(43, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(42, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(41, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'sand to yellow transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Sand->Yellow"
-            NewBrush.Terrain_Inner = Terrain_Sand
-            NewBrush.Terrain_Outer = Terrain_Yellow
-            NewBrush.Tiles_Straight.Tile_Add(10, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(1, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(0, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'brown to red transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Brown->Red"
-            NewBrush.Terrain_Inner = Terrain_Brown
-            NewBrush.Terrain_Outer = Terrain_Red
-            NewBrush.Tiles_Straight.Tile_Add(34, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(36, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(35, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'brown to yellow transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Brown->Yellow"
-            NewBrush.Terrain_Inner = Terrain_Brown
-            NewBrush.Terrain_Outer = Terrain_Yellow
-            NewBrush.Tiles_Straight.Tile_Add(38, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(39, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(40, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'brown to sand transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Brown->Sand"
-            NewBrush.Terrain_Inner = Terrain_Brown
-            NewBrush.Terrain_Outer = Terrain_Sand
-            NewBrush.Tiles_Straight.Tile_Add(2, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(3, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(4, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'brown to green transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Brown->Green"
-            NewBrush.Terrain_Inner = Terrain_Brown
-            NewBrush.Terrain_Outer = Terrain_Green
-            NewBrush.Tiles_Straight.Tile_Add(24, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(26, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(25, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'concrete to red transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Concrete->Red"
-            NewBrush.Terrain_Inner = Terrain_Concrete
-            NewBrush.Terrain_Outer = Terrain_Red
-            NewBrush.Tiles_Straight.Tile_Add(21, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(19, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(20, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-
-
-            Dim Road_Road As New sPainter.clsRoad
-
-            Road_Road = New sPainter.clsRoad
-            Road_Road.Name = "Road"
-            Painter.Road_Add(Road_Road)
-
-            Dim Road_Track As New sPainter.clsRoad
-
-            Road_Track = New sPainter.clsRoad
-            Road_Track.Name = "Track"
-            Painter.Road_Add(Road_Track)
-
-            'road
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Red
-            NewRoadBrush.Tile_TIntersection.Tile_Add(57, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(59, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(47, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'track
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Track
-            NewRoadBrush.Terrain = Terrain_Red
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(73, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(72, TileDirection_Right, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(49, TileDirection_Top, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(51, TileDirection_Top, 2)
-            NewRoadBrush.Tile_Corner_In.Tile_Add(50, TileDirection_BottomRight, 1)
-            NewRoadBrush.Tile_End.Tile_Add(52, TileDirection_Bottom, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-
-            With Generator_TilesetArizona
-                ReDim .OldTextureLayers.Layers(-1)
-                .OldTextureLayers.LayerCount = 0
-            End With
-
-            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Red
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Sand
-                .HeightMax = -1.0F 'signals water distribution
-                .SlopeMax = -1.0F 'signals water distribution
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 1
-                .Terrain = Terrain_Water
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .Terrain = Terrain_Brown
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F 'signals to use cliff angle
-                .Scale = 3.0F
-                .Density = 0.35F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(3) = True
-                .Terrain = Terrain_Yellow
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F 'signals to use cliff angle
-                .Scale = 2.0F
-                .Density = 0.6F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .WithinLayer = 4
-                .Terrain = Terrain_Sand
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 1.0F
-                .Density = 0.5F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetArizona
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .WithinLayer = 3
-                .Terrain = Terrain_Green
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 2.0F
-                .Density = 0.4F
-            End With
-
+            Painter = Painter_Arizona
         ElseIf Tileset Is Tileset_Urban Then
-            'urban
-
-            Dim Terrain_Green As New sPainter.clsTerrain
-            Terrain_Green.Name = "Green"
-            Painter.Terrain_Add(Terrain_Green)
-
-            Dim Terrain_Blue As New sPainter.clsTerrain
-            Terrain_Blue.Name = "Blue"
-            Painter.Terrain_Add(Terrain_Blue)
-
-            Dim Terrain_Gray As New sPainter.clsTerrain
-            Terrain_Gray.Name = "Gray"
-            Painter.Terrain_Add(Terrain_Gray)
-
-            Dim Terrain_Orange As New sPainter.clsTerrain
-            Terrain_Orange.Name = "Orange"
-            Painter.Terrain_Add(Terrain_Orange)
-
-            Dim Terrain_Concrete As New sPainter.clsTerrain
-            Terrain_Concrete.Name = "Concrete"
-            Painter.Terrain_Add(Terrain_Concrete)
-
-            Dim Terrain_Water As New sPainter.clsTerrain
-            Terrain_Water.Name = "Water"
-            Painter.Terrain_Add(Terrain_Water)
-
-            'green centre brush
-            Terrain_Green.Tiles.Tile_Add(50, TileDirection_None, 1)
-            'blue centre brush
-            Terrain_Blue.Tiles.Tile_Add(0, TileDirection_None, 14)
-            Terrain_Blue.Tiles.Tile_Add(2, TileDirection_None, 1) 'line
-            'gray centre brush
-            Terrain_Gray.Tiles.Tile_Add(5, TileDirection_None, 1)
-            Terrain_Gray.Tiles.Tile_Add(7, TileDirection_None, 4)
-            Terrain_Gray.Tiles.Tile_Add(8, TileDirection_None, 4)
-            Terrain_Gray.Tiles.Tile_Add(78, TileDirection_None, 4)
-            'orange centre brush
-            Terrain_Orange.Tiles.Tile_Add(31, TileDirection_None, 1) 'pipe
-            Terrain_Orange.Tiles.Tile_Add(22, TileDirection_None, 50)
-            'concrete centre brush
-            Terrain_Concrete.Tiles.Tile_Add(51, TileDirection_None, 200)
-            'water centre brush
-            Terrain_Water.Tiles.Tile_Add(17, TileDirection_None, 1)
-            'cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Gray
-            NewBrushCliff.Terrain_Outer = Terrain_Gray
-            NewBrushCliff.Tiles_Straight.Tile_Add(69, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Straight.Tile_Add(70, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(68, TileDirection_TopRight, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(68, TileDirection_BottomLeft, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'water to gray transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water->Gray"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Gray
-            NewBrush.Tiles_Straight.Tile_Add(23, TileDirection_Left, 1)
-            NewBrush.Tiles_Straight.Tile_Add(24, TileDirection_Top, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(25, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(26, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'water to concrete transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water->Concrete"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Concrete
-            NewBrush.Tiles_Straight.Tile_Add(13, TileDirection_Left, 1)
-            NewBrush.Tiles_Straight.Tile_Add(14, TileDirection_Bottom, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(16, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(15, TileDirection_BottomLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'gray to blue transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Gray->Blue"
-            NewBrush.Terrain_Inner = Terrain_Gray
-            NewBrush.Terrain_Outer = Terrain_Blue
-            NewBrush.Tiles_Straight.Tile_Add(6, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(4, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(3, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'concrete to gray transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Concrete->Gray"
-            NewBrush.Terrain_Inner = Terrain_Concrete
-            NewBrush.Terrain_Outer = Terrain_Gray
-            NewBrush.Tiles_Straight.Tile_Add(9, TileDirection_Left, 1)
-            NewBrush.Tiles_Straight.Tile_Add(27, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(30, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(10, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(29, TileDirection_BottomLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'orange to blue transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Orange->Blue"
-            NewBrush.Terrain_Inner = Terrain_Orange
-            NewBrush.Terrain_Outer = Terrain_Blue
-            NewBrush.Tiles_Straight.Tile_Add(33, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(34, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(35, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'orange to green transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Orange->Green"
-            NewBrush.Terrain_Inner = Terrain_Orange
-            NewBrush.Terrain_Outer = Terrain_Green
-            NewBrush.Tiles_Straight.Tile_Add(39, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(38, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(37, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'orange to gray transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Orange->Gray"
-            NewBrush.Terrain_Inner = Terrain_Orange
-            NewBrush.Terrain_Outer = Terrain_Gray
-            NewBrush.Tiles_Straight.Tile_Add(60, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(73, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(72, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'orange to concrete transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Orange->Concrete"
-            NewBrush.Terrain_Inner = Terrain_Orange
-            NewBrush.Terrain_Outer = Terrain_Concrete
-            NewBrush.Tiles_Straight.Tile_Add(71, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(76, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(75, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'gray to green transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Gray->Green"
-            NewBrush.Terrain_Inner = Terrain_Gray
-            NewBrush.Terrain_Outer = Terrain_Green
-            NewBrush.Tiles_Straight.Tile_Add(77, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(58, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(79, TileDirection_BottomLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-
-            'road
-            Dim Road_Road As New sPainter.clsRoad
-            Road_Road.Name = "Road"
-            Painter.Road_Add(Road_Road)
-            'road green
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Green
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(49, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(45, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'road blue
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Blue
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(49, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(41, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'road gray
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Gray
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(49, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(43, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(44, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'road orange
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Orange
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(49, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'road concrete
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Concrete
-            NewRoadBrush.Tile_CrossIntersection.Tile_Add(49, TileDirection_None, 1)
-            NewRoadBrush.Tile_TIntersection.Tile_Add(40, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(42, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-
-            With Generator_TilesetUrban
-                ReDim .OldTextureLayers.Layers(-1)
-                .OldTextureLayers.LayerCount = 0
-            End With
-
-            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Gray
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Water
-                .HeightMax = -1.0F
-                .SlopeMax = -1.0F
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .Terrain = Terrain_Blue
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 3.0F
-                .Density = 0.3F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(2) = True
-                .Terrain = Terrain_Orange
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 2.5F
-                .Density = 0.4F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(2) = True
-                .AvoidLayers(3) = True
-                .Terrain = Terrain_Concrete
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 1.5F
-                .Density = 0.6F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(2) = True
-                .AvoidLayers(3) = True
-                .AvoidLayers(4) = True
-                .Terrain = Terrain_Green
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 2.5F
-                .Density = 0.6F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 2
-                .Terrain = Terrain_Orange
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 1.5F
-                .Density = 0.5F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 3
-                .Terrain = Terrain_Blue
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 1.5F
-                .Density = 0.5F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetUrban
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 3
-                .AvoidLayers(7) = True
-                .Terrain = Terrain_Green
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 1.5F
-                .Density = 0.5F
-            End With
-
+            Painter = Painter_Urban
         ElseIf Tileset Is Tileset_Rockies Then
-            'rockies
-
-            Dim Terrain_Grass As New sPainter.clsTerrain
-            Terrain_Grass.Name = "Grass"
-            Painter.Terrain_Add(Terrain_Grass)
-
-            Dim Terrain_Gravel As New sPainter.clsTerrain
-            Terrain_Gravel.Name = "Gravel"
-            Painter.Terrain_Add(Terrain_Gravel)
-
-            Dim Terrain_Dirt As New sPainter.clsTerrain
-            Terrain_Dirt.Name = "Dirt"
-            Painter.Terrain_Add(Terrain_Dirt)
-
-            Dim Terrain_GrassSnow As New sPainter.clsTerrain
-            Terrain_GrassSnow.Name = "Grass Snow"
-            Painter.Terrain_Add(Terrain_GrassSnow)
-
-            Dim Terrain_GravelSnow As New sPainter.clsTerrain
-            Terrain_GravelSnow.Name = "Gravel Snow"
-            Painter.Terrain_Add(Terrain_GravelSnow)
-
-            Dim Terrain_Snow As New sPainter.clsTerrain
-            Terrain_Snow.Name = "Snow"
-            Painter.Terrain_Add(Terrain_Snow)
-
-            Dim Terrain_Concrete As New sPainter.clsTerrain
-            Terrain_Concrete.Name = "Concrete"
-            Painter.Terrain_Add(Terrain_Concrete)
-
-            Dim Terrain_Water As New sPainter.clsTerrain
-            Terrain_Water.Name = "Water"
-            Painter.Terrain_Add(Terrain_Water)
-
-            'grass centre brush
-            Terrain_Grass.Tiles.Tile_Add(0, TileDirection_None, 1)
-            'gravel centre brush
-            Terrain_Gravel.Tiles.Tile_Add(5, TileDirection_None, 1)
-            Terrain_Gravel.Tiles.Tile_Add(6, TileDirection_None, 1)
-            Terrain_Gravel.Tiles.Tile_Add(7, TileDirection_None, 1)
-            'dirt centre brush
-            Terrain_Dirt.Tiles.Tile_Add(53, TileDirection_None, 1)
-            'grass snow centre brush
-            Terrain_GrassSnow.Tiles.Tile_Add(23, TileDirection_None, 1)
-            'gravel snow centre brush
-            Terrain_GravelSnow.Tiles.Tile_Add(41, TileDirection_None, 1)
-            'snow centre brush
-            Terrain_Snow.Tiles.Tile_Add(64, TileDirection_None, 1)
-            'concrete centre brush
-            Terrain_Concrete.Tiles.Tile_Add(22, TileDirection_None, 1)
-            'water centre brush
-            Terrain_Water.Tiles.Tile_Add(17, TileDirection_None, 1)
-            'gravel to gravel cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Gravel Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Gravel
-            NewBrushCliff.Terrain_Outer = Terrain_Gravel
-            NewBrushCliff.Tiles_Straight.Tile_Add(46, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Straight.Tile_Add(71, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(45, TileDirection_TopRight, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(45, TileDirection_BottomLeft, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'gravel snow to gravel cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Gravel Snow -> Gravel Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_GravelSnow
-            NewBrushCliff.Terrain_Outer = Terrain_Gravel
-            NewBrushCliff.Tiles_Straight.Tile_Add(29, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(9, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(42, TileDirection_BottomLeft, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'snow to gravel cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Snow -> Gravel Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Snow
-            NewBrushCliff.Terrain_Outer = Terrain_Gravel
-            NewBrushCliff.Tiles_Straight.Tile_Add(68, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(63, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(42, TileDirection_BottomLeft, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'gravel snow cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Gravel Snow Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_GravelSnow
-            NewBrushCliff.Terrain_Outer = Terrain_GravelSnow
-            NewBrushCliff.Tiles_Straight.Tile_Add(44, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(9, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(9, TileDirection_BottomRight, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'snow to gravel snow cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Snow -> Gravel Snow Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Snow
-            NewBrushCliff.Terrain_Outer = Terrain_GravelSnow
-            NewBrushCliff.Tiles_Straight.Tile_Add(78, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(63, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(9, TileDirection_BottomRight, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'snow to snow cliff brush
-            NewBrushCliff = New sPainter.sCliff_Brush
-            NewBrushCliff.Name = "Snow -> Snow Cliff"
-            NewBrushCliff.Terrain_Inner = Terrain_Snow
-            NewBrushCliff.Terrain_Outer = Terrain_Snow
-            NewBrushCliff.Tiles_Straight.Tile_Add(78, TileDirection_Bottom, 1)
-            NewBrushCliff.Tiles_Corner_In.Tile_Add(63, TileDirection_TopLeft, 1)
-            NewBrushCliff.Tiles_Corner_Out.Tile_Add(63, TileDirection_BottomRight, 1)
-            Painter.CliffBrush_Add(NewBrushCliff)
-            'water to grass transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water -> Grass"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Grass
-            NewBrush.Tiles_Straight.Tile_Add(14, TileDirection_Bottom, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(16, TileDirection_BottomLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(15, TileDirection_BottomLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'water to gravel transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Water -> Gravel"
-            NewBrush.Terrain_Inner = Terrain_Water
-            NewBrush.Terrain_Outer = Terrain_Gravel
-            NewBrush.Tiles_Straight.Tile_Add(31, TileDirection_Top, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(32, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(33, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'grass to gravel transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Grass -> Gravel"
-            NewBrush.Terrain_Inner = Terrain_Grass
-            NewBrush.Terrain_Outer = Terrain_Gravel
-            NewBrush.Tiles_Straight.Tile_Add(2, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(3, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(4, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'grass to grass snow transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Grass -> Grass Snow"
-            NewBrush.Terrain_Inner = Terrain_Grass
-            NewBrush.Terrain_Outer = Terrain_GrassSnow
-            NewBrush.Tiles_Straight.Tile_Add(26, TileDirection_Top, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(25, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(24, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'grass to dirt transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Grass -> Dirt"
-            NewBrush.Terrain_Inner = Terrain_Grass
-            NewBrush.Terrain_Outer = Terrain_Dirt
-            NewBrush.Tiles_Straight.Tile_Add(34, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(35, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(36, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'gravel snow to gravel transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Gravel Snow -> Gravel"
-            NewBrush.Terrain_Inner = Terrain_GravelSnow
-            NewBrush.Terrain_Outer = Terrain_Gravel
-            NewBrush.Tiles_Straight.Tile_Add(12, TileDirection_Bottom, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(10, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(11, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'snow to gravel snow transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Snow -> Gravel Snow"
-            NewBrush.Terrain_Inner = Terrain_Snow
-            NewBrush.Terrain_Outer = Terrain_GravelSnow
-            NewBrush.Tiles_Straight.Tile_Add(67, TileDirection_Bottom, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(65, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(66, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'concrete to dirt transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Concrete -> Dirt"
-            NewBrush.Terrain_Inner = Terrain_Concrete
-            NewBrush.Terrain_Outer = Terrain_Dirt
-            NewBrush.Tiles_Straight.Tile_Add(21, TileDirection_Right, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(19, TileDirection_BottomRight, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(20, TileDirection_BottomRight, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'gravel to dirt transition brush
-            NewBrush = New sPainter.sTransition_Brush
-            NewBrush.Name = "Gravel -> Dirt"
-            NewBrush.Terrain_Inner = Terrain_Gravel
-            NewBrush.Terrain_Outer = Terrain_Dirt
-            NewBrush.Tiles_Straight.Tile_Add(38, TileDirection_Left, 1)
-            NewBrush.Tiles_Corner_In.Tile_Add(40, TileDirection_TopLeft, 1)
-            NewBrush.Tiles_Corner_Out.Tile_Add(39, TileDirection_TopLeft, 1)
-            Painter.TransitionBrush_Add(NewBrush)
-            'road
-            Dim Road_Road As New sPainter.clsRoad
-            Road_Road.Name = "Road"
-            Painter.Road_Add(Road_Road)
-            'road brown
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Road
-            NewRoadBrush.Terrain = Terrain_Dirt
-            NewRoadBrush.Tile_TIntersection.Tile_Add(13, TileDirection_Bottom, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(59, TileDirection_Left, 1)
-            NewRoadBrush.Tile_End.Tile_Add(60, TileDirection_Left, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-            'track
-            Dim Road_Track As New sPainter.clsRoad
-            Road_Track.Name = "Track"
-            Painter.Road_Add(Road_Track)
-            'track brown
-            NewRoadBrush = New sPainter.sRoad_Brush
-            NewRoadBrush.Road = Road_Track
-            NewRoadBrush.Terrain = Terrain_Dirt
-            NewRoadBrush.Tile_TIntersection.Tile_Add(72, TileDirection_Right, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(49, TileDirection_Top, 1)
-            NewRoadBrush.Tile_Straight.Tile_Add(51, TileDirection_Top, 2)
-            NewRoadBrush.Tile_Corner_In.Tile_Add(50, TileDirection_BottomRight, 1)
-            NewRoadBrush.Tile_End.Tile_Add(52, TileDirection_Bottom, 1)
-            Painter.RoadBrush_Add(NewRoadBrush)
-
-            With Generator_TilesetRockies
-                ReDim .OldTextureLayers.Layers(-1)
-                .OldTextureLayers.LayerCount = 0
-            End With
-
-            Dim NewLayer As frmMapTexturer.sLayerList.clsLayer
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Gravel
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .Terrain = Terrain_Water
-                .HeightMax = -1.0F
-                .SlopeMax = -1.0F
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .Terrain = Terrain_Grass
-                .HeightMax = 60.0F
-                .SlopeMax = -1.0F
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(3) = True
-                .Terrain = Terrain_GravelSnow
-                .HeightMin = 150.0F
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 3
-                .AvoidLayers(1) = True
-                .Terrain = Terrain_Snow
-                .HeightMin = 200.0F
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 0.0F
-                .Density = 1.0F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .WithinLayer = 3
-                .AvoidLayers(4) = True
-                .Terrain = Terrain_Snow
-                .HeightMin = 150.0F
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 1.5F
-                .Density = 0.45F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .AvoidLayers(2) = True
-                .AvoidLayers(3) = True
-                .Terrain = Terrain_GravelSnow
-                .HeightMin = 0.0F
-                .HeightMax = 255.0F
-                .SlopeMax = -1.0F
-                .Scale = 1.5F
-                .Density = 0.45F
-            End With
-
-            NewLayer = New frmMapTexturer.sLayerList.clsLayer
-            With Generator_TilesetRockies
-                .OldTextureLayers.Layer_Insert(.OldTextureLayers.LayerCount, NewLayer)
-            End With
-            With NewLayer
-                .AvoidLayers(1) = True
-                .WithinLayer = 2
-                .Terrain = Terrain_Dirt
-                .HeightMin = 0.0F
-                .HeightMax = 255.0F
-                .SlopeMax = RadOf90Deg
-                .Scale = 1.0F
-                .Density = 0.3F
-            End With
+            Painter = Painter_Rockies
+        Else
+            Painter = New clsPainter
         End If
     End Sub
 
@@ -7273,9 +6318,9 @@ LineDone:
         Dim X As Integer
         Dim Y As Integer
         Dim A As Integer
-        Dim Terrain(,) As sPainter.clsTerrain
+        Dim Terrain(,) As clsPainter.clsTerrain
         Dim Slope(,) As Single
-        Dim tmpTerrain As sPainter.clsTerrain
+        Dim tmpTerrain As clsPainter.clsTerrain
         Dim bmA As New clsBooleanMap
         Dim bmB As New clsBooleanMap
         Dim LayerNum As Integer
@@ -7552,25 +6597,269 @@ LineDone:
 
     Private Sub UnitSectors_GLList(ByVal UnitToUpdateFor As clsUnit)
         Dim A As Integer
-        Dim Pos As sXY_int
 
-        If SectorGLUpdateList IsNot Nothing Then
+        If SectorChange IsNot Nothing Then
             For A = 0 To UnitToUpdateFor.SectorCount - 1
-                Pos = UnitToUpdateFor.Sectors(A).Pos
-                SectorGLUpdateList.Add(Pos)
+                SectorChange.UnitChanged(UnitToUpdateFor.Sectors(A).Pos)
             Next
         End If
     End Sub
 
-    Public Sub GLUpdateUnitSectors()
+    Public Sub RandomizeHeights(ByVal LevelCount As Integer)
+        Dim hmSource As New clsHeightmap
+        Dim hmA As New clsHeightmap
+        Dim hmB As New clsHeightmap
+        Dim IntervalCount As Integer
+        Dim AlterationLevel() As Double
+        Dim hmAlteration() As clsHeightmap
+        Dim LevelHeight As Double
+        Dim HeightRange As Double
+        Dim Level As Integer
+        Dim IntervalHeight As Double
+        Dim Variation As Double
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                If Sectors(X, Z).UnitCount > 0 Then
-                    SectorGLUpdateList.Add(New sXY_int(X, Z))
+        IntervalCount = LevelCount - 1
+
+        ReDim AlterationLevel(IntervalCount)
+        Dim MinMax As New clsHeightmap.sMinMax
+        ReDim hmAlteration(IntervalCount)
+        ReDim hmSource.HeightData.Height(TerrainSize.Y, TerrainSize.X)
+        hmSource.HeightData.SizeX = TerrainSize.X + 1
+        hmSource.HeightData.SizeY = TerrainSize.Y + 1
+        For Y = 0 To TerrainSize.Y
+            For X = 0 To TerrainSize.X
+                hmSource.HeightData.Height(Y, X) = TerrainVertex(X, Y).Height / hmSource.HeightScale
+            Next
+        Next
+        hmSource.MinMaxGet(MinMax)
+        HeightRange = 255.0#
+        IntervalHeight = HeightRange / IntervalCount
+        Variation = IntervalHeight / 4.0#
+        For Level = 0 To IntervalCount
+            LevelHeight = (MinMax.Min + Level * MinMax.Max / IntervalCount) * hmSource.HeightScale
+            AlterationLevel(Level) = LevelHeight
+            hmB.GenerateNewOfSize(TerrainSize.Y + 1, TerrainSize.X + 1, 2.0F, 10000.0#)
+            hmAlteration(Level) = New clsHeightmap
+            hmAlteration(Level).Rescale(hmB, LevelHeight - Variation, LevelHeight + Variation)
+        Next
+        hmA.FadeMultiple(hmSource, hmAlteration, AlterationLevel)
+        hmB.Rescale(hmA, Math.Max(MinMax.Min * hmSource.HeightScale - Variation, 0.0#), Math.Min(MinMax.Max * hmSource.HeightScale + Variation, 255.9#))
+        For Y = 0 To TerrainSize.Y
+            For X = 0 To TerrainSize.X
+                TerrainVertex(X, Y).Height = Int(hmB.HeightData.Height(Y, X) * hmB.HeightScale)
+            Next
+        Next
+    End Sub
+
+    Public Sub LevelWater()
+        Dim X As Integer
+        Dim Y As Integer
+        Dim TextureNum As Integer
+
+        If Tileset Is Nothing Then
+            Exit Sub
+        End If
+
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                TextureNum = TerrainTiles(X, Y).Texture.TextureNum
+                If TextureNum >= 0 And TextureNum < Tileset.TileCount Then
+                    If Tileset.Tiles(TextureNum).Default_Type = TileType_WaterNum Then
+                        TerrainVertex(X, Y).Height = 0
+                        TerrainVertex(X + 1, Y).Height = 0
+                        TerrainVertex(X, Y + 1).Height = 0
+                        TerrainVertex(X + 1, Y + 1).Height = 0
+                    End If
                 End If
+            Next
+        Next
+    End Sub
+
+    Public Structure sGenerateMasterTerrainArgs
+        Public Tileset As clsGeneratorTileset
+        Public LevelCount As Integer
+        Class clsLayer
+            Public WithinLayer As Integer
+            Public AvoidLayers() As Boolean
+            Public TileNum As Integer
+            Public Terrainmap As clsBooleanMap
+            Public TerrainmapScale As Single
+            Public TerrainmapDensity As Single
+            Public HeightMin As Single
+            Public HeightMax As Single
+            Public IsCliff As Boolean
+        End Class
+        Public Layers() As clsLayer
+        Public LayerCount As Integer
+        Public Watermap As clsBooleanMap
+    End Structure
+
+    Public Sub GenerateMasterTerrain(ByRef Args As sGenerateMasterTerrainArgs)
+        Dim X As Integer
+        Dim Y As Integer
+        Dim Z As Integer
+        Dim A As Integer
+        Dim Terrain(,) As Integer
+        Dim Slope(,) As Single
+
+        Dim TerrainNum As Integer
+
+        Dim bmA As New clsBooleanMap
+        Dim Layer_Num As Integer
+        Dim LayerResult(Args.LayerCount - 1) As clsBooleanMap
+        Dim bmB As New clsBooleanMap
+        Dim BestSlope As Double
+        Dim CurrentSlope As Double
+        Dim hmB As New clsHeightmap
+        Dim hmC As New clsHeightmap
+
+        Dim difA As Double
+        Dim difB As Double
+        Dim NewTri As Boolean
+        Dim CliffSlope As Double = Math.Atan(255.0# * DefaultHeightMultiplier / (2.0# * (Args.LevelCount - 1.0#) * TerrainGridSpacing)) - RadOf1Deg 'divided by 2 due to the terrain height randomization
+
+        Tileset = Args.Tileset.Tileset
+
+        For Z = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                difA = Math.Abs(CDbl(TerrainVertex(X + 1, Z + 1).Height) - TerrainVertex(X, Z).Height)
+                difB = Math.Abs(CDbl(TerrainVertex(X, Z + 1).Height) - TerrainVertex(X + 1, Z).Height)
+                If difA = difB Then
+                    If Rnd() >= 0.5F Then
+                        NewTri = False
+                    Else
+                        NewTri = True
+                    End If
+                ElseIf difA < difB Then
+                    NewTri = False
+                Else
+                    NewTri = True
+                End If
+                If Not TerrainTiles(X, Z).Tri = NewTri Then
+                    TerrainTiles(X, Z).Tri = NewTri
+                End If
+            Next X
+        Next Z
+
+        For A = 0 To Args.LayerCount - 1
+            Args.Layers(A).Terrainmap = New clsBooleanMap
+            If Args.Layers(A).TerrainmapDensity = 1.0F Then
+                ReDim Args.Layers(A).Terrainmap.ValueData.Value(TerrainSize.Y - 1, TerrainSize.X - 1)
+                Args.Layers(A).Terrainmap.ValueData.Size = TerrainSize
+                For Y = 0 To TerrainSize.Y - 1
+                    For X = 0 To TerrainSize.X - 1
+                        Args.Layers(A).Terrainmap.ValueData.Value(Y, X) = True
+                    Next
+                Next
+            Else
+                hmB.GenerateNewOfSize(TerrainSize.Y, TerrainSize.X, Args.Layers(A).TerrainmapScale, 1.0#)
+                hmC.Rescale(hmB, 0.0#, 1.0#)
+                Args.Layers(A).Terrainmap.Convert_Heightmap(hmC, (1.0F - Args.Layers(A).TerrainmapDensity) / hmC.HeightScale)
+            End If
+        Next
+
+        ReDim Terrain(TerrainSize.X - 1, TerrainSize.Y - 1)
+        ReDim Slope(TerrainSize.X - 1, TerrainSize.Y - 1)
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                'get slope
+                BestSlope = 0.0#
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
+                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
+                Slope(X, Y) = BestSlope
+            Next
+        Next
+        For Layer_Num = 0 To Args.LayerCount - 1
+            TerrainNum = Args.Layers(Layer_Num).TileNum
+            If TerrainNum >= 0 Then
+                'do other layer constraints
+                LayerResult(Layer_Num) = New clsBooleanMap
+                LayerResult(Layer_Num).Copy(Args.Layers(Layer_Num).Terrainmap)
+                If Args.Layers(Layer_Num).WithinLayer >= 0 Then
+                    If Args.Layers(Layer_Num).WithinLayer < Layer_Num Then
+                        bmA.Within(LayerResult(Layer_Num), LayerResult(Args.Layers(Layer_Num).WithinLayer))
+                        LayerResult(Layer_Num).ValueData = bmA.ValueData
+                        bmA.ValueData = New clsBooleanMap.clsValueData
+                    End If
+                End If
+                For A = 0 To Layer_Num - 1
+                    If Args.Layers(Layer_Num).AvoidLayers(A) Then
+                        bmA.Expand_One_Tile(LayerResult(A))
+                        bmB.Remove(LayerResult(Layer_Num), bmA)
+                        LayerResult(Layer_Num).ValueData = bmB.ValueData
+                        bmB.ValueData = New clsBooleanMap.clsValueData
+                    End If
+                Next
+                'do height and slope constraints
+                For Y = 0 To TerrainSize.Y - 1
+                    For X = 0 To TerrainSize.X - 1
+                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
+                            If TerrainVertex(X, Y).Height < Args.Layers(Layer_Num).HeightMin _
+                            Or TerrainVertex(X, Y).Height > Args.Layers(Layer_Num).HeightMax Then
+                                LayerResult(Layer_Num).ValueData.Value(Y, X) = False
+                            End If
+                            If Args.Layers(Layer_Num).IsCliff Then
+                                If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
+                                    If Slope(X, Y) < CliffSlope Then
+                                        LayerResult(Layer_Num).ValueData.Value(Y, X) = False
+                                    End If
+                                End If
+                            End If
+                        End If
+                    Next
+                Next
+
+                For Y = 0 To TerrainSize.Y - 1
+                    For X = 0 To TerrainSize.X - 1
+                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
+                            Terrain(X, Y) = TerrainNum
+                        End If
+                    Next
+                Next
+            End If
+        Next
+
+        'set water tiles
+
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                If Args.Watermap.ValueData.Value(Y, X) Then
+                    If Slope(X, Y) < CliffSlope Then
+                        Terrain(X, Y) = 17
+                    End If
+                End If
+            Next
+        Next
+
+        'set border tiles to cliffs
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To 2
+                Terrain(X, Y) = Args.Tileset.BorderTextureNum
+            Next
+            For X = TerrainSize.X - 4 To TerrainSize.X - 1
+                Terrain(X, Y) = Args.Tileset.BorderTextureNum
+            Next
+        Next
+        For X = 3 To TerrainSize.X - 5
+            For Y = 0 To 2
+                Terrain(X, Y) = Args.Tileset.BorderTextureNum
+            Next
+            For Y = TerrainSize.Y - 4 To TerrainSize.Y - 1
+                Terrain(X, Y) = Args.Tileset.BorderTextureNum
+            Next
+        Next
+
+        For Y = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                TerrainTiles(X, Y).Texture.TextureNum = Terrain(X, Y)
             Next
         Next
     End Sub

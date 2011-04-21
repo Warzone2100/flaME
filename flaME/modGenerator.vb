@@ -52,9 +52,9 @@
 
     Public UnitType_OilDrum As clsUnitType
 
-    Public TerrainStyle_Arizona As clsGeneratorMap.sGenerateMasterTerrainArgs
-    Public TerrainStyle_Urban As clsGeneratorMap.sGenerateMasterTerrainArgs
-    Public TerrainStyle_Rockies As clsGeneratorMap.sGenerateMasterTerrainArgs
+    Public TerrainStyle_Arizona As clsMap.sGenerateMasterTerrainArgs
+    Public TerrainStyle_Urban As clsMap.sGenerateMasterTerrainArgs
+    Public TerrainStyle_Rockies As clsMap.sGenerateMasterTerrainArgs
 
     Public Function GetUnitTypeFromCode(ByVal Code As String) As clsUnitType
         Dim A As Integer
@@ -162,7 +162,7 @@
 
         ReDim Preserve TerrainStyle_Arizona.Layers(Num)
 
-        TerrainStyle_Arizona.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Arizona.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Arizona.Layers(Num).TileNum = 48 'red
         TerrainStyle_Arizona.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Arizona.Layers(Num).TerrainmapScale = 0.0F
@@ -173,7 +173,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Arizona.Layers(Num)
 
-        TerrainStyle_Arizona.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Arizona.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Arizona.Layers(Num).TileNum = 11 'yellow
         TerrainStyle_Arizona.Layers(Num).TerrainmapDensity = 0.5F
         TerrainStyle_Arizona.Layers(Num).TerrainmapScale = 2.0F
@@ -184,7 +184,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Arizona.Layers(Num)
 
-        TerrainStyle_Arizona.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Arizona.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Arizona.Layers(Num).TileNum = 5 'brown
         TerrainStyle_Arizona.Layers(Num).TerrainmapDensity = 0.4F
         TerrainStyle_Arizona.Layers(Num).TerrainmapScale = 1.5F
@@ -195,7 +195,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Arizona.Layers(Num)
 
-        TerrainStyle_Arizona.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Arizona.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Arizona.Layers(Num).TileNum = 23 'green
         TerrainStyle_Arizona.Layers(Num).TerrainmapDensity = 0.75F
         TerrainStyle_Arizona.Layers(Num).TerrainmapScale = 1.5F
@@ -206,7 +206,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Arizona.Layers(Num)
 
-        TerrainStyle_Arizona.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Arizona.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Arizona.Layers(Num).TileNum = 18 'cliff
         TerrainStyle_Arizona.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Arizona.Layers(Num).TerrainmapScale = 0.0F
@@ -230,7 +230,7 @@
 
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 7
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Urban.Layers(Num).HeightMax = 256.0F
@@ -240,7 +240,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 0
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.5F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
@@ -251,7 +251,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 22
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.333F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
@@ -262,7 +262,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 50
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.333F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
@@ -273,7 +273,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 19
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.25F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
@@ -284,7 +284,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 51
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.25F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
@@ -295,7 +295,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 70
         TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 0.0F
@@ -319,7 +319,7 @@
 
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 0 'green
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 0.0F
@@ -330,7 +330,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 53 'brown
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 0.4F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 1.5F
@@ -341,7 +341,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 23 'green & snow
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 0.333F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 1.5F
@@ -353,7 +353,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 64 'snow
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 0.5F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 1.0F
@@ -365,7 +365,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 41 'brown & snow
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 0.0F
@@ -377,7 +377,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 64 'snow
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 0.875F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 1.0F
@@ -389,7 +389,7 @@
         Num += 1
         ReDim Preserve TerrainStyle_Rockies.Layers(Num)
 
-        TerrainStyle_Rockies.Layers(Num) = New clsGeneratorMap.sGenerateMasterTerrainArgs.clsLayer
+        TerrainStyle_Rockies.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Rockies.Layers(Num).TileNum = 30 'cliff
         TerrainStyle_Rockies.Layers(Num).TerrainmapDensity = 1.0F
         TerrainStyle_Rockies.Layers(Num).TerrainmapScale = 0.0F
@@ -397,22 +397,6 @@
         TerrainStyle_Rockies.Layers(Num).IsCliff = True
         ReDim TerrainStyle_Rockies.Layers(Num).AvoidLayers(TerrainStyle_Rockies.LayerCount - 1)
         TerrainStyle_Rockies.Layers(Num).WithinLayer = -1
-
-        'Num += 1
-        'ReDim Preserve TerrainStyle_Rockies.Layer(Num)
-
-        'TerrainStyle_Rockies.Layer(Num) = New clsWZMap.sGenerateTerrainArgs.clsLayer
-        'TerrainStyle_Rockies.Layer(Num).TileNum = 44 'snow cliff
-        'TerrainStyle_Rockies.Layer(Num).TerrainmapDensity = 1.0F
-        'TerrainStyle_Rockies.Layer(Num).TerrainmapScale = 0.0F
-        'TerrainStyle_Rockies.Layer(Num).HeightMin = 170.0F
-        'TerrainStyle_Rockies.Layer(Num).HeightMax = 256.0F
-        'TerrainStyle_Rockies.Layer(Num).IsCliff = True
-        'ReDim TerrainStyle_Rockies.Layer(Num).Avoid_Layer(TerrainStyle_Rockies.LayerCount - 1)
-        'TerrainStyle_Rockies.Layer(Num).Within_Layer = -1
-
-        'Num += 1
-        'ReDim Preserve TerrainStyle_Rockies.Layer(Num)
 
         TerrainStyle_Rockies.Tileset = Generator_TilesetRockies
 

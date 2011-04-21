@@ -257,23 +257,36 @@ MakeNewMap:
         'pbxMap.Image = NewMap.GetConnectionsBitmap
         'Application.DoEvents()
 
-        NewMap.RandomizeHeights()
+        NewMap.RandomizeHeights(LayoutArgs.LevelCount)
 
         If cbxMasterTexture.Checked Then
             Select Case cboTileset.SelectedIndex
                 Case 0
+                    NewMap.GenerateTileset = Generator_TilesetArizona
+                    TerrainStyle_Arizona.Watermap = NewMap.GetWaterMap
+                    TerrainStyle_Arizona.LevelCount = NewMap.LevelCount
                     NewMap.GenerateMasterTerrain(TerrainStyle_Arizona)
+                    TerrainStyle_Arizona.Watermap = Nothing
                 Case 1
+                    NewMap.GenerateTileset = Generator_TilesetUrban
+                    TerrainStyle_Urban.Watermap = NewMap.GetWaterMap
+                    TerrainStyle_Urban.LevelCount = NewMap.LevelCount
                     NewMap.GenerateMasterTerrain(TerrainStyle_Urban)
+                    TerrainStyle_Urban.Watermap = Nothing
                 Case 2
+                    NewMap.GenerateTileset = Generator_TilesetRockies
+                    TerrainStyle_Rockies.Watermap = NewMap.GetWaterMap
+                    TerrainStyle_Rockies.LevelCount = NewMap.LevelCount
                     NewMap.GenerateMasterTerrain(TerrainStyle_Rockies)
+                    TerrainStyle_Rockies.Watermap = Nothing
                 Case Else
                     MsgBox("Error; bad tileset selection.")
                     lblProgress.Text = "Failed."
                     btnGenerate.Enabled = True
                     Exit Sub
             End Select
-            Map.SetPainterToDefaults()
+            NewMap.TileType_Reset()
+            NewMap.SetPainterToDefaults()
         Else
             Select Case cboTileset.SelectedIndex
                 Case 0
@@ -335,8 +348,8 @@ MakeNewMap:
                     End With
                 Next
             End With
-            NewMap.TerrainBlockPaths()
         End If
+        NewMap.TerrainBlockPaths()
 
         NewMap.LevelWater()
 
@@ -363,8 +376,8 @@ MakeNewMap:
         Map.Deallocate()
         Map = NewMap
 
-        Map.UndoStepCreate("Generated Map")
         Map.Undo_Clear()
+        Map.ShadowSector_CreateAll()
 
         lblProgress.Text = "Done."
         btnGenerate.Enabled = True

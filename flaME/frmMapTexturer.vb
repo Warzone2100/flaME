@@ -7,7 +7,7 @@
         Public Class clsLayer
             Public WithinLayer As Integer
             Public AvoidLayers() As Boolean
-            Public Terrain As sPainter.clsTerrain
+            Public Terrain As clsPainter.clsTerrain
             Public Terrainmap As clsBooleanMap
             Public HeightMin As Single
             Public HeightMax As Single
@@ -22,6 +22,7 @@
 
         Sub Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
             Dim A As Integer
+            Dim B As Integer
 
             ReDim Preserve Layers(LayerCount)
             'shift the ones below down

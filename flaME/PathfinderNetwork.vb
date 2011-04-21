@@ -127,9 +127,9 @@
 
     Public Function GetPath(ByVal StartNodes() As PathfinderNode, ByVal FinishNode As PathfinderNode, ByVal Accuracy As Integer, ByVal MinClearance As Integer) As PathList()
         Dim StartNodeCount As Integer = StartNodes.GetUpperBound(0) + 1
-        Dim Paths(23) As PathList
-        Dim LayerStartNodes(31, StartNodeCount - 1) As PathfinderNode
-        Dim LayerFinishNodes(31) As PathfinderNode
+        Dim Paths(NodeLayerCount - 1) As PathList
+        Dim LayerStartNodes(NodeLayerCount - 1, StartNodeCount - 1) As PathfinderNode
+        Dim LayerFinishNodes(NodeLayerCount - 1) As PathfinderNode
         Dim LayerNum As Integer
         Dim Destinations(23) As PathfinderNode
         Dim DestinationCount As Integer
@@ -948,13 +948,11 @@ NoPath:
             For A = 0 To CurrentNode.ConnectionCount - 1
                 tmpConnection = CurrentNode.Connections(A)
                 ConnectedNode = tmpConnection.GetOtherNode(CurrentNode)
-                If ConnectedNode.ParentNode IsNot Nothing Then
-                    ResultValue = Args.NodeValues(CurrentNode.Layer_NodeNum) + tmpConnection.Value ' * (0.98F + Rnd() * 0.04F)
-                    If ResultValue < Args.NodeValues(ConnectedNode.Layer_NodeNum) Then
-                        Args.NodeValues(ConnectedNode.Layer_NodeNum) = ResultValue
-                        NetworkLargeArrays.Nodes_Nodes(SourceNodeCount) = ConnectedNode
-                        SourceNodeCount += 1
-                    End If
+                ResultValue = Args.NodeValues(CurrentNode.Layer_NodeNum) + tmpConnection.Value
+                If ResultValue < Args.NodeValues(ConnectedNode.Layer_NodeNum) Then
+                    Args.NodeValues(ConnectedNode.Layer_NodeNum) = ResultValue
+                    NetworkLargeArrays.Nodes_Nodes(SourceNodeCount) = ConnectedNode
+                    SourceNodeCount += 1
                 End If
             Next
             SourceNodeNum += 1
@@ -968,4 +966,23 @@ NoPath:
             NodeLayers(A).ClearChangedNodes()
         Next
     End Sub
+
+    Public Function NodeCanReachNode(ByVal StartNode As PathfinderNode, ByVal FinishNode As PathfinderNode) As Boolean
+        Dim StartParent As PathfinderNode = StartNode
+        Dim FinishParent As PathfinderNode = FinishNode
+
+        Do
+            If StartParent Is FinishParent Then
+                Return True
+            End If
+            StartParent = StartParent.ParentNode
+            If StartParent Is Nothing Then
+                Return False
+            End If
+            FinishParent = FinishParent.ParentNode
+            If FinishParent Is Nothing Then
+                Return False
+            End If
+        Loop
+    End Function
 End Class

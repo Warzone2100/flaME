@@ -88,7 +88,7 @@
     Public TileDirection_Left As New sTileDirection(0, 1)
     Public TileDirection_None As New sTileDirection(1, 1)
 
-    Public Function OrientateTile(ByRef TileChance As sPainter.sTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.sTerrainTile.sTexture
+    Public Function OrientateTile(ByRef TileChance As clsPainter.sTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.sTerrainTile.sTexture
         Static IsDiagonal As Boolean
 
         'use random for empty tiles

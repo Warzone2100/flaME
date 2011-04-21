@@ -140,7 +140,7 @@
     <Compile Include="PathfinderLayer.vb" />
     <Compile Include="PathfinderNetwork.vb" />
     <Compile Include="PathfinderNode.vb" />
-    <Compile Include="sPainter.vb" />
+    <Compile Include="clsPainter.vb" />
     <Compile Include="clsTileset.vb" />
     <Compile Include="clsUnitType.vb" />
     <Compile Include="ctrlMapView.Designer.vb">

@@ -160,8 +160,6 @@ Public Class frmMain
         PlayerColour(15).Green = 96.0F / 255.0F
         PlayerColour(15).Blue = 0.0F
 
-        Map = New clsMap(1, 1)
-
         View.BGColor.Red = 0.75F
         View.BGColor.Green = 0.5F
         View.BGColor.Blue = 0.25F
@@ -179,6 +177,13 @@ Public Class frmMain
         If Not Result.Success Then
             MsgBox("Error loading object data: " & Result.Problem)
         End If
+
+        CreateGeneratorTilesets()
+        CreatePainterArizona()
+        CreatePainterUrban()
+        CreatePainterRockies()
+
+        Map = New clsMap(1, 1)
 
         Settings_Load()
 
@@ -242,8 +247,6 @@ Public Class frmMain
                 MsgBox("Error opening command-line map file at " & Path & ". Reason; " & Result.Problem)
             End If
         End If
-
-        CreateGeneratorTilesets()
 
         TextureView.DrawView_SetEnabled(True)
 
@@ -917,15 +920,15 @@ Error_Exit:
     End Sub
 
     Private Sub cmbTileset_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmbTileset.SelectedIndexChanged
-        Dim TilesetNew As clsTileset
+        Dim NewTileset As clsTileset
 
         If cmbTileset.SelectedIndex < 0 Then
-            TilesetNew = Nothing
+            NewTileset = Nothing
         Else
-            TilesetNew = Tilesets(cmbTileset.SelectedIndex)
+            NewTileset = Tilesets(cmbTileset.SelectedIndex)
         End If
-        If TilesetNew IsNot Map.Tileset Then
-            Map.Tileset = TilesetNew
+        If NewTileset IsNot Map.Tileset Then
+            Map.Tileset = NewTileset
             If Map.Tileset IsNot Nothing Then
                 SelectedTexture = Math.Min(0, Map.Tileset.TileCount - 1)
             End If
@@ -1552,6 +1555,7 @@ Error_Exit:
         Next
         Map.SelectedUnits_Clear()
         Map.SelectedUnit_Add(NewUnits)
+        Map.SectorChange.Update_Graphics()
         Selected_Object_Changed()
         Map.UndoStepCreate("Object Rotated")
         DrawView()

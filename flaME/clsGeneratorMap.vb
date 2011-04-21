@@ -94,26 +94,6 @@
 
         Public Level As Integer = -1
 
-        'Private _HeightNetwork As clsHeightNetwork
-        'Public HeightNetwork_PassageNodeNum As Integer = -1
-        'Public Property HeightNetwork As clsHeightNetwork
-        '    Get
-        '        Return _HeightNetwork
-        '    End Get
-        '    Set(ByVal value As clsHeightNetwork)
-        '        If value Is _HeightNetwork Then
-        '            Exit Property
-        '        End If
-        '        If _HeightNetwork IsNot Nothing Then
-        '            _HeightNetwork.PassageNode_Remove(HeightNetwork_PassageNodeNum)
-        '        End If
-        '        _HeightNetwork = value
-        '        If _HeightNetwork IsNot Nothing Then
-        '            _HeightNetwork.PassageNode_Add(Me)
-        '        End If
-        '    End Set
-        'End Property
-
         Public Pos As sXY_int
 
         Public IsOnBorder As Boolean
@@ -210,72 +190,6 @@
     Public Class clsNodeTag
         Public Pos As sXY_int
     End Class
-
-    Public Sub RandomizeHeights()
-        Dim hmSource As New clsHeightmap
-        Dim hmA As New clsHeightmap
-        Dim hmB As New clsHeightmap
-        Dim IntervalCount As Integer
-        Dim AlterationLevel() As Double
-        Dim hmAlteration() As clsHeightmap
-        Dim LevelHeight As Double
-        Dim HeightRange As Double
-        Dim Level As Integer
-        Dim IntervalHeight As Double
-        Dim Variation As Double
-        Dim X As Integer
-        Dim Y As Integer
-
-        IntervalCount = LevelCount - 1
-
-        ReDim AlterationLevel(IntervalCount)
-        Dim MinMax As New clsHeightmap.sMinMax
-        ReDim hmAlteration(IntervalCount)
-        ReDim hmSource.HeightData.Height(TerrainSize.Y, TerrainSize.X)
-        hmSource.HeightData.SizeX = TerrainSize.X + 1
-        hmSource.HeightData.SizeY = TerrainSize.Y + 1
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                hmSource.HeightData.Height(Y, X) = TerrainVertex(X, Y).Height / hmSource.HeightScale
-            Next
-        Next
-        hmSource.MinMaxGet(MinMax)
-        HeightRange = 255.0#
-        IntervalHeight = HeightRange / IntervalCount
-        Variation = IntervalHeight / 4.0#
-        For Level = 0 To IntervalCount
-            LevelHeight = (MinMax.Min + Level * MinMax.Max / IntervalCount) * hmSource.HeightScale
-            AlterationLevel(Level) = LevelHeight
-            hmB.GenerateNewOfSize(TerrainSize.Y + 1, TerrainSize.X + 1, 2.0F, 10000.0#)
-            hmAlteration(Level) = New clsHeightmap
-            hmAlteration(Level).Rescale(hmB, LevelHeight - Variation, LevelHeight + Variation)
-        Next
-        hmA.FadeMultiple(hmSource, hmAlteration, AlterationLevel)
-        hmB.Rescale(hmA, Math.Max(MinMax.Min * hmSource.HeightScale - Variation, 0.0#), Math.Min(MinMax.Max * hmSource.HeightScale + Variation, 255.9#))
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                TerrainVertex(X, Y).Height = Int(hmB.HeightData.Height(Y, X) * hmB.HeightScale)
-            Next
-        Next
-    End Sub
-
-    Public Sub LevelWater()
-        Dim X As Integer
-        Dim Y As Integer
-
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                    If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
-                        TerrainVertex(X, Y).Height = 0
-                        TerrainVertex(X + 1, Y).Height = 0
-                        TerrainVertex(X, Y + 1).Height = 0
-                        TerrainVertex(X + 1, Y + 1).Height = 0
-                    End If
-                End If
-            Next
-        Next
-    End Sub
 
     Public Function GetNodePosDist(ByVal NodeA As PathfinderNode, ByVal NodeB As PathfinderNode) As Single
         Dim TagA As clsNodeTag = NodeA.Tag
@@ -1911,225 +1825,6 @@ PointMakingFinished:
         Return True
     End Function
 
-    Public Structure sGenerateMasterTerrainArgs
-        Public Tileset As clsGeneratorTileset
-        Class clsLayer
-            Public WithinLayer As Integer
-            Public AvoidLayers() As Boolean
-            Public TileNum As Integer
-            Public Terrainmap As clsBooleanMap
-            Public TerrainmapScale As Single
-            Public TerrainmapDensity As Single
-            Public HeightMin As Single
-            Public HeightMax As Single
-            Public IsCliff As Boolean
-        End Class
-        Public Layers() As clsLayer
-        Public LayerCount As Integer
-    End Structure
-
-    Public Sub GenerateMasterTerrain(ByRef Args As sGenerateMasterTerrainArgs)
-        Dim X As Integer
-        Dim Y As Integer
-        Dim A As Integer
-        Dim Terrain(,) As Integer
-        Dim Slope(,) As Single
-
-        Dim TerrainNum As Integer
-
-        Dim bmA As clsBooleanMap = New clsBooleanMap
-        Dim Layer_Num As Integer
-        Dim LayerResult(Args.LayerCount - 1) As clsBooleanMap
-        Dim bmB As clsBooleanMap = New clsBooleanMap
-        Dim BestSlope As Double
-        Dim CurrentSlope As Double
-        Dim hmB As clsHeightmap = New clsHeightmap
-        Dim hmC As clsHeightmap = New clsHeightmap
-
-        Dim difA As Double
-        Dim difB As Double
-        Dim NewTri As Boolean
-        Dim CliffSlope As Double = Math.Atan(255.0# * HeightMultiplier / (2.0# * (LevelCount - 1.0#) * TerrainGridSpacing)) - RadOf1Deg 'divided by 2 due to the terrain height randomization
-
-        GenerateTileset = Args.Tileset
-        Tileset = GenerateTileset.Tileset
-
-        For Z = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                difA = Math.Abs(CDbl(TerrainVertex(X + 1, Z + 1).Height) - TerrainVertex(X, Z).Height)
-                difB = Math.Abs(CDbl(TerrainVertex(X, Z + 1).Height) - TerrainVertex(X + 1, Z).Height)
-                If difA = difB Then
-                    If Rnd() >= 0.5F Then
-                        NewTri = False
-                    Else
-                        NewTri = True
-                    End If
-                ElseIf difA < difB Then
-                    NewTri = False
-                Else
-                    NewTri = True
-                End If
-                If Not TerrainTiles(X, Z).Tri = NewTri Then
-                    TerrainTiles(X, Z).Tri = NewTri
-                End If
-            Next X
-        Next Z
-
-        For A = 0 To Args.LayerCount - 1
-            Args.Layers(A).Terrainmap = New clsBooleanMap
-            If Args.Layers(A).TerrainmapDensity = 1.0F Then
-                ReDim Args.Layers(A).Terrainmap.ValueData.Value(TerrainSize.Y - 1, TerrainSize.X - 1)
-                Args.Layers(A).Terrainmap.ValueData.Size = TerrainSize
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        Args.Layers(A).Terrainmap.ValueData.Value(Y, X) = True
-                    Next
-                Next
-            Else
-                hmB.GenerateNewOfSize(TerrainSize.Y, TerrainSize.X, Args.Layers(A).TerrainmapScale, 1.0#)
-                hmC.Rescale(hmB, 0.0#, 1.0#)
-                Args.Layers(A).Terrainmap.Convert_Heightmap(hmC, (1.0F - Args.Layers(A).TerrainmapDensity) / hmC.HeightScale)
-            End If
-        Next
-
-        ReDim Terrain(TerrainSize.X - 1, TerrainSize.Y - 1)
-        ReDim Slope(TerrainSize.X - 1, TerrainSize.Y - 1)
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                'get slope
-                BestSlope = 0.0#
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                Slope(X, Y) = BestSlope
-            Next
-        Next
-        For Layer_Num = 0 To Args.LayerCount - 1
-            TerrainNum = Args.Layers(Layer_Num).TileNum
-            If TerrainNum >= 0 Then
-                'do other layer constraints
-                LayerResult(Layer_Num) = New clsBooleanMap
-                LayerResult(Layer_Num).Copy(Args.Layers(Layer_Num).Terrainmap)
-                If Args.Layers(Layer_Num).WithinLayer >= 0 Then
-                    If Args.Layers(Layer_Num).WithinLayer < Layer_Num Then
-                        bmA.Within(LayerResult(Layer_Num), LayerResult(Args.Layers(Layer_Num).WithinLayer))
-                        LayerResult(Layer_Num).ValueData = bmA.ValueData
-                        bmA.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                End If
-                For A = 0 To Layer_Num - 1
-                    If Args.Layers(Layer_Num).AvoidLayers(A) Then
-                        bmA.Expand_One_Tile(LayerResult(A))
-                        bmB.Remove(LayerResult(Layer_Num), bmA)
-                        LayerResult(Layer_Num).ValueData = bmB.ValueData
-                        bmB.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                Next
-                'do height and slope constraints
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            If TerrainVertex(X, Y).Height < Args.Layers(Layer_Num).HeightMin _
-                            Or TerrainVertex(X, Y).Height > Args.Layers(Layer_Num).HeightMax Then
-                                LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                            End If
-                            If Args.Layers(Layer_Num).IsCliff Then
-                                If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                                    If Slope(X, Y) < CliffSlope Then
-                                        LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                                    End If
-                                End If
-                            End If
-                        End If
-                    Next
-                Next
-
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            Terrain(X, Y) = TerrainNum
-                        End If
-                    Next
-                Next
-            End If
-        Next
-
-        'set water tiles
-
-        Dim BestDist As Single
-        Dim BestIsWater As Boolean
-        Dim Pos As sXY_int
-        Dim Dist As Single
-        Dim B As Integer
-        Dim XY_int As sXY_int
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                BestDist = Single.MaxValue
-                Pos = New sXY_int((X + 0.5#) * TerrainGridSpacing, (Y + 0.5#) * TerrainGridSpacing)
-                For B = 0 To ConnectionCount - 1
-                    'If Not (Connections(B).PassageNodeA.IsOnBorder Or Connections(B).PassageNodeB.IsOnBorder) Then
-                    If Connections(B).PassageNodeA.IsWater = Connections(B).PassageNodeB.IsWater Then
-                        'only do this if the waters are the same
-                        'this is to make sure nodes that are connected are actually connected as water
-                        XY_int = PointGetClosestPosOnLine(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos, Pos)
-                        Dist = GetDist(XY_int, Pos)
-                        If Dist < BestDist Then
-                            BestDist = Dist
-                            If GetDist(Pos, Connections(B).PassageNodeA.Pos) <= GetDist(Pos, Connections(B).PassageNodeB.Pos) Then
-                                BestIsWater = Connections(B).PassageNodeA.IsWater
-                            Else
-                                BestIsWater = Connections(B).PassageNodeB.IsWater
-                            End If
-                        End If
-                    End If
-                Next
-                For C = 0 To PassageNodeCount - 1
-                    For B = 0 To _SymmetryBlockCount - 1
-                        Dist = GetDist(Pos, PassageNodes(B, C).Pos)
-                        If Dist < BestDist Then
-                            BestDist = Dist
-                            BestIsWater = PassageNodes(B, C).IsWater
-                        End If
-                    Next
-                Next
-                If BestIsWater And Slope(X, Y) < CliffSlope Then
-                    Terrain(X, Y) = 17
-                End If
-            Next
-        Next
-
-        'set border tiles to cliffs
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To 2
-                Terrain(X, Y) = GenerateTileset.BorderTextureNum
-            Next
-            For X = TerrainSize.X - 4 To TerrainSize.X - 1
-                Terrain(X, Y) = GenerateTileset.BorderTextureNum
-            Next
-        Next
-        For X = 3 To TerrainSize.X - 5
-            For Y = 0 To 2
-                Terrain(X, Y) = GenerateTileset.BorderTextureNum
-            Next
-            For Y = TerrainSize.Y - 4 To TerrainSize.Y - 1
-                Terrain(X, Y) = GenerateTileset.BorderTextureNum
-            Next
-        Next
-
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Y).Texture.TextureNum = Terrain(X, Y)
-            Next
-        Next
-
-        TerrainBlockPaths()
-    End Sub
-
     Public Sub TerrainBlockPaths()
         Dim X As Integer
         Dim Y As Integer
@@ -2137,7 +1832,7 @@ PointMakingFinished:
         For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
                 If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                    If GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = 8 Or GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = 7 Then
+                    If GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_CliffNum Or GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
                         TileNodeBlock(X, Y)
                     End If
                 End If
@@ -2152,7 +1847,10 @@ PointMakingFinished:
         Dim Pos As sXY_int
         Dim Dist As Single
         Dim B As Integer
+        Dim C As Integer
         Dim XY_int As sXY_int
+        Dim X As Integer
+        Dim Y As Integer
 
         GetWaterMap = New clsBooleanMap
         GetWaterMap.Blank(TerrainSize.X + 1, TerrainSize.Y + 1)
@@ -2221,53 +1919,59 @@ PointMakingFinished:
         Dim FinalTilePos As sXY_int
         Dim TilePosA As sXY_int
         Dim TilePosB As sXY_int
+        Dim X2 As Integer
+        Dim Y2 As Integer
 
         PosNode = GetNearestNode(TilePathMap, Pos, Clearance)
-        NodeTag = PosNode.Tag
-        If PosNode IsNot Nothing And GetDist(Pos, NodeTag.Pos) <= MaxDistFromPos Then
+        If PosNode IsNot Nothing Then
+            NodeTag = PosNode.Tag
+            If GetDist(Pos, NodeTag.Pos) <= MaxDistFromPos Then
 
-            Dim NewUnit As New clsMap.clsUnit
-            NewUnit.Type = Type
-            NewUnit.PlayerNum = PlayerNum
+                Dim NewUnit As New clsMap.clsUnit
+                NewUnit.Type = Type
+                NewUnit.PlayerNum = PlayerNum
 
-            FinalTilePos.X = Int(NodeTag.Pos.X / TerrainGridSpacing)
-            FinalTilePos.Y = Int(NodeTag.Pos.Y / TerrainGridSpacing)
-            If Type.LoadedInfo.Footprint.X <> CInt(Int(Type.LoadedInfo.Footprint.X / 2.0#)) * 2 Then
-                NewUnit.Pos.X = NodeTag.Pos.X
-            Else
-                If Rnd() >= 0.5F Then
-                    NewUnit.Pos.X = NodeTag.Pos.X - TerrainGridSpacing / 2.0#
+                FinalTilePos.X = Int(NodeTag.Pos.X / TerrainGridSpacing)
+                FinalTilePos.Y = Int(NodeTag.Pos.Y / TerrainGridSpacing)
+                If Type.LoadedInfo.Footprint.X <> CInt(Int(Type.LoadedInfo.Footprint.X / 2.0#)) * 2 Then
+                    NewUnit.Pos.X = NodeTag.Pos.X
                 Else
-                    NewUnit.Pos.X = NodeTag.Pos.X + TerrainGridSpacing / 2.0#
+                    If Rnd() >= 0.5F Then
+                        NewUnit.Pos.X = NodeTag.Pos.X - TerrainGridSpacing / 2.0#
+                    Else
+                        NewUnit.Pos.X = NodeTag.Pos.X + TerrainGridSpacing / 2.0#
+                    End If
                 End If
-            End If
-            If Type.LoadedInfo.Footprint.Y <> CInt(Int(Type.LoadedInfo.Footprint.Y / 2.0#)) * 2 Then
-                NewUnit.Pos.Z = NodeTag.Pos.Y
-            Else
-                If Rnd() >= 0.5F Then
-                    NewUnit.Pos.Z = NodeTag.Pos.Y - TerrainGridSpacing / 2.0#
+                If Type.LoadedInfo.Footprint.Y <> CInt(Int(Type.LoadedInfo.Footprint.Y / 2.0#)) * 2 Then
+                    NewUnit.Pos.Z = NodeTag.Pos.Y
                 Else
-                    NewUnit.Pos.Z = NodeTag.Pos.Y + TerrainGridSpacing / 2.0#
+                    If Rnd() >= 0.5F Then
+                        NewUnit.Pos.Z = NodeTag.Pos.Y - TerrainGridSpacing / 2.0#
+                    Else
+                        NewUnit.Pos.Z = NodeTag.Pos.Y + TerrainGridSpacing / 2.0#
+                    End If
                 End If
-            End If
-            NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
-            TilePosA.X = Int(NewUnit.Pos.X / TerrainGridSpacing - Type.LoadedInfo.Footprint.X / 2.0# + 0.5#)
-            TilePosA.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing - Type.LoadedInfo.Footprint.Y / 2.0# + 0.5#)
-            TilePosB.X = Int(NewUnit.Pos.X / TerrainGridSpacing + Type.LoadedInfo.Footprint.X / 2.0# - 0.5#)
-            TilePosB.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing + Type.LoadedInfo.Footprint.Y / 2.0# - 0.5#)
-            NewUnit.Rotation = Rotation
+                NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
+                TilePosA.X = Int(NewUnit.Pos.X / TerrainGridSpacing - Type.LoadedInfo.Footprint.X / 2.0# + 0.5#)
+                TilePosA.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing - Type.LoadedInfo.Footprint.Y / 2.0# + 0.5#)
+                TilePosB.X = Int(NewUnit.Pos.X / TerrainGridSpacing + Type.LoadedInfo.Footprint.X / 2.0# - 0.5#)
+                TilePosB.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing + Type.LoadedInfo.Footprint.Y / 2.0# - 0.5#)
+                NewUnit.Rotation = Rotation
 
-            Unit_Add(NewUnit)
+                Unit_Add(NewUnit)
 
-            For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, TerrainSize.Y - 1)
-                For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, TerrainSize.X - 1)
-                    TileNodeBlock(X2, Y2)
+                For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, TerrainSize.Y - 1)
+                    For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, TerrainSize.X - 1)
+                        TileNodeBlock(X2, Y2)
+                    Next
                 Next
-            Next
 
-            TilePathMap.FindCalc()
+                TilePathMap.FindCalc()
 
-            Return NewUnit
+                Return NewUnit
+            Else
+                Return Nothing
+            End If
         Else
             Return Nothing
         End If
@@ -2276,8 +1980,8 @@ PointMakingFinished:
     Public Function PlaceUnit(ByVal Type As clsUnitType, ByVal Pos As sXYZ_int, ByVal PlayerNum As Byte, ByVal Rotation As Integer) As clsMap.clsUnit
         Dim TilePosA As sXY_int
         Dim TilePosB As sXY_int
-        'Dim Y2 As Integer
-        'Dim X2 As Integer
+        Dim X2 As Integer
+        Dim Y2 As Integer
         Dim FinalTilePos As sXY_int
 
         Dim NewUnit As New clsMap.clsUnit

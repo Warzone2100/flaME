@@ -317,10 +317,6 @@ Reeval:
 
         GLTextureNum = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
 
-        'If GL_Texture = 0 Then
-        '   MsgBox("PIE (" & Path & ") cant find OpenGL texture for " & TextureName & ".")
-        'End If
-
         TriangleCount = NewTriCount
         QuadCount = NewQuadCount
         ReDim Triangles(TriangleCount - 1)

@@ -9,17 +9,14 @@
     <OutputType>WinExe</OutputType>
     <StartupObject>flaME.My.MyApplication</StartupObject>
     <RootNamespace>flaME</RootNamespace>
-    <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <ReleaseVersion>1.17</ReleaseVersion>
-    <OptionInfer>On</OptionInfer>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
     <AssemblyName>flaME</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1|AnyCPU' ">
-    <OutputPath>bin\MonoDevelop 2.10.1</OutputPath>
+    <OutputPath>bin\MonoDevelop Mono 2.10.1</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
@@ -61,7 +58,6 @@
     <Compile Include="modMath.vb" />
     <Compile Include="modMatrix.vb" />
     <Compile Include="modProgram.vb" />
-    <Compile Include="sPainter.vb" />
     <Compile Include="TileOrientation.vb" />
     <Compile Include="Application.vb" />
     <Compile Include="clsBitmapFile.vb" />
@@ -75,6 +71,7 @@
     <Compile Include="PathfinderLayer.vb" />
     <Compile Include="PathfinderNetwork.vb" />
     <Compile Include="PathfinderNode.vb" />
+    <Compile Include="clsPainter.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

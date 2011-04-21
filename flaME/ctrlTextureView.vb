@@ -31,7 +31,7 @@ Public Class ctrlTextureView
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0, 1))
+        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0))
         OpenGLControl.MakeCurrent() 'mono version fails without this
         pnlDraw.Controls.Add(OpenGLControl)
 
@@ -405,6 +405,7 @@ EndOfTextures4:
         Dim PosY1 As Single
         Dim PosY2 As Single
         Dim CharSpacing As Single
+        Dim A As Integer
 
         GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
         GL.Color4(TextLabel.Colour.Red, TextLabel.Colour.Green, TextLabel.Colour.Blue, TextLabel.Colour.Alpha)

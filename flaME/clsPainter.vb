@@ -1,4 +1,4 @@
-﻿Public Structure sPainter
+﻿Public Class clsPainter
     Public Class clsTerrain
         Public Num As Integer
         Public Name As String
@@ -183,4 +183,4 @@
         End If
         ReDim Preserve Roads(RoadCount - 1)
     End Sub
-End Structure
+End Class
