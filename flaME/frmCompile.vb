@@ -373,7 +373,7 @@
             For X = 0 To Map.TerrainSize.X - 1
                 If Map.TerrainTiles(X, Y).Tri Then
                     If Map.TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                        If Map.Tileset.Tiles(Map.TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
+                        If Map.Tileset.Tiles(Map.TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
                             Found = True
                             GoTo ExitLoop
                         End If

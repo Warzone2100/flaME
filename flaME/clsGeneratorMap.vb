@@ -1832,7 +1832,7 @@ PointMakingFinished:
         For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
                 If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                    If GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_CliffNum Or GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
+                    If GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Or GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
                         TileNodeBlock(X, Y)
                     End If
                 End If

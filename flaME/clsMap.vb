@@ -210,9 +210,14 @@ Public Class clsMap
             ReDim ChangedSectors(Parent_Map.SectorCount.X * Parent_Map.SectorCount.Y - 1)
         End Sub
 
-        Public Sub TerrainChanged(ByVal SectorNum As sXY_int)
+        Public Sub TerrainUndoChanged(ByVal SectorNum As sXY_int)
 
             Parent_Map.Sectors(SectorNum.X, SectorNum.Y).Changed = True 'do this every time. it can be changed by units without having this set
+            TerrainGraphicsChanged(SectorNum)
+        End Sub
+
+        Public Sub TerrainGraphicsChanged(ByVal SectorNum As sXY_int)
+
             If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
                 SectorIsChanged(SectorNum.X, SectorNum.Y) = True
                 ChangedSectors(ChangedSectorCount) = SectorNum
@@ -233,7 +238,7 @@ Public Class clsMap
             Static SectorNum As sXY_int
 
             Parent_Map.Tile_Get_Sector(X, Z, SectorNum)
-            TerrainChanged(SectorNum)
+            TerrainUndoChanged(SectorNum)
         End Sub
 
         Sub Vertex_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
@@ -880,6 +885,7 @@ Public Class clsMap
               Or Selected_Tile_A.Y < 0 _
               Or Selected_Tile_A.Y >= TileCountZ Then
                 Selected_Tile_A_Exists = False
+                Selected_Tile_B_Exists = False
             End If
         End If
         If Selected_Tile_B_Exists Then
@@ -889,6 +895,7 @@ Public Class clsMap
               Or Selected_Tile_B.X >= TileCountX _
               Or Selected_Tile_B.Y < 0 _
               Or Selected_Tile_B.Y >= TileCountZ Then
+                Selected_Tile_A_Exists = False
                 Selected_Tile_B_Exists = False
             End If
         End If
@@ -900,6 +907,7 @@ Public Class clsMap
               Or Selected_Area_VertexA.Y < 0 _
               Or Selected_Area_VertexA.Y > TileCountZ Then
                 Selected_Area_VertexA_Exists = False
+                Selected_Area_VertexB_Exists = False
             End If
         End If
         If Selected_Area_VertexB_Exists Then
@@ -909,6 +917,7 @@ Public Class clsMap
               Or Selected_Area_VertexB.X > TileCountX _
               Or Selected_Area_VertexB.Y < 0 _
               Or Selected_Area_VertexB.Y > TileCountZ Then
+                Selected_Area_VertexA_Exists = False
                 Selected_Area_VertexB_Exists = False
             End If
         End If
@@ -977,13 +986,13 @@ Public Class clsMap
     End Sub
 
     Sub Sector_GLList_Make(ByVal X As Integer, ByVal Z As Integer)
-        Static TileX As Integer
-        Static TileZ As Integer
-        Static StartX As Integer
-        Static StartZ As Integer
-        Static FinishX As Integer
-        Static FinishZ As Integer
-        Static UnitNum As Integer
+        Dim TileX As Integer
+        Dim TileZ As Integer
+        Dim StartX As Integer
+        Dim StartZ As Integer
+        Dim FinishX As Integer
+        Dim FinishZ As Integer
+        Dim UnitNum As Integer
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
@@ -1015,7 +1024,7 @@ Public Class clsMap
                 If tmpUnit.Type.LoadedInfo IsNot Nothing Then
                     BaseOffset.X = CInt((tmpUnit.Type.LoadedInfo.Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
                     BaseOffset.Y = CInt((tmpUnit.Type.LoadedInfo.Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
-                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270) Then
+                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or (tmpUnit.Type.LoadedInfo.Footprint.X = tmpUnit.Type.LoadedInfo.Footprint.Y And (tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270))) Then
                         For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Z - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Z + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
                             For TileX = Math.Max(CInt(Int((tmpUnit.Pos.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
                                 IsBasePlate(TileX - StartX, TileZ - StartZ) = True
@@ -2399,7 +2408,7 @@ LineDone:
                 For Z = 0 To TerrainSize.Y - 1
                     For X = 0 To TerrainSize.X - 1
                         If TerrainTiles(X, Z).Texture.TextureNum >= 0 And TerrainTiles(X, Z).Texture.TextureNum < Tileset.TileCount Then
-                            If Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Default_Type = TileType_CliffNum Then
+                            If Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Then
                                 Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 255S) / 2.0#
                             End If
                         End If
@@ -2428,15 +2437,15 @@ LineDone:
                     If Footprint.Y < 1 Then Footprint.Y = 1
                     'highlight unit if selected
                     If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex) Is Units(A).Type Then
+                        If frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex) Is Units(A).Type Then
                             Flag = True
                         End If
                     ElseIf frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex) Is Units(A).Type Then
+                        If frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex) Is Units(A).Type Then
                             Flag = True
                         End If
                     ElseIf frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex) Is Units(A).Type Then
+                        If frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex) Is Units(A).Type Then
                             Flag = True
                         End If
                     End If
@@ -3064,8 +3073,8 @@ LineDone:
                 End If
             End If
 
-            Dim Quote As String = ControlChars.Quote
-            Dim EndChar As String = Chr(10)
+            Dim Quote As Char = ControlChars.Quote
+            Dim EndChar As Char = Chr(10)
             Dim Text As String
 
             Dim File_LEV As New clsWriteFile
@@ -3097,7 +3106,7 @@ LineDone:
                     Exit Function
                 End If
 
-                Text = "// Made with flaME v" & ProgramVersion & EndChar
+                Text = "// Made with flaME " & ProgramVersion & EndChar
                 File_LEV.Text_Append(Text)
                 Dim DateNow As Date = Now
                 Text = "// Date: " & DateNow.Year & "/" & MinDigits(DateNow.Month, 2) & "/" & MinDigits(DateNow.Day, 2) & " " & MinDigits(DateNow.Hour, 2) & ":" & MinDigits(DateNow.Minute, 2) & ":" & MinDigits(DateNow.Second, 2) & EndChar
@@ -3563,8 +3572,8 @@ LineDone:
         Try
 
             Dim Text As String
-            Dim EndChar As String
-            Dim Quote As String
+            Dim EndChar As Char
+            Dim Quote As Char
             Dim A As Integer
             Dim X As Integer
             Dim Z As Integer
@@ -4313,7 +4322,7 @@ LineDone:
                 If Sectors(X, Z).Changed Then
                     Sectors(X, Z).Changed = False
                     NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSectors(X, Z)
-                    NewUndo.ChangedSectorCount = NewUndo.ChangedSectorCount + 1
+                    NewUndo.ChangedSectorCount += 1
                     ShadowSector_Create(X, Z)
                 End If
             Next
@@ -4415,7 +4424,7 @@ LineDone:
 
         UndoStepCreate("Incomplete Action") 'make another redo step incase something has changed, such as if user presses undo while still dragging a tool
 
-        Undo_Pos = Undo_Pos - 1
+        Undo_Pos -= 1
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
@@ -4443,7 +4452,7 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorChange.TerrainChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
+            SectorChange.TerrainGraphicsChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = Undos(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
@@ -4496,7 +4505,7 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorChange.TerrainChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
+            SectorChange.TerrainGraphicsChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = 0 To Undos(Undo_Pos).UnitChangeCount - 1
@@ -6019,7 +6028,7 @@ LineDone:
             For X = 0 To TerrainSize.X - 1
                 If TerrainTiles(X, Y).Tri Then
                     If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                        If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileType_WaterNum Then
+                        If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
                             TerrainTiles(X, Y).Tri = False
                             SectorChange.Tile_Set_Changed(X, Y)
                         End If
@@ -6666,7 +6675,7 @@ LineDone:
             For X = 0 To TerrainSize.X - 1
                 TextureNum = TerrainTiles(X, Y).Texture.TextureNum
                 If TextureNum >= 0 And TextureNum < Tileset.TileCount Then
-                    If Tileset.Tiles(TextureNum).Default_Type = TileType_WaterNum Then
+                    If Tileset.Tiles(TextureNum).Default_Type = TileTypeNum_Water Then
                         TerrainVertex(X, Y).Height = 0
                         TerrainVertex(X + 1, Y).Height = 0
                         TerrainVertex(X, Y + 1).Height = 0

@@ -22,7 +22,7 @@
 
 !define INSTALLERDATA "Windows Installer"
 
-!define FLAMEVSHORT "1.17"
+!define FLAMEVSHORT "1.18"
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
 	
 ;--------------------------------

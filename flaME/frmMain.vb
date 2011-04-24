@@ -9,9 +9,9 @@ Public Class frmMain
 
     Public TextureView As ctrlTextureView
 
-    Public lstFeatures_Unit() As clsUnitType
-    Public lstStructures_Unit() As clsUnitType
-    Public lstDroids_Unit() As clsUnitType
+    Public lstFeatures_Objects() As clsUnitType
+    Public lstStructures_Objects() As clsUnitType
+    Public lstDroids_Objects() As clsUnitType
 
     Public HeightSetPalette(7) As Byte
 
@@ -20,7 +20,7 @@ Public Class frmMain
 
     Public Sub New()
 
-		Select Case Environment.OSVersion.Platform
+        Select Case Environment.OSVersion.Platform
             Case PlatformID.Unix
                 OSPathSeperator = "/"c
             Case PlatformID.MacOSX
@@ -44,7 +44,7 @@ Public Class frmMain
         InitializeComponent() 'required for monodevelop too, depends on subdirs being set
         NewPlayerNum = New ctrlPlayerNum
         ObjectPlayerNum = New ctrlPlayerNum
-        
+
         View = New ctrlMapView
         TextureView = New ctrlTextureView
     End Sub
@@ -74,7 +74,7 @@ Public Class frmMain
         RemoveHandler InitializeDelay.Tick, AddressOf Initialize
         InitializeDelay.Dispose()
         InitializeDelay = Nothing
-        
+
 #If Mono <> 0.0# Then
         AddHandler nudAutoCliffBrushRadius.ValueChanged, AddressOf nudAutoCliffBrushRadius_LostFocus
         AddHandler nudAutoTextureRadius.ValueChanged, AddressOf nudAutoTextureRadius_LostFocus
@@ -250,7 +250,7 @@ Public Class frmMain
 
         TextureView.DrawView_SetEnabled(True)
 
-		WindowState = FormWindowState.Maximized
+        WindowState = FormWindowState.Maximized
 #If MonoDevelop = 0.0# Then
         frmSplashInstance.Hide()
         Show()
@@ -1477,18 +1477,18 @@ Error_Exit:
         For A = 0 To UnitTypeCount - 1
             If UnitTypes(A).Type = clsUnitType.enumType.Feature Then
                 lstFeatures.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
-                ReDim Preserve lstFeatures_Unit(lstFeatures.Items.Count - 1)
-                lstFeatures_Unit(lstFeatures.Items.Count - 1) = UnitTypes(A)
+                ReDim Preserve lstFeatures_Objects(lstFeatures.Items.Count - 1)
+                lstFeatures_Objects(lstFeatures.Items.Count - 1) = UnitTypes(A)
             ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerDroidTemplate Then
                 If UnitTypes(A).Code <> "ConstructorDroid" Then
                     lstDroids.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
-                    ReDim Preserve lstDroids_Unit(lstDroids.Items.Count - 1)
-                    lstDroids_Unit(lstDroids.Items.Count - 1) = UnitTypes(A)
+                    ReDim Preserve lstDroids_Objects(lstDroids.Items.Count - 1)
+                    lstDroids_Objects(lstDroids.Items.Count - 1) = UnitTypes(A)
                 End If
             ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerStructure Then
                 lstStructures.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
-                ReDim Preserve lstStructures_Unit(lstStructures.Items.Count - 1)
-                lstStructures_Unit(lstStructures.Items.Count - 1) = UnitTypes(A)
+                ReDim Preserve lstStructures_Objects(lstStructures.Items.Count - 1)
+                lstStructures_Objects(lstStructures.Items.Count - 1) = UnitTypes(A)
             End If
         Next
     End Sub

@@ -1,12 +1,14 @@
 ﻿Public Module modProgram
 
+    Public Const ProgramVersionNumber As String = "1.18"
+
 #If MonoDevelop = 0.0# Then
-    Public Const ProgramVersion As String = "1.17 Visual Basic 2010"
+    Public Const ProgramVersion As String = ProgramVersionNumber & " Visual Basic 2010"
 #Else
     #If Mono = 0.0# Then
-        Public Const ProgramVersion As String = "1.17 MonoDevelop Mono 2.10.1"
+        Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Mono 2.10.1"
     #Else
-        Public Const ProgramVersion As String = "1.17 MonoDevelop Microsoft .NET"
+        Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Microsoft .NET"
     #End If 
 #End If
 
@@ -166,8 +168,8 @@
     Public TileTypes(-1) As sTileType
     Public TileTypeCount As Integer
 
-    Public Const TileType_WaterNum As Integer = 7
-    Public Const TileType_CliffNum As Integer = 8
+    Public Const TileTypeNum_Water As Integer = 7
+    Public Const TileTypeNum_Cliff As Integer = 8
 
     Public Structure sResult
         Dim Success As Boolean

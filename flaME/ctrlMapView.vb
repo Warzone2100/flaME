@@ -1214,7 +1214,7 @@ Public Class ctrlMapView
             GL.Enable(EnableCap.Texture2D)
             If Tool = enumTool.Object_Unit Then
                 If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
+                    NewUnitType = frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex)
                     XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
@@ -1224,7 +1224,7 @@ Public Class ctrlMapView
             End If
             If Tool = enumTool.Object_Structure Then
                 If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
+                    NewUnitType = frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex)
                     XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
@@ -1234,7 +1234,7 @@ Public Class ctrlMapView
             End If
             If Tool = enumTool.Object_Feature Then
                 If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
+                    NewUnitType = frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex)
                     XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
                     GL.PushMatrix()
                     GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
@@ -2326,7 +2326,7 @@ Public Class ctrlMapView
                         End If
                     ElseIf Tool = enumTool.Object_Unit Then
                         If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstDroids_Unit(frmMainInstance.lstDroids.SelectedIndex)
+                            NewUnitType = frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex)
                             NewUnit = New clsMap.clsUnit
                             NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
                             NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
@@ -2340,7 +2340,7 @@ Public Class ctrlMapView
                         End If
                     ElseIf Tool = enumTool.Object_Structure Then
                         If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstStructures_Unit(frmMainInstance.lstStructures.SelectedIndex)
+                            NewUnitType = frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex)
                             NewUnit = New clsMap.clsUnit
                             NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
                             NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
@@ -2354,7 +2354,7 @@ Public Class ctrlMapView
                         End If
                     ElseIf Tool = enumTool.Object_Feature Then
                         If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstFeatures_Unit(frmMainInstance.lstFeatures.SelectedIndex)
+                            NewUnitType = frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex)
                             NewUnit = New clsMap.clsUnit
                             NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
                             NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
@@ -2600,6 +2600,7 @@ Public Class ctrlMapView
                     End If
                     Map.Unit_Add_StoreChange(NewUnit, ID)
                     Map.SelectedUnit_Add(NewUnit)
+                    Map.SectorChange.Update_Graphics()
                     frmMainInstance.Selected_Object_Changed()
                     Map.UndoStepCreate("Object Rotated")
                     DrawViewLater()
@@ -2615,6 +2616,7 @@ Public Class ctrlMapView
                         NewUnit.Rotation -= 360
                     End If
                     Map.Unit_Add_StoreChange(NewUnit, ID)
+                    Map.SectorChange.Update_Graphics()
                     Map.SelectedUnit_Add(NewUnit)
                     frmMainInstance.Selected_Object_Changed()
                     Map.UndoStepCreate("Object Rotated")
@@ -3235,17 +3237,17 @@ Public Class ctrlMapView
         End If
 
         For A = 0 To frmMainInstance.lstFeatures.Items.Count - 1
-            If frmMainInstance.lstFeatures_Unit(A) IsNot Nothing Then
-                If frmMainInstance.lstFeatures_Unit(A) Is UnitType Then
+            If frmMainInstance.lstFeatures_Objects(A) IsNot Nothing Then
+                If frmMainInstance.lstFeatures_Objects(A) Is UnitType Then
                     frmMainInstance.lstFeatures.SelectedIndex = A
-                    Tool = enumTool.Object_Unit
+                    Tool = enumTool.Object_Feature
                     Exit For
                 End If
             End If
         Next
         For A = 0 To frmMainInstance.lstStructures.Items.Count - 1
-            If frmMainInstance.lstStructures_Unit(A) IsNot Nothing Then
-                If frmMainInstance.lstStructures_Unit(A) Is UnitType Then
+            If frmMainInstance.lstStructures_Objects(A) IsNot Nothing Then
+                If frmMainInstance.lstStructures_Objects(A) Is UnitType Then
                     frmMainInstance.lstStructures.SelectedIndex = A
                     Tool = enumTool.Object_Structure
                     Exit For
@@ -3253,8 +3255,8 @@ Public Class ctrlMapView
             End If
         Next
         For A = 0 To frmMainInstance.lstDroids.Items.Count - 1
-            If frmMainInstance.lstDroids_Unit(A) IsNot Nothing Then
-                If frmMainInstance.lstDroids_Unit(A) Is UnitType Then
+            If frmMainInstance.lstDroids_Objects(A) IsNot Nothing Then
+                If frmMainInstance.lstDroids_Objects(A) Is UnitType Then
                     frmMainInstance.lstDroids.SelectedIndex = A
                     Tool = enumTool.Object_Unit
                     Exit For
