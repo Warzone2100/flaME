@@ -152,7 +152,7 @@
         Dim Code As String
         Dim Name As String
         Dim Weapon_Num As Integer
-        Dim PIE As String
+        'Dim PIE As String
     End Structure
     Structure sBrain_List
         Dim Brains() As sBrain
@@ -250,9 +250,8 @@
         End With
     End Sub
 
-    Function DataLoad(ByVal Path As String) As sResult
-        DataLoad.Success = False
-        DataLoad.Problem = ""
+    Function DataLoad(ByVal Path As String) As clsResult
+        DataLoad = New clsResult
 
         EndWithPathSeperator(Path)
 
@@ -277,77 +276,66 @@
 
         Result = NamesFileLoad(Path & SubDirNames, DataNames)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirStructures, DataStructures)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirBrain, DataBrain)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirBody, DataBody)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirPropulsion, DataPropulsion)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirBodyPropulsion, DataBodyPropulsion)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirConstruction, DataConstruction)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirSensor, DataSensor)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirRepair, DataRepair)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirTemplates, DataTemplates)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirECM, DataECM)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirFeatures, DataFeatures)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirAssignWeapons, DataAssignWeapons)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirWeapons, DataWeapons)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
-            Exit Function
+            DataLoad.Problem_Add(Result.Problem)
         End If
         Result = CommaFileLoad(Path & SubDirStructureWeapons, DataStructureWeapons)
         If Not Result.Success Then
-            DataLoad.Problem = Result.Problem
+            DataLoad.Problem_Add(Result.Problem)
+        End If
+
+        If DataLoad.HasProblems Then
             Exit Function
         End If
 
@@ -357,151 +345,128 @@
         'check there are the correct number of fields in names data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataNames, 2, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Invalid entries in names.txt."
-            Exit Function
+            DataLoad.Problem_Add("Invalid entries in names.txt.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataNames, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in names.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in names.txt.")
         End If
         'check there are the correct number of fields in structure data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataStructures, 25, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in structures.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in structures.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataStructures, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in structures.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in structures.txt.")
         End If
         'check there are the correct number of fields in brain data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBrain, 9, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in brain.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in brain.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataBrain, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in brain.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in brain.txt.")
         End If
         'check there are the correct number of fields in body data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBody, 25, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in body.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in body.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataBody, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in body.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in body.txt.")
         End If
         'check there are the correct number of fields in propulsion data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataPropulsion, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in propulsion.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in propulsion.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataPropulsion, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in propulsion.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in propulsion.txt.")
         End If
         'check there are the correct number of fields in construction data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataConstruction, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in construction.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in construction.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataConstruction, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in construction.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in construction.txt.")
         End If
         'check there are the correct number of fields in sensor data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataSensor, 16, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in sensor.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in sensor.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataSensor, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in sensor.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in sensor.txt.")
         End If
         'check there are the correct number of fields in repair data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataRepair, 14, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in repair.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in repair.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataRepair, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in repair.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in repair.txt.")
         End If
         'check there are the correct number of fields in templates data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataTemplates, 12, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in templates.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in templates.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataTemplates, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in templates.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in templates.txt.")
         End If
         'check there are the correct number of fields in ecm data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataECM, 14, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in ecm.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in ecm.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataECM, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in ecm.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in ecm.txt.")
         End If
         'check there are the correct number of fields in feature data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataFeatures, 11, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in features.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in features.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataFeatures, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in features.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in features.txt.")
         End If
         'check there are the correct number of fields in assignweapons data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataAssignWeapons, 5, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in assignweapons.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in assignweapons.txt with wrong number of fields.")
         End If
         'check there are the correct number of fields in weapon data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataWeapons, 53, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in weapons.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in weapons.txt with wrong number of fields.")
         End If
         'check there are no two names for the same thing
         If Not FileData_Field_Check_Unique(DataWeapons, 0) Then
-            DataLoad.Problem = "There are two entries for the same code in features.txt."
-            Exit Function
+            DataLoad.Problem_Add("There are two entries for the same code in features.txt.")
         End If
         'check there are the correct number of fields in bodypropulsion data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataBodyPropulsion, 5, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in bodypropulsionimd.txt with wrong number of fields."
-            Exit Function
+            DataLoad.Problem_Add("Entries in bodypropulsionimd.txt with wrong number of fields.")
         End If
         'check there are the correct number of fields in structureweapons data
         FileData_Entries_Get_From_FieldCountNotEqualTo(DataStructureWeapons, 6, Entry_Num_List)
         If Entry_Num_List.ResultCount > 0 Then
-            DataLoad.Problem = "Entries in structureweapons.txt with wrong number of fields."
+            DataLoad.Problem_Add("Entries in structureweapons.txt with wrong number of fields.")
+        End If
+
+        If DataLoad.HasProblems Then
             Exit Function
         End If
 
@@ -532,8 +497,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Bodies(Body_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for body component " & .Bodies(Body_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for body component " & .Bodies(Body_Num).Code & ".")
                     End If
                     .Bodies(Body_Num).PIE = LCase(DataBody.Entry(Body_Num).FieldValue(7))
                 Next Body_Num
@@ -551,8 +515,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Propulsions(Propulsion_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & ".")
                     End If
                     .Propulsions(Propulsion_Num).PIE = LCase(DataPropulsion.Entry(Propulsion_Num).FieldValue(8))
                 Next Propulsion_Num
@@ -570,8 +533,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Constructions(Construction_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for construction component " & .Constructions(Construction_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for construction component " & .Constructions(Construction_Num).Code & ".")
                     End If
                     .Constructions(Construction_Num).PIE = LCase(DataConstruction.Entry(Construction_Num).FieldValue(8))
                 Next Construction_Num
@@ -601,8 +563,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Sensors(Sensor_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & ".")
                     End If
                     .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entry(Sensor_Num).FieldValue(8))
                     .Sensors(Sensor_Num).PIE2 = LCase(DataSensor.Entry(Sensor_Num).FieldValue(9))
@@ -621,8 +582,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Repairs(Repair_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for repair component " & .Repairs(Repair_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for repair component " & .Repairs(Repair_Num).Code & ".")
                     End If
                     .Repairs(Repair_Num).PIE = LCase(DataRepair.Entry(Repair_Num).FieldValue(9))
                 Next Repair_Num
@@ -640,8 +600,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Brains(Brain_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for brain component " & .Brains(Brain_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for brain component " & .Brains(Brain_Num).Code & ".")
                     End If
                 Next Brain_Num
             End With
@@ -657,8 +616,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .ECMs(ECM_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & ".")
                     End If
                     .ECMs(ECM_Num).PIE = LCase(DataECM.Entry(ECM_Num).FieldValue(8))
                 Next ECM_Num
@@ -674,8 +632,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Features(Feature_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for feature " & .Features(Feature_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for feature " & .Features(Feature_Num).Code & ".")
                     End If
                     .Features(Feature_Num).PIE = LCase(DataFeatures.Entry(Feature_Num).FieldValue(6))
                     .Features(Feature_Num).Footprint.X = DataFeatures.Entry(Feature_Num).FieldValue(1)
@@ -718,8 +675,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Templates(Template_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for template component " & .Templates(Template_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for template component " & .Templates(Template_Num).Code & ".")
                     End If
                     .Templates(Template_Num).Body = GetBodyNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(2))
                     .Templates(Template_Num).Propulsion = GetPropulsionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(7))
@@ -765,8 +721,7 @@
                     If Entry_Num_List.ResultCount > 0 Then
                         .Structures(Structure_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
                     Else
-                        DataLoad.Problem = "No name in names.txt for structure " & .Structures(Structure_Num).Code & "."
-                        Exit Function
+                        DataLoad.Warning_Add("No name in names.txt for structure " & .Structures(Structure_Num).Code & ".")
                     End If
                     .Structures(Structure_Num).Type = DataStructures.Entry(Structure_Num).FieldValue(1)
                     .Structures(Structure_Num).Footprint.X = DataStructures.Entry(Structure_Num).FieldValue(5)
@@ -820,8 +775,8 @@
         Try
             TexFiles = IO.Directory.GetFiles(Path & SubDirTexpages)
         Catch ex As Exception
-            DataLoad.Problem = ex.Message
-            Exit Function
+            DataLoad.Warning_Add(ex.Message)
+            ReDim TexFiles(-1)
         End Try
 
         Dim TexFile_Num As Integer
@@ -838,16 +793,14 @@
                     tmpBitmap = New clsBitmapFile()
                     Result = tmpBitmap.Load(tmpString)
                     If Not Result.Success Then
-                        DataLoad.Problem = "Failed loading " & tmpString & "; " & Result.Problem
-                        Exit Function
+                        DataLoad.Warning_Add("Failed loading " & tmpString & "; " & Result.Problem)
                     End If
                     TexturePages(TexturePageCount).GLTexture_Num = tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, False)
                     InstrPos2 = InStrRev(tmpString, OSPathSeperator)
                     TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
                 Else
-                    DataLoad.Problem = "Texture page missing (" & tmpString & ")."
-                    Exit Function
+                    DataLoad.Warning_Add("Texture page missing (" & tmpString & ").")
                 End If
             End If
         Next
@@ -863,8 +816,8 @@
         Try
             PIE_Files = IO.Directory.GetFiles(Path & SubDirPIEs)
         Catch ex As Exception
-            DataLoad.Problem = "Unable to access PIE files."
-            Exit Function
+            DataLoad.Warning_Add("Unable to access PIE files.")
+            ReDim PIE_Files(-1)
         End Try
 
         ReDim PIE_List.PIEs(PIE_Files.GetUpperBound(0))
@@ -945,9 +898,9 @@
                 UnitTypes(C).LoadedInfo.BaseAttachment = New clsUnitType.clsLoadedInfo.clsAttachment
                 tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
                 tmpString = .Structure_List.Structures(A).PIE
-                tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                 tmpString = .Structure_List.Structures(A).BasePIE
-                UnitTypes(C).LoadedInfo.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString)
+                UnitTypes(C).LoadedInfo.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, DataLoad)
                 If tmpBaseAttachment.ModelCount = 1 Then
                     If tmpBaseAttachment.Models(0).ConnectorCount >= 1 Then
                         tmpConnector = tmpBaseAttachment.Models(0).Connectors(0)
@@ -955,12 +908,12 @@
                             If .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).Code <> "ZNULLWEAPON" Then
                                 tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                 tmpAttachment.Pos_Offset = tmpConnector
 
                                 tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE2
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -968,7 +921,7 @@
                             If .ECM_List.ECMs(.Structure_List.Structures(A).ECM).Code <> "ZNULLECM" Then
                                 tmpString = .ECM_List.ECMs(.Structure_List.Structures(A).ECM).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -976,12 +929,12 @@
                             If .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).Code <> "ZNULLSENSOR" Then
                                 tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                 tmpAttachment.Pos_Offset = tmpConnector
 
                                 tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE2
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -1004,7 +957,7 @@
                 tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
                 tmpString = .Feature_List.Features(A).PIE
                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                 C += 1
             Next
             For A = 0 To .Template_List.TemplateCount - 1
@@ -1020,48 +973,48 @@
                     UnitTypes(C).LoadedInfo.BaseAttachment = New clsUnitType.clsLoadedInfo.clsAttachment
                     tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
                     tmpString = .Body_List.Bodies(.Template_List.Templates(A).Body).PIE
-                    tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                    tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                     If .Template_List.Templates(A).Propulsion >= 0 Then
                         tmpString = BodyPropulsions(.Template_List.Templates(A).Body, .Template_List.Templates(A).Propulsion).LeftPIE
                         tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
 
                         tmpString = BodyPropulsions(.Template_List.Templates(A).Body, .Template_List.Templates(A).Propulsion).RightPIE
                         tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                     End If
                     If tmpBaseAttachment.ModelCount = 1 Then
                         If tmpBaseAttachment.Models(0).ConnectorCount >= 1 Then
                             tmpConnector = tmpBaseAttachment.Models(0).Connectors(0)
-                            If .Template_List.Templates(A).Brain >= 0 Then
-                                If .Brain_List.Brains(.Template_List.Templates(A).Brain).Code <> "ZNULLBRAIN" Then
-                                    tmpString = .Brain_List.Brains(.Template_List.Templates(A).Brain).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
+                            'If .Template_List.Templates(A).Brain >= 0 Then
+                            '    If .Brain_List.Brains(.Template_List.Templates(A).Brain).Code <> "ZNULLBRAIN" Then
+                            '        tmpString = .Brain_List.Brains(.Template_List.Templates(A).Brain).PIE
+                            '        tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                            '        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
+                            '        tmpAttachment.Pos_Offset = tmpConnector
+                            '    End If
+                            'End If
                             If .Template_List.Templates(A).Construction >= 0 Then
                                 If .Construction_List.Constructions(.Template_List.Templates(A).Construction).Code <> "ZNULLCONSTRUCT" Then
                                     tmpString = .Construction_List.Constructions(.Template_List.Templates(A).Construction).PIE
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
                                 End If
                             End If
-                            If .Template_List.Templates(A).ECM >= 0 Then
-                                If .ECM_List.ECMs(.Template_List.Templates(A).ECM).Code <> "ZNULLECM" Then
-                                    tmpString = .ECM_List.ECMs(.Template_List.Templates(A).ECM).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
+                            'If .Template_List.Templates(A).ECM >= 0 Then
+                            '    If .ECM_List.ECMs(.Template_List.Templates(A).ECM).Code <> "ZNULLECM" Then
+                            '        tmpString = .ECM_List.ECMs(.Template_List.Templates(A).ECM).PIE
+                            '        tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                            '        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
+                            '        tmpAttachment.Pos_Offset = tmpConnector
+                            '    End If
+                            'End If
                             If .Template_List.Templates(A).Repair >= 0 Then
                                 If .Repair_List.Repairs(.Template_List.Templates(A).Repair).Code <> "ZNULLREPAIR" Then
                                     tmpString = .Repair_List.Repairs(.Template_List.Templates(A).Repair).PIE
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
                                 End If
                             End If
@@ -1069,12 +1022,12 @@
                                 If .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).Code <> "ZNULLSENSOR" Then
                                     tmpString = .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).PIE
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
 
                                     tmpString = .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).PIE2
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
                                 End If
                             End If
@@ -1082,12 +1035,12 @@
                                 If .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).Code <> "ZNULLWEAPON" Then
                                     tmpString = .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).PIE
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
 
                                     tmpString = .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).PIE2
                                     tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, Path & SubDirPIEs & tmpString))
+                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                                     tmpAttachment.Pos_Offset = tmpConnector
                                 End If
                             End If
@@ -1097,8 +1050,6 @@
                 C += 1
             Next
         End With
-
-        DataLoad.Success = True
     End Function
 
     Function FileData_Field_Check_Unique(ByRef FileData As sFileData, ByVal Field_Num As Integer) As Boolean
@@ -1562,7 +1513,7 @@
         GetStructureNumFromCode = -1
     End Function
 
-    Function GetModelForPIE(ByRef PIE_List As sPIE_List, ByVal PIE_LCaseFileTitle As String, ByVal PIE_FullPath As String) As clsModel
+    Function GetModelForPIE(ByRef PIE_List As sPIE_List, ByVal PIE_LCaseFileTitle As String, ByVal ResultOutput As clsResult) As clsModel
 
         If PIE_LCaseFileTitle = "0" Then
             Return Nothing
@@ -1576,19 +1527,20 @@
                 If PIE_List.PIEs(A).Model Is Nothing Then
                     PIE_List.PIEs(A).Model = New clsModel
                     Try
-                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIE_FullPath)
-                        If Not Result.Success Then
-                            Stop
-                            Return Nothing
-                        End If
+                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIE_List.PIEs(A).Path)
                     Catch ex As Exception
-                        Stop
+                        ResultOutput.Warning_Add("Error loading PIE " & PIE_List.PIEs(A).Path)
                         Return Nothing
                     End Try
+                    If Not Result.Success Then
+                        ResultOutput.Warning_Add("Unable to load PIE file " & Result.Problem)
+                        Return Nothing
+                    End If
                 End If
                 Return PIE_List.PIEs(A).Model
             End If
         Next
+        ResultOutput.Warning_Add("Unable to find PIE file " & PIE_LCaseFileTitle)
         Return Nothing
     End Function
 End Module

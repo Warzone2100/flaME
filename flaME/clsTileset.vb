@@ -60,7 +60,9 @@ Public Class clsTileset
         Default_TileTypes_Read.Success = True
     End Function
 
-    Public Function LoadDirectory(ByVal Path As String) As sResult
+    Public Function LoadDirectory(ByVal Path As String) As clsResult
+        LoadDirectory = New clsResult
+
         Dim tmpBitmap As clsBitmapFile
         Dim tmpBitmap8 As New clsBitmapFile
         Dim tmpBitmap4 As New clsBitmapFile
@@ -68,6 +70,7 @@ Public Class clsTileset
         Dim tmpBitmap1 As New clsBitmapFile
         Dim SplitPath As New sSplitPath(Path)
         Dim SlashPath As String = EndWithPathSeperator(Path)
+        Dim Result As sResult
 
         If SplitPath.FileTitle <> "" Then
             Name = SplitPath.FileTitle
@@ -75,9 +78,9 @@ Public Class clsTileset
             Name = SplitPath.Parts(SplitPath.PartCount - 2)
         End If
 
-        LoadDirectory = Default_TileTypes_Load(SlashPath & Name & ".ttp")
-        If Not LoadDirectory.Success Then
-            LoadDirectory.Problem = "Failed to load tile types for tileset " & Name & "; " & LoadDirectory.Problem
+        Result = Default_TileTypes_Load(SlashPath & Name & ".ttp")
+        If Not Result.Success Then
+            LoadDirectory.Problem_Add("Loading tile types; " & Result.Problem)
             Exit Function
         End If
 
@@ -101,7 +104,6 @@ Public Class clsTileset
         Dim Red As Integer
         Dim Green As Integer
         Dim Blue As Integer
-        Dim Result As sResult
 
         Dim GraphicPath As String
 
@@ -118,20 +120,15 @@ Public Class clsTileset
             GreenTotal = 0
             BlueTotal = 0
 
-            If Not IO.File.Exists(GraphicPath) Then
-                LoadDirectory.Problem = "Missing tile graphic;" & GraphicPath
-                Exit Function
-            End If
-
             tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
-                LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
+                'ignore and exit, since not all tile types have a corresponding tile graphic
                 Exit Function
             End If
 
             If tmpBitmap.CurrentBitmap.Width <> 128 Or tmpBitmap.CurrentBitmap.Height <> 128 Then
-                LoadDirectory.Problem = "Tile graphic " & GraphicPath & " from tileset " & Name & " is not 128x128."
+                LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 128x128.")
                 Exit Function
             End If
 
@@ -168,12 +165,12 @@ Public Class clsTileset
             tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
-                LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
+                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
                 Exit Function
             End If
 
             If tmpBitmap.CurrentBitmap.Width <> 64 Or tmpBitmap.CurrentBitmap.Height <> 64 Then
-                LoadDirectory.Problem = "Tile graphic " & GraphicPath & " from tileset " & Name & " is not 64x64."
+                LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 64x64.")
                 Exit Function
             End If
 
@@ -186,12 +183,12 @@ Public Class clsTileset
             tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
-                LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
+                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
                 Exit Function
             End If
 
             If tmpBitmap.CurrentBitmap.Width <> 32 Or tmpBitmap.CurrentBitmap.Height <> 32 Then
-                LoadDirectory.Problem = "Tile graphic " & GraphicPath & " from tileset " & Name & " is not 32x32."
+                LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 32x32.")
                 Exit Function
             End If
 
@@ -204,12 +201,12 @@ Public Class clsTileset
             tmpBitmap = New clsBitmapFile
             Result = tmpBitmap.Load(GraphicPath)
             If Not Result.Success Then
-                LoadDirectory.Problem = "Unable to load tile graphic; " & Result.Problem
+                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
                 Exit Function
             End If
 
             If tmpBitmap.CurrentBitmap.Width <> 16 Or tmpBitmap.CurrentBitmap.Height <> 16 Then
-                LoadDirectory.Problem = "Tile graphic " & GraphicPath & " from tileset " & Name & " is not 16x16."
+                LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 16x16.")
                 Exit Function
             End If
 

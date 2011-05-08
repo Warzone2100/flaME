@@ -261,8 +261,8 @@ EndOfTextures4:
                 GL.Disable(EnableCap.Texture2D)
             End If
 
-            If SelectedTexture >= 0 And TextureCount.X > 0 Then
-                A = SelectedTexture - TextureYOffset * TextureCount.X
+            If SelectedTextureNum >= 0 And TextureCount.X > 0 Then
+                A = SelectedTextureNum - TextureYOffset * TextureCount.X
                 XY_int.X = A - Int(A / TextureCount.X) * TextureCount.X
                 XY_int.Y = Int(A / TextureCount.X)
                 GL.Begin(BeginMode.LineLoop)
@@ -284,24 +284,24 @@ EndOfTextures4:
     Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
 
         If Map Is Nothing Then
-            SelectedTexture = -1
+            SelectedTextureNum = -1
         ElseIf Map.Tileset Is Nothing Then
-            SelectedTexture = -1
+            SelectedTextureNum = -1
         ElseIf e.X >= 0 And e.X < TextureCount.X * 64 _
           And e.Y >= 0 And e.Y < TextureCount.Y * 64 Then
-            SelectedTexture = (TextureYOffset + Int(e.Y / 64.0#)) * TextureCount.X + Int(e.X / 64.0#)
-            If SelectedTexture >= Map.Tileset.TileCount Then
-                SelectedTexture = -1
+            SelectedTextureNum = (TextureYOffset + Int(e.Y / 64.0#)) * TextureCount.X + Int(e.X / 64.0#)
+            If SelectedTextureNum >= Map.Tileset.TileCount Then
+                SelectedTextureNum = -1
             Else
                 Tool = enumTool.Texture_Brush
             End If
         Else
-            SelectedTexture = -1
+            SelectedTextureNum = -1
         End If
 
-        If SelectedTexture >= 0 Then
+        If SelectedTextureNum >= 0 Then
             frmMainInstance.cmbTileType.Enabled = False
-            frmMainInstance.cmbTileType.SelectedIndex = Map.Tile_TypeNum(SelectedTexture)
+            frmMainInstance.cmbTileType.SelectedIndex = Map.Tile_TypeNum(SelectedTextureNum)
             frmMainInstance.cmbTileType.Enabled = True
         Else
             frmMainInstance.cmbTileType.Enabled = False

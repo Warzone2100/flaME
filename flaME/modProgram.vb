@@ -1,6 +1,6 @@
 ﻿Public Module modProgram
 
-    Public Const ProgramVersionNumber As String = "1.18"
+    Public Const ProgramVersionNumber As String = "1.19"
 
 #If MonoDevelop = 0.0# Then
     Public Const ProgramVersion As String = ProgramVersionNumber & " Visual Basic 2010"
@@ -53,6 +53,8 @@
 #End If
     End Sub
 
+    Public flaMEIcon As Icon
+
     Public Undo_Limit As UInteger = 256UI
 
     Public AutoSave_MinInterval_s As UInteger = 180UI
@@ -61,8 +63,6 @@
     Public DirectPointer As Boolean = True
 
     Public GLTexture_NoTile As Integer
-    'Public GLTexture_BlackTile As Integer
-    'Public GLTexture_WhiteTile As Integer
     Public GLTexture_OverflowTile As Integer
 
     Public SunHeading As Double = 157.5# * RadOf1Deg
@@ -155,7 +155,7 @@
     End Enum
     Public Tool As enumTool = enumTool.Texture_Brush
 
-    Public SelectedTexture As Integer = -1
+    Public SelectedTextureNum As Integer = -1
     Public TextureOrientation As New sTileOrientation(False, False, False)
 
     Public SelectedTerrain As clsPainter.clsTerrain
@@ -170,6 +170,12 @@
 
     Public Const TileTypeNum_Water As Integer = 7
     Public Const TileTypeNum_Cliff As Integer = 8
+
+    Public Enum enumObjectRotateMode As Byte
+        None
+        Walls
+        All
+    End Enum
 
     Public Structure sResult
         Dim Success As Boolean
@@ -428,7 +434,7 @@
 #End If
     End Function
 
-    Public Function NewMapQuestion() As Boolean
+    Public Function LoseMapQuestion() As Boolean
 
         Return (MsgBox("Lose any unsaved changes to this map?", MsgBoxStyle.Question + MsgBoxStyle.OkCancel, "") = MsgBoxResult.Ok)
     End Function

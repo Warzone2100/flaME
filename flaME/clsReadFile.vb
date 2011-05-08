@@ -67,6 +67,26 @@ Public Class clsReadFile
         End If
     End Function
 
+    Function Get_U8_Array(ByRef Output() As Byte) As Boolean
+
+        If Output Is Nothing Then
+            Return False
+        End If
+
+        Dim Upper As Integer = Output.GetUpperBound(0)
+        Dim Count As Integer = Upper + 1
+        If FindLength(Count) Then
+            Dim Num As Integer
+            For Num = 0 To Upper
+                Output(Num) = Bytes(BytesPosition + Num)
+            Next
+            BytesPosition += Count
+            Return True
+        Else
+            Return False
+        End If
+    End Function
+
     Function Get_U16(ByRef Output As UShort) As Boolean
 
         If FindLength(2) Then
@@ -253,5 +273,21 @@ Public Class clsReadFile
             BytesPosition = NewPosition - FilePosition
             Return True
         End If
+    End Function
+
+    Public Function IsEOF() As Boolean
+
+        Select Case Type
+            Case enumStreamType.FileStream
+                Return (FilePosition + BytesPosition = FileStream.Length)
+            Case enumStreamType.FixedBytes
+                Return (BytesPosition = ByteCount)
+            Case enumStreamType.ZipStream
+                Stop
+                Return False
+            Case Else
+                Stop
+                Return False
+        End Select
     End Function
 End Class

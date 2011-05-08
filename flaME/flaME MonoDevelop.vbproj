@@ -11,7 +11,7 @@
     <RootNamespace>flaME</RootNamespace>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <ReleaseVersion>1.17</ReleaseVersion>
+    <ReleaseVersion>1.19</ReleaseVersion>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
     <AssemblyName>flaME</AssemblyName>
   </PropertyGroup>
@@ -72,15 +72,13 @@
     <Compile Include="PathfinderNetwork.vb" />
     <Compile Include="PathfinderNode.vb" />
     <Compile Include="clsPainter.vb" />
+    <Compile Include="clsResult.vb" />
+    <Compile Include="frmWarnings.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.5.452, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>OpenTK.dll</HintPath>
@@ -88,6 +86,10 @@
     <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>OpenTK.GLControl.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

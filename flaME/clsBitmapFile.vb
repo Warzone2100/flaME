@@ -18,12 +18,16 @@ Public Class clsBitmapFile
         Load.Problem = ""
         Load.Success = False
 
+        Dim tmpBitmap As Bitmap
+
         Try
-            CurrentBitmap = New Bitmap(Path)
+            tmpBitmap = New Bitmap(Path)
         Catch ex As Exception
             Load.Problem = ex.Message
             Exit Function
         End Try
+
+        CurrentBitmap = New Bitmap(tmpBitmap) 'copying the bitmap is needed so it doesn't hold on to the file
 
         Load.Success = True
     End Function

@@ -36,7 +36,6 @@ Partial Class frmSplash
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "frmSplash"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-        Me.Text = "flaME Loading"
         Me.TransparencyKey = System.Drawing.Color.White
         Me.ResumeLayout(False)
 

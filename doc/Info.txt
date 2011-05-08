@@ -69,7 +69,8 @@ Selection toolbar
 The "Copy Selection" button makes a copy of the selected area in your computer's memory. The rotation/flip buttons will perform actions on the stored part of the map, and the effect will not be visible until you paste the selection back onto the map.
 
 Rotation
-When rotating a copied selection to 90 degrees, non-square objects, such as a cyborg factory, will become wrongly aligned on the map, and should be moved again manually.
+With the paste option "Rotate Walls Only" ticked, walls that are defensive, such as a scavenger corner gun tower, are ignored and need to be rotated manually. Walls that end up at 180 or 270 degrees of rotation will be set to 0 and 90, but only with the "Rotate Walls Only" option.
+When rotating objects in a copied selection by 90 degrees, non-square objects, such as a cyborg factory, will become wrongly aligned on the map, and should be moved again manually.
 
 Gateways
 --------

@@ -115,9 +115,9 @@
         Return Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Y * XYZ_dbl.Y + XYZ_dbl.Z * XYZ_dbl.Z)
     End Function
 
-    Sub GetDist(ByVal XYZ_dbl As sXYZ_dbl, ByRef Output_Dist As Double)
+    Sub GetDist(ByVal XYZ_dbl As sXYZ_dbl, ByRef ResultDist As Double)
 
-        Output_Dist = Math.Sqrt(XYZ_dbl.Z * XYZ_dbl.Z + XYZ_dbl.Y * XYZ_dbl.Y + XYZ_dbl.X * XYZ_dbl.X)
+        ResultDist = Math.Sqrt(XYZ_dbl.Z * XYZ_dbl.Z + XYZ_dbl.Y * XYZ_dbl.Y + XYZ_dbl.X * XYZ_dbl.X)
     End Sub
 
     Sub GetAnglePY(ByVal XYZ_dbl As sXYZ_dbl, ByRef Output_AnglePY As sAnglePY)

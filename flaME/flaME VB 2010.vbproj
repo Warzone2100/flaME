@@ -46,8 +46,8 @@
     <ProductName>flaME</ProductName>
     <PublisherName>flaME</PublisherName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>58</ApplicationRevision>
-    <ApplicationVersion>1.18.0.58</ApplicationVersion>
+    <ApplicationRevision>59</ApplicationRevision>
+    <ApplicationVersion>1.19.0.59</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -76,8 +76,7 @@
   </PropertyGroup>
   <PropertyGroup />
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.5.452, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>.\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL" />
@@ -107,6 +106,7 @@
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
     <Compile Include="clsReadFile.vb" />
+    <Compile Include="clsResult.vb" />
     <Compile Include="clsWriteFile.vb" />
     <Compile Include="clsBitmapFile.vb" />
     <Compile Include="clsGeneratorMap.vb" />
@@ -115,6 +115,12 @@
       <DependentUpon>frmGenerator.vb</DependentUpon>
     </Compile>
     <Compile Include="frmGenerator.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmWarnings.Designer.vb">
+      <DependentUpon>frmWarnings.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmWarnings.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GLFont.vb" />
@@ -136,6 +142,11 @@
     </Compile>
     <Compile Include="Application.vb" />
     <Compile Include="modGenerator.vb" />
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="PathfinderConnection.vb" />
     <Compile Include="PathfinderLayer.vb" />
     <Compile Include="PathfinderNetwork.vb" />
@@ -213,8 +224,16 @@
     <EmbeddedResource Include="frmSplash.resx">
       <DependentUpon>frmSplash.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmWarnings.resx">
+      <DependentUpon>frmWarnings.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmWZLoad.resx">
       <DependentUpon>frmWZLoad.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="My Project\Resources.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

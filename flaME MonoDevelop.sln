@@ -34,7 +34,7 @@ Global
 		$3.scope = text/plain
 		$0.StandardHeader = $4
 		$4.Text = 
-		$4.inheritsSet = Apache2License
+		$4.IncludeInNewFiles = True
 		$0.VersionControlPolicy = $5
 		$5.inheritsSet = Mono
 		$0.ChangeLogPolicy = $6
@@ -42,6 +42,6 @@ Global
 		$6.MessageStyle = $7
 		$7.LineAlign = 0
 		$6.inheritsSet = Mono
-		version = 1.17
+		version = 1.19
 	EndGlobalSection
 EndGlobal

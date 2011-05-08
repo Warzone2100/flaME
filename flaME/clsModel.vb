@@ -184,7 +184,7 @@ Reeval:
                         SplitText(0) = ""
                         GotText = False
                         For B = 0 To strTemp.Length - 1
-                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> Chr(9) Then
+                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> ControlChars.Tab Then
                                 GotText = True
                                 SplitText(C) &= strTemp.Chars(B)
                             Else
@@ -226,7 +226,7 @@ Reeval:
                         SplitText(0) = ""
                         GotText = False
                         For B = 0 To strTemp.Length - 1
-                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> Chr(9) Then
+                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> ControlChars.Tab Then
                                 GotText = True
                                 SplitText(C) &= strTemp.Chars(B)
                             Else
@@ -288,7 +288,7 @@ Reeval:
                         SplitText(0) = ""
                         GotText = False
                         For B = 0 To strTemp.Length - 1
-                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> Chr(9) Then
+                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> ControlChars.Tab Then
                                 GotText = True
                                 SplitText(C) &= strTemp.Chars(B)
                             Else

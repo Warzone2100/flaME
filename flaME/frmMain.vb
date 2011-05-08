@@ -42,6 +42,7 @@ Public Class frmMain
         SetDataSubDirs()
 
         InitializeComponent() 'required for monodevelop too, depends on subdirs being set
+
         NewPlayerNum = New ctrlPlayerNum
         ObjectPlayerNum = New ctrlPlayerNum
 
@@ -51,7 +52,7 @@ Public Class frmMain
 
     Private Sub frmMain_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
-        If NewMapQuestion() Then
+        If LoseMapQuestion() Then
             Settings_Write()
         Else
             e.Cancel = True
@@ -68,6 +69,8 @@ Public Class frmMain
             Exit Sub
         End If
 
+        Dim InitializeResult As New clsResult
+
         InitializeDone = True
 
         InitializeDelay.Enabled = False
@@ -81,7 +84,11 @@ Public Class frmMain
         AddHandler nudHeightBrushRadius.ValueChanged, AddressOf nudHeightBrushRadius_LostFocus
         AddHandler nudTextureBrushRadius.ValueChanged, AddressOf nudTextureBrushRadius_LostFocus
 #End If
-        Dim flaMEIcon As New Icon("flaME.ico")
+        Try
+            flaMEIcon = New Icon(My.Application.Info.DirectoryPath & OSPathSeperator & "flaME.ico")
+        Catch ex As Exception
+            InitializeResult.Warning_Add("flaME icon is missing; " & ex.Message)
+        End Try
         Icon = flaMEIcon
         frmCompileInstance.Icon = flaMEIcon
         frmMapTexturerInstance.Icon = flaMEIcon
@@ -93,8 +100,6 @@ Public Class frmMain
 		'if using splash in monodevelop
         frmSplashInstance.BackgroundImage = New Bitmap(InterfaceImagesPath & "splash.png")
 #End If
-
-        Dim Result As sResult
 
         NewPlayerNum.Left = 112
         NewPlayerNum.Top = 10
@@ -164,19 +169,14 @@ Public Class frmMain
         View.BGColor.Green = 0.5F
         View.BGColor.Blue = 0.25F
 
-        Result = LoadTilesets()
-        If Not Result.Success Then
-            MsgBox("Error loading tilesets: " & Result.Problem)
-        End If
+        InitializeResult.AppendAsWarning(LoadTilesets(), "Load tilesets; ")
+
         cmbTileset_CreateItems(-1)
 
         NoTile_Texture_Load()
         cmbTileType_Refresh()
 
-        Result = DataLoad(ObjectDataPath)
-        If Not Result.Success Then
-            MsgBox("Error loading object data: " & Result.Problem)
-        End If
+        InitializeResult.AppendAsWarning(DataLoad(ObjectDataPath), "Load object data; ")
 
         CreateGeneratorTilesets()
         CreatePainterArizona()
@@ -242,10 +242,8 @@ Public Class frmMain
 
         If My.Application.CommandLineArgs.Count >= 1 Then
             Dim Path As String = My.Application.CommandLineArgs(0)
-            Result = Load_Map(Path)
-            If Not Result.Success Then
-                MsgBox("Error opening command-line map file at " & Path & ". Reason; " & Result.Problem)
-            End If
+
+            Load_MainMap(Path)
         End If
 
         TextureView.DrawView_SetEnabled(True)
@@ -255,6 +253,12 @@ Public Class frmMain
         frmSplashInstance.Hide()
         Show()
 #End If
+
+        If InitializeResult.HasWarnings Then
+            Dim WarningForm As New frmWarnings(InitializeResult, "Startup Result", flaMEIcon)
+            WarningForm.Show()
+            WarningForm.Activate()
+        End If
     End Sub
 
     Private InitializeDelay As Timer
@@ -724,30 +728,22 @@ Public Class frmMain
         InputControlCount += 1
     End Function
 
-    Function Load_Map(ByVal Path As String) As sResult
-        Dim SplitPath As New sSplitPath(Path)
-        Dim NewMap As New clsMap
-        Dim Result As sResult
+    Private Sub Load_MainMap(ByVal Path As String)
+        Dim NewMap As clsMap = Nothing
+        Dim ReturnResult As New clsResult
 
-        If SplitPath.FileExtension = "lnd" Then
-            Result = NewMap.Load_LND(Path)
-        ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
-            Result = NewMap.Load_FME(Path)
-            If Result.Success Then
-                NewMap.QuickSave_Path = Path
-                tsbSave.Enabled = False
+        ReturnResult = Load_Map(Path, NewMap)
+
+        If ReturnResult.HasProblems Then
+            If NewMap IsNot Nothing Then
+                NewMap.Deallocate()
             End If
-        ElseIf SplitPath.FileExtension = "wz" Then
-            Result = NewMap.Load_WZ(Path)
         Else
-            NewMap.Deallocate()
-            Result.Success = False
-            Result.Problem = "File extension not recognised."
-        End If
-        If Result.Success Then
             Map.Deallocate()
 
             Map = NewMap
+
+            Map.QuickSave_Path = Path
 
             Resize_Update()
             HeightMultiplier_Update()
@@ -757,32 +753,59 @@ Public Class frmMain
             Map.SectorAll_GL_Update()
             View.LookAtTile(Map.TerrainSize.X / 2.0#, Map.TerrainSize.Y / 2.0#)
 
+            tsbSave.Enabled = False
+
             TextureView.ScrollUpdate()
             TextureView.DrawViewLater()
             DrawView()
             Title_Text_Update()
-        Else
-            NewMap.Deallocate()
         End If
-        Return Result
-    End Function
+        If ReturnResult.HasWarnings Then
+            Dim WarningsForm As New frmWarnings(ReturnResult, "Load Map", flaMEIcon)
+            WarningsForm.Show()
+            WarningsForm.Activate()
+        End If
+    End Sub
 
-    Function Load_Map_As_Copy(ByVal Path As String) As sResult
+    Private Function Load_Map(ByVal Path As String, ByRef ResultMap As clsMap) As clsResult
+        Load_Map = New clsResult
+
         Dim SplitPath As New sSplitPath(Path)
-        Dim NewMap As New clsMap
         Dim Result As sResult
+        Dim ReturnResult As New clsResult
+
+        ResultMap = New clsMap
 
         If SplitPath.FileExtension = "lnd" Then
-            Result = NewMap.Load_LND(Path)
+            Result = ResultMap.Load_LND(Path)
+            If Not Result.Success Then
+                ReturnResult.Problem_Add("Load LND; " & Result.Problem)
+            End If
         ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
-            Result = NewMap.Load_FME(Path)
+            ReturnResult.Append(ResultMap.Load_FME(Path), "")
         ElseIf SplitPath.FileExtension = "wz" Then
-            Result = NewMap.Load_WZ(Path)
+            Result = ResultMap.Load_WZ(Path)
+            If Not Result.Success Then
+                ReturnResult.Problem_Add("Load LND; " & Result.Problem)
+            End If
         Else
-            Result.Success = False
-            Result.Problem = "File extension not recognised."
+            ReturnResult.Problem_Add("File extension not recognised.")
         End If
-        If Result.Success Then
+
+        Return ReturnResult
+    End Function
+
+    Function Load_Map_As_Copy(ByVal Path As String) As clsResult
+        Dim NewMap As clsMap = Nothing
+        Dim Result As clsResult
+
+        Result = Load_Map(Path, NewMap)
+
+        If Result.HasProblems Then
+            If NewMap IsNot Nothing Then
+                NewMap.Deallocate()
+            End If
+        Else
             If Copied_Map IsNot Nothing Then
                 Copied_Map.Deallocate()
                 Copied_Map = Nothing
@@ -796,25 +819,20 @@ Public Class frmMain
             Copied_Map = NewMap
 
             Copied_Map_Changed()
-        Else
-            NewMap.Deallocate()
         End If
+
         Return Result
     End Function
 
     Sub Load_Map_Prompt()
 
-        If NewMapQuestion() Then
+        If LoseMapQuestion() Then
             OpenFileDialog.FileName = ""
             OpenFileDialog.Filter = "Warzone Map Files (*.fme, *.wz, *.lnd)|*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
             If OpenFileDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
                 Exit Sub
             End If
-            Dim Result As sResult
-            Result = Load_Map(OpenFileDialog.FileName)
-            If Not Result.Success Then
-                MsgBox("Failed to open the map; " & Result.Problem)
-            End If
+            Load_MainMap(OpenFileDialog.FileName)
         End If
     End Sub
 
@@ -930,7 +948,7 @@ Error_Exit:
         If NewTileset IsNot Map.Tileset Then
             Map.Tileset = NewTileset
             If Map.Tileset IsNot Nothing Then
-                SelectedTexture = Math.Min(0, Map.Tileset.TileCount - 1)
+                SelectedTextureNum = Math.Min(0, Map.Tileset.TileCount - 1)
             End If
             Map.TileType_Reset()
 
@@ -1261,7 +1279,7 @@ Error_Exit:
 
     Sub New_Prompt()
 
-        If NewMapQuestion() Then
+        If LoseMapQuestion() Then
             NewMap()
         End If
     End Sub
@@ -1752,7 +1770,7 @@ Error_Exit:
             Exit Sub
         End If
 
-        Copied_Map.Rotate_Clockwise(menuRotateUnits.Checked)
+        Copied_Map.Rotate_Clockwise(frmMainInstance.PasteRotateObjects)
     End Sub
 
     Private Sub tsbSelectionRotateAnticlockwise_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionRotateAnticlockwise.Click
@@ -1761,7 +1779,7 @@ Error_Exit:
             Exit Sub
         End If
 
-        Copied_Map.Rotate_Anticlockwise(menuRotateUnits.Checked)
+        Copied_Map.Rotate_Anticlockwise(frmMainInstance.PasteRotateObjects)
     End Sub
 
     Private Sub menuMiniShowTex_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuMiniShowTex.Click
@@ -1878,9 +1896,9 @@ Error_Exit:
         If Not cmbTileType.Enabled Then Exit Sub
         If Map Is Nothing Then Exit Sub
         If cmbTileType.SelectedIndex < 0 Then Exit Sub
-        If SelectedTexture < 0 Or SelectedTexture >= Map.Tileset.TileCount Then Exit Sub
+        If SelectedTextureNum < 0 Or SelectedTextureNum >= Map.Tileset.TileCount Then Exit Sub
 
-        Map.Tile_TypeNum(SelectedTexture) = cmbTileType.SelectedIndex
+        Map.Tile_TypeNum(SelectedTextureNum) = cmbTileType.SelectedIndex
 
         TextureView.DrawViewLater()
     End Sub
@@ -2042,23 +2060,24 @@ Error_Exit:
         Load_Autosave_Prompt()
     End Sub
 
-    Sub Load_Autosave_Prompt()
+    Private Sub Load_Autosave_Prompt()
 
         If Not IO.Directory.Exists(AutoSavePath) Then
             MsgBox("Autosave directory does not exist. There are no autosaves.", MsgBoxStyle.OkOnly, "")
             Exit Sub
         End If
-        If NewMapQuestion() Then
+        If LoseMapQuestion() Then
             OpenFileDialog.FileName = ""
             OpenFileDialog.Filter = "FME Files (*.fme)|*.fme|All Files (*.*)|*.*"
             OpenFileDialog.InitialDirectory = AutoSavePath
             If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then Exit Sub
 
-            Dim NewMap As clsMap
-            Dim Result As sResult
-            NewMap = New clsMap
+            Dim NewMap As New clsMap
+            Dim Result As clsResult
             Result = NewMap.Load_FME(OpenFileDialog.FileName)
-            If Result.Success Then
+            If Result.HasProblems Then
+                NewMap.Deallocate()
+            Else
                 Map.Deallocate()
 
                 Map = NewMap
@@ -2075,9 +2094,11 @@ Error_Exit:
                 TextureView.DrawViewLater()
                 DrawView()
                 Title_Text_Update()
-            Else
-                NewMap.Deallocate()
-                MsgBox("Autosave load error; " & Result.Problem)
+            End If
+            If Result.HasWarnings Then
+                Dim WarningsForm As New frmWarnings(Result, "Load Map", flaMEIcon)
+                WarningsForm.Show()
+                WarningsForm.Activate()
             End If
         End If
     End Sub
@@ -2097,9 +2118,9 @@ Error_Exit:
         Dim SplitPath As New sSplitPath(Map.QuickSave_Path)
 
         If SplitPath.FileTitle = "" Then
-            Text = "flaME"
+            Text = "flaME " & ProgramVersionNumber
         Else
-            Text = SplitPath.FileTitleWithoutExtension & " - flaME"
+            Text = SplitPath.FileTitleWithoutExtension & " - flaME " & ProgramVersionNumber
         End If
     End Sub
 
@@ -2393,10 +2414,12 @@ Error_Exit:
             Exit Sub
         End If
 
-        Dim Result As sResult
+        Dim Result As clsResult
         Result = Load_Map_As_Copy(OpenFileDialog.FileName)
-        If Not Result.Success Then
-            MsgBox("Failed to import the map; " & Result.Problem)
+        If Result.HasWarnings Then
+            Dim WarningsForm As New frmWarnings(Result, "Load Map", flaMEIcon)
+            WarningsForm.Show()
+            WarningsForm.Activate()
         End If
     End Sub
 
@@ -2421,7 +2444,7 @@ Error_Exit:
             Exit Sub
         End If
 
-        Copied_Map.FlipX(menuRotateUnits.Checked)
+        Copied_Map.FlipX(frmMainInstance.PasteRotateObjects)
     End Sub
 
     Public Sub SetMenuPointerModeChecked()
@@ -2519,15 +2542,14 @@ Error_Exit:
         End If
     End Sub
 
-    Private Function LoadTilesets() As sResult
-        LoadTilesets.Problem = ""
-        LoadTilesets.Success = False
+    Private Function LoadTilesets() As clsResult
+        LoadTilesets = New clsResult
 
         Dim TilesetDirs() As String
         Try
             TilesetDirs = IO.Directory.GetDirectories(TilesetsPath)
         Catch ex As Exception
-            LoadTilesets.Problem = ex.Message
+            LoadTilesets.Problem_Add("Error reading tilesets directory; " & ex.Message)
             Exit Function
         End Try
         Dim A As Integer
@@ -2541,18 +2563,17 @@ Error_Exit:
         TilesetCount = 0
         ReDim Tilesets(TilesetDirs.GetUpperBound(0))
 
-        Dim Result As sResult
+        Dim Result As clsResult
         Dim Path As String
 
         For A = 0 To TilesetDirs.GetUpperBound(0)
             Path = TilesetDirs(A)
             Tilesets(TilesetCount) = New clsTileset
             Result = Tilesets(TilesetCount).LoadDirectory(Path)
-            If Result.Success Then
+            LoadTilesets.AppendAsWarning(Result, "Loading tileset directory " & ControlChars.Quote & Path & ControlChars.Quote & "; ")
+            If Not Result.HasProblems Then
                 Tilesets(TilesetCount).Num = TilesetCount
                 TilesetCount += 1
-            Else
-                MsgBox("Failed loading tileset directory " & ControlChars.Quote & Path & ControlChars.Quote & "; " & Result.Problem)
             End If
         Next
 
@@ -2578,16 +2599,14 @@ Error_Exit:
         Next
 
         If Tileset_Arizona Is Nothing Then
-            MsgBox("Arizona tileset is missing.", MsgBoxStyle.OkOnly, "")
+            LoadTilesets.Warning_Add("Arizona tileset is missing.")
         End If
         If Tileset_Urban Is Nothing Then
-            MsgBox("Urban tileset is missing.", MsgBoxStyle.OkOnly, "")
+            LoadTilesets.Warning_Add("Urban tileset is missing.")
         End If
         If Tileset_Rockies Is Nothing Then
-            MsgBox("Rocky Mountains tileset is missing.", MsgBoxStyle.OkOnly, "")
+            LoadTilesets.Warning_Add("Rocky Mountains tileset is missing.")
         End If
-
-        LoadTilesets.Success = True
     End Function
 
     Private Sub lstAutoTexture_SelectedIndexChanged_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstAutoTexture.SelectedIndexChanged
@@ -2871,6 +2890,8 @@ Error_Exit:
         Me.tsbSelectionCopy = New System.Windows.Forms.ToolStripButton()
         Me.tsbSelectionPasteOptions = New System.Windows.Forms.ToolStripDropDownButton()
         Me.menuRotateUnits = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuRotateWalls = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuRotateNothing = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator10 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuSelPasteHeights = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSelPasteTextures = New System.Windows.Forms.ToolStripMenuItem()
@@ -2943,6 +2964,7 @@ Error_Exit:
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
         Me.FontDialog = New System.Windows.Forms.FontDialog()
+        Me.chkInvalidTiles = New System.Windows.Forms.CheckBox()
         Me.btnGenerator = New System.Windows.Forms.Button()
         Me.menuMiniShowCliffs = New System.Windows.Forms.ToolStripMenuItem()
         'CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -3300,6 +3322,7 @@ Error_Exit:
         'tpAutoTexture
         '
         Me.tpAutoTexture.AutoScroll = True
+        Me.tpAutoTexture.Controls.Add(Me.chkInvalidTiles)
         Me.tpAutoTexture.Controls.Add(Me.tabAutoTextureBrushShape)
         Me.tpAutoTexture.Controls.Add(Me.chkAutoTexSetHeight)
         Me.tpAutoTexture.Controls.Add(Me.chkCliffTris)
@@ -4858,7 +4881,7 @@ Error_Exit:
         'tsbSelectionPasteOptions
         '
         Me.tsbSelectionPasteOptions.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
+        Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.menuRotateWalls, Me.menuRotateNothing, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
         Me.tsbSelectionPasteOptions.Image = New Bitmap(InterfaceImagesPath & "selectionpasteoptions.png")
         Me.tsbSelectionPasteOptions.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPasteOptions.Name = "tsbSelectionPasteOptions"
@@ -4867,10 +4890,24 @@ Error_Exit:
         '
         'menuRotateUnits
         '
-        Me.menuRotateUnits.CheckOnClick = True
         Me.menuRotateUnits.Name = "menuRotateUnits"
         Me.menuRotateUnits.Size = New System.Drawing.Size(244, 24)
-        Me.menuRotateUnits.Text = "Rotate Units"
+        Me.menuRotateUnits.Text = "Rotate All Objects"
+        '
+        'menuRotateWalls
+        '
+        Me.menuRotateWalls.Checked = True
+        Me.menuRotateWalls.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.menuRotateWalls.Name = "menuRotateWalls"
+        Me.menuRotateWalls.Size = New System.Drawing.Size(244, 24)
+        Me.menuRotateWalls.Text = "Rotate Walls Only"
+        '
+        'menuRotateNothing
+        '
+        Me.menuRotateNothing.Name = "menuRotateNothing"
+        Me.menuRotateNothing.Size = New System.Drawing.Size(244, 24)
+        Me.menuRotateNothing.Text = "No Object Rotation"
+        '
         '
         'ToolStripSeparator10
         '
@@ -5395,12 +5432,24 @@ Error_Exit:
         Me.menuMiniShowCliffs.Size = New System.Drawing.Size(181, 24)
         Me.menuMiniShowCliffs.Text = "Show Cliffs"
         '
+        'chkInvalidTiles
+        '
+        Me.chkInvalidTiles.Checked = True
+        Me.chkInvalidTiles.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.chkInvalidTiles.Location = New System.Drawing.Point(183, 59)
+        Me.chkInvalidTiles.Margin = New System.Windows.Forms.Padding(4)
+        Me.chkInvalidTiles.Name = "chkInvalidTiles"
+        Me.chkInvalidTiles.Size = New System.Drawing.Size(152, 21)
+        Me.chkInvalidTiles.TabIndex = 38
+        Me.chkInvalidTiles.Text = "Make Invalid Tiles"
+        Me.chkInvalidTiles.UseCompatibleTextRendering = True
+        Me.chkInvalidTiles.UseVisualStyleBackColor = True
+        '
         'frmMain
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.ClientSize = New System.Drawing.Size(1296, 655)
         Me.Controls.Add(Me.TableLayoutPanel5)
-        Me.Icon = New icon("flaME.ico")
         Me.MainMenuStrip = Me.menuMain
         Me.Margin = New System.Windows.Forms.Padding(4)
         Me.Name = "frmMain"
@@ -5691,5 +5740,34 @@ Error_Exit:
     Friend WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents btnGenerator As System.Windows.Forms.Button
     Friend WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents chkInvalidTiles As System.Windows.Forms.CheckBox
+    Friend WithEvents menuRotateWalls As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuRotateNothing As System.Windows.Forms.ToolStripMenuItem
 #End If
+
+    Public PasteRotateObjects As enumObjectRotateMode = enumObjectRotateMode.Walls
+
+    Private Sub menuRotateUnits_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuRotateUnits.Click
+
+        PasteRotateObjects = enumObjectRotateMode.All
+        menuRotateUnits.Checked = True
+        menuRotateWalls.Checked = False
+        menuRotateNothing.Checked = False
+    End Sub
+
+    Private Sub menuRotateWalls_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuRotateWalls.Click
+
+        PasteRotateObjects = enumObjectRotateMode.Walls
+        menuRotateUnits.Checked = False
+        menuRotateWalls.Checked = True
+        menuRotateNothing.Checked = False
+    End Sub
+
+    Private Sub menuRotateNothing_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuRotateNothing.Click
+
+        PasteRotateObjects = enumObjectRotateMode.None
+        menuRotateUnits.Checked = False
+        menuRotateWalls.Checked = False
+        menuRotateNothing.Checked = True
+    End Sub
 End Class

@@ -25,40 +25,35 @@
     End Sub
 
     Private Sub btnCompile_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnCompile.Click
-        Dim Result As sResult
+        Dim ValidateResult As New clsResult
+        Dim A As Integer
 
-        ValidateMap_WaterTris()
-        Result = ValidateMap()
-        If Not Result.Success Then
-            MsgBox("There is a problem with the map: " & Result.Problem, MsgBoxStyle.OkOnly, "")
-            Exit Sub
+        A = ValidateMap_WaterTris()
+        If A > 0 Then
+            ValidateResult.Warning_Add(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
         End If
+        ValidateResult.Append(ValidateMap, "")
         If rdoMulti.Checked Then
             Dim PlayerCount As Integer
             Dim MapName As String
             Dim IsBetaPlayerFormat As Boolean = chkNewPlayerFormat.Checked
             Dim License As String = cmbLicense.Text
-            Dim A As Integer
             Dim B As Integer
+
+            ValidateResult.Append(ValidateMap_UnitPositions, "")
 
             PlayerCount = CInt(Clamp(Val(txtMultiPlayers.Text), 0, CDbl(Integer.MaxValue)))
 
             If PlayerCount < 2 Or PlayerCount > 10 Then
-                MsgBox("The number of players must be from 2 to 10." & Result.Problem, MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("The number of players must be from 2 to 10.")
             End If
             If Not IsBetaPlayerFormat Then
                 If Not (PlayerCount = 2 Or PlayerCount = 4 Or PlayerCount = 8) Then
-                    MsgBox("You must enable support for this number of players." & Result.Problem, MsgBoxStyle.OkOnly, "")
-                    Exit Sub
+                    ValidateResult.Problem_Add("You must enable support for this number of players.")
                 End If
             End If
 
-            Result = ValidateMap_Multiplayer(PlayerCount)
-            If Not Result.Success Then
-                MsgBox("There is a problem with the map for multiplayer: " & Result.Problem, MsgBoxStyle.OkOnly, "")
-                Exit Sub
-            End If
+            ValidateResult.Append(ValidateMap_Multiplayer(PlayerCount), "")
 
             MapName = txtName.Text
             For A = 0 To MapName.Length - 1
@@ -68,76 +63,91 @@
                 End If
             Next
             If A < MapName.Length Then
-                MsgBox("The map's name must contain only letters, numbers, underscores and hyphens, and must begin with a letter.", MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("The map's name must contain only letters, numbers, underscores and hyphens, and must begin with a letter.")
             End If
             If MapName.Length < 1 Or MapName.Length > 16 Then
-                MsgBox("Map name must be from 1 to 16 characters.", MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("Map name must be from 1 to 16 characters.")
             End If
 
             If License = "" Then
-                MsgBox("Please enter a valid license.", MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("Enter a valid license.")
             End If
 
-            SaveFileDialog.FileName = PlayerCount & "c-" & MapName
-            SaveFileDialog.Filter = "WZ Files (*.wz)|*.wz"
-            If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-                Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
-                WriteWZArgs.MapName = MapName
-                WriteWZArgs.Path = SaveFileDialog.FileName
-                WriteWZArgs.Overwrite = True
-                WriteWZArgs.ScrollMin.X = Clamp(Val(txtCampMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-                WriteWZArgs.ScrollMin.Y = Clamp(Val(txtCampMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-                WriteWZArgs.ScrollMax.X = Clamp(Val(txtCampMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-                WriteWZArgs.ScrollMax.Y = Clamp(Val(txtCampMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-                WriteWZArgs.Multiplayer = New clsMap.sWrite_WZ_Args.clsMultiplayer
-                WriteWZArgs.Multiplayer.AuthorName = txtAuthor.Text
-                WriteWZArgs.Multiplayer.PlayerCount = PlayerCount
-                WriteWZArgs.Multiplayer.IsBetaPlayerFormat = IsBetaPlayerFormat
-                WriteWZArgs.Multiplayer.License = License
-                WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Multiplayer
-                Result = Map.Write_WZ(WriteWZArgs)
-                If Not Result.Success Then
-                    MsgBox("There was a problem saving the map; " & Result.Problem, MsgBoxStyle.OkOnly, "")
-                    Exit Sub
-                Else
-                    Hide()
+            If ValidateResult.HasWarnings Then
+                Dim tmpWarningsForm As New frmWarnings(ValidateResult, "Compile Multiplayer Validation", flaMEIcon)
+                tmpWarningsForm.Show()
+                tmpWarningsForm.Activate()
+            End If
+            If Not ValidateResult.HasProblems Then
+                SaveFileDialog.FileName = PlayerCount & "c-" & MapName
+                SaveFileDialog.Filter = "WZ Files (*.wz)|*.wz"
+                If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+                    Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
+                    WriteWZArgs.MapName = MapName
+                    WriteWZArgs.Path = SaveFileDialog.FileName
+                    WriteWZArgs.Overwrite = True
+                    WriteWZArgs.ScrollMin.X = Clamp(Val(txtCampMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
+                    WriteWZArgs.ScrollMin.Y = Clamp(Val(txtCampMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
+                    WriteWZArgs.ScrollMax.X = Clamp(Val(txtCampMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+                    WriteWZArgs.ScrollMax.Y = Clamp(Val(txtCampMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+                    WriteWZArgs.Multiplayer = New clsMap.sWrite_WZ_Args.clsMultiplayer
+                    WriteWZArgs.Multiplayer.AuthorName = txtAuthor.Text
+                    WriteWZArgs.Multiplayer.PlayerCount = PlayerCount
+                    WriteWZArgs.Multiplayer.IsBetaPlayerFormat = IsBetaPlayerFormat
+                    WriteWZArgs.Multiplayer.License = License
+                    WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Multiplayer
+                    Dim SaveResult As sResult
+                    SaveResult = Map.Write_WZ(WriteWZArgs)
+                    If Not SaveResult.Success Then
+                        MsgBox("There was a problem saving the map; " & SaveResult.Problem, MsgBoxStyle.OkOnly, "")
+                        Exit Sub
+                    Else
+                        Hide()
+                    End If
                 End If
             End If
         ElseIf rdoCamp.Checked Then
+
+            ValidateResult.AppendAsWarning(ValidateMap_UnitPositions, "")
+
             Dim MapName As String
             Dim TypeNum As Integer
+
             MapName = txtName.Text
             If MapName.Length < 1 Then
-                MsgBox("Enter a name for the campaign files.", MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("Enter a name for the campaign files.")
             End If
             TypeNum = cmbCampType.SelectedIndex
             If TypeNum < 0 Or TypeNum > 2 Then
-                MsgBox("Select a campaign type.", MsgBoxStyle.OkOnly, "")
-                Exit Sub
+                ValidateResult.Problem_Add("Select a campaign type.")
             End If
-            If FolderBrowserDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-                Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
-                WriteWZArgs.MapName = MapName
-                WriteWZArgs.Path = FolderBrowserDialog.SelectedPath
-                WriteWZArgs.Overwrite = False
-                WriteWZArgs.ScrollMin.X = Clamp(Val(txtCampMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-                WriteWZArgs.ScrollMin.Y = Clamp(Val(txtCampMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-                WriteWZArgs.ScrollMax.X = Clamp(Val(txtCampMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-                WriteWZArgs.ScrollMax.Y = Clamp(Val(txtCampMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-                WriteWZArgs.Campaign = New clsMap.sWrite_WZ_Args.clsCampaign
-                WriteWZArgs.Campaign.GAMTime = Clamp(Val(txtCampTime.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-                WriteWZArgs.Campaign.GAMType = TypeNum
-                WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Campaign
-                Result = Map.Write_WZ(WriteWZArgs)
-                If Not Result.Success Then
-                    MsgBox("There was a problem saving the map; " & Result.Problem, MsgBoxStyle.OkOnly, "")
-                    Exit Sub
-                Else
-                    Hide()
+            If ValidateResult.HasWarnings Then
+                Dim tmpWarningsForm As New frmWarnings(ValidateResult, "Compile Campaign Validation", flaMEIcon)
+                tmpWarningsForm.Show()
+                tmpWarningsForm.Activate()
+            End If
+            If Not ValidateResult.HasProblems Then
+                If FolderBrowserDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+                    Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
+                    WriteWZArgs.MapName = MapName
+                    WriteWZArgs.Path = FolderBrowserDialog.SelectedPath
+                    WriteWZArgs.Overwrite = False
+                    WriteWZArgs.ScrollMin.X = Clamp(Val(txtCampMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
+                    WriteWZArgs.ScrollMin.Y = Clamp(Val(txtCampMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
+                    WriteWZArgs.ScrollMax.X = Clamp(Val(txtCampMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+                    WriteWZArgs.ScrollMax.Y = Clamp(Val(txtCampMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+                    WriteWZArgs.Campaign = New clsMap.sWrite_WZ_Args.clsCampaign
+                    WriteWZArgs.Campaign.GAMTime = Clamp(Val(txtCampTime.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+                    WriteWZArgs.Campaign.GAMType = TypeNum
+                    WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Campaign
+                    Dim SaveResult As sResult
+                    SaveResult = Map.Write_WZ(WriteWZArgs)
+                    If Not SaveResult.Success Then
+                        MsgBox("There was a problem saving the map; " & SaveResult.Problem, MsgBoxStyle.OkOnly, "")
+                        Exit Sub
+                    Else
+                        Hide()
+                    End If
                 End If
             End If
         End If
@@ -149,16 +159,8 @@
         Hide()
     End Sub
 
-    Private Function ValidateMap_Multiplayer(ByRef PlayerCount As Integer) As sResult
-        ValidateMap_Multiplayer.Success = False
-        ValidateMap_Multiplayer.Problem = ""
-
-        'check number of players
-
-        If PlayerCount < 2 Or PlayerCount > 10 Then
-            ValidateMap_Multiplayer.Problem = "Bad number of players."
-            Exit Function
-        End If
+    Private Function ValidateMap_UnitPositions() As clsResult
+        Dim Result As New clsResult
 
         'check unit positions
 
@@ -193,21 +195,20 @@
                     End If
                     If StartPos.X < 0 Or FinishPos.X >= Map.TerrainSize.X _
                       Or StartPos.Y < 0 Or FinishPos.Y >= Map.TerrainSize.Y Then
-                        ValidateMap_Multiplayer.Problem = "Unit off map at tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & "."
-                        Exit Function
-                    End If
-                    For Z = StartPos.Y To FinishPos.Y
-                        For X = StartPos.X To FinishPos.X
-                            If TileHasUnit(X, Z) Then
-                                ValidateMap_Multiplayer.Problem = "Bad unit overlap on tile " & X & ", " & Z & "."
-                                Exit Function
-                            Else
-                                TileHasUnit(X, Z) = True
-                                TileUnitID(X, Z) = Map.Units(A).ID
-                                TileUnitType(X, Z) = StructureType
-                            End If
+                        Result.Problem_Add("Unit off map at tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & ".")
+                    Else
+                        For Z = StartPos.Y To FinishPos.Y
+                            For X = StartPos.X To FinishPos.X
+                                If TileHasUnit(X, Z) Then
+                                    Result.Problem_Add("Bad unit overlap on tile " & X & ", " & Z & ".")
+                                Else
+                                    TileHasUnit(X, Z) = True
+                                    TileUnitID(X, Z) = Map.Units(A).ID
+                                    TileUnitType(X, Z) = StructureType
+                                End If
+                            Next
                         Next
-                    Next
+                    End If
                 End If
             End If
         Next
@@ -223,49 +224,55 @@
                     CentrePos.Y = Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing)
                     If CentrePos.X < 0 Or CentrePos.X >= Map.TerrainSize.X _
                       Or CentrePos.Y < 0 Or CentrePos.Y >= Map.TerrainSize.Y Then
-                        ValidateMap_Multiplayer.Problem = "Module off map at tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & "."
-                        Exit Function
-                    End If
-                    If TileHasUnit(CentrePos.X, CentrePos.Y) Then
-                        If StructureType = clsUnitType.clsLoadedInfo.enumStructureType.FactoryModule Then
-                            If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.Factory _
-                                  Or TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.VTOLFactory Then
+                        Result.Problem_Add("Module off map at tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & ".")
+                    Else
+                        If TileHasUnit(CentrePos.X, CentrePos.Y) Then
+                            If StructureType = clsUnitType.clsLoadedInfo.enumStructureType.FactoryModule Then
+                                If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.Factory _
+                                      Or TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.VTOLFactory Then
 
-                            Else
-                                ValidateMap_Multiplayer.Problem = "Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & "."
-                                Exit Function
-                            End If
-                        ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerModule Then
-                            If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.PowerGenerator Then
+                                Else
+                                    Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                End If
+                            ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerModule Then
+                                If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.PowerGenerator Then
 
-                            Else
-                                ValidateMap_Multiplayer.Problem = "Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & "."
-                                Exit Function
-                            End If
-                        ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResearchModule Then
-                            If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.Research Then
+                                Else
+                                    Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                End If
+                            ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResearchModule Then
+                                If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.Research Then
 
-                            Else
-                                ValidateMap_Multiplayer.Problem = "Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & "."
-                                Exit Function
+                                Else
+                                    Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                End If
+                            ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResourceExtractor Then
+                                If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.OilResource Then
+
+                                Else
+                                    Result.Problem_Add("Bad extractor on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                End If
                             End If
                         ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResourceExtractor Then
-                            If TileUnitType(CentrePos.X, CentrePos.Y) = clsUnitType.clsLoadedInfo.enumStructureType.OilResource Then
-
-                            Else
-                                ValidateMap_Multiplayer.Problem = "Bad extractor on tile " & CentrePos.X & ", " & CentrePos.Y & "."
-                                Exit Function
-                            End If
+                            'allow derrick with nothing beneath it
+                        Else
+                            Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
                         End If
-                    ElseIf StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResourceExtractor Then
-                        'allow derrick with nothing beneath it
-                    Else
-                        ValidateMap_Multiplayer.Problem = "Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & "."
-                        Exit Function
                     End If
                 End If
             End If
         Next
+
+        Return Result
+    End Function
+
+    Private Function ValidateMap_Multiplayer(ByVal PlayerCount As Integer) As clsResult
+        Dim Result As New clsResult
+
+        If PlayerCount < 2 Or PlayerCount > 10 Then
+            Result.Problem_Add("Unable to evaluate for multiplayer due to bad number of players.")
+            Return Result
+        End If
 
         'check HQs, Trucks and unit counts
 
@@ -274,6 +281,8 @@
         Dim Code As String
         Dim IsFeature As Boolean
         Dim ScavPlayerNum As Integer
+        Dim StructureType As clsUnitType.clsLoadedInfo.enumStructureType
+        Dim A As Integer
 
         ScavPlayerNum = Math.Max(PlayerCount, 7)
 
@@ -296,40 +305,37 @@
             'End If
             If Not IsFeature Then
                 If Map.Units(A).PlayerNum >= PlayerCount And Map.Units(A).PlayerNum <> ScavPlayerNum Then
-                    ValidateMap_Multiplayer.Problem = "An unused player (" & Map.Units(A).PlayerNum & ") has a unit on tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & "."
-                    Exit Function
+                    Result.Problem_Add("An unused player (" & Map.Units(A).PlayerNum & ") has a unit on tile " & Math.Floor(Map.Units(A).Pos.X / TerrainGridSpacing) & ", " & Math.Floor(Map.Units(A).Pos.Z / TerrainGridSpacing) & ".")
                 End If
             End If
         Next
 
         For A = 0 To PlayerCount - 1
             If PlayerHQCount(A) = 0 Then
-                ValidateMap_Multiplayer.Problem = "There is no Command Centre for player " & A & "."
-                Exit Function
+                Result.Problem_Add("There is no Command Centre for player " & A & ".")
             End If
             If PlayerTruckCount(A) = 0 Then
-                ValidateMap_Multiplayer.Problem = "There are no trucks for player " & A & "."
-                Exit Function
+                Result.Problem_Add("There are no trucks for player " & A & ".")
             End If
         Next
 
-        ValidateMap_Multiplayer.Success = True
+        Return Result
     End Function
 
-    Private Function ValidateMap() As sResult
-        ValidateMap.Success = False
-        ValidateMap.Problem = ""
+    Private Function ValidateMap() As clsResult
+        ValidateMap = New clsResult
 
         If Map.Tileset Is Nothing Then
-            ValidateMap.Problem = "No tileset selected."
-            Exit Function
+            ValidateMap.Problem_Add("No tileset selected.")
         End If
 
         Dim A As Integer
         Dim B As Integer
-        'Dim PlayerFactoryCount(7) As Integer
+        'Dim PlayerFactoryCount(FactionCountMax - 1) As Integer
         Dim PlayerUnitTypeUnitCount(FactionCountMax - 1, UnitTypeCount - 1) As Integer
         Dim StructureType As clsUnitType.clsLoadedInfo.enumStructureType
+        Dim X As Integer
+        Dim Z As Integer
 
         For A = 0 To Map.UnitCount - 1
             PlayerUnitTypeUnitCount(Map.Units(A).PlayerNum, Map.Units(A).Type.Num) += 1
@@ -353,44 +359,51 @@
             For B = 0 To UnitTypeCount - 1
                 If UnitTypes(B).Type = clsUnitType.enumType.PlayerStructure Then
                     If PlayerUnitTypeUnitCount(A, B) > 255 Then
-                        ValidateMap.Problem = "Player " & A & " has too many (" & PlayerUnitTypeUnitCount(A, B) & ") of structure " & ControlChars.Quote & UnitTypes(B).Code & ControlChars.Quote & ". The limit is 255 of any one structure type."
-                        Exit Function
+                        ValidateMap.Problem_Add("Player " & A & " has too many (" & PlayerUnitTypeUnitCount(A, B) & ") of structure " & ControlChars.Quote & UnitTypes(B).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                     End If
                 End If
             Next
         Next
 
-        ValidateMap.Success = True
-    End Function
-
-    Private Sub ValidateMap_WaterTris()
-        Dim X As Integer
-        Dim Y As Integer
-        Dim Found As Boolean
-
-        Found = False
-        For Y = 0 To Map.TerrainSize.Y - 1
+        A = 0
+        For Z = 0 To Map.TerrainSize.Y - 1
             For X = 0 To Map.TerrainSize.X - 1
-                If Map.TerrainTiles(X, Y).Tri Then
-                    If Map.TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                        If Map.Tileset.Tiles(Map.TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
-                            Found = True
-                            GoTo ExitLoop
-                        End If
+                If Map.TerrainTiles(X, Z).Texture.TextureNum < 0 Then
+                    A += 1
+                    If A <= 16 Then
+                        ValidateMap.Warning_Add("Invalid tile at " & X & ", " & Z & ".")
+                    Else
+                        ValidateMap.Warning_Add("There are more invalid tiles not listed here.")
+                        GoTo ExitLoop
                     End If
                 End If
             Next
         Next
 ExitLoop:
-        If Found Then
-            If MsgBox("One or more water tiles have an incorrect triangle direction. Do you want them to be set correctly? Choosing " & ControlChars.Quote & "No" & ControlChars.Quote & " might leave graphical glitches on those tiles.", MsgBoxStyle.YesNo, "") = MsgBoxResult.Yes Then
-                Map.WaterTriCorrection()
-                Map.SectorChange.Update_Graphics()
-                Map.UndoStepCreate("Water Triangle Correction")
-                frmMainInstance.DrawView()
-            End If
+    End Function
+
+    Private Function ValidateMap_WaterTris() As Integer
+        Dim X As Integer
+        Dim Y As Integer
+        Dim Count As Integer
+
+        If Map.Tileset Is Nothing Then
+            Return 0
         End If
-    End Sub
+
+        For Y = 0 To Map.TerrainSize.Y - 1
+            For X = 0 To Map.TerrainSize.X - 1
+                If Map.TerrainTiles(X, Y).Tri Then
+                    If Map.TerrainTiles(X, Y).Texture.TextureNum >= 0 And Map.TerrainTiles(X, Y).Texture.TextureNum < Map.Tileset.TileCount Then
+                        If Map.Tileset.Tiles(Map.TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
+                            Count += 1
+                        End If
+                    End If
+                End If
+            Next
+        Next
+        Return Count
+    End Function
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()

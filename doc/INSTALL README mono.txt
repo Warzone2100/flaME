@@ -3,7 +3,6 @@ This is a map editor for the versions of Warzone 2100 found at www.wz2100.net
 
 Mono Installation:
 ------------------
-(Only applies if you are try to run this on Mono)
 
 Mono runtime with Visual Basic .NET support must be installed to use this.
 MacOS users should download the package provided here:

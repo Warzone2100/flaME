@@ -14,7 +14,7 @@
 
     Private Sub btnGenerate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGenerate.Click
 
-        If Not NewMapQuestion() Then
+        If Not LoseMapQuestion() Then
             Exit Sub
         End If
 

@@ -50,6 +50,7 @@ Partial Class frmMain
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cmbTileType = New System.Windows.Forms.ComboBox()
         Me.tpAutoTexture = New System.Windows.Forms.TabPage()
+        Me.chkInvalidTiles = New System.Windows.Forms.CheckBox()
         Me.tabAutoTextureBrushShape = New System.Windows.Forms.TabControl()
         Me.TabPage35 = New System.Windows.Forms.TabPage()
         Me.TabPage36 = New System.Windows.Forms.TabPage()
@@ -183,6 +184,8 @@ Partial Class frmMain
         Me.tsbSelectionCopy = New System.Windows.Forms.ToolStripButton()
         Me.tsbSelectionPasteOptions = New System.Windows.Forms.ToolStripDropDownButton()
         Me.menuRotateUnits = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuRotateWalls = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuRotateNothing = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator10 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuSelPasteHeights = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSelPasteTextures = New System.Windows.Forms.ToolStripMenuItem()
@@ -199,6 +202,7 @@ Partial Class frmMain
         Me.ToolStripDropDownButton1 = New System.Windows.Forms.ToolStripDropDownButton()
         Me.menuMiniShowTex = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMiniShowHeight = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuMiniShowCliffs = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMiniShowUnits = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMiniShowGateways = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMinimapSize = New System.Windows.Forms.ToolStripComboBox()
@@ -255,8 +259,6 @@ Partial Class frmMain
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
         Me.FontDialog = New System.Windows.Forms.FontDialog()
-        Me.ilInterface = New System.Windows.Forms.ImageList(Me.components)
-        Me.menuMiniShowCliffs = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
@@ -612,6 +614,7 @@ Partial Class frmMain
         'tpAutoTexture
         '
         Me.tpAutoTexture.AutoScroll = True
+        Me.tpAutoTexture.Controls.Add(Me.chkInvalidTiles)
         Me.tpAutoTexture.Controls.Add(Me.tabAutoTextureBrushShape)
         Me.tpAutoTexture.Controls.Add(Me.chkAutoTexSetHeight)
         Me.tpAutoTexture.Controls.Add(Me.chkCliffTris)
@@ -641,6 +644,19 @@ Partial Class frmMain
         Me.tpAutoTexture.TabIndex = 2
         Me.tpAutoTexture.Text = "Terrain Painter"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
+        '
+        'chkInvalidTiles
+        '
+        Me.chkInvalidTiles.Checked = True
+        Me.chkInvalidTiles.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.chkInvalidTiles.Location = New System.Drawing.Point(183, 59)
+        Me.chkInvalidTiles.Margin = New System.Windows.Forms.Padding(4)
+        Me.chkInvalidTiles.Name = "chkInvalidTiles"
+        Me.chkInvalidTiles.Size = New System.Drawing.Size(152, 21)
+        Me.chkInvalidTiles.TabIndex = 38
+        Me.chkInvalidTiles.Text = "Make Invalid Tiles"
+        Me.chkInvalidTiles.UseCompatibleTextRendering = True
+        Me.chkInvalidTiles.UseVisualStyleBackColor = True
         '
         'tabAutoTextureBrushShape
         '
@@ -2181,7 +2197,7 @@ Partial Class frmMain
         'tsbSelectionPasteOptions
         '
         Me.tsbSelectionPasteOptions.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
+        Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.menuRotateWalls, Me.menuRotateNothing, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
         Me.tsbSelectionPasteOptions.Image = CType(resources.GetObject("tsbSelectionPasteOptions.Image"), System.Drawing.Image)
         Me.tsbSelectionPasteOptions.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPasteOptions.Name = "tsbSelectionPasteOptions"
@@ -2190,10 +2206,23 @@ Partial Class frmMain
         '
         'menuRotateUnits
         '
-        Me.menuRotateUnits.CheckOnClick = True
         Me.menuRotateUnits.Name = "menuRotateUnits"
         Me.menuRotateUnits.Size = New System.Drawing.Size(244, 24)
-        Me.menuRotateUnits.Text = "Rotate Units"
+        Me.menuRotateUnits.Text = "Rotate All Objects"
+        '
+        'menuRotateWalls
+        '
+        Me.menuRotateWalls.Checked = True
+        Me.menuRotateWalls.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.menuRotateWalls.Name = "menuRotateWalls"
+        Me.menuRotateWalls.Size = New System.Drawing.Size(244, 24)
+        Me.menuRotateWalls.Text = "Rotate Walls Only"
+        '
+        'menuRotateNothing
+        '
+        Me.menuRotateNothing.Name = "menuRotateNothing"
+        Me.menuRotateNothing.Size = New System.Drawing.Size(244, 24)
+        Me.menuRotateNothing.Text = "No Object Rotation"
         '
         'ToolStripSeparator10
         '
@@ -2223,7 +2252,7 @@ Partial Class frmMain
         Me.menuSelPasteUnits.CheckOnClick = True
         Me.menuSelPasteUnits.Name = "menuSelPasteUnits"
         Me.menuSelPasteUnits.Size = New System.Drawing.Size(244, 24)
-        Me.menuSelPasteUnits.Text = "Paste Units"
+        Me.menuSelPasteUnits.Text = "Paste Objects"
         '
         'menuSelPasteGateways
         '
@@ -2237,7 +2266,7 @@ Partial Class frmMain
         Me.menuSelPasteDeleteUnits.CheckOnClick = True
         Me.menuSelPasteDeleteUnits.Name = "menuSelPasteDeleteUnits"
         Me.menuSelPasteDeleteUnits.Size = New System.Drawing.Size(244, 24)
-        Me.menuSelPasteDeleteUnits.Text = "Delete Existing Units"
+        Me.menuSelPasteDeleteUnits.Text = "Delete Existing Objects"
         '
         'menuSelPasteDeleteGateways
         '
@@ -2327,6 +2356,13 @@ Partial Class frmMain
         Me.menuMiniShowHeight.Name = "menuMiniShowHeight"
         Me.menuMiniShowHeight.Size = New System.Drawing.Size(181, 24)
         Me.menuMiniShowHeight.Text = "Show Heights"
+        '
+        'menuMiniShowCliffs
+        '
+        Me.menuMiniShowCliffs.CheckOnClick = True
+        Me.menuMiniShowCliffs.Name = "menuMiniShowCliffs"
+        Me.menuMiniShowCliffs.Size = New System.Drawing.Size(181, 24)
+        Me.menuMiniShowCliffs.Text = "Show Cliffs"
         '
         'menuMiniShowUnits
         '
@@ -2700,30 +2736,6 @@ Partial Class frmMain
         '
         Me.FontDialog.Font = New System.Drawing.Font("Arial", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         '
-        'ilInterface
-        '
-        Me.ilInterface.ImageStream = CType(resources.GetObject("ilInterface.ImageStream"), System.Windows.Forms.ImageListStreamer)
-        Me.ilInterface.TransparentColor = System.Drawing.Color.Transparent
-        Me.ilInterface.Images.SetKeyName(0, "displayautotexture.png")
-        Me.ilInterface.Images.SetKeyName(1, "drawtileorientation.png")
-        Me.ilInterface.Images.SetKeyName(2, "gateways.png")
-        Me.ilInterface.Images.SetKeyName(3, "objectsselect.png")
-        Me.ilInterface.Images.SetKeyName(4, "save.png")
-        Me.ilInterface.Images.SetKeyName(5, "selection.png")
-        Me.ilInterface.Images.SetKeyName(6, "selectioncopy.png")
-        Me.ilInterface.Images.SetKeyName(7, "selectionflipx.png")
-        Me.ilInterface.Images.SetKeyName(8, "selectionpaste.png")
-        Me.ilInterface.Images.SetKeyName(9, "selectionpasteoptions.png")
-        Me.ilInterface.Images.SetKeyName(10, "selectionrotateanticlockwise.png")
-        Me.ilInterface.Images.SetKeyName(11, "selectionrotateclockwise.png")
-        '
-        'menuMiniShowCliffs
-        '
-        Me.menuMiniShowCliffs.CheckOnClick = True
-        Me.menuMiniShowCliffs.Name = "menuMiniShowCliffs"
-        Me.menuMiniShowCliffs.Size = New System.Drawing.Size(181, 24)
-        Me.menuMiniShowCliffs.Text = "Show Cliffs"
-        '
         'frmMain
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -3020,7 +3032,9 @@ Partial Class frmMain
     Friend WithEvents ToolStripSeparator10 As System.Windows.Forms.ToolStripSeparator
     Friend WithEvents menuSelPasteGateways As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ilInterface As System.Windows.Forms.ImageList
     Friend WithEvents btnGenerator As System.Windows.Forms.Button
     Friend WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents chkInvalidTiles As System.Windows.Forms.CheckBox
+    Friend WithEvents menuRotateWalls As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuRotateNothing As System.Windows.Forms.ToolStripMenuItem
 End Class

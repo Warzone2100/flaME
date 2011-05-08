@@ -1189,7 +1189,7 @@ Public Class ctrlMapView
                                             .Colour.Green = 1.0F
                                             .Colour.Blue = 1.0F
                                             .Colour.Alpha = 1.0F
-                                            .Pos.X = ScreenX
+                                            .Pos.X = ScreenX + 32
                                             .Pos.Y = ScreenY
                                             If tmpUnit.Type.LoadedInfo IsNot Nothing Then
                                                 .Text = tmpUnit.Type.Code & " (" & tmpUnit.Type.LoadedInfo.Name & ")"
@@ -1747,11 +1747,11 @@ Public Class ctrlMapView
                 Map.TerrainSideV(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road = SelectedRoad
 
                 If MouseOver_Side_Num.X > 0 Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X - 1, MouseOver_Side_Num.Y)
+                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X - 1, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
                     SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X - 1, MouseOver_Side_Num.Y)
                 End If
                 If MouseOver_Side_Num.X < Map.TerrainSize.X Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
+                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
                     SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
                 End If
 
@@ -1767,11 +1767,11 @@ Public Class ctrlMapView
                 Map.TerrainSideH(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road = SelectedRoad
 
                 If MouseOver_Side_Num.Y > 0 Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y - 1)
+                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y - 1, frmMainInstance.chkInvalidTiles.Checked)
                     SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y - 1)
                 End If
                 If MouseOver_Side_Num.Y < Map.TerrainSize.X Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
+                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
                     SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
                 End If
 
@@ -1931,8 +1931,14 @@ Public Class ctrlMapView
                 'Map.TerrainVertex(X2, Z2 + 1).Terrain = Nothing
                 'Map.TerrainVertex(X2 + 1, Z2 + 1).Terrain = Nothing
 
+                Map.TerrainTiles(X2, Z2).Terrain_IsCliff = False
+                Map.TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
+                Map.TerrainTiles(X2, Z2).TriTopRightIsCliff = False
+                Map.TerrainTiles(X2, Z2).TriBottomLeftIsCliff = False
+                Map.TerrainTiles(X2, Z2).TriBottomRightIsCliff = False
+
                 If frmMainInstance.chkSetTexture.Checked Then
-                    Map.TerrainTiles(X2, Z2).Texture.TextureNum = SelectedTexture
+                    Map.TerrainTiles(X2, Z2).Texture.TextureNum = SelectedTextureNum
                 End If
                 If frmMainInstance.chkSetTextureOrientation.Checked Then
                     If frmMainInstance.chkTextureOrientationRandomize.Checked Then
@@ -1976,7 +1982,7 @@ Public Class ctrlMapView
                         Map.TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
                         Map.TerrainTiles(X2, Z2).TriTopRightIsCliff = False
 
-                        Map.Tile_AutoTexture_Changed(X2, Z2)
+                        Map.Tile_AutoTexture_Changed(X2, Z2, frmMainInstance.chkInvalidTiles.Checked)
 
                         SectorChange.Tile_Set_Changed(X2, Z2)
                     End If
@@ -2058,7 +2064,7 @@ Public Class ctrlMapView
         Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Tri = Not Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Tri
 
         'to update any cliffs
-        Map.Tile_AutoTexture_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
+        Map.Tile_AutoTexture_Changed(MouseOver_Tile.X, MouseOver_Tile.Y, frmMainInstance.chkInvalidTiles.Checked)
 
         SectorChange.Tile_Set_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
 
@@ -2752,6 +2758,8 @@ Public Class ctrlMapView
                 Select Case Tool
                     Case enumTool.Height_Change_Brush
                         Map.UndoStepCreate("Height Change")
+                    Case enumTool.Height_Set_Brush
+                        Map.UndoStepCreate("Height Set")
                 End Select
             End If
         End If
@@ -3098,12 +3106,13 @@ Public Class ctrlMapView
                 Map.Selected_Tile_A_Exists = True
                 DrawViewLater()
             ElseIf MouseOver_Tile.X = Map.Selected_Tile_A.X Or MouseOver_Tile.Y = Map.Selected_Tile_A.Y Then
-                Map.Gateway_Add(Map.Selected_Tile_A, MouseOver_Tile)
-                Map.UndoStepCreate("Gateway Place")
-                Map.Selected_Tile_A_Exists = False
-                Map.Selected_Tile_B_Exists = False
-                Map.MinimapMakeLater()
-                DrawViewLater()
+                If Map.Gateway_Add(Map.Selected_Tile_A, MouseOver_Tile) Then
+                    Map.UndoStepCreate("Gateway Place")
+                    Map.Selected_Tile_A_Exists = False
+                    Map.Selected_Tile_B_Exists = False
+                    Map.MinimapMakeLater()
+                    DrawViewLater()
+                End If
             End If
         End If
     End Sub
@@ -3209,7 +3218,7 @@ Public Class ctrlMapView
 
         If Map.Tileset IsNot Nothing Then
             If Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.TextureNum < Map.Tileset.TileCount Then
-                SelectedTexture = Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.TextureNum
+                SelectedTextureNum = Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.TextureNum
                 frmMainInstance.TextureView.DrawViewLater()
             End If
         End If

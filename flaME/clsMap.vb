@@ -461,7 +461,7 @@ Public Class clsMap
             For A = 0 To ChangedTileCount - 1
                 X = ChangedTiles(A).X
                 Z = ChangedTiles(A).Y
-                ParentMap.Tile_AutoTexture_Changed(X, Z)
+                ParentMap.Tile_AutoTexture_Changed(X, Z, frmMainInstance.chkInvalidTiles.Checked)
                 TileIsChanged(X, Z) = False
             Next
             ChangedTileCount = 0
@@ -1768,7 +1768,7 @@ LineDone:
         Load_LND.Success = True
     End Function
 
-    Function FindUnitType(ByVal Code As String, ByVal TypeNum As Integer, ByRef OutputType As clsUnitType) As sResult
+    Function FindUnitType(ByVal Code As String, ByVal TypeNum As Integer, ByRef ResultType As clsUnitType) As sResult
         FindUnitType.Success = False
         FindUnitType.Problem = ""
 
@@ -1780,7 +1780,7 @@ LineDone:
             End If
         Next
         If A < UnitTypeCount Then
-            OutputType = UnitTypes(A)
+            ResultType = UnitTypes(A)
         Else
             For A = 0 To Unrecognised_UnitType_Count - 1
                 If Unrecognised_UnitTypes(A).Code = Code Then
@@ -1788,15 +1788,15 @@ LineDone:
                 End If
             Next A
             If A < Unrecognised_UnitType_Count Then
-                OutputType = Unrecognised_UnitTypes(A)
+                ResultType = Unrecognised_UnitTypes(A)
             Else
-                OutputType = New clsUnitType(Unrecognised_UnitType_Count)
+                ResultType = New clsUnitType(Unrecognised_UnitType_Count)
 
                 ReDim Preserve Unrecognised_UnitTypes(Unrecognised_UnitType_Count)
-                Unrecognised_UnitTypes(Unrecognised_UnitType_Count) = OutputType
+                Unrecognised_UnitTypes(Unrecognised_UnitType_Count) = ResultType
                 Unrecognised_UnitType_Count += 1
 
-                With OutputType
+                With ResultType
                     .Code = Code
                     Select Case TypeNum
                         Case 0
@@ -1828,19 +1828,20 @@ LineDone:
         Dim Player As Byte
     End Structure
 
-    Function Load_FME(ByVal Path As String) As sResult
-        Load_FME.Success = False
-        Load_FME.Problem = ""
+    Function Load_FME(ByVal Path As String) As clsResult
+        Load_FME = New clsResult
 
         Dim File As New clsReadFile
+        Dim Result As sResult
 
-        Load_FME = File.Begin(Path)
-        If Not Load_FME.Success Then
+        Result = File.Begin(Path)
+        If Not Result.Success Then
+            Load_FME.Problem_Add("Load FME; " & Result.Problem)
             Exit Function
         End If
-        Load_FME = Read_FME(File)
+        Load_FME.Append(Read_FME(File), "Load FME; ")
         File.Close()
-        If Not Load_FME.Success Then
+        If Load_FME.HasProblems Then
             Exit Function
         End If
 
@@ -1850,27 +1851,26 @@ LineDone:
         SectorChange = New clsSectorChange(Me)
     End Function
 
-    Private Function Read_FME(ByVal File As clsReadFile) As sResult
-        Read_FME.Problem = ""
-        Read_FME.Success = False
+    Private Function Read_FME(ByVal File As clsReadFile) As clsResult
+        Read_FME = New clsResult
 
         Dim Result As sResult
         Dim Version As UInteger
 
-        If Not File.Get_U32(Version) Then Read_FME.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
         If Version = 1UI Then
-            Read_FME.Problem = "Version 1 is no longer supported."
+            Read_FME.Problem_Add("Version 1 is not supported.")
             Exit Function
         ElseIf Version = 2UI Then
-            Read_FME.Problem = "Version 2 is no longer supported."
+            Read_FME.Problem_Add("Version 2 is not supported.")
             Exit Function
         ElseIf Version = 3UI Or Version = 4UI Then
 
             Dim byteTemp As Byte
 
             'tileset
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             If byteTemp = 0 Then
                 Tileset = Nothing
             ElseIf byteTemp = 1 Then
@@ -1880,8 +1880,8 @@ LineDone:
             ElseIf byteTemp = 3 Then
                 Tileset = Tileset_Rockies
             Else
-                Read_FME.Problem = "Tileset value out of range."
-                Exit Function
+                Read_FME.Warning_Add("Tileset value was out of range.")
+                Tileset = Nothing
             End If
 
             SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
@@ -1889,11 +1889,11 @@ LineDone:
             Dim MapWidth As UShort
             Dim MapHeight As UShort
 
-            If Not File.Get_U16(MapWidth) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_U16(MapHeight) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U16(MapWidth) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_U16(MapHeight) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
             If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                Read_FME.Problem = "Map size is invalid."
+                Read_FME.Problem_Add("Map size is invalid.")
                 Exit Function
             End If
 
@@ -1908,28 +1908,34 @@ LineDone:
             Dim Rotation As Byte
             Dim FlipX As Boolean
             Dim FlipZ As Boolean
+            Dim MakeWarning As Boolean
 
+            MakeWarning = False
             For Z = 0 To TerrainSize.Y
                 For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem = "Read error." : Exit Function
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainVertex(X, Z).Terrain = Nothing
                     ElseIf intTemp >= Painter.TerrainCount Then
-                        Read_FME.Problem = "Terrain value out of range."
-                        Exit Function
+                        MakeWarning = True
+                        TerrainVertex(X, Z).Terrain = Nothing
                     Else
                         TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
                     End If
                 Next
             Next
+            If MakeWarning Then
+                Read_FME.Warning_Add("A painted ground type value was out of range.")
+            End If
+            MakeWarning = False
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
 
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
                     intTemp = 128
                     A = CInt(Int(byteTemp / intTemp))
@@ -1977,7 +1983,7 @@ LineDone:
                     End If
 
                     'attributes2
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
                     'ignore large values - nothing should be stored there
                     intTemp = 16
@@ -2000,92 +2006,113 @@ LineDone:
                             TerrainTiles(X, Z).DownSide = TileDirection_None
                         Case Else
                             TerrainTiles(X, Z).DownSide = TileDirection_None
-                            'Load_FME.Problem = "Cliff down-side is out of range."
-                            'Exit Function
+                            MakeWarning = True
                     End Select
                 Next
             Next
+            If MakeWarning Then
+                Read_FME.Warning_Add("A tile cliff down-side was out of range.") 
+            End If
+            MakeWarning = False
             For Z = 0 To TerrainSize.Y
                 For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainSideH(X, Z).Road = Nothing
                     ElseIf intTemp >= Painter.RoadCount Then
-                        Read_FME.Problem = "Road value out of range."
-                        Exit Function
+                        MakeWarning = True
+                        TerrainSideH(X, Z).Road = Nothing
                     Else
                         TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
                     End If
                 Next
             Next
+            If MakeWarning Then
+                Read_FME.Warning_Add("A horizontal road value was out of range.")
+            End If
+            MakeWarning = False
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainSideV(X, Z).Road = Nothing
                     ElseIf intTemp >= Painter.RoadCount Then
-                        Read_FME.Problem = "Road value out of range."
-                        Exit Function
+                        MakeWarning = True
+                        TerrainSideV(X, Z).Road = Nothing
                     Else
                         TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
                     End If
                 Next
             Next
+            If MakeWarning Then
+                Read_FME.Warning_Add("A vertical road value was out of range.")
+            End If
             Dim TempUnitCount As UInteger
             File.Get_U32(TempUnitCount)
             Dim TempUnit(TempUnitCount - 1) As sFMEUnit
             For A = 0 To TempUnitCount - 1
-                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem_Add("Read error.") : Exit Function
                 B = Strings.InStr(TempUnit(A).Code, Chr(0))
                 If B > 0 Then
                     TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
                 End If
-                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem_Add("Read error.") : Exit Function
             Next
 
             Dim NewUnit As clsUnit
+            Dim tmpUnitType As clsUnitType = Nothing
+            Dim WarningCount As Integer
+            WarningCount = 0
             For A = 0 To TempUnitCount - 1
-                NewUnit = New clsUnit
-                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, NewUnit.Type)
-                If Not Result.Success Then
-                    Read_FME.Problem = Result.Problem
-                    Exit Function
+                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, tmpUnitType)
+                If Result.Success Then
+                    NewUnit = New clsUnit
+                    NewUnit.Type = tmpUnitType
+                    NewUnit.ID = TempUnit(A).ID
+                    NewUnit.Name = TempUnit(A).Name
+                    NewUnit.PlayerNum = TempUnit(A).Player
+                    NewUnit.Pos.X = TempUnit(A).X
+                    NewUnit.Pos.Y = TempUnit(A).Y
+                    NewUnit.Pos.Z = TempUnit(A).Z
+                    NewUnit.Rotation = Math.Min(TempUnit(A).Rotation, 359)
+                    Unit_Add(NewUnit, TempUnit(A).ID)
+                Else
+                    WarningCount += 1
                 End If
-                NewUnit.ID = TempUnit(A).ID
-                NewUnit.Name = TempUnit(A).Name
-                NewUnit.PlayerNum = TempUnit(A).Player
-                NewUnit.Pos.X = TempUnit(A).X
-                NewUnit.Pos.Y = TempUnit(A).Y
-                NewUnit.Pos.Z = TempUnit(A).Z
-                NewUnit.Rotation = Math.Min(TempUnit(A).Rotation, 359)
-                Unit_Add(NewUnit, TempUnit(A).ID)
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " types of a unit were out of range. That many units were ignored.")
+            End If
 
             File.Get_U32(GatewayCount)
             ReDim Gateways(GatewayCount - 1)
             For A = 0 To GatewayCount - 1
-                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
             Next
 
             If Version = 4UI And Tileset IsNot Nothing Then
                 For A = 0 To 89
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     If A < Tileset.TileCount Then
                         Tile_TypeNum(A) = byteTemp
                     End If
                 Next
+            End If
+
+            If Not File.IsEOF Then
+                Read_FME.Warning_Add("There were unread bytes at the end of the file.")
             End If
         ElseIf Version = 5UI Or Version = 6UI Then
 
@@ -2093,7 +2120,7 @@ LineDone:
             Dim uintTemp As UInteger
 
             'tileset
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             If byteTemp = 0 Then
                 Tileset = Nothing
             ElseIf byteTemp = 1 Then
@@ -2103,8 +2130,8 @@ LineDone:
             ElseIf byteTemp = 3 Then
                 Tileset = Tileset_Rockies
             Else
-                Read_FME.Problem = "Tileset value out of range."
-                Exit Function
+                Read_FME.Warning_Add("Tileset value out of range.")
+                Tileset = Nothing
             End If
 
             SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
@@ -2112,11 +2139,11 @@ LineDone:
             Dim MapWidth As UShort
             Dim MapHeight As UShort
 
-            If Not File.Get_U16(MapWidth) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_U16(MapHeight) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U16(MapWidth) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_U16(MapHeight) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
             If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                Read_FME.Problem = "Map size is invalid."
+                Read_FME.Problem_Add("Map size is invalid.")
                 Exit Function
             End If
 
@@ -2128,28 +2155,34 @@ LineDone:
             Dim A As Integer
             Dim B As Integer
             Dim intTemp As Integer
+            Dim WarningCount As Integer
 
+            WarningCount = 0
             For Z = 0 To TerrainSize.Y
                 For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem = "Read error." : Exit Function
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainVertex(X, Z).Terrain = Nothing
                     ElseIf intTemp >= Painter.TerrainCount Then
-                        Read_FME.Problem = "Terrain value out of range."
-                        Exit Function
+                        WarningCount += 1
+                        TerrainVertex(X, Z).Terrain = Nothing
                     Else
                         TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
                     End If
                 Next
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " painted ground vertices were out of range.")
+            End If
+            WarningCount = 0
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
 
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
                     intTemp = 128
                     A = CInt(Int(byteTemp / intTemp))
@@ -2195,7 +2228,7 @@ LineDone:
                     End If
 
                     'attributes2
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
 
                     Select Case byteTemp
                         Case 0
@@ -2209,20 +2242,23 @@ LineDone:
                         Case 4
                             TerrainTiles(X, Z).DownSide = TileDirection_Bottom
                         Case Else
-                            Read_FME.Problem = "Cliff down-side value out of range."
-                            Exit Function
+                            WarningCount += 1
                     End Select
                 Next
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " tile cliff down-sides were out of range.")
+            End If
+            WarningCount = 0
             For Z = 0 To TerrainSize.Y
                 For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainSideH(X, Z).Road = Nothing
                     ElseIf intTemp >= Painter.RoadCount Then
-                        Read_FME.Problem = "Road value out of range."
-                        Exit Function
+                        WarningCount += 1
+                        TerrainSideH(X, Z).Road = Nothing
                     Else
                         TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
                     End If
@@ -2230,89 +2266,116 @@ LineDone:
             Next
             For Z = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     intTemp = CInt(byteTemp) - 1
                     If intTemp < 0 Then
                         TerrainSideV(X, Z).Road = Nothing
                     ElseIf intTemp >= Painter.RoadCount Then
-                        Read_FME.Problem = "Road value out of range."
-                        Exit Function
+                        WarningCount += 1
+                        TerrainSideV(X, Z).Road = Nothing
                     Else
                         TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
                     End If
                 Next
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " roads were out of range.")
+            End If
             Dim TempUnitCount As UInteger
             File.Get_U32(TempUnitCount)
             Dim TempUnit(TempUnitCount - 1) As sFMEUnit
             For A = 0 To TempUnitCount - 1
-                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem_Add("Read error.") : Exit Function
                 B = Strings.InStr(TempUnit(A).Code, Chr(0))
                 If B > 0 Then
                     TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
                 End If
-                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem_Add("Read error.") : Exit Function
                 If Version = 6UI Then
-                    If Not File.Get_S32(TempUnit(A).SavePriority) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_S32(TempUnit(A).SavePriority) Then Read_FME.Problem_Add("Read error.") : Exit Function
                 End If
-                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem = "Read error." : Exit Function
+                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem_Add("Read error.") : Exit Function
             Next
 
             Dim NewUnit As clsUnit
+            Dim tmpUnitType As clsUnitType = Nothing
+            WarningCount = 0
             For A = 0 To TempUnitCount - 1
-                NewUnit = New clsUnit
-                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, NewUnit.Type)
-                If Not Result.Success Then
-                    Read_FME.Problem = Result.Problem
-                    Exit Function
+                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, tmpUnitType)
+                If Result.Success Then
+                    NewUnit = New clsUnit
+                    NewUnit.Type = tmpUnitType
+                    NewUnit.ID = TempUnit(A).ID
+                    NewUnit.SavePriority = TempUnit(A).SavePriority
+                    NewUnit.Name = TempUnit(A).Name
+                    NewUnit.PlayerNum = TempUnit(A).Player
+                    NewUnit.Pos.X = TempUnit(A).X
+                    NewUnit.Pos.Y = TempUnit(A).Y
+                    NewUnit.Pos.Z = TempUnit(A).Z
+                    NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
+                    Unit_Add(NewUnit, TempUnit(A).ID)
+                Else
+                    WarningCount += 1
                 End If
-                NewUnit.ID = TempUnit(A).ID
-                NewUnit.SavePriority = TempUnit(A).SavePriority
-                NewUnit.Name = TempUnit(A).Name
-                NewUnit.PlayerNum = TempUnit(A).Player
-                NewUnit.Pos.X = TempUnit(A).X
-                NewUnit.Pos.Y = TempUnit(A).Y
-                NewUnit.Pos.Z = TempUnit(A).Z
-                NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
-                Unit_Add(NewUnit, TempUnit(A).ID)
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " types of units were invalid. That many units were ignored.")
+            End If
 
-            File.Get_U32(GatewayCount)
-            ReDim Gateways(GatewayCount - 1)
-            For A = 0 To GatewayCount - 1
-                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem = "Read error." : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem = "Read error." : Exit Function
+            Dim NewGatewayCount As UInteger
+            Dim NewGateStartX As UShort
+            Dim NewGateStartY As UShort
+            Dim NewGateFinishX As UShort
+            Dim NewGateFinishY As UShort
+            Dim NewGateStart As sXY_int
+            Dim NewGateFinish As sXY_int
+
+            File.Get_U32(NewGatewayCount)
+            WarningCount = 0
+            For A = 0 To CInt(NewGatewayCount) - 1
+                If Not File.Get_U16(NewGateStartX) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(NewGateStartY) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(NewGateFinishX) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                If Not File.Get_U16(NewGateFinishY) Then Read_FME.Problem_Add("Read error.") : Exit Function
+                NewGateStart.X = NewGateStartX
+                NewGateStart.Y = NewGateStartY
+                NewGateFinish.X = NewGateFinishX
+                NewGateFinish.Y = NewGateFinishY
+                If Not Gateway_Add(NewGateStart, NewGateFinish) Then
+                    WarningCount += 1
+                End If
             Next
+            If WarningCount > 0 Then
+                Read_FME.Warning_Add(WarningCount & " gateways were invalid.")
+            End If
 
             If Tileset IsNot Nothing Then
                 For A = 0 To Tileset.TileCount - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
                     Tile_TypeNum(A) = byteTemp
                 Next
             End If
 
             'scroll limits
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             frmCompileInstance.txtCampMinX.Text = intTemp
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             frmCompileInstance.txtCampMinY.Text = intTemp
-            If Not File.Get_U32(uintTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(uintTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             frmCompileInstance.txtCampMaxX.Text = uintTemp
-            If Not File.Get_U32(uintTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_U32(uintTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             frmCompileInstance.txtCampMaxY.Text = uintTemp
 
             'other compile info
 
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtName.Text) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtName.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             Select Case byteTemp
                 Case 0
                     frmCompileInstance.rdoMulti.Checked = False
@@ -2322,35 +2385,38 @@ LineDone:
                 Case 2
                     frmCompileInstance.rdoCamp.Checked = True
                 Case Else
-                    Read_FME.Problem = "Compile type out of range."
-                    Exit Function
+                    frmCompileInstance.rdoMulti.Checked = False
+                    frmCompileInstance.rdoCamp.Checked = False
+                    Read_FME.Warning_Add("Compile type out of range.")
             End Select
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtMultiPlayers.Text) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtMultiPlayers.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             Select Case byteTemp
                 Case 0
                     frmCompileInstance.chkNewPlayerFormat.Checked = False
                 Case 1
                     frmCompileInstance.chkNewPlayerFormat.Checked = True
                 Case Else
-                    Read_FME.Problem = "Compile player format out of range."
-                    Exit Function
+                    frmCompileInstance.chkNewPlayerFormat.Checked = False
+                    Read_FME.Warning_Add("Compile player format out of range.")
             End Select
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtAuthor.Text) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_Text_VariableLength(frmCompileInstance.cmbLicense.Text) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtCampTime.Text) Then Read_FME.Problem = "Read error." : Exit Function
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem = "Read error." : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtAuthor.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.cmbLicense.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_Text_VariableLength(frmCompileInstance.txtCampTime.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
+            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
             If intTemp < -1 Or intTemp >= frmCompileInstance.cmbCampType.Items.Count Then
-                Read_FME.Problem = "Compile campaign type is out of range."
-                Exit Function
+                Read_FME.Warning_Add("Compile campaign type out of range.")
+                frmCompileInstance.cmbCampType.SelectedIndex = -1
+            Else
+                frmCompileInstance.cmbCampType.SelectedIndex = intTemp
             End If
-            frmCompileInstance.cmbCampType.SelectedIndex = intTemp
-        Else
-            Read_FME.Problem = "File version number is not recognised."
-            Exit Function
-        End If
 
-        Read_FME.Success = True
+            If Not File.IsEOF Then
+                Read_FME.Warning_Add("There were unread bytes at the end of the file.")
+            End If
+        Else
+            Read_FME.Problem_Add("File version number not recognised.")
+        End If
     End Function
 
     Private Sub MinimapTextureFill(ByRef Texture(,,) As Byte)
@@ -2574,7 +2640,7 @@ LineDone:
         frmMainInstance.DrawView()
     End Sub
 
-    Public Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer)
+    Public Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer, ByVal MakeInvalidTiles As Boolean)
         Static Terrain_Inner As clsPainter.clsTerrain
         Static Terrain_Outer As clsPainter.clsTerrain
         Static Road As clsPainter.clsRoad
@@ -2644,7 +2710,9 @@ LineDone:
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
                             If TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Inner Then
                                 'i o o i
-                                TerrainTiles(X, Z).Texture.TextureNum = -1
+                                If MakeInvalidTiles Then
+                                    TerrainTiles(X, Z).Texture.TextureNum = -1
+                                End If
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'i o o o
@@ -2662,7 +2730,9 @@ LineDone:
                                 Exit For
                             ElseIf TerrainVertex(X + 1, Z + 1).Terrain Is Terrain_Outer Then
                                 'o i i o
-                                TerrainTiles(X, Z).Texture.TextureNum = -1
+                                If MakeInvalidTiles Then
+                                    TerrainTiles(X, Z).Texture.TextureNum = -1
+                                End If
                                 Exit For
                             End If
                         ElseIf TerrainVertex(X, Z + 1).Terrain Is Terrain_Outer Then
@@ -2736,7 +2806,9 @@ LineDone:
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                        If MakeInvalidTiles Then
+                            TerrainTiles(X, Z).Texture.TextureNum = -1
+                        End If
                     End If
                 Else
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
@@ -2763,7 +2835,9 @@ LineDone:
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                        If MakeInvalidTiles Then
+                            TerrainTiles(X, Z).Texture.TextureNum = -1
+                        End If
                     End If
                 End If
             ElseIf TerrainTiles(X, Z).TriBottomRightIsCliff Then
@@ -2791,7 +2865,9 @@ LineDone:
                     End If
                 Next Brush_Num
                 If Brush_Num = Painter.CliffBrushCount Then
-                    TerrainTiles(X, Z).Texture.TextureNum = -1
+                    If MakeInvalidTiles Then
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                    End If
                 End If
             Else
                 'no cliff
@@ -2829,7 +2905,9 @@ LineDone:
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                        If MakeInvalidTiles Then
+                            TerrainTiles(X, Z).Texture.TextureNum = -1
+                        End If
                     End If
                 Else
                     For Brush_Num = 0 To Painter.CliffBrushCount - 1
@@ -2856,7 +2934,9 @@ LineDone:
                         End If
                     Next Brush_Num
                     If Brush_Num = Painter.CliffBrushCount Then
-                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                        If MakeInvalidTiles Then
+                            TerrainTiles(X, Z).Texture.TextureNum = -1
+                        End If
                     End If
                 End If
             ElseIf TerrainTiles(X, Z).TriBottomLeftIsCliff Then
@@ -2884,7 +2964,9 @@ LineDone:
                     End If
                 Next Brush_Num
                 If Brush_Num = Painter.CliffBrushCount Then
-                    TerrainTiles(X, Z).Texture.TextureNum = -1
+                    If MakeInvalidTiles Then
+                        TerrainTiles(X, Z).Texture.TextureNum = -1
+                    End If
                 End If
             Else
                 'no cliff
@@ -2923,7 +3005,9 @@ LineDone:
                 End If
             Next
 
-            TerrainTiles(X, Z).Texture.TextureNum = -1
+            If MakeInvalidTiles Then
+                TerrainTiles(X, Z).Texture.TextureNum = -1
+            End If
 
             If Brush_Num < Painter.RoadBrushCount Then
                 RoadTop = (TerrainSideH(X, Z).Road Is Road)
@@ -2994,7 +3078,7 @@ LineDone:
         Next
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                Tile_AutoTexture_Changed(X, Z)
+                Tile_AutoTexture_Changed(X, Z, frmMainInstance.chkInvalidTiles.Checked)
             Next
         Next
         For Z = 0 To TerrainSize.Y
@@ -4661,9 +4745,9 @@ LineDone:
             A = 0
             Do While A < GatewayCount
                 If (Gateways(A).PosA.X >= Offset.X And Gateways(A).PosA.Y >= Offset.Y And _
-                    Gateways(A).PosA.X < Offset.X + Area.X And Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
+                    Gateways(A).PosA.X < Offset.X + AreaAdjusted.X And Gateways(A).PosA.Y < Offset.Y + AreaAdjusted.Y) Or _
                     (Gateways(A).PosB.X >= Offset.X And Gateways(A).PosB.Y >= Offset.Y And _
-                    Gateways(A).PosB.X < Offset.X + Area.X And Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
+                    Gateways(A).PosB.X < Offset.X + AreaAdjusted.X And Gateways(A).PosB.Y < Offset.Y + AreaAdjusted.Y) Then
                     Gateway_Remove(A)
                 Else
                     A += 1
@@ -4680,13 +4764,10 @@ LineDone:
                 GateFinish.X = Offset.X + Map_To_Insert.Gateways(A).PosB.X
                 GateFinish.Y = Offset.Y + Map_To_Insert.Gateways(A).PosB.Y
                 If (GateStart.X >= Offset.X And GateStart.Y >= Offset.Y And _
-                 GateStart.X < Offset.X + Area.X And GateStart.Y < Offset.Y + Area.Y) Or _
+                 GateStart.X < Offset.X + AreaAdjusted.X And GateStart.Y < Offset.Y + AreaAdjusted.Y) Or _
                  (GateFinish.X >= Offset.X And GateFinish.Y >= Offset.Y And _
-                 GateFinish.X < Offset.X + Area.X And GateFinish.Y < Offset.Y + Area.Y) Then
-                    If GateStart.X >= 0 And GateFinish.X >= 0 And _
-                      GateFinish.X < TerrainSize.X And GateFinish.Y < TerrainSize.Y Then
-                        Gateway_Add(GateStart, GateFinish)
-                    End If
+                 GateFinish.X < Offset.X + AreaAdjusted.X And GateFinish.Y < Offset.Y + AreaAdjusted.Y) Then
+                    Gateway_Add(GateStart, GateFinish)
                 End If
             Next
         End If
@@ -4748,7 +4829,7 @@ LineDone:
         MinimapMakeLater()
     End Sub
 
-    Sub Rotate_Clockwise(ByVal RotateUnits As Boolean)
+    Sub Rotate_Clockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
         Dim X As Integer
         Dim Z As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
@@ -4812,10 +4893,24 @@ LineDone:
 
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            If RotateUnits Then
+            If ObjectRotateMode = enumObjectRotateMode.All Then
                 Units(A).Rotation -= 90
                 If Units(A).Rotation < 0 Then
                     Units(A).Rotation += 360
+                End If
+            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+                If Units(A).Type.LoadedInfo IsNot Nothing Then
+                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
+                        Units(A).Rotation -= 90
+                        If Units(A).Rotation < 0 Then
+                            Units(A).Rotation += 360
+                        End If
+                        If Units(A).Rotation = 180 Then
+                            Units(A).Rotation = 0
+                        ElseIf Units(A).Rotation = 270 Then
+                            Units(A).Rotation = 90
+                        End If
+                    End If
                 End If
             End If
             intTemp = Units(A).Pos.X
@@ -4874,7 +4969,7 @@ LineDone:
         SectorChange = New clsSectorChange(Me)
     End Sub
 
-    Sub Rotate_Anticlockwise(ByVal RotateUnits As Boolean)
+    Sub Rotate_Anticlockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
         Dim X As Integer
         Dim Z As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
@@ -4938,10 +5033,24 @@ LineDone:
 
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            If RotateUnits Then
+            If ObjectRotateMode = enumObjectRotateMode.All Then
                 Units(A).Rotation += 90
-                If Units(A).Rotation > 359 Then
+                If Units(A).Rotation >= 360 Then
                     Units(A).Rotation -= 360
+                End If
+            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+                If Units(A).Type.LoadedInfo IsNot Nothing Then
+                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
+                        Units(A).Rotation += 90
+                        If Units(A).Rotation >= 360 Then
+                            Units(A).Rotation -= 360
+                        End If
+                        If Units(A).Rotation = 180 Then
+                            Units(A).Rotation = 0
+                        ElseIf Units(A).Rotation = 270 Then
+                            Units(A).Rotation = 90
+                        End If
+                    End If
                 End If
             End If
             intTemp = Units(A).Pos.Z
@@ -5000,7 +5109,7 @@ LineDone:
         SectorChange = New clsSectorChange(Me)
     End Sub
 
-    Sub FlipX(ByVal RotateUnits As Boolean)
+    Sub FlipX(ByVal ObjectRotateMode As enumObjectRotateMode)
         Dim Z As Integer
         Dim X As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
@@ -5053,10 +5162,24 @@ LineDone:
 
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            If RotateUnits Then
+            If ObjectRotateMode = enumObjectRotateMode.All Then
                 Units(A).Rotation -= 180
                 If Units(A).Rotation < 0 Then
                     Units(A).Rotation += 360
+                End If
+            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+                If Units(A).Type.LoadedInfo IsNot Nothing Then
+                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
+                        Units(A).Rotation -= 180
+                        If Units(A).Rotation < 0 Then
+                            Units(A).Rotation += 360
+                        End If
+                        If Units(A).Rotation = 180 Then
+                            Units(A).Rotation = 0
+                        ElseIf Units(A).Rotation = 270 Then
+                            Units(A).Rotation = 90
+                        End If
+                    End If
                 End If
             End If
             Units(A).Pos.X = TerrainSize.X * TerrainGridSpacing - Units(A).Pos.X
@@ -5428,13 +5551,23 @@ LineDone:
         ReDim Preserve Gateways(GatewayCount - 1)
     End Sub
 
-    Sub Gateway_Add(ByVal PosA As sXY_int, ByVal PosB As sXY_int)
+    Public Function Gateway_Add(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Boolean
 
-        ReDim Preserve Gateways(GatewayCount)
-        Gateways(GatewayCount).PosA = PosA
-        Gateways(GatewayCount).PosB = PosB
-        GatewayCount += 1
-    End Sub
+        If PosA.X >= 0 And PosA.X < TerrainSize.X And _
+          PosA.Y >= 0 And PosA.Y < TerrainSize.Y And _
+          PosB.X >= 0 And PosB.X < TerrainSize.X And _
+          PosB.Y >= 0 And PosB.Y < TerrainSize.Y Then
+
+            ReDim Preserve Gateways(GatewayCount)
+            Gateways(GatewayCount).PosA = PosA
+            Gateways(GatewayCount).PosB = PosB
+            GatewayCount += 1
+
+            Return True
+        Else
+            Return False
+        End If
+    End Function
 
     Sub Sectors_Deallocate()
         Dim X As Integer
@@ -6444,7 +6577,7 @@ LineDone:
         Next
         For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                Tile_AutoTexture_Changed(X, Y)
+                Tile_AutoTexture_Changed(X, Y, frmMainInstance.chkInvalidTiles.Checked)
             Next
         Next
     End Sub
@@ -6595,7 +6728,7 @@ LineDone:
                 End If
 
                 If CliffChanged Then
-                    Tile_AutoTexture_Changed(X2, Z2)
+                    Tile_AutoTexture_Changed(X2, Z2, frmMainInstance.chkInvalidTiles.Checked)
                 End If
                 If TriChanged Or CliffChanged Then
                     SectorChange.Tile_Set_Changed(X2, Z2)
