@@ -122,23 +122,24 @@ Public Class ctrlTextureView
     End Sub
 
     Private Sub DrawView()
-        Static X As Integer
-        Static Y As Integer
-        Static Num As Integer
-        Static XY_int As sXY_int
-        Static A As Integer
-        Static Vertex0 As sXY_sng
-        Static Vertex1 As sXY_sng
-        Static Vertex2 As sXY_sng
-        Static UnrotatedPos As sXY_sng
-        Static TexCoord0 As sXY_sng
-        Static TexCoord1 As sXY_sng
-        Static TexCoord2 As sXY_sng
-        Static TexCoord3 As sXY_sng
 
         If Not (DrawView_Enabled And IsGLInitialized) Then
             Exit Sub
         End If
+
+        Dim X As Integer
+        Dim Y As Integer
+        Dim Num As Integer
+        Dim XY_int As sXY_int
+        Dim A As Integer
+        Dim Vertex0 As sXY_sng
+        Dim Vertex1 As sXY_sng
+        Dim Vertex2 As sXY_sng
+        Dim UnrotatedPos As sXY_sng
+        Dim TexCoord0 As sXY_sng
+        Dim TexCoord1 As sXY_sng
+        Dim TexCoord2 As sXY_sng
+        Dim TexCoord3 As sXY_sng
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
@@ -150,7 +151,7 @@ Public Class ctrlTextureView
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        If Map.Tileset IsNot Nothing Then
+        If Main_Map.Tileset IsNot Nothing Then
 
             GetTileRotatedTexCoords(TextureOrientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
@@ -161,10 +162,10 @@ Public Class ctrlTextureView
             For Y = 0 To TextureCount.Y - 1
                 For X = 0 To TextureCount.X - 1
                     Num = (TextureYOffset + Y) * TextureCount.X + X
-                    If Num >= Map.Tileset.TileCount Then
+                    If Num >= Main_Map.Tileset.TileCount Then
                         GoTo EndOfTextures1
                     End If
-                    A = Map.Tileset.Tiles(Num).TextureView_GL_Texture_Num
+                    A = Main_Map.Tileset.Tiles(Num).TextureView_GL_Texture_Num
                     If A = 0 Then
                         GL.BindTexture(TextureTarget.Texture2D, 0)
                     Else
@@ -192,10 +193,10 @@ EndOfTextures1:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Map.Tileset.TileCount Then
+                        If Num >= Main_Map.Tileset.TileCount Then
                             GoTo EndOfTextures2
                         End If
-                        A = Map.Tile_TypeNum(Num)
+                        A = Main_Map.Tile_TypeNum(Num)
                         GL.Color3(TileTypes(A).DisplayColour.Red, TileTypes(A).DisplayColour.Green, TileTypes(A).DisplayColour.Blue)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 24.0#)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 40.0#)
@@ -223,7 +224,7 @@ EndOfTextures2:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Map.Tileset.TileCount Then
+                        If Num >= Main_Map.Tileset.TileCount Then
                             GoTo EndOfTextures3
                         End If
                         GL.Vertex2(X * 64.0# + Vertex0.X * 64.0#, Y * 64.0# + Vertex0.Y * 64.0#)
@@ -241,7 +242,7 @@ EndOfTextures3:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Map.Tileset.TileCount Then
+                        If Num >= Main_Map.Tileset.TileCount Then
                             GoTo EndOfTextures4
                         End If
                         TextLabel = New sTextLabel
@@ -283,14 +284,14 @@ EndOfTextures4:
 
     Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
 
-        If Map Is Nothing Then
+        If Main_Map Is Nothing Then
             SelectedTextureNum = -1
-        ElseIf Map.Tileset Is Nothing Then
+        ElseIf Main_Map.Tileset Is Nothing Then
             SelectedTextureNum = -1
         ElseIf e.X >= 0 And e.X < TextureCount.X * 64 _
           And e.Y >= 0 And e.Y < TextureCount.Y * 64 Then
             SelectedTextureNum = (TextureYOffset + Int(e.Y / 64.0#)) * TextureCount.X + Int(e.X / 64.0#)
-            If SelectedTextureNum >= Map.Tileset.TileCount Then
+            If SelectedTextureNum >= Main_Map.Tileset.TileCount Then
                 SelectedTextureNum = -1
             Else
                 Tool = enumTool.Texture_Brush
@@ -300,12 +301,12 @@ EndOfTextures4:
         End If
 
         If SelectedTextureNum >= 0 Then
-            frmMainInstance.cmbTileType.Enabled = False
-            frmMainInstance.cmbTileType.SelectedIndex = Map.Tile_TypeNum(SelectedTextureNum)
-            frmMainInstance.cmbTileType.Enabled = True
+            frmMainInstance.cboTileType.Enabled = False
+            frmMainInstance.cboTileType.SelectedIndex = Main_Map.Tile_TypeNum(SelectedTextureNum)
+            frmMainInstance.cboTileType.Enabled = True
         Else
-            frmMainInstance.cmbTileType.Enabled = False
-            frmMainInstance.cmbTileType.SelectedIndex = -1
+            frmMainInstance.cboTileType.Enabled = False
+            frmMainInstance.cboTileType.SelectedIndex = -1
         End If
 
         DrawViewLater()
@@ -339,9 +340,9 @@ EndOfTextures4:
         Dim Flag As Boolean
 
         If TextureCount.X > 0 And TextureCount.Y > 0 Then
-            If Map Is Nothing Then
+            If Main_Map Is Nothing Then
                 Flag = True
-            ElseIf Map.Tileset Is Nothing Then
+            ElseIf Main_Map.Tileset Is Nothing Then
                 Flag = True
             Else
                 Flag = False
@@ -354,7 +355,7 @@ EndOfTextures4:
             TextureScroll.LargeChange = 0
             TextureScroll.Enabled = False
         Else
-            TextureScroll.Maximum = CInt(Math.Ceiling(Map.Tileset.TileCount / TextureCount.X))
+            TextureScroll.Maximum = CInt(Math.Ceiling(Main_Map.Tileset.TileCount / TextureCount.X))
             TextureScroll.LargeChange = TextureCount.Y
             TextureScroll.Enabled = True
         End If

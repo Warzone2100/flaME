@@ -8,7 +8,7 @@
         InitializeComponent() 'required for monodevelop too
 
         ' Add any initialization after the InitializeComponent() call.
-        Text = "flaME " & ProgramVersionNumber & " Loading"
+        Text = ProgramName & " " & ProgramVersionNumber & " Loading"
     End Sub
 
 #If MonoDevelop <> 0.0# Then

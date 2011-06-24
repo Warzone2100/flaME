@@ -13,18 +13,59 @@ Public Class ctrlMapView
     Public GLSize As sXY_int
     Public GLSize_XPerY As Double
 
-    Public MouseOver_Exists As Boolean
-    Public MouseOver_ScreenPos As sXY_int
-    Public MouseOver_Pos_Exists As Boolean
-    Public MouseOver_Pos As sXYZ_lng
-    Public MouseOver_Units() As clsMap.clsUnit
-    Public MouseOver_UnitCount As Integer
+    Public Class clsMouseOver
+        Public ScreenPos As sXY_int
+        Public Class clsOverTerrain
+            Public Pos As sWorldPos
+            Public Units(-1) As clsMap.clsUnit
+            Public UnitCount As Integer
+            Public Tile As sXY_int
+            Public Vertex As sXY_int
+            Public Side_Num As sXY_int
+            Public Side_IsV As Boolean
+
+            Public Sub Unit_FindRemove(ByVal UnitToRemove As clsMap.clsUnit)
+                Dim A As Integer
+
+                A = 0
+                Do While A < UnitCount
+                    If Units(A) Is UnitToRemove Then
+                        Unit_Remove(A)
+                    Else
+                        A += 1
+                    End If
+                Loop
+            End Sub
+
+            Public Sub Units_Clear()
+
+                ReDim Preserve Units(-1)
+                UnitCount = 0
+            End Sub
+
+            Public Sub Unit_Add(ByVal UnitToAdd As clsMap.clsUnit)
+
+                ReDim Preserve Units(UnitCount)
+                Units(UnitCount) = UnitToAdd
+                UnitCount += 1
+            End Sub
+
+            Public Sub Unit_Remove(ByVal Num As Integer)
+
+                UnitCount -= 1
+                If Num <> UnitCount Then
+                    Units(Num) = Units(UnitCount)
+                End If
+                ReDim Preserve Units(UnitCount - 1)
+            End Sub
+        End Class
+        Public OverTerrain As clsOverTerrain
+    End Class
+    Public MouseOver As clsMouseOver
+
     Public MouseLeftIsDown As Boolean
     Public MouseRightIsDown As Boolean
-    Public MouseOver_Tile As sXY_int
-    Public MouseOver_Vertex As sXY_int
-    Public MouseOver_Side_IsV As Boolean
-    Public MouseOver_Side_Num As sXY_int
+ 
     Public Tiles_Per_Minimap_Pixel As Double
 
     Public IsMinimap_MouseDown As Boolean
@@ -39,6 +80,7 @@ Public Class ctrlMapView
     Public Draw_TileWireframe As Boolean
     Public Draw_Units As Boolean = True
     Public Draw_VertexTerrain As Boolean
+    Public Draw_Gateways As Boolean
 
     Public BGColor As sRGB_sng
 
@@ -240,7 +282,7 @@ Public Class ctrlMapView
     End Sub
 
     Private Sub Draw_TextLabel(ByRef TextLabel() As sTextLabel)
-        Static A As Integer
+        Dim A As Integer
 
         For A = 0 To TextLabel.GetUpperBound(0)
             Draw_TextLabel(TextLabel(A))
@@ -326,54 +368,52 @@ Public Class ctrlMapView
     End Sub
 
     Private Sub DrawView()
-        Static XYZ_dbl As sXYZ_dbl
-        Static XY_int As sXY_int
-        Static X As Integer
-        Static Z As Integer
-        Static X2 As Integer
-        Static Z2 As Integer
-        Static A As Integer
-        Static B As Integer
-        Static C As Integer
-        Static D As Integer
-        Static ShowMinimapViewPosBox As Boolean
-        Static ViewCorner0 As sXY_dbl
-        Static ViewCorner1 As sXY_dbl
-        Static ViewCorner2 As sXY_dbl
-        Static ViewCorner3 As sXY_dbl
-        Static dblTemp As Double
-        Static dblTemp2 As Double
-        Static Vertex0 As sXYZ_dbl
-        Static Vertex1 As sXYZ_dbl
-        Static Vertex2 As sXYZ_dbl
-        Static Vertex3 As sXYZ_dbl
-        Static ScreenX As Integer
-        Static ScreenY As Integer
-        Static XYZ_dbl2 As sXYZ_dbl
-        'Static XYZ_dbl3 As sXYZ_dbl
-        Static XYZ_int As sXYZ_int
-        Static NewUnitType As clsUnitType
-        Static PosA As sXY_dbl
-        Static PosB As sXY_dbl
-        Static PosC As sXY_dbl
-        Static PosD As sXY_dbl
-        Static MinimapSize As sXY_int
-        Static Draw_Unit_Label As Boolean
-        Static tmpUnit As clsMap.clsUnit
-        Static StartXY As sXY_int
-        Static FinishXY As sXY_int
-        Static DrawIt As Boolean
-        Static DrawCentre As sXY_dbl
-        Static DrawCentreSector As sXY_int
-        Static UnitTextLabels() As sTextLabel
-        Static UnitTextLabelCount As Integer
-        Static SelectionLabel As sTextLabel
-        'Static RGB_sng As sRGB_sng
-        Static light_position(3) As Single
-        Static matrixA(8) As Double
-        Static matrixB(8) As Double
-        Static X3 As Integer
-        Static Z3 As Integer
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim Footprint As sXY_int
+        Dim X As Integer
+        Dim Z As Integer
+        Dim X2 As Integer
+        Dim Z2 As Integer
+        Dim A As Integer
+        Dim B As Integer
+        Dim C As Integer
+        Dim D As Integer
+        Dim ColourA As sRGBA_sng
+        Dim ColourB As sRGBA_sng
+        Dim ShowMinimapViewPosBox As Boolean
+        Dim ViewCorner0 As sXY_dbl
+        Dim ViewCorner1 As sXY_dbl
+        Dim ViewCorner2 As sXY_dbl
+        Dim ViewCorner3 As sXY_dbl
+        Dim dblTemp As Double
+        Dim dblTemp2 As Double
+        Dim Vertex0 As sXYZ_dbl
+        Dim Vertex1 As sXYZ_dbl
+        Dim Vertex2 As sXYZ_dbl
+        Dim Vertex3 As sXYZ_dbl
+        Dim ScreenPos As sXY_int
+        Dim XYZ_dbl2 As sXYZ_dbl
+        Dim WorldPos As sWorldPos
+        Dim PosA As sXY_dbl
+        Dim PosB As sXY_dbl
+        Dim PosC As sXY_dbl
+        Dim PosD As sXY_dbl
+        Dim MinimapSizeXY As sXY_int
+        Dim Draw_Unit_Label As Boolean
+        Dim tmpUnit As clsMap.clsUnit
+        Dim StartXY As sXY_int
+        Dim FinishXY As sXY_int
+        Dim DrawIt As Boolean
+        Dim DrawCentre As sXY_dbl
+        Dim DrawCentreSector As sXY_int
+        Dim UnitTextLabels() As sTextLabel
+        Dim UnitTextLabelCount As Integer
+        Dim SelectionLabel As New sTextLabel
+        Dim light_position(3) As Single
+        Dim matrixA(8) As Double
+        Dim matrixB(8) As Double
+        Dim X3 As Integer
+        Dim Z3 As Integer
 
         If Not (DrawView_Enabled And IsGLInitialized) Then
             Exit Sub
@@ -414,17 +454,17 @@ Public Class ctrlMapView
             GL.Disable(EnableCap.Lighting)
         End If
 
-        dblTemp = 127.5# * Map.HeightMultiplier
-        If ScreenXY_Get_PlanePos_ForwardDownOnly(0, 0, dblTemp, ViewCorner0) _
-        And ScreenXY_Get_PlanePos_ForwardDownOnly(GLSize.X, 0, dblTemp, ViewCorner1) _
-        And ScreenXY_Get_PlanePos_ForwardDownOnly(GLSize.X, GLSize.Y, dblTemp, ViewCorner2) _
-        And ScreenXY_Get_PlanePos_ForwardDownOnly(0, GLSize.Y, dblTemp, ViewCorner3) Then
+        dblTemp = 127.5# * Main_Map.HeightMultiplier
+        If ScreenXY_Get_ViewPlanePos_ForwardDownOnly(0, 0, dblTemp, ViewCorner0) _
+        And ScreenXY_Get_ViewPlanePos_ForwardDownOnly(GLSize.X, 0, dblTemp, ViewCorner1) _
+        And ScreenXY_Get_ViewPlanePos_ForwardDownOnly(GLSize.X, GLSize.Y, dblTemp, ViewCorner2) _
+        And ScreenXY_Get_ViewPlanePos_ForwardDownOnly(0, GLSize.Y, dblTemp, ViewCorner3) Then
             ShowMinimapViewPosBox = True
         Else
             ShowMinimapViewPosBox = False
         End If
 
-        If ScreenXY_Get_PlanePos(GLSize.X / 2.0#, GLSize.Y / 2.0#, dblTemp, DrawCentre) Then
+        If ScreenXY_Get_ViewPlanePos(New sXY_int(GLSize.X / 2.0#, GLSize.Y / 2.0#), dblTemp, DrawCentre) Then
             XYZ_dbl.X = DrawCentre.X - ViewPos.X
             XYZ_dbl.Z = DrawCentre.Y - ViewPos.Z
             dblTemp2 = Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Z * XYZ_dbl.Z)
@@ -438,9 +478,9 @@ Public Class ctrlMapView
             DrawCentre.X = ViewPos.X + XYZ_dbl.X * dblTemp2
             DrawCentre.Y = ViewPos.Z + XYZ_dbl.Z * dblTemp2
         End If
-        DrawCentre.X = Clamp(DrawCentre.X, 0.0#, Map.TerrainSize.X * TerrainGridSpacing - 1.0#)
-        DrawCentre.Y = Clamp(-DrawCentre.Y, 0.0#, Map.TerrainSize.Y * TerrainGridSpacing - 1.0#)
-        Map.Pos_Get_Sector(DrawCentre.X, DrawCentre.Y, DrawCentreSector)
+        DrawCentre.X = Clamp(DrawCentre.X, 0.0#, Main_Map.TerrainSize.X * TerrainGridSpacing - 1.0#)
+        DrawCentre.Y = Clamp(-DrawCentre.Y, 0.0#, Main_Map.TerrainSize.Y * TerrainGridSpacing - 1.0#)
+        DrawCentreSector = Main_Map.GetPosSectorNum(New sXY_int(DrawCentre.X, DrawCentre.Y))
 
         GL.Rotate(AngleClamp(-ViewAngleRPY.Roll) / RadOf1Deg, 0.0F, 0.0F, 1.0F)
         GL.Rotate(ViewAngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
@@ -456,9 +496,9 @@ Public Class ctrlMapView
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1)
-                    GL.CallList(Map.Sectors(X, Z).GLList_Textured)
+            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
+                    GL.CallList(Main_Map.Sectors(X, Z).GLList_Textured)
                 Next
             Next
             GL.Disable(EnableCap.Texture2D)
@@ -470,9 +510,9 @@ Public Class ctrlMapView
         If Draw_TileWireframe Then
             GL.Color3(0.0F, 1.0F, 0.0F)
             GL.LineWidth(1.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1)
-                    GL.CallList(Map.Sectors(X, Z).GLList_Wireframe)
+            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
+                    GL.CallList(Main_Map.Sectors(X, Z).GLList_Wireframe)
                 Next
             Next
         End If
@@ -485,11 +525,11 @@ Public Class ctrlMapView
 
             GL.Begin(BeginMode.Triangles)
             GL.Color3(1.0F, 1.0F, 0.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Map.SectorCount.Y)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X)
-                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Map.TerrainSize.Y - 1)
-                        For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Map.TerrainSize.X - 1)
-                            Map.DrawTileOrientation(X3, Z3)
+            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y)
+                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X)
+                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y - 1)
+                        For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Main_Map.TerrainSize.X - 1)
+                            Main_Map.DrawTileOrientation(New sXY_int(X3, Z3))
                         Next
                     Next
                 Next
@@ -499,22 +539,25 @@ Public Class ctrlMapView
             GL.Enable(EnableCap.CullFace)
         End If
 
-        'draw autotexture terrain type markers
+        'draw painted texture terrain type markers
 
-        Static RGB_sng As sRGB_sng
-        Static XYZ_dbl3 As sXYZ_dbl
-        Static RGB_sng2 As sRGB_sng
+        Dim RGB_sng As sRGB_sng
+        Dim XYZ_dbl3 As sXYZ_dbl
+        Dim RGB_sng2 As sRGB_sng
+
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
         If Draw_VertexTerrain Then
             GL.LineWidth(1.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Map.SectorCount.Y)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X)
-                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Map.TerrainSize.Y)
-                        For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Map.TerrainSize.X)
-                            If Map.TerrainVertex(X3, Z3).Terrain IsNot Nothing And Map.Tileset IsNot Nothing Then
-                                A = Map.TerrainVertex(X3, Z3).Terrain.Num
-                                If A < Map.Painter.TerrainCount Then
-                                    If Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
-                                        RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
+            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y)
+                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X)
+                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y)
+                        For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Main_Map.TerrainSize.X)
+                            If Main_Map.TerrainVertex(X3, Z3).Terrain IsNot Nothing And Main_Map.Tileset IsNot Nothing Then
+                                A = Main_Map.TerrainVertex(X3, Z3).Terrain.Num
+                                If A < Main_Map.Painter.TerrainCount Then
+                                    If Main_Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
+                                        RGB_sng = Main_Map.Tileset.Tiles(Main_Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
                                         If RGB_sng.Red + RGB_sng.Green + RGB_sng.Blue < 1.5F Then
                                             RGB_sng2.Red = (RGB_sng.Red + 1.0F) / 2.0F
                                             RGB_sng2.Green = (RGB_sng.Green + 1.0F) / 2.0F
@@ -525,7 +568,7 @@ Public Class ctrlMapView
                                             RGB_sng2.Blue = RGB_sng.Blue / 2.0F
                                         End If
                                         XYZ_dbl.X = X3 * TerrainGridSpacing
-                                        XYZ_dbl.Y = Map.TerrainVertex(X3, Z3).Height * Map.HeightMultiplier
+                                        XYZ_dbl.Y = Main_Map.TerrainVertex(X3, Z3).Height * Main_Map.HeightMultiplier
                                         XYZ_dbl.Z = -Z3 * TerrainGridSpacing
                                         XYZ_dbl2.X = 10.0#
                                         XYZ_dbl2.Y = 10.0#
@@ -580,47 +623,46 @@ Public Class ctrlMapView
 
         SelectionLabel.Text = ""
 
-        If Map.Selected_Area_VertexA_Exists Then
+        If Main_Map.Selected_Area_VertexA IsNot Nothing Then
             DrawIt = False
-            If Map.Selected_Area_VertexB_Exists Then
+            If Main_Map.Selected_Area_VertexB IsNot Nothing Then
                 'area is selected
-                XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, StartXY, FinishXY)
-                XYZ_dbl.X = Map.Selected_Area_VertexB.X * TerrainGridSpacing - ViewPos.X
-                XYZ_dbl.Z = -Map.Selected_Area_VertexB.Y * TerrainGridSpacing - ViewPos.Z
-                XYZ_dbl.Y = Map.GetTerrainHeight(Map.Selected_Area_VertexB.X * TerrainGridSpacing, Map.Selected_Area_VertexB.Y * TerrainGridSpacing) - ViewPos.Y
+                XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, StartXY, FinishXY)
+                XYZ_dbl.X = Main_Map.Selected_Area_VertexB.X * TerrainGridSpacing - ViewPos.X
+                XYZ_dbl.Z = Main_Map.Selected_Area_VertexB.Y * TerrainGridSpacing - ViewPos.Z
+                XYZ_dbl.Y = Main_Map.GetVertexAltitude(Main_Map.Selected_Area_VertexB.XY) - ViewPos.Y
                 DrawIt = True
             ElseIf Tool = enumTool.Terrain_Select Then
-                If MouseOver_Pos_Exists Then
+                If MouseOverTerrain IsNot Nothing Then
                     'selection is changing under pointer
-                    XY_Reorder(Map.Selected_Area_VertexA, MouseOver_Vertex, StartXY, FinishXY)
-                    XYZ_dbl.X = MouseOver_Vertex.X * TerrainGridSpacing - ViewPos.X
-                    XYZ_dbl.Z = -MouseOver_Vertex.Y * TerrainGridSpacing - ViewPos.Z
-                    XYZ_dbl.Y = Map.GetTerrainHeight(MouseOver_Vertex.X * TerrainGridSpacing, MouseOver_Vertex.Y * TerrainGridSpacing) - ViewPos.Y
+                    XY_Reorder(Main_Map.Selected_Area_VertexA.XY, MouseOverTerrain.Vertex, StartXY, FinishXY)
+                    XYZ_dbl.X = MouseOverTerrain.Vertex.X * TerrainGridSpacing - ViewPos.X
+                    XYZ_dbl.Z = -MouseOverTerrain.Vertex.Y * TerrainGridSpacing - ViewPos.Z
+                    XYZ_dbl.Y = Main_Map.GetVertexAltitude(MouseOverTerrain.Vertex) - ViewPos.Y
                     DrawIt = True
                 End If
             End If
             If DrawIt Then
                 VectorRotationByMatrix(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
-                If Pos_Get_Screen_XY(XYZ_dbl2, ScreenX, ScreenY) Then
-                    If ScreenX >= 0 And ScreenX <= GLSize.X And ScreenY >= 0 And ScreenY <= GLSize.Y Then
+                If Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                    If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
                         SelectionLabel.Colour.Red = 1.0F
                         SelectionLabel.Colour.Green = 1.0F
                         SelectionLabel.Colour.Blue = 1.0F
                         SelectionLabel.Colour.Alpha = 1.0F
                         SelectionLabel.Font = UnitLabelFont
                         SelectionLabel.SizeY = UnitLabelFontSize
-                        SelectionLabel.Pos.X = ScreenX
-                        SelectionLabel.Pos.Y = ScreenY
+                        SelectionLabel.Pos = ScreenPos
                         SelectionLabel.Text = FinishXY.X - StartXY.X & "x" & FinishXY.Y - StartXY.Y
                     End If
                 End If
                 GL.LineWidth(3.0F)
                 For X = StartXY.X To FinishXY.X - 1
                     Vertex0.X = X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X, StartXY.Y).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X, StartXY.Y).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -StartXY.Y * TerrainGridSpacing
                     Vertex1.X = (X + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X + 1, StartXY.Y).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X + 1, StartXY.Y).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -StartXY.Y * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
@@ -630,10 +672,10 @@ Public Class ctrlMapView
                 Next
                 For X = StartXY.X To FinishXY.X - 1
                     Vertex0.X = X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X, FinishXY.Y).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X, FinishXY.Y).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -FinishXY.Y * TerrainGridSpacing
                     Vertex1.X = (X + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X + 1, FinishXY.Y).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X + 1, FinishXY.Y).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -FinishXY.Y * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
@@ -643,10 +685,10 @@ Public Class ctrlMapView
                 Next
                 For Z = StartXY.Y To FinishXY.Y - 1
                     Vertex0.X = StartXY.X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(StartXY.X, Z).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Z).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z * TerrainGridSpacing
                     Vertex1.X = StartXY.X * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(StartXY.X, Z + 1).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Z + 1).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -(Z + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
@@ -656,10 +698,10 @@ Public Class ctrlMapView
                 Next
                 For Z = StartXY.Y To FinishXY.Y - 1
                     Vertex0.X = FinishXY.X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(FinishXY.X, Z).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Z).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z * TerrainGridSpacing
                     Vertex1.X = FinishXY.X * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(FinishXY.X, Z + 1).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Z + 1).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -(Z + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
@@ -671,13 +713,13 @@ Public Class ctrlMapView
         End If
 
         If Tool = enumTool.Terrain_Select Then
-            If MouseOver_Pos_Exists Then
+            If MouseOverTerrain IsNot Nothing Then
                 'draw mouseover vertex
                 GL.LineWidth(3.0F)
 
-                Vertex0.X = MouseOver_Vertex.X * TerrainGridSpacing
-                Vertex0.Y = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height * Map.HeightMultiplier
-                Vertex0.Z = -MouseOver_Vertex.Y * TerrainGridSpacing
+                Vertex0.X = MouseOverTerrain.Vertex.X * TerrainGridSpacing
+                Vertex0.Y = Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height * Main_Map.HeightMultiplier
+                Vertex0.Z = -MouseOverTerrain.Vertex.Y * TerrainGridSpacing
                 GL.Begin(BeginMode.Lines)
                 GL.Color3(1.0F, 1.0F, 1.0F)
                 GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
@@ -686,30 +728,32 @@ Public Class ctrlMapView
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
                 GL.End()
             End If
-        ElseIf Tool = enumTool.Gateways Then
+        End If
+
+        If Draw_Gateways Then
             GL.LineWidth(2.0F)
-            For A = 0 To Map.GatewayCount - 1
-                If Map.Gateways(A).PosA.X = Map.Gateways(A).PosB.X Then
-                    If Map.Gateways(A).PosA.Y <= Map.Gateways(A).PosB.Y Then
-                        C = Map.Gateways(A).PosA.Y
-                        D = Map.Gateways(A).PosB.Y
+            For A = 0 To Main_Map.GatewayCount - 1
+                If Main_Map.Gateways(A).PosA.X = Main_Map.Gateways(A).PosB.X Then
+                    If Main_Map.Gateways(A).PosA.Y <= Main_Map.Gateways(A).PosB.Y Then
+                        C = Main_Map.Gateways(A).PosA.Y
+                        D = Main_Map.Gateways(A).PosB.Y
                     Else
-                        C = Map.Gateways(A).PosB.Y
-                        D = Map.Gateways(A).PosA.Y
+                        C = Main_Map.Gateways(A).PosB.Y
+                        D = Main_Map.Gateways(A).PosA.Y
                     End If
-                    X2 = Map.Gateways(A).PosA.X
+                    X2 = Main_Map.Gateways(A).PosA.X
                     For Z2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -Z2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -Z2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                         Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                         Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.75F, 1.0F, 0.0F)
@@ -719,27 +763,27 @@ Public Class ctrlMapView
                         GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                         GL.End()
                     Next
-                ElseIf Map.Gateways(A).PosA.Y = Map.Gateways(A).PosB.Y Then
-                    If Map.Gateways(A).PosA.X <= Map.Gateways(A).PosB.X Then
-                        C = Map.Gateways(A).PosA.X
-                        D = Map.Gateways(A).PosB.X
+                ElseIf Main_Map.Gateways(A).PosA.Y = Main_Map.Gateways(A).PosB.Y Then
+                    If Main_Map.Gateways(A).PosA.X <= Main_Map.Gateways(A).PosB.X Then
+                        C = Main_Map.Gateways(A).PosA.X
+                        D = Main_Map.Gateways(A).PosB.X
                     Else
-                        C = Map.Gateways(A).PosB.X
-                        D = Map.Gateways(A).PosA.X
+                        C = Main_Map.Gateways(A).PosB.X
+                        D = Main_Map.Gateways(A).PosA.X
                     End If
-                    Z2 = Map.Gateways(A).PosA.Y
+                    Z2 = Main_Map.Gateways(A).PosA.Y
                     For X2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -Z2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -Z2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                         Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                         Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.75F, 1.0F, 0.0F)
@@ -751,20 +795,20 @@ Public Class ctrlMapView
                     Next
                 Else
                     'draw invalid gateways as red tile borders
-                    X2 = Map.Gateways(A).PosA.X
-                    Z2 = Map.Gateways(A).PosA.Y
+                    X2 = Main_Map.Gateways(A).PosA.X
+                    Z2 = Main_Map.Gateways(A).PosA.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -Z2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(1.0F, 0.0F, 0.0F)
@@ -774,20 +818,20 @@ Public Class ctrlMapView
                     GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                     GL.End()
 
-                    X2 = Map.Gateways(A).PosB.X
-                    Z2 = Map.Gateways(A).PosB.Y
+                    X2 = Main_Map.Gateways(A).PosB.X
+                    Z2 = Main_Map.Gateways(A).PosB.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -Z2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(1.0F, 0.0F, 0.0F)
@@ -800,20 +844,20 @@ Public Class ctrlMapView
             Next
         End If
 
-        If MouseOver_Pos_Exists Then
+        If MouseOverTerrain IsNot Nothing Then
 
             If Tool = enumTool.None Then
-                If Map.Unit_Selected_Area_VertexA_Exists Then
+                If Main_Map.Unit_Selected_Area_VertexA IsNot Nothing Then
                     'selection is changing under pointer
-                    XY_Reorder(Map.Unit_Selected_Area_VertexA, MouseOver_Vertex, StartXY, FinishXY)
+                    XY_Reorder(Main_Map.Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex, StartXY, FinishXY)
                     GL.LineWidth(2.0F)
                     GL.Color3(0.0F, 1.0F, 1.0F)
                     For X = StartXY.X To FinishXY.X - 1
                         Vertex0.X = X * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(X, StartXY.Y).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(X, StartXY.Y).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -StartXY.Y * TerrainGridSpacing
                         Vertex1.X = (X + 1) * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(X + 1, StartXY.Y).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(X + 1, StartXY.Y).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -StartXY.Y * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -822,10 +866,10 @@ Public Class ctrlMapView
                     Next
                     For X = StartXY.X To FinishXY.X - 1
                         Vertex0.X = X * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(X, FinishXY.Y).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(X, FinishXY.Y).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -FinishXY.Y * TerrainGridSpacing
                         Vertex1.X = (X + 1) * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(X + 1, FinishXY.Y).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(X + 1, FinishXY.Y).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -FinishXY.Y * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -834,10 +878,10 @@ Public Class ctrlMapView
                     Next
                     For Z = StartXY.Y To FinishXY.Y - 1
                         Vertex0.X = StartXY.X * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(StartXY.X, Z).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Z).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -Z * TerrainGridSpacing
                         Vertex1.X = StartXY.X * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(StartXY.X, Z + 1).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Z + 1).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -(Z + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -846,10 +890,10 @@ Public Class ctrlMapView
                     Next
                     For Z = StartXY.Y To FinishXY.Y - 1
                         Vertex0.X = FinishXY.X * TerrainGridSpacing
-                        Vertex0.Y = Map.TerrainVertex(FinishXY.X, Z).Height * Map.HeightMultiplier
+                        Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Z).Height * Main_Map.HeightMultiplier
                         Vertex0.Z = -Z * TerrainGridSpacing
                         Vertex1.X = FinishXY.X * TerrainGridSpacing
-                        Vertex1.Y = Map.TerrainVertex(FinishXY.X, Z + 1).Height * Map.HeightMultiplier
+                        Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Z + 1).Height * Main_Map.HeightMultiplier
                         Vertex1.Z = -(Z + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -860,10 +904,10 @@ Public Class ctrlMapView
                     GL.LineWidth(2.0F)
                     GL.Color3(0.0F, 1.0F, 1.0F)
                     GL.Begin(BeginMode.Lines)
-                    GL.Vertex3(MouseOver_Pos.X - 16.0#, MouseOver_Pos.Y, -MouseOver_Pos.Z - 16.0#)
-                    GL.Vertex3(MouseOver_Pos.X + 16.0#, MouseOver_Pos.Y, -MouseOver_Pos.Z + 16.0#)
-                    GL.Vertex3(MouseOver_Pos.X + 16.0#, MouseOver_Pos.Y, -MouseOver_Pos.Z - 16.0#)
-                    GL.Vertex3(MouseOver_Pos.X - 16.0#, MouseOver_Pos.Y, -MouseOver_Pos.Z + 16.0#)
+                    GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X - 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y - 16.0#)
+                    GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X + 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y + 16.0#)
+                    GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X + 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y - 16.0#)
+                    GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X - 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y + 16.0#)
                     GL.End()
                 End If
             End If
@@ -871,20 +915,20 @@ Public Class ctrlMapView
             If Tool = enumTool.AutoRoad_Place Then
                 GL.LineWidth(2.0F)
 
-                If MouseOver_Side_IsV Then
-                    Vertex0.X = MouseOver_Side_Num.X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Height * Map.HeightMultiplier
-                    Vertex0.Z = -MouseOver_Side_Num.Y * TerrainGridSpacing
-                    Vertex1.X = MouseOver_Side_Num.X * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(MouseOver_Side_Num.X, MouseOver_Side_Num.Y + 1).Height * Map.HeightMultiplier
-                    Vertex1.Z = -(MouseOver_Side_Num.Y + 1) * TerrainGridSpacing
+                If MouseOverTerrain.Side_IsV Then
+                    Vertex0.X = MouseOverTerrain.Side_Num.X * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(MouseOverTerrain.Side_Num.X, MouseOverTerrain.Side_Num.Y).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -MouseOverTerrain.Side_Num.Y * TerrainGridSpacing
+                    Vertex1.X = MouseOverTerrain.Side_Num.X * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(MouseOverTerrain.Side_Num.X, MouseOverTerrain.Side_Num.Y + 1).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -(MouseOverTerrain.Side_Num.Y + 1) * TerrainGridSpacing
                 Else
-                    Vertex0.X = MouseOver_Side_Num.X * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Height * Map.HeightMultiplier
-                    Vertex0.Z = -MouseOver_Side_Num.Y * TerrainGridSpacing
-                    Vertex1.X = (MouseOver_Side_Num.X + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(MouseOver_Side_Num.X + 1, MouseOver_Side_Num.Y).Height * Map.HeightMultiplier
-                    Vertex1.Z = -MouseOver_Side_Num.Y * TerrainGridSpacing
+                    Vertex0.X = MouseOverTerrain.Side_Num.X * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(MouseOverTerrain.Side_Num.X, MouseOverTerrain.Side_Num.Y).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -MouseOverTerrain.Side_Num.Y * TerrainGridSpacing
+                    Vertex1.X = (MouseOverTerrain.Side_Num.X + 1) * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(MouseOverTerrain.Side_Num.X + 1, MouseOverTerrain.Side_Num.Y).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -MouseOverTerrain.Side_Num.Y * TerrainGridSpacing
                 End If
 
                 GL.Begin(BeginMode.Lines)
@@ -895,21 +939,21 @@ Public Class ctrlMapView
             ElseIf Tool = enumTool.AutoRoad_Line Or Tool = enumTool.Gateways Then
                 GL.LineWidth(2.0F)
 
-                If Map.Selected_Tile_A_Exists Then
-                    X2 = Map.Selected_Tile_A.X
-                    Z2 = Map.Selected_Tile_A.Y
+                If Main_Map.Selected_Tile_A IsNot Nothing Then
+                    X2 = Main_Map.Selected_Tile_A.X
+                    Z2 = Main_Map.Selected_Tile_A.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -Z2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(0.0F, 1.0F, 1.0F)
@@ -919,27 +963,27 @@ Public Class ctrlMapView
                     GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                     GL.End()
 
-                    If MouseOver_Tile.X = Map.Selected_Tile_A.X Then
-                        If MouseOver_Tile.Y <= Map.Selected_Tile_A.Y Then
-                            A = MouseOver_Tile.Y
-                            B = Map.Selected_Tile_A.Y
+                    If MouseOverTerrain.Tile.X = Main_Map.Selected_Tile_A.X Then
+                        If MouseOverTerrain.Tile.Y <= Main_Map.Selected_Tile_A.Y Then
+                            A = MouseOverTerrain.Tile.Y
+                            B = Main_Map.Selected_Tile_A.Y
                         Else
-                            A = Map.Selected_Tile_A.Y
-                            B = MouseOver_Tile.Y
+                            A = Main_Map.Selected_Tile_A.Y
+                            B = MouseOverTerrain.Tile.Y
                         End If
-                        X2 = Map.Selected_Tile_A.X
+                        X2 = Main_Map.Selected_Tile_A.X
                         For Z2 = A To B
                             Vertex0.X = X2 * TerrainGridSpacing
-                            Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                            Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                             Vertex0.Z = -Z2 * TerrainGridSpacing
                             Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                             Vertex1.Z = -Z2 * TerrainGridSpacing
                             Vertex2.X = X2 * TerrainGridSpacing
-                            Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                            Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                             Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                             Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                             Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                             GL.Begin(BeginMode.LineLoop)
                             GL.Color3(0.0F, 1.0F, 1.0F)
@@ -949,27 +993,27 @@ Public Class ctrlMapView
                             GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                             GL.End()
                         Next
-                    ElseIf MouseOver_Tile.Y = Map.Selected_Tile_A.Y Then
-                        If MouseOver_Tile.X <= Map.Selected_Tile_A.X Then
-                            A = MouseOver_Tile.X
-                            B = Map.Selected_Tile_A.X
+                    ElseIf MouseOverTerrain.Tile.Y = Main_Map.Selected_Tile_A.Y Then
+                        If MouseOverTerrain.Tile.X <= Main_Map.Selected_Tile_A.X Then
+                            A = MouseOverTerrain.Tile.X
+                            B = Main_Map.Selected_Tile_A.X
                         Else
-                            A = Map.Selected_Tile_A.X
-                            B = MouseOver_Tile.X
+                            A = Main_Map.Selected_Tile_A.X
+                            B = MouseOverTerrain.Tile.X
                         End If
-                        Z2 = Map.Selected_Tile_A.Y
+                        Z2 = Main_Map.Selected_Tile_A.Y
                         For X2 = A To B
                             Vertex0.X = X2 * TerrainGridSpacing
-                            Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                            Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                             Vertex0.Z = -Z2 * TerrainGridSpacing
                             Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                             Vertex1.Z = -Z2 * TerrainGridSpacing
                             Vertex2.X = X2 * TerrainGridSpacing
-                            Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                            Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                             Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                             Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                             Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                             GL.Begin(BeginMode.LineLoop)
                             GL.Color3(0.0F, 1.0F, 1.0F)
@@ -981,20 +1025,20 @@ Public Class ctrlMapView
                         Next
                     End If
                 Else
-                    X2 = MouseOver_Tile.X
-                    Z2 = MouseOver_Tile.Y
+                    X2 = MouseOverTerrain.Tile.X
+                    Z2 = MouseOverTerrain.Tile.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
                     Vertex0.Z = -Z2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
                     Vertex1.Z = -Z2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
                     Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(0.0F, 1.0F, 1.0F)
@@ -1006,131 +1050,131 @@ Public Class ctrlMapView
                 End If
             End If
 
-        'draw mouseover tiles
-        If Tool = enumTool.Texture_Brush Then
-            GL.LineWidth(2.0F)
+            'draw mouseover tiles
+            If Tool = enumTool.Texture_Brush Then
+                GL.LineWidth(2.0F)
 
-            For Z = Clamp(TextureBrushRadius.ZMin + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y To Clamp(TextureBrushRadius.ZMax + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y
-                Z2 = MouseOver_Tile.Y + Z
-                For X = Clamp(TextureBrushRadius.XMin(Z - TextureBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X To Clamp(TextureBrushRadius.XMax(Z - TextureBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X
-                    X2 = MouseOver_Tile.X + X
+                For Z = Clamp(TextureBrush.Tiles.ZMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(TextureBrush.Tiles.ZMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
+                    Z2 = MouseOverTerrain.Tile.Y + Z
+                    For X = Clamp(TextureBrush.Tiles.XMin(Z - TextureBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(TextureBrush.Tiles.XMax(Z - TextureBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
+                        X2 = MouseOverTerrain.Tile.X + X
 
-                    Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
-                    Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
-                    Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
-                    Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
-                    GL.Begin(BeginMode.LineLoop)
-                    GL.Color3(0.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-                    GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-                    GL.End()
+                        Vertex0.X = X2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.X = (X2 + 1) * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex2.X = X2 * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.X = (X2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        GL.Begin(BeginMode.LineLoop)
+                        GL.Color3(0.0F, 1.0F, 1.0F)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+                        GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
+                        GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+                        GL.End()
+                    Next
                 Next
-            Next
-        End If
+            End If
 
-        If Tool = enumTool.AutoCliff Then
-            GL.LineWidth(2.0F)
+            If Tool = enumTool.AutoCliff Or Tool = enumTool.AutoRoad_Remove Then
+                GL.LineWidth(2.0F)
 
-            For Z = Clamp(AutoCliffBrushRadius.ZMin + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y To Clamp(AutoCliffBrushRadius.ZMax + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y
-                Z2 = MouseOver_Tile.Y + Z
-                For X = Clamp(AutoCliffBrushRadius.XMin(Z - AutoCliffBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X To Clamp(AutoCliffBrushRadius.XMax(Z - AutoCliffBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X
-                    X2 = MouseOver_Tile.X + X
+                For Z = Clamp(CliffBrush.Tiles.ZMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(CliffBrush.Tiles.ZMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
+                    Z2 = MouseOverTerrain.Tile.Y + Z
+                    For X = Clamp(CliffBrush.Tiles.XMin(Z - CliffBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(CliffBrush.Tiles.XMax(Z - CliffBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
+                        X2 = MouseOverTerrain.Tile.X + X
 
-                    Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
-                    Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Map.TerrainVertex(X2 + 1, Z2).Height * Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
-                    Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Map.TerrainVertex(X2, Z2 + 1).Height * Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
-                    Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
-                    GL.Begin(BeginMode.LineLoop)
-                    GL.Color3(0.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-                    GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-                    GL.End()
+                        Vertex0.X = X2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.X = (X2 + 1) * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex2.X = X2 * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.X = (X2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        GL.Begin(BeginMode.LineLoop)
+                        GL.Color3(0.0F, 1.0F, 1.0F)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+                        GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
+                        GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+                        GL.End()
+                    Next
                 Next
-            Next
-        End If
+            End If
 
-        'draw mouseover vertex
-        If Tool = enumTool.AutoTexture_Fill Then
-            GL.LineWidth(2.0F)
+            'draw mouseover vertex
+            If Tool = enumTool.AutoTexture_Fill Then
+                GL.LineWidth(2.0F)
 
-            Vertex0.X = MouseOver_Vertex.X * TerrainGridSpacing
-            Vertex0.Y = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height * Map.HeightMultiplier
-            Vertex0.Z = -MouseOver_Vertex.Y * TerrainGridSpacing
-            GL.Begin(BeginMode.Lines)
-            GL.Color3(0.0F, 1.0F, 1.0F)
-            GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
-            GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
-            GL.End()
-        End If
+                Vertex0.X = MouseOverTerrain.Vertex.X * TerrainGridSpacing
+                Vertex0.Y = Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height * Main_Map.HeightMultiplier
+                Vertex0.Z = -MouseOverTerrain.Vertex.Y * TerrainGridSpacing
+                GL.Begin(BeginMode.Lines)
+                GL.Color3(0.0F, 1.0F, 1.0F)
+                GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
+                GL.End()
+            End If
 
-        'draw mouseover vertices
-        If Tool = enumTool.AutoTexture_Place Then
-            GL.LineWidth(2.0F)
+            'draw mouseover vertices
+            If Tool = enumTool.AutoTexture_Place Then
+                GL.LineWidth(2.0F)
 
-            For Z = Clamp(AutoTextureBrushRadius.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(AutoTextureBrushRadius.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-                Z2 = MouseOver_Vertex.Y + Z
-                For X = Clamp(AutoTextureBrushRadius.XMin(Z - AutoTextureBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(AutoTextureBrushRadius.XMax(Z - AutoTextureBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                    X2 = MouseOver_Vertex.X + X
+                For Z = Clamp(TerrainBrush.Tiles.ZMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(TerrainBrush.Tiles.ZMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
+                    Z2 = MouseOverTerrain.Vertex.Y + Z
+                    For X = Clamp(TerrainBrush.Tiles.XMin(Z - TerrainBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(TerrainBrush.Tiles.XMax(Z - TerrainBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
+                        X2 = MouseOverTerrain.Vertex.X + X
 
-                    Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(0.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
-                    GL.End()
+                        Vertex0.X = X2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        GL.Begin(BeginMode.Lines)
+                        GL.Color3(0.0F, 1.0F, 1.0F)
+                        GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
+                        GL.End()
+                    Next
                 Next
-            Next
-        End If
+            End If
 
-        If Tool = enumTool.Height_Set_Brush _
-        Or Tool = enumTool.Height_Smooth_Brush _
-        Or Tool = enumTool.Height_Change_Brush Then
-            GL.LineWidth(2.0F)
+            If Tool = enumTool.Height_Set_Brush _
+            Or Tool = enumTool.Height_Smooth_Brush _
+            Or Tool = enumTool.Height_Change_Brush Then
+                GL.LineWidth(2.0F)
 
-            For Z = Clamp(HeightBrushRadius.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(HeightBrushRadius.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-                Z2 = MouseOver_Vertex.Y + Z
-                For X = Clamp(HeightBrushRadius.XMin(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(HeightBrushRadius.XMax(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                    X2 = MouseOver_Vertex.X + X
+                For Z = Clamp(HeightBrush.Tiles.ZMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(HeightBrush.Tiles.ZMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
+                    Z2 = MouseOverTerrain.Vertex.Y + Z
+                    For X = Clamp(HeightBrush.Tiles.XMin(Z - HeightBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(HeightBrush.Tiles.XMax(Z - HeightBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
+                        X2 = MouseOverTerrain.Vertex.X + X
 
-                    Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Map.TerrainVertex(X2, Z2).Height * Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(0.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
-                    GL.End()
+                        Vertex0.X = X2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        GL.Begin(BeginMode.Lines)
+                        GL.Color3(0.0F, 1.0F, 1.0F)
+                        GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex0.X + 8.0#, Vertex0.Y, -Vertex0.Z)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
+                        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
+                        GL.End()
+                    Next
                 Next
-            Next
-        End If
+            End If
         End If
 
         GL.Enable(EnableCap.DepthTest)
@@ -1151,36 +1195,43 @@ Public Class ctrlMapView
         If Draw_Units Then
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
-            Dim UnitDrawn(Map.UnitCount - 1) As Boolean
+            Dim UnitDrawn(Main_Map.UnitCount - 1) As Boolean
             X2 = DrawCentreSector.X 'Clamp(Int(View_Pos.X / (TerrainGridSpacing * Tiles_Per_Sector)), 0, Map.numSectors.X - 1)
             Z2 = DrawCentreSector.Y 'Clamp(Int(-View_Pos.Z / (TerrainGridSpacing * Tiles_Per_Sector)), 0, Map.numSectors.Y - 1)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Map.SectorCount.X - 1)
-                    For A = 0 To Map.Sectors(X, Z).UnitCount - 1
-                        tmpUnit = Map.Sectors(X, Z).Units(A)
-                        If Not UnitDrawn(tmpUnit.Num) Then
-                            UnitDrawn(tmpUnit.Num) = True
-                            XYZ_dbl.X = tmpUnit.Pos.X - ViewPos.X
-                            XYZ_dbl.Y = tmpUnit.Pos.Y - ViewPos.Y
-                            XYZ_dbl.Z = -tmpUnit.Pos.Z - ViewPos.Z
+            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
+                    For A = 0 To Main_Map.Sectors(X, Z).UnitCount - 1
+                        tmpUnit = Main_Map.Sectors(X, Z).Units(A)
+                        If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
+                            UnitDrawn(tmpUnit.Map_UnitNum) = True
+                            XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewPos.X
+                            XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewPos.Y
+                            XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewPos.Z
                             Draw_Unit_Label = False
-                            If tmpUnit.Type.LoadedInfo IsNot Nothing Then
+                            If tmpUnit.Type.IsUnknown Then
+                                Draw_Unit_Label = True
+                            Else
                                 GL.PushMatrix()
                                 GL.Translate(XYZ_dbl.X, XYZ_dbl.Y, -XYZ_dbl.Z)
-                                tmpUnit.Type.LoadedInfo.GLDraw(tmpUnit.Rotation)
+                                tmpUnit.Type.GLDraw(tmpUnit.Rotation)
                                 GL.PopMatrix()
-                                If MouseOver_UnitCount > 0 Then
-                                    If MouseOver_Units(0) Is tmpUnit Then
+                                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                                    If CType(tmpUnit.Type, clsDroidDesign).AlwaysDrawTextLabel Then
                                         Draw_Unit_Label = True
                                     End If
                                 End If
-                            Else
-                                Draw_Unit_Label = True
+                                If MouseOverTerrain IsNot Nothing Then
+                                    If MouseOverTerrain.UnitCount > 0 Then
+                                        If MouseOverTerrain.Units(0) Is tmpUnit Then
+                                            Draw_Unit_Label = True
+                                        End If
+                                    End If
+                                End If
                             End If
                             If Draw_Unit_Label And UnitTextLabelCount <= 63 Then
                                 VectorRotationByMatrix(ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
-                                If Pos_Get_Screen_XY(XYZ_dbl2, ScreenX, ScreenY) Then
-                                    If ScreenX >= 0 And ScreenX <= GLSize.X And ScreenY >= 0 And ScreenY <= GLSize.Y Then
+                                If Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                                    If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
                                         UnitTextLabels(UnitTextLabelCount) = New sTextLabel
                                         With UnitTextLabels(UnitTextLabelCount)
                                             .Font = UnitLabelFont
@@ -1189,13 +1240,9 @@ Public Class ctrlMapView
                                             .Colour.Green = 1.0F
                                             .Colour.Blue = 1.0F
                                             .Colour.Alpha = 1.0F
-                                            .Pos.X = ScreenX + 32
-                                            .Pos.Y = ScreenY
-                                            If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-                                                .Text = tmpUnit.Type.Code & " (" & tmpUnit.Type.LoadedInfo.Name & ")"
-                                            Else
-                                                .Text = tmpUnit.Type.Code
-                                            End If
+                                            .Pos.X = ScreenPos.X + 32
+                                            .Pos.Y = ScreenPos.Y
+                                            .Text = tmpUnit.Type.GetDisplayText
                                         End With
                                         UnitTextLabelCount += 1
                                     End If
@@ -1210,35 +1257,14 @@ Public Class ctrlMapView
 
         ReDim Preserve UnitTextLabels(UnitTextLabelCount - 1)
 
-        If MouseOver_Pos_Exists Then
+        If MouseOverTerrain IsNot Nothing Then
             GL.Enable(EnableCap.Texture2D)
-            If Tool = enumTool.Object_Unit Then
-                If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
+            If Tool = enumTool.ObjectPlace Then
+                If frmMainInstance.SelectedObjectType IsNot Nothing Then
+                    WorldPos = Main_Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, frmMainInstance.SelectedObjectType.GetFootprint)
                     GL.PushMatrix()
-                    GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
-                    NewUnitType.LoadedInfo.GLDraw(0.0F)
-                    GL.PopMatrix()
-                End If
-            End If
-            If Tool = enumTool.Object_Structure Then
-                If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
-                    GL.PushMatrix()
-                    GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
-                    NewUnitType.LoadedInfo.GLDraw(0.0F)
-                    GL.PopMatrix()
-                End If
-            End If
-            If Tool = enumTool.Object_Feature Then
-                If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                    NewUnitType = frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex)
-                    XYZ_int = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
-                    GL.PushMatrix()
-                    GL.Translate(XYZ_int.X - ViewPos.X, XYZ_int.Y - ViewPos.Y + 2.0#, ViewPos.Z + XYZ_int.Z)
-                    NewUnitType.LoadedInfo.GLDraw(0.0F)
+                    GL.Translate(WorldPos.Horizontal.X - ViewPos.X, WorldPos.Altitude - ViewPos.Y + 2.0#, ViewPos.Z + WorldPos.Horizontal.Y)
+                    frmMainInstance.SelectedObjectType.GLDraw(0.0F)
                     GL.PopMatrix()
                 End If
             End If
@@ -1250,36 +1276,31 @@ Public Class ctrlMapView
         'draw unit selection
 
         GL.Begin(BeginMode.Quads)
-        For A = 0 To Map.SelectedUnitCount - 1
-            tmpUnit = Map.SelectedUnits(A)
-            XYZ_dbl.X = tmpUnit.Pos.X - ViewPos.X
-            XYZ_dbl.Y = tmpUnit.Pos.Y - ViewPos.Y
-            XYZ_dbl.Z = -tmpUnit.Pos.Z - ViewPos.Z
-            GL.Color4((1.0F + PlayerColour(tmpUnit.PlayerNum).Red) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Green) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Blue) / 2.0F, 0.875F)
-            If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-                XY_int = tmpUnit.Type.LoadedInfo.Footprint
-            Else
-                XY_int.X = 1
-                XY_int.Y = 1
-            End If
-            DrawUnitRectangle(XYZ_dbl, XY_int, 8.0#)
+        For A = 0 To Main_Map.SelectedUnitCount - 1
+            tmpUnit = Main_Map.SelectedUnits(A)
+            XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewPos.X
+            XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewPos.Y
+            XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewPos.Z
+            Footprint = tmpUnit.Type.GetFootprint
+            ColourA = New sRGBA_sng((1.0F + PlayerColour(tmpUnit.PlayerNum).Red) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Green) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Blue) / 2.0F, 0.75F)
+            ColourB = New sRGBA_sng(PlayerColour(tmpUnit.PlayerNum).Red, PlayerColour(tmpUnit.PlayerNum).Green, PlayerColour(tmpUnit.PlayerNum).Blue, 0.75F)
+            DrawUnitRectangle(XYZ_dbl, Footprint, 8.0#, ColourA, ColourB)
         Next
-        For A = 0 To MouseOver_UnitCount - 1
-            If MouseOver_Units(A) IsNot Nothing And Tool = enumTool.None Then
-                tmpUnit = MouseOver_Units(A)
-                XYZ_dbl.X = tmpUnit.Pos.X - ViewPos.X
-                XYZ_dbl.Y = tmpUnit.Pos.Y - ViewPos.Y
-                XYZ_dbl.Z = -tmpUnit.Pos.Z - ViewPos.Z
-                GL.Color4((0.5F + PlayerColour(tmpUnit.PlayerNum).Red) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Green) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Blue) / 1.5F, 0.875F)
-                If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-                    XY_int = tmpUnit.Type.LoadedInfo.Footprint
-                Else
-                    XY_int.X = 1
-                    XY_int.Y = 1
+        If MouseOverTerrain IsNot Nothing Then
+            For A = 0 To MouseOverTerrain.UnitCount - 1
+                If MouseOverTerrain.Units(A) IsNot Nothing And Tool = enumTool.None Then
+                    tmpUnit = MouseOverTerrain.Units(A)
+                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewPos.X
+                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewPos.Y
+                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewPos.Z
+                    GL.Color4((0.5F + PlayerColour(tmpUnit.PlayerNum).Red) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Green) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Blue) / 1.5F, 0.75F)
+                    Footprint = tmpUnit.Type.GetFootprint
+                    ColourA = New sRGBA_sng((1.0F + PlayerColour(tmpUnit.PlayerNum).Red) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Green) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Blue) / 2.0F, 0.75F)
+                    ColourB = New sRGBA_sng(PlayerColour(tmpUnit.PlayerNum).Red, PlayerColour(tmpUnit.PlayerNum).Green, PlayerColour(tmpUnit.PlayerNum).Blue, 0.875F)
+                    DrawUnitRectangle(XYZ_dbl, Footprint, 16.0#, ColourA, ColourB)
                 End If
-                DrawUnitRectangle(XYZ_dbl, XY_int, 16.0#)
-            End If
-        Next
+            Next
+        End If
         GL.End()
 
         GL.MatrixMode(MatrixMode.Projection)
@@ -1304,32 +1325,32 @@ Public Class ctrlMapView
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        If Map.Minimap_Texture_Size > 0 And Map.Minimap_Texture > 0 Then
-            dblTemp = Clamp(Val(frmMainInstance.menuMinimapSize.Text), 0.0#, 512.0#)
-            Tiles_Per_Minimap_Pixel = Math.Sqrt(Map.TerrainSize.X * Map.TerrainSize.X + Map.TerrainSize.Y * Map.TerrainSize.Y) / (RootTwo * dblTemp)
+        If Main_Map.Minimap_Texture_Size > 0 And Main_Map.Minimap_Texture > 0 Then
+            dblTemp = MinimapSize
+            Tiles_Per_Minimap_Pixel = Math.Sqrt(Main_Map.TerrainSize.X * Main_Map.TerrainSize.X + Main_Map.TerrainSize.Y * Main_Map.TerrainSize.Y) / (RootTwo * dblTemp)
 
-            MinimapSize.X = Map.TerrainSize.X / Tiles_Per_Minimap_Pixel
-            MinimapSize.Y = Map.TerrainSize.Y / Tiles_Per_Minimap_Pixel
+            MinimapSizeXY.X = Main_Map.TerrainSize.X / Tiles_Per_Minimap_Pixel
+            MinimapSizeXY.Y = Main_Map.TerrainSize.Y / Tiles_Per_Minimap_Pixel
 
-            GL.Translate(0.0F, GLSize.Y - MinimapSize.Y, 0.0F)
+            GL.Translate(0.0F, GLSize.Y - MinimapSizeXY.Y, 0.0F)
 
-            XYZ_dbl.X = Map.TerrainSize.X / Map.Minimap_Texture_Size
-            XYZ_dbl.Z = Map.TerrainSize.Y / Map.Minimap_Texture_Size
+            XYZ_dbl.X = Main_Map.TerrainSize.X / Main_Map.Minimap_Texture_Size
+            XYZ_dbl.Z = Main_Map.TerrainSize.Y / Main_Map.Minimap_Texture_Size
 
             GL.Enable(EnableCap.Texture2D)
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
-            GL.BindTexture(TextureTarget.Texture2D, Map.Minimap_Texture)
+            GL.BindTexture(TextureTarget.Texture2D, Main_Map.Minimap_Texture)
 
             GL.Begin(BeginMode.Quads)
 
             GL.TexCoord2(0.0F, 0.0F)
-            GL.Vertex2(0.0F, MinimapSize.Y)
+            GL.Vertex2(0.0F, MinimapSizeXY.Y)
 
             GL.TexCoord2(XYZ_dbl.X, 0.0F)
-            GL.Vertex2(MinimapSize.X, MinimapSize.Y)
+            GL.Vertex2(MinimapSizeXY.X, MinimapSizeXY.Y)
 
             GL.TexCoord2(XYZ_dbl.X, XYZ_dbl.Z)
-            GL.Vertex2(MinimapSize.X, 0.0F)
+            GL.Vertex2(MinimapSizeXY.X, 0.0F)
 
             GL.TexCoord2(0.0F, XYZ_dbl.Z)
             GL.Vertex2(0.0F, 0.0F)
@@ -1343,34 +1364,25 @@ Public Class ctrlMapView
             GL.LineWidth(1.0F)
             GL.Begin(BeginMode.Lines)
             GL.Color3(0.75F, 0.75F, 0.75F)
-            GL.Vertex2(MinimapSize.X, 0.0F)
-            GL.Vertex2(MinimapSize.X, MinimapSize.Y)
+            GL.Vertex2(MinimapSizeXY.X, 0.0F)
+            GL.Vertex2(MinimapSizeXY.X, MinimapSizeXY.Y)
             GL.Vertex2(0.0F, 0.0F)
-            GL.Vertex2(MinimapSize.X, 0.0F)
+            GL.Vertex2(MinimapSizeXY.X, 0.0F)
             GL.End()
 
             'draw minimap view pos box
 
             If ShowMinimapViewPosBox Then
-                'PosA.X = Clamp(ViewCorner0.X / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.X))
-                'PosA.Y = Clamp(MinimapSize.Y + ViewCorner0.Y / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.Y))
-                'PosB.X = Clamp(ViewCorner1.X / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.X))
-                'PosB.Y = Clamp(MinimapSize.Y + ViewCorner1.Y / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.Y))
-                'PosC.X = Clamp(ViewCorner2.X / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.X))
-                'PosC.Y = Clamp(MinimapSize.Y + ViewCorner2.Y / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.Y))
-                'PosD.X = Clamp(ViewCorner3.X / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.X))
-                'PosD.Y = Clamp(MinimapSize.Y + ViewCorner3.Y / TerrainGridSpacing / Tiles_Per_Minimap_Pixel, 0.0#, CDbl(MinimapSize.Y))
-
                 dblTemp = TerrainGridSpacing * Tiles_Per_Minimap_Pixel
 
                 PosA.X = ViewCorner0.X / dblTemp
-                PosA.Y = MinimapSize.Y + ViewCorner0.Y / dblTemp
+                PosA.Y = MinimapSizeXY.Y + ViewCorner0.Y / dblTemp
                 PosB.X = ViewCorner1.X / dblTemp
-                PosB.Y = MinimapSize.Y + ViewCorner1.Y / dblTemp
+                PosB.Y = MinimapSizeXY.Y + ViewCorner1.Y / dblTemp
                 PosC.X = ViewCorner2.X / dblTemp
-                PosC.Y = MinimapSize.Y + ViewCorner2.Y / dblTemp
+                PosC.Y = MinimapSizeXY.Y + ViewCorner2.Y / dblTemp
                 PosD.X = ViewCorner3.X / dblTemp
-                PosD.Y = MinimapSize.Y + ViewCorner3.Y / dblTemp
+                PosD.Y = MinimapSizeXY.Y + ViewCorner3.Y / dblTemp
 
                 GL.LineWidth(1.0F)
                 GL.Begin(BeginMode.LineLoop)
@@ -1382,29 +1394,29 @@ Public Class ctrlMapView
                 GL.End()
             End If
 
-            If Map.Selected_Area_VertexA_Exists Then
+            If Main_Map.Selected_Area_VertexA IsNot Nothing Then
                 DrawIt = False
-                If Map.Selected_Area_VertexB_Exists Then
+                If Main_Map.Selected_Area_VertexB IsNot Nothing Then
                     'area is selected
-                    XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, StartXY, FinishXY)
+                    XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, StartXY, FinishXY)
                     DrawIt = True
                 ElseIf Tool = enumTool.Terrain_Select Then
-                    If MouseOver_Pos_Exists Then
+                    If MouseOverTerrain IsNot Nothing Then
                         'selection is changing under mouse
-                        XY_Reorder(Map.Selected_Area_VertexA, MouseOver_Vertex, StartXY, FinishXY)
+                        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, MouseOverTerrain.Vertex, StartXY, FinishXY)
                         DrawIt = True
                     End If
                 End If
                 If DrawIt Then
                     GL.LineWidth(1.0F)
                     PosA.X = StartXY.X / Tiles_Per_Minimap_Pixel
-                    PosA.Y = MinimapSize.Y - StartXY.Y / Tiles_Per_Minimap_Pixel
+                    PosA.Y = MinimapSizeXY.Y - StartXY.Y / Tiles_Per_Minimap_Pixel
                     PosB.X = FinishXY.X / Tiles_Per_Minimap_Pixel
-                    PosB.Y = MinimapSize.Y - StartXY.Y / Tiles_Per_Minimap_Pixel
+                    PosB.Y = MinimapSizeXY.Y - StartXY.Y / Tiles_Per_Minimap_Pixel
                     PosC.X = FinishXY.X / Tiles_Per_Minimap_Pixel
-                    PosC.Y = MinimapSize.Y - FinishXY.Y / Tiles_Per_Minimap_Pixel
+                    PosC.Y = MinimapSizeXY.Y - FinishXY.Y / Tiles_Per_Minimap_Pixel
                     PosD.X = StartXY.X / Tiles_Per_Minimap_Pixel
-                    PosD.Y = MinimapSize.Y - FinishXY.Y / Tiles_Per_Minimap_Pixel
+                    PosD.Y = MinimapSizeXY.Y - FinishXY.Y / Tiles_Per_Minimap_Pixel
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(1.0F, 1.0F, 1.0F)
                     GL.Vertex2(PosA.X, PosA.Y)
@@ -1424,18 +1436,18 @@ Public Class ctrlMapView
 
     Sub ViewPosSet(ByVal NewViewPos As sXYZ_int)
 
-        ViewPos.X = Clamp(NewViewPos.X, -Map.TerrainSize.X * TerrainGridSpacing - 2048, Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
-        ViewPos.Z = Clamp(NewViewPos.Z, -Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Map.TerrainSize.X * TerrainGridSpacing + 2048)
-        ViewPos.Y = Clamp(NewViewPos.Y, CInt(Math.Ceiling(Map.GetTerrainHeight(ViewPos.X, -ViewPos.Z))) + 16, 49152)
+        ViewPos.X = Clamp(NewViewPos.X, -Main_Map.TerrainSize.X * TerrainGridSpacing - 2048, Main_Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
+        ViewPos.Z = Clamp(NewViewPos.Z, -Main_Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Main_Map.TerrainSize.X * TerrainGridSpacing + 2048)
+        ViewPos.Y = Clamp(NewViewPos.Y, CInt(Math.Ceiling(Main_Map.GetTerrainHeight(New sXY_int(ViewPos.X, -ViewPos.Z)))) + 16, 49152)
 
         DrawViewLater()
     End Sub
 
     Sub ViewPosChange(ByVal Displacement As sXYZ_int)
 
-        ViewPos.X = Clamp(ViewPos.X + Displacement.X, -Map.TerrainSize.X * TerrainGridSpacing - 2048, Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
-        ViewPos.Z = Clamp(ViewPos.Z + Displacement.Z, -Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Map.TerrainSize.X * TerrainGridSpacing + 2048)
-        ViewPos.Y = Clamp(ViewPos.Y + Displacement.Y, CInt(Math.Ceiling(Map.GetTerrainHeight(ViewPos.X, -ViewPos.Z))) + 16, 49152)
+        ViewPos.X = Clamp(ViewPos.X + Displacement.X, -Main_Map.TerrainSize.X * TerrainGridSpacing - 2048, Main_Map.TerrainSize.X * TerrainGridSpacing * 2 + 2048)
+        ViewPos.Z = Clamp(ViewPos.Z + Displacement.Z, -Main_Map.TerrainSize.Y * TerrainGridSpacing * 2 - 2048, Main_Map.TerrainSize.X * TerrainGridSpacing + 2048)
+        ViewPos.Y = Clamp(ViewPos.Y + Displacement.Y, CInt(Math.Ceiling(Main_Map.GetTerrainHeight(New sXY_int(ViewPos.X, -ViewPos.Z)))) + 16, 49152)
 
         DrawViewLater()
     End Sub
@@ -1446,6 +1458,13 @@ Public Class ctrlMapView
         MatrixNormalize(ViewAngleMatrix)
         MatrixInvert(ViewAngleMatrix, ViewAngleMatrix_Inverted)
         MatrixToRPY(ViewAngleMatrix, ViewAngleRPY)
+    End Sub
+
+    Public Sub ViewAngleSetToDefault()
+
+        Dim matrixA(8) As Double
+        MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
+        ViewAngleSet(matrixA)
     End Sub
 
     Sub ViewAngleSet_Rotate(ByRef NewMatrix() As Double)
@@ -1462,7 +1481,7 @@ Public Class ctrlMapView
             '    XYZ_dbl.Y = XYZ_lng.Y
             '    XYZ_dbl.Z = XYZ_lng.Z
             'Else
-            If ScreenXY_Get_PlanePos_ForwardDownOnly(CInt(Int(GLSize.X / 2.0#)), CInt(Int(GLSize.Y / 2.0#)), 127.5#, XY_dbl) Then
+            If ScreenXY_Get_ViewPlanePos_ForwardDownOnly(CInt(Int(GLSize.X / 2.0#)), CInt(Int(GLSize.Y / 2.0#)), 127.5#, XY_dbl) Then
                 XYZ_dbl.X = XY_dbl.X
                 XYZ_dbl.Y = 127.5#
                 XYZ_dbl.Z = -XY_dbl.Y
@@ -1494,7 +1513,7 @@ Public Class ctrlMapView
     End Sub
 
     Sub View_Rotate(ByRef ChangeMatrix() As Double)
-        Static matrixA(8) As Double
+        Dim matrixA(8) As Double
 
         MatrixRotationByMatrix(ViewAngleMatrix, ChangeMatrix, matrixA)
         MatrixCopy(matrixA, ViewAngleMatrix)
@@ -1505,117 +1524,99 @@ Public Class ctrlMapView
 
     Sub OpenGL_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
 
-        MouseOver_Exists = True
-        MouseOver_ScreenPos.X = e.X
-        MouseOver_ScreenPos.Y = e.Y
+        MouseOver = New clsMouseOver
+        MouseOver.ScreenPos.X = e.X
+        MouseOver.ScreenPos.Y = e.Y
 
         MouseOver_Pos_Calc()
     End Sub
 
     Sub MouseOver_Pos_Calc()
-        Static XY_dbl As sXY_dbl
-        Static A As Integer
-        Static Flag As Boolean
-        Static TerrainPos As sXYZ_lng
+        Dim XY_dbl As sXY_dbl
+        Dim A As Integer
+        Dim Flag As Boolean
+        Dim Footprint As sXY_int
 
-        MouseOverUnit_Clear()
-        'commented to allow dragging beyond the borders of the view
-        'If MouseOver_ScreenPos.X < 0 Or MouseOver_ScreenPos.Y < 0 Then
-        '    MouseOver_Pos_Exists = False
-        'Else
-        If IsViewPosOverMinimap(MouseOver_ScreenPos) Then
-            MouseOver_Pos_Exists = False
-
+        If IsViewPosOverMinimap(MouseOver.ScreenPos) Then
             If IsMinimap_MouseDown Then
-                LookAtTile(Int(MouseOver_ScreenPos.X * Tiles_Per_Minimap_Pixel), Int(MouseOver_ScreenPos.Y * Tiles_Per_Minimap_Pixel))
+                Dim Pos As New sXY_int(Int(MouseOver.ScreenPos.X * Tiles_Per_Minimap_Pixel), Int(MouseOver.ScreenPos.Y * Tiles_Per_Minimap_Pixel))
+                Main_Map.TileNumClampToMap(Pos)
+                LookAtTile(Pos)
             End If
         ElseIf IsMinimap_MouseDown Then
-            MouseOver_Pos_Exists = False
+
         Else
-            MouseOver_Pos_Exists = False
+            Dim MouseOverTerrain As New clsMouseOver.clsOverTerrain
             Flag = False
             If DirectPointer Then
-                If ScreenXY_Get_TerrainPos(MouseOver_ScreenPos.X, MouseOver_ScreenPos.Y, TerrainPos) Then
-                    MouseOver_Pos.X = TerrainPos.X
-                    MouseOver_Pos.Y = TerrainPos.Y
-                    MouseOver_Pos.Z = -TerrainPos.Z
-                    If MouseOver_Pos.X >= 0L And MouseOver_Pos.X < Map.TerrainSize.X * TerrainGridSpacing _
-                    And -MouseOver_Pos.Z >= 0L And -MouseOver_Pos.Z < Map.TerrainSize.Y * TerrainGridSpacing Then
+                If ScreenXY_Get_TerrainPos(MouseOver.ScreenPos, MouseOverTerrain.Pos) Then
+                    If Main_Map.PosIsOnMap(MouseOverTerrain.Pos.Horizontal) Then
                         Flag = True
                     End If
                 End If
             Else
-                MouseOver_Pos.Y = 255.0# / 2.0# * Map.HeightMultiplier
-                If ScreenXY_Get_PlanePos(MouseOver_ScreenPos.X, MouseOver_ScreenPos.Y, MouseOver_Pos.Y, XY_dbl) Then
-                    MouseOver_Pos.X = XY_dbl.X
-                    MouseOver_Pos.Z = XY_dbl.Y
-                    If MouseOver_Pos.X >= 0L And MouseOver_Pos.X < Map.TerrainSize.X * TerrainGridSpacing _
-                    And -MouseOver_Pos.Z >= 0L And -MouseOver_Pos.Z < Map.TerrainSize.Y * TerrainGridSpacing Then
-                        MouseOver_Pos.Y = Map.GetTerrainHeight(MouseOver_Pos.X, -MouseOver_Pos.Z)
+                MouseOverTerrain.Pos.Altitude = 255.0# / 2.0# * Main_Map.HeightMultiplier
+                If ScreenXY_Get_ViewPlanePos(MouseOver.ScreenPos, MouseOverTerrain.Pos.Altitude, XY_dbl) Then
+                    MouseOverTerrain.Pos.Horizontal.X = XY_dbl.X
+                    MouseOverTerrain.Pos.Horizontal.Y = -XY_dbl.Y
+                    If Main_Map.PosIsOnMap(MouseOverTerrain.Pos.Horizontal) Then
                         Flag = True
                     End If
                 End If
             End If
             If Flag Then
-                MouseOver_Pos_Exists = True
-                MouseOverUnit_Clear()
-                MouseOver_Tile.X = Math.Floor(MouseOver_Pos.X / TerrainGridSpacing)
-                MouseOver_Tile.Y = Math.Floor(-MouseOver_Pos.Z / TerrainGridSpacing)
-                MouseOver_Vertex.X = Math.Round(MouseOver_Pos.X / TerrainGridSpacing)
-                MouseOver_Vertex.Y = Math.Round(-MouseOver_Pos.Z / TerrainGridSpacing)
-                XY_dbl.X = MouseOver_Pos.X - MouseOver_Vertex.X * TerrainGridSpacing
-                XY_dbl.Y = -MouseOver_Pos.Z - MouseOver_Vertex.Y * TerrainGridSpacing
+                MouseOver.OverTerrain = MouseOverTerrain
+                MouseOverTerrain.Tile.X = Math.Floor(MouseOverTerrain.Pos.Horizontal.X / TerrainGridSpacing)
+                MouseOverTerrain.Tile.Y = Math.Floor(MouseOverTerrain.Pos.Horizontal.Y / TerrainGridSpacing)
+                MouseOverTerrain.Vertex.X = Math.Round(MouseOverTerrain.Pos.Horizontal.X / TerrainGridSpacing)
+                MouseOverTerrain.Vertex.Y = Math.Round(MouseOverTerrain.Pos.Horizontal.Y / TerrainGridSpacing)
+                XY_dbl.X = MouseOverTerrain.Pos.Horizontal.X - MouseOverTerrain.Vertex.X * TerrainGridSpacing
+                XY_dbl.Y = MouseOverTerrain.Pos.Horizontal.Y - MouseOverTerrain.Vertex.Y * TerrainGridSpacing
                 If Math.Abs(XY_dbl.Y) <= Math.Abs(XY_dbl.X) Then
-                    MouseOver_Side_IsV = False
-                    MouseOver_Side_Num.X = MouseOver_Tile.X
-                    MouseOver_Side_Num.Y = MouseOver_Vertex.Y
+                    MouseOverTerrain.Side_IsV = False
+                    MouseOverTerrain.Side_Num.X = MouseOverTerrain.Tile.X
+                    MouseOverTerrain.Side_Num.Y = MouseOverTerrain.Vertex.Y
                 Else
-                    MouseOver_Side_IsV = True
-                    MouseOver_Side_Num.X = MouseOver_Vertex.X
-                    MouseOver_Side_Num.Y = MouseOver_Tile.Y
+                    MouseOverTerrain.Side_IsV = True
+                    MouseOverTerrain.Side_Num.X = MouseOverTerrain.Vertex.X
+                    MouseOverTerrain.Side_Num.Y = MouseOverTerrain.Tile.Y
                 End If
-                Dim SectorNum As sXY_int
-                Map.Pos_Get_Sector(MouseOver_Pos.X, -MouseOver_Pos.Z, SectorNum)
+                Dim SectorNum As sXY_int = Main_Map.GetPosSectorNum(MouseOverTerrain.Pos.Horizontal)
                 Dim tmpUnit As clsMap.clsUnit
-                For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
-                    tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
-                    XY_dbl.X = tmpUnit.Pos.X - MouseOver_Pos.X
-                    XY_dbl.Y = tmpUnit.Pos.Z + MouseOver_Pos.Z
-                    If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-                        If Math.Abs(XY_dbl.X) <= Math.Max(tmpUnit.Type.LoadedInfo.Footprint.X / 2.0#, 0.5#) * TerrainGridSpacing _
-                        And Math.Abs(XY_dbl.Y) <= Math.Max(tmpUnit.Type.LoadedInfo.Footprint.Y / 2.0#, 0.5#) * TerrainGridSpacing Then
-                            MouseOverUnit_Add(tmpUnit)
-                        End If
-                    Else
-                        If Math.Abs(XY_dbl.X) <= TerrainGridSpacing / 2.0# _
-                        And Math.Abs(XY_dbl.Y) <= TerrainGridSpacing / 2.0# Then
-                            MouseOverUnit_Add(tmpUnit)
-                        End If
+                For A = 0 To Main_Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
+                    tmpUnit = Main_Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
+                    XY_dbl.X = tmpUnit.Pos.Horizontal.X - MouseOverTerrain.Pos.Horizontal.X
+                    XY_dbl.Y = tmpUnit.Pos.Horizontal.Y - MouseOverTerrain.Pos.Horizontal.Y
+                    Footprint = tmpUnit.Type.GetFootprint
+                    If Math.Abs(XY_dbl.X) <= Math.Max(Footprint.X / 2.0#, 0.5#) * TerrainGridSpacing _
+                    And Math.Abs(XY_dbl.Y) <= Math.Max(Footprint.Y / 2.0#, 0.5#) * TerrainGridSpacing Then
+                        MouseOverTerrain.Unit_Add(tmpUnit)
                     End If
                 Next
-            End If
 
-            If MouseOver_Pos_Exists Then
                 If MouseLeftIsDown Then
-                    If Tool = enumTool.AutoTexture_Place Then
-                        Apply_Terrain()
-                        If frmMainInstance.chkAutoTexSetHeight.Checked Then
-                            Apply_Height_Set(AutoTextureBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                        End If
-                    ElseIf Tool = enumTool.Height_Set_Brush Then
-                        Apply_Height_Set(HeightBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                    ElseIf Tool = enumTool.Texture_Brush Then
-                        Apply_Texture()
-                    ElseIf Tool = enumTool.AutoCliff Then
-                        Apply_Cliff()
-                    ElseIf Tool = enumTool.AutoRoad_Place Then
-                        Apply_Road()
-                    End If
+                    Select Case Tool
+                        Case enumTool.AutoTexture_Place
+                            Apply_Terrain()
+                            If frmMainInstance.cbxAutoTexSetHeight.Checked Then
+                                Apply_Height_Set(TerrainBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                            End If
+                        Case enumTool.Height_Set_Brush
+                            Apply_Height_Set(HeightBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                        Case enumTool.Texture_Brush
+                            Apply_Texture()
+                        Case enumTool.AutoCliff
+                            Apply_Cliff()
+                        Case enumTool.AutoRoad_Place
+                            Apply_Road()
+                        Case enumTool.AutoRoad_Remove
+                            Apply_Road_Remove()
+                    End Select
                 End If
                 If MouseRightIsDown Then
                     If Tool = enumTool.Height_Set_Brush Then
                         If Not MouseLeftIsDown Then
-                            Apply_Height_Set(HeightBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
+                            Apply_Height_Set(HeightBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
                         End If
                     End If
                 End If
@@ -1626,40 +1627,45 @@ Public Class ctrlMapView
     End Sub
 
     Sub Pos_Display_Update()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
-        If MouseOver_Pos_Exists Then
-            lblTile.Text = "Tile x:" & MouseOver_Tile.X & ", z:" & MouseOver_Tile.Y
-            lblVertex.Text = "Vertex  x:" & MouseOver_Vertex.X & ", z:" & MouseOver_Vertex.Y & ", alt:" & Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height * Map.HeightMultiplier & " (" & Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height & "x" & Map.HeightMultiplier & ")"
-            lblPos.Text = "Pos x:" & MouseOver_Pos.X & ", z:" & -MouseOver_Pos.Z & ", alt:" & MouseOver_Pos.Y & ", slope: " & Math.Round(Map.GetTerrainSlopeAngle(MouseOver_Pos.X, -MouseOver_Pos.Z) / RadOf1Deg * 10.0#) / 10.0# & "°"
-        Else
+        If MouseOverTerrain Is Nothing Then
             lblTile.Text = ""
             lblVertex.Text = ""
             lblPos.Text = ""
+        Else
+            lblTile.Text = "Tile x:" & MouseOverTerrain.Tile.X & ", y:" & MouseOverTerrain.Tile.Y
+            lblVertex.Text = "Vertex  x:" & MouseOverTerrain.Vertex.X & ", y:" & MouseOverTerrain.Vertex.Y & ", alt:" & Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height * Main_Map.HeightMultiplier & " (" & Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height & "x" & Main_Map.HeightMultiplier & ")"
+            lblPos.Text = "Pos x:" & MouseOverTerrain.Pos.Horizontal.X & ", y:" & MouseOverTerrain.Pos.Horizontal.Y & ", alt:" & MouseOverTerrain.Pos.Altitude & ", slope: " & Math.Round(Main_Map.GetTerrainSlopeAngle(MouseOverTerrain.Pos.Horizontal) / RadOf1Deg * 10.0#) / 10.0# & "°"
         End If
     End Sub
 
     Sub OpenGL_LostFocus(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs)
 
-        Map.SuppressMinimap = False
+        Main_Map.SuppressMinimap = False
 
-        MouseOver_Exists = False
+        MouseOver = Nothing
         MouseLeftIsDown = False
         MouseRightIsDown = False
         IsMinimap_MouseDown = False
-        MouseOver_ScreenPos.X = -1
-        MouseOver_ScreenPos.Y = -1
-        MouseOver_Pos_Calc()
 
         ViewKeyDown_Clear()
     End Sub
 
     Sub OpenGL_MouseLeave(ByVal sender As Object, ByVal e As System.EventArgs)
 
-        MouseOver_Exists = False
-        MouseOver_Pos_Exists = False
+        MouseOver = Nothing
     End Sub
 
-    Sub LookAtTile(ByVal X As Integer, ByVal Z As Integer)
+    Sub LookAtTile(ByVal TileNum As sXY_int)
+        Dim Pos As sXY_int
+
+        Pos.X = (TileNum.X + 0.5#) * TerrainGridSpacing
+        Pos.Y = (TileNum.Y + 0.5#) * TerrainGridSpacing
+        LookAtPos(Pos)
+    End Sub
+
+    Public Sub LookAtPos(ByVal Horizontal As sXY_int)
         Dim XYZ_dbl As sXYZ_dbl
         Dim XYZ_int As sXYZ_int
         Dim dblTemp As Double
@@ -1668,8 +1674,8 @@ Public Class ctrlMapView
         Dim AnglePY As sAnglePY
 
         VectorForwardRotationByMatrix(ViewAngleMatrix, XYZ_dbl)
-        dblTemp = Map.GetTerrainHeight((X + 0.5#) * TerrainGridSpacing, (Z + 0.5#) * TerrainGridSpacing)
-        A = Math.Ceiling(dblTemp) + 128
+        dblTemp = Main_Map.GetTerrainHeight(Horizontal)
+        A = CInt(Math.Ceiling(dblTemp)) + 128
         If ViewPos.Y < A Then
             ViewPos.Y = A
         End If
@@ -1681,9 +1687,9 @@ Public Class ctrlMapView
         End If
         dblTemp = (ViewPos.Y - dblTemp) / XYZ_dbl.Y
 
-        XYZ_int.X = (X + 0.5#) * TerrainGridSpacing + dblTemp * XYZ_dbl.X
+        XYZ_int.X = Horizontal.X + dblTemp * XYZ_dbl.X
         XYZ_int.Y = ViewPos.Y
-        XYZ_int.Z = -(Z + 0.5#) * TerrainGridSpacing + dblTemp * XYZ_dbl.Z
+        XYZ_int.Z = -Horizontal.Y + dblTemp * XYZ_dbl.Z
 
         ViewPosSet(XYZ_int)
     End Sub
@@ -1701,29 +1707,44 @@ Public Class ctrlMapView
         ViewPosSet(XYZ_int)
     End Sub
 
+    Public Function GetMouseOverTerrain() As clsMouseOver.clsOverTerrain
+
+        If MouseOver Is Nothing Then
+            Return Nothing
+        Else
+            Return MouseOver.OverTerrain
+        End If
+    End Function
+
     Sub Apply_Terrain()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
+        Dim Centre As sXY_int = MouseOverTerrain.Vertex
         Dim X As Integer
         Dim Z As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
-        Dim AutoTextureChanged As clsMap.clsAutoTextureChange = Map.AutoTextureChange
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim Y2 As Integer
+        Dim AutoTextureChanged As clsMap.clsAutoTextureChange = Main_Map.AutoTextureChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Pos As sXY_int
 
-        For Z = Clamp(AutoTextureBrushRadius.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(AutoTextureBrushRadius.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-            Z2 = MouseOver_Vertex.Y + Z
-            For X = Clamp(AutoTextureBrushRadius.XMin(Z - AutoTextureBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(AutoTextureBrushRadius.XMax(Z - AutoTextureBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                X2 = MouseOver_Vertex.X + X
+        For Z = Clamp(TerrainBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(TerrainBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Y2 = Centre.Y + Z
+            For X = Clamp(TerrainBrush.Tiles.XMin(Z - TerrainBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(TerrainBrush.Tiles.XMax(Z - TerrainBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+                X2 = Centre.X + X
 
-                If Map.TerrainVertex(X2, Z2).Terrain IsNot SelectedTerrain Then
+                If Main_Map.TerrainVertex(X2, Y2).Terrain IsNot SelectedTerrain Then
 
-                    Map.TerrainVertex(X2, Z2).Terrain = SelectedTerrain
+                    Main_Map.TerrainVertex(X2, Y2).Terrain = SelectedTerrain
 
-                    SectorChange.Vertex_Set_Changed(X2, Z2)
-                    AutoTextureChanged.Vertex_Set_Changed(X2, Z2)
+                    Pos.X = X2
+                    Pos.Y = Y2
+                    SectorChange.Vertex_Set_Changed(Pos)
+                    AutoTextureChanged.Vertex_Set_Changed(Pos)
                 End If
             Next
         Next
@@ -1735,49 +1756,52 @@ Public Class ctrlMapView
     End Sub
 
     Sub Apply_Road()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Side_Num As sXY_int = MouseOverTerrain.Side_Num
 
-        If MouseOver_Side_IsV Then
-            If Map.TerrainSideV(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road IsNot SelectedRoad Then
+        If MouseOverTerrain.Side_IsV Then
+            If Main_Map.TerrainSideV(Side_Num.X, Side_Num.Y).Road IsNot SelectedRoad Then
 
-                Map.TerrainSideV(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road = SelectedRoad
+                Main_Map.TerrainSideV(Side_Num.X, Side_Num.Y).Road = SelectedRoad
 
-                If MouseOver_Side_Num.X > 0 Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X - 1, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
-                    SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X - 1, MouseOver_Side_Num.Y)
+                If Side_Num.X > 0 Then
+                    Main_Map.Tile_AutoTexture_Changed(Side_Num.X - 1, Side_Num.Y, frmMainInstance.cbxInvalidTiles.Checked)
+                    SectorChange.Tile_Set_Changed(New sXY_int(Side_Num.X - 1, Side_Num.Y))
                 End If
-                If MouseOver_Side_Num.X < Map.TerrainSize.X Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
-                    SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
+                If Side_Num.X < Main_Map.TerrainSize.X Then
+                    Main_Map.Tile_AutoTexture_Changed(Side_Num.X, Side_Num.Y, frmMainInstance.cbxInvalidTiles.Checked)
+                    SectorChange.Tile_Set_Changed(Side_Num)
                 End If
 
                 SectorChange.Update_Graphics()
 
-                Map.UndoStepCreate("Road Side")
+                Main_Map.UndoStepCreate("Road Side")
 
                 DrawViewLater()
             End If
         Else
-            If Map.TerrainSideH(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road IsNot SelectedRoad Then
+            If Main_Map.TerrainSideH(Side_Num.X, Side_Num.Y).Road IsNot SelectedRoad Then
 
-                Map.TerrainSideH(MouseOver_Side_Num.X, MouseOver_Side_Num.Y).Road = SelectedRoad
+                Main_Map.TerrainSideH(Side_Num.X, Side_Num.Y).Road = SelectedRoad
 
-                If MouseOver_Side_Num.Y > 0 Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y - 1, frmMainInstance.chkInvalidTiles.Checked)
-                    SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y - 1)
+                If Side_Num.Y > 0 Then
+                    Main_Map.Tile_AutoTexture_Changed(Side_Num.X, Side_Num.Y - 1, frmMainInstance.cbxInvalidTiles.Checked)
+                    SectorChange.Tile_Set_Changed(New sXY_int(Side_Num.X, Side_Num.Y - 1))
                 End If
-                If MouseOver_Side_Num.Y < Map.TerrainSize.X Then
-                    Map.Tile_AutoTexture_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y, frmMainInstance.chkInvalidTiles.Checked)
-                    SectorChange.Tile_Set_Changed(MouseOver_Side_Num.X, MouseOver_Side_Num.Y)
+                If Side_Num.Y < Main_Map.TerrainSize.X Then
+                    Main_Map.Tile_AutoTexture_Changed(Side_Num.X, Side_Num.Y, frmMainInstance.cbxInvalidTiles.Checked)
+                    SectorChange.Tile_Set_Changed(Side_Num)
                 End If
 
                 SectorChange.Update_Graphics()
 
-                Map.UndoStepCreate("Road Side")
+                Main_Map.UndoStepCreate("Road Side")
 
                 DrawViewLater()
             End If
@@ -1785,15 +1809,18 @@ Public Class ctrlMapView
     End Sub
 
     Sub Apply_Terrain_Fill()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
         Dim FillType As clsPainter.clsTerrain
         Dim ReplaceType As clsPainter.clsTerrain
+        Dim StartVertex As sXY_int = MouseOverTerrain.Vertex
 
         FillType = SelectedTerrain
-        ReplaceType = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Terrain
+        ReplaceType = Main_Map.TerrainVertex(StartVertex.X, StartVertex.Y).Terrain
         If FillType Is ReplaceType Then
             Exit Sub 'otherwise will cause endless loop
         End If
@@ -1804,100 +1831,116 @@ Public Class ctrlMapView
         Dim SourceOfFill(511) As sXY_int
         Dim SourceOfFillCount As Integer
         Dim SourceOfFill_Num As Integer
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
-        Dim AutoTextureChange As clsMap.clsAutoTextureChange = Map.AutoTextureChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim AutoTextureChange As clsMap.clsAutoTextureChange = Main_Map.AutoTextureChange
+        Dim VertexNum As sXY_int
 
-        SourceOfFill(0).X = MouseOver_Vertex.X
-        SourceOfFill(0).Y = MouseOver_Vertex.Y
+        SourceOfFill(0).X = StartVertex.X
+        SourceOfFill(0).Y = StartVertex.Y
         SourceOfFillCount = 1
         SourceOfFill_Num = 0
 
         X = SourceOfFill(SourceOfFill_Num).X
         Z = SourceOfFill(SourceOfFill_Num).Y
-        Map.TerrainVertex(X, Z).Terrain = FillType
-        SectorChange.Vertex_Set_Changed(X, Z)
-        AutoTextureChange.Vertex_Set_Changed(X, Z)
+        Main_Map.TerrainVertex(X, Z).Terrain = FillType
+        VertexNum.X = X
+        VertexNum.Y = Z
+        SectorChange.Vertex_Set_Changed(VertexNum)
+        AutoTextureChange.Vertex_Set_Changed(VertexNum)
         Do While SourceOfFill_Num < SourceOfFillCount
             X = SourceOfFill(SourceOfFill_Num).X + 1
             Z = SourceOfFill(SourceOfFill_Num).Y
-            If X >= 0 And X <= Map.TerrainSize.X _
-            And Z >= 0 And Z <= Map.TerrainSize.Y Then
-                If Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            If X >= 0 And X <= Main_Map.TerrainSize.X _
+            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount + 512)
+                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
                     SourceOfFill(SourceOfFillCount).Y = Z
                     SourceOfFillCount += 1
 
-                    Map.TerrainVertex(X, Z).Terrain = FillType
-                    SectorChange.Vertex_Set_Changed(X, Z)
-                    AutoTextureChange.Vertex_Set_Changed(X, Z)
+                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+
+                    VertexNum.X = X
+                    VertexNum.Y = Z
+                    SectorChange.Vertex_Set_Changed(VertexNum)
+                    AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X - 1
             Z = SourceOfFill(SourceOfFill_Num).Y
-            If X >= 0 And X <= Map.TerrainSize.X _
-            And Z >= 0 And Z <= Map.TerrainSize.Y Then
-                If Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            If X >= 0 And X <= Main_Map.TerrainSize.X _
+            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount + 512)
+                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
                     SourceOfFill(SourceOfFillCount).Y = Z
                     SourceOfFillCount += 1
 
-                    Map.TerrainVertex(X, Z).Terrain = FillType
-                    SectorChange.Vertex_Set_Changed(X, Z)
-                    AutoTextureChange.Vertex_Set_Changed(X, Z)
+                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+
+                    VertexNum.X = X
+                    VertexNum.Y = Z
+                    SectorChange.Vertex_Set_Changed(VertexNum)
+                    AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X
             Z = SourceOfFill(SourceOfFill_Num).Y + 1
-            If X >= 0 And X <= Map.TerrainSize.X _
-            And Z >= 0 And Z <= Map.TerrainSize.Y Then
-                If Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            If X >= 0 And X <= Main_Map.TerrainSize.X _
+            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount + 512)
+                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
                     SourceOfFill(SourceOfFillCount).Y = Z
                     SourceOfFillCount += 1
 
-                    Map.TerrainVertex(X, Z).Terrain = FillType
-                    SectorChange.Vertex_Set_Changed(X, Z)
-                    AutoTextureChange.Vertex_Set_Changed(X, Z)
+                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+
+                    VertexNum.X = X
+                    VertexNum.Y = Z
+                    SectorChange.Vertex_Set_Changed(VertexNum)
+                    AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X
             Z = SourceOfFill(SourceOfFill_Num).Y - 1
-            If X >= 0 And X <= Map.TerrainSize.X _
-            And Z >= 0 And Z <= Map.TerrainSize.Y Then
-                If Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            If X >= 0 And X <= Main_Map.TerrainSize.X _
+            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount + 512)
+                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
                     SourceOfFill(SourceOfFillCount).Y = Z
                     SourceOfFillCount += 1
 
-                    Map.TerrainVertex(X, Z).Terrain = FillType
-                    SectorChange.Vertex_Set_Changed(X, Z)
-                    AutoTextureChange.Vertex_Set_Changed(X, Z)
+                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+
+                    VertexNum.X = X
+                    VertexNum.Y = Z
+                    SectorChange.Vertex_Set_Changed(VertexNum)
+                    AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             SourceOfFill_Num += 1
 
             If SourceOfFill_Num > 131072 Then
+                'todo: only move the end of the array
                 SourceOfFillCount -= SourceOfFill_Num
                 For A = 0 To SourceOfFillCount - 1
                     SourceOfFill(A) = SourceOfFill(SourceOfFill_Num + A)
                 Next
-                ReDim Preserve SourceOfFill(SourceOfFillCount + 512)
+                ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                 SourceOfFill_Num = 0
             End If
         Loop
@@ -1905,50 +1948,65 @@ Public Class ctrlMapView
         AutoTextureChange.Update_AutoTexture()
         SectorChange.Update_Graphics()
 
-        Map.UndoStepCreate("Ground Fill")
+        Main_Map.UndoStepCreate("Ground Fill")
 
         DrawViewLater()
     End Sub
 
     Sub Apply_Texture()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
         Dim X As Integer
         Dim Z As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim Y2 As Integer
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Centre As sXY_int = MouseOverTerrain.Tile
+        Dim Pos As sXY_int
 
-        For Z = Clamp(TextureBrushRadius.ZMin + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y To Clamp(TextureBrushRadius.ZMax + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y
-            Z2 = MouseOver_Tile.Y + Z
-            For X = Clamp(TextureBrushRadius.XMin(Z - TextureBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X To Clamp(TextureBrushRadius.XMax(Z - TextureBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X
-                X2 = MouseOver_Tile.X + X
+        For Z = Clamp(TextureBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(TextureBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
+            Y2 = Centre.Y + Z
+            For X = Clamp(TextureBrush.Tiles.XMin(Z - TextureBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(TextureBrush.Tiles.XMax(Z - TextureBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
+                X2 = Centre.X + X
 
-                'Map.TerrainVertex(X2, Z2).Terrain = Nothing
-                'Map.TerrainVertex(X2 + 1, Z2).Terrain = Nothing
-                'Map.TerrainVertex(X2, Z2 + 1).Terrain = Nothing
-                'Map.TerrainVertex(X2 + 1, Z2 + 1).Terrain = Nothing
-
-                Map.TerrainTiles(X2, Z2).Terrain_IsCliff = False
-                Map.TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
-                Map.TerrainTiles(X2, Z2).TriTopRightIsCliff = False
-                Map.TerrainTiles(X2, Z2).TriBottomLeftIsCliff = False
-                Map.TerrainTiles(X2, Z2).TriBottomRightIsCliff = False
+                Main_Map.TerrainTiles(X2, Y2).Terrain_IsCliff = False
+                Main_Map.TerrainTiles(X2, Y2).TriTopLeftIsCliff = False
+                Main_Map.TerrainTiles(X2, Y2).TriTopRightIsCliff = False
+                Main_Map.TerrainTiles(X2, Y2).TriBottomLeftIsCliff = False
+                Main_Map.TerrainTiles(X2, Y2).TriBottomRightIsCliff = False
 
                 If frmMainInstance.chkSetTexture.Checked Then
-                    Map.TerrainTiles(X2, Z2).Texture.TextureNum = SelectedTextureNum
+                    Main_Map.TerrainTiles(X2, Y2).Texture.TextureNum = SelectedTextureNum
                 End If
                 If frmMainInstance.chkSetTextureOrientation.Checked Then
                     If frmMainInstance.chkTextureOrientationRandomize.Checked Then
-                        Map.TerrainTiles(X2, Z2).Texture.Orientation = New sTileOrientation(Rnd() >= 0.5F, Rnd() >= 0.5F, Rnd() >= 0.5F)
+                        Main_Map.TerrainTiles(X2, Y2).Texture.Orientation = New sTileOrientation(Rnd() >= 0.5F, Rnd() >= 0.5F, Rnd() >= 0.5F)
                     Else
-                        Map.TerrainTiles(X2, Z2).Texture.Orientation = TextureOrientation
+                        Main_Map.TerrainTiles(X2, Y2).Texture.Orientation = TextureOrientation
                     End If
                 End If
 
-                SectorChange.Tile_Set_Changed(X2, Z2)
+                Select Case frmMainInstance.TextureTerrainAction
+                    Case frmMain.enumTextureTerrainAction.Ignore
+
+                    Case frmMain.enumTextureTerrainAction.Reinterpret
+                        Pos.X = X2
+                        Pos.Y = Y2
+                        Main_Map.Terrain_Interpret(Pos, Pos)
+                    Case frmMain.enumTextureTerrainAction.Remove
+                        Main_Map.TerrainVertex(X2, Y2).Terrain = Nothing
+                        Main_Map.TerrainVertex(X2 + 1, Y2).Terrain = Nothing
+                        Main_Map.TerrainVertex(X2, Y2 + 1).Terrain = Nothing
+                        Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Terrain = Nothing
+                End Select
+
+                Pos.X = X2
+                Pos.Y = Y2
+                SectorChange.Tile_Set_Changed(Pos)
             Next
         Next
 
@@ -1958,125 +2016,230 @@ Public Class ctrlMapView
     End Sub
 
     Sub Apply_Cliff()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
+        If frmMainInstance.rdoAutoCliffRemove.Checked Then
+            Main_Map.Apply_CliffRemove(MouseOverTerrain.Tile, CliffBrush.Tiles)
+            Main_Map.AutoTextureChange.Update_AutoTexture()
+            Main_Map.SectorGraphicsChange.Update_Graphics()
+            DrawViewLater()
+        ElseIf frmMainInstance.rdoAutoCliffBrush.Checked Then
+            Dim MinCliffAngle As Double = Clamp(Val(frmMainInstance.txtAutoCliffSlope.Text) * RadOf1Deg, 0.0#, RadOf90Deg)
+            Main_Map.Apply_Cliff(MouseOverTerrain.Tile, CliffBrush.Tiles, MinCliffAngle, frmMainInstance.cbxCliffTris.Checked)
+            Main_Map.AutoTextureChange.Update_AutoTexture()
+            Main_Map.SectorGraphicsChange.Update_Graphics()
+            DrawViewLater()
+        End If
+    End Sub
+
+    Sub Apply_Road_Remove()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim Centre As sXY_int = MouseOverTerrain.Tile
+        Dim Changed As Boolean
         Dim X As Integer
         Dim Z As Integer
         Dim X2 As Integer
         Dim Z2 As Integer
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim Pos As sXY_int
 
-        If frmMainInstance.rdoAutoCliffRemove.Checked Then
-            For Z = Clamp(AutoCliffBrushRadius.ZMin + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y To Clamp(AutoCliffBrushRadius.ZMax + MouseOver_Tile.Y, 0, Map.TerrainSize.Y - 1) - MouseOver_Tile.Y
-                Z2 = MouseOver_Tile.Y + Z
-                For X = Clamp(AutoCliffBrushRadius.XMin(Z - AutoCliffBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X To Clamp(AutoCliffBrushRadius.XMax(Z - AutoCliffBrushRadius.ZMin) + MouseOver_Tile.X, 0, Map.TerrainSize.X - 1) - MouseOver_Tile.X
-                    X2 = MouseOver_Tile.X + X
+        For Z = Clamp(CliffBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(CliffBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
+            Z2 = Centre.Y + Z
+            For X = Clamp(CliffBrush.Tiles.XMin(Z - CliffBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(CliffBrush.Tiles.XMax(Z - CliffBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
+                X2 = Centre.X + X
 
-                    If Map.TerrainTiles(X2, Z2).Terrain_IsCliff Or Map.TerrainTiles(X2, Z2).TriBottomLeftIsCliff Or Map.TerrainTiles(X2, Z2).TriBottomRightIsCliff Or Map.TerrainTiles(X2, Z2).TriTopLeftIsCliff Or Map.TerrainTiles(X2, Z2).TriTopRightIsCliff Then
+                Changed = False
 
-                        Map.TerrainTiles(X2, Z2).Terrain_IsCliff = False
-                        Map.TerrainTiles(X2, Z2).TriBottomLeftIsCliff = False
-                        Map.TerrainTiles(X2, Z2).TriBottomRightIsCliff = False
-                        Map.TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
-                        Map.TerrainTiles(X2, Z2).TriTopRightIsCliff = False
+                If Main_Map.TerrainSideH(X2, Z2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideH(X2, Z2).Road = Nothing
+                    Changed = True
+                End If
+                If Main_Map.TerrainSideH(X2, Z2 + 1).Road IsNot Nothing Then
+                    Main_Map.TerrainSideH(X2, Z2 + 1).Road = Nothing
+                    Changed = True
+                End If
+                If Main_Map.TerrainSideV(X2, Z2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideV(X2, Z2).Road = Nothing
+                    Changed = True
+                End If
+                If Main_Map.TerrainSideV(X2 + 1, Z2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideV(X2 + 1, Z2).Road = Nothing
+                    Changed = True
+                End If
 
-                        Map.Tile_AutoTexture_Changed(X2, Z2, frmMainInstance.chkInvalidTiles.Checked)
-
-                        SectorChange.Tile_Set_Changed(X2, Z2)
+                If Changed Then
+                    Pos.X = X2
+                    Pos.Y = Z2
+                    Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
+                    Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
+                    If X2 > 0 Then
+                        Pos.X = X2 - 1
+                        Pos.Y = Z2
+                        Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
+                        Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     End If
-                Next
+                    If Z2 > 0 Then
+                        Pos.X = X2
+                        Pos.Y = Z2 - 1
+                        Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
+                        Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
+                    End If
+                    If X2 < Main_Map.TerrainSize.X - 1 Then
+                        Pos.X = X2 + 1
+                        Pos.Y = Z2
+                        Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
+                        Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
+                    End If
+                    If Z2 < Main_Map.TerrainSize.Y - 1 Then
+                        Pos.X = X2
+                        Pos.Y = Z2 + 1
+                        Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
+                        Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
+                    End If
+                End If
             Next
+        Next
 
-            SectorChange.Update_Graphics()
-
-            DrawViewLater()
-        ElseIf frmMainInstance.rdoAutoCliffBrush.Checked Then
-            Dim MinCliffAngle As Double = Clamp(Val(frmMainInstance.txtAutoCliffSlope.Text) * RadOf1Deg, 0.0#, RadOf90Deg)
-            Map.Apply_Cliff(MouseOver_Tile, AutoCliffBrushRadius, MinCliffAngle, frmMainInstance.chkCliffTris.Checked)
-            Map.SectorChange.Update_Graphics()
-            DrawViewLater()
-        End If
+        Main_Map.AutoTextureChange.Update_AutoTexture()
+        Main_Map.SectorGraphicsChange.Update_Graphics()
+        DrawViewLater()
     End Sub
 
     Sub Apply_Texture_Clockwise()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
 
-        Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.Orientation.RotateClockwise()
+        Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.Orientation.RotateClockwise()
 
-        SectorChange.Tile_Set_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
+        Select Case frmMainInstance.TextureTerrainAction
+            Case frmMain.enumTextureTerrainAction.Ignore
+
+            Case frmMain.enumTextureTerrainAction.Reinterpret
+                Main_Map.Terrain_Interpret(Tile, Tile)
+            Case frmMain.enumTextureTerrainAction.Remove
+                Main_Map.TerrainVertex(Tile.X, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X, Tile.Y + 1).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y + 1).Terrain = Nothing
+        End Select
+
+        SectorChange.Tile_Set_Changed(Tile)
 
         SectorChange.Update_Graphics()
 
-        Map.UndoStepCreate("Texture Rotate")
+        Main_Map.UndoStepCreate("Texture Rotate")
 
         DrawViewLater()
     End Sub
 
-    Sub Apply_Texture_Anticlockwise()
-        If Not MouseOver_Pos_Exists Then
+    Sub Apply_Texture_CounterClockwise()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
 
-        Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.Orientation.RotateAnticlockwise()
+        Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.Orientation.RotateAnticlockwise()
 
-        SectorChange.Tile_Set_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
+        Select Case frmMainInstance.TextureTerrainAction
+            Case frmMain.enumTextureTerrainAction.Ignore
+
+            Case frmMain.enumTextureTerrainAction.Reinterpret
+                Main_Map.Terrain_Interpret(Tile, Tile)
+            Case frmMain.enumTextureTerrainAction.Remove
+                Main_Map.TerrainVertex(Tile.X, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X, Tile.Y + 1).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y + 1).Terrain = Nothing
+        End Select
+
+        SectorChange.Tile_Set_Changed(Tile)
 
         SectorChange.Update_Graphics()
 
-        Map.UndoStepCreate("Texture Rotate")
+        Main_Map.UndoStepCreate("Texture Rotate")
 
         DrawViewLater()
     End Sub
 
     Sub Apply_Texture_FlipX()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
 
-        Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.Orientation.ResultXFlip = Not Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.Orientation.ResultXFlip
+        Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.Orientation.ResultXFlip = Not Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.Orientation.ResultXFlip
 
-        SectorChange.Tile_Set_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
+        Select Case frmMainInstance.TextureTerrainAction
+            Case frmMain.enumTextureTerrainAction.Ignore
+
+            Case frmMain.enumTextureTerrainAction.Reinterpret
+                Main_Map.Terrain_Interpret(Tile, Tile)
+            Case frmMain.enumTextureTerrainAction.Remove
+                Main_Map.TerrainVertex(Tile.X, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X, Tile.Y + 1).Terrain = Nothing
+                Main_Map.TerrainVertex(Tile.X + 1, Tile.Y + 1).Terrain = Nothing
+        End Select
+
+        SectorChange.Tile_Set_Changed(Tile)
 
         SectorChange.Update_Graphics()
 
-        Map.UndoStepCreate("Texture Rotate")
+        Main_Map.UndoStepCreate("Texture Rotate")
 
         DrawViewLater()
     End Sub
 
     Sub Apply_Tri_Flip()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
 
-        Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Tri = Not Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Tri
+        Main_Map.TerrainTiles(Tile.X, Tile.Y).Tri = Not Main_Map.TerrainTiles(Tile.X, Tile.Y).Tri
 
         'to update any cliffs
-        Map.Tile_AutoTexture_Changed(MouseOver_Tile.X, MouseOver_Tile.Y, frmMainInstance.chkInvalidTiles.Checked)
+        Main_Map.Tile_AutoTexture_Changed(Tile.X, Tile.Y, frmMainInstance.cbxInvalidTiles.Checked)
 
-        SectorChange.Tile_Set_Changed(MouseOver_Tile.X, MouseOver_Tile.Y)
+        SectorChange.Tile_Set_Changed(Tile)
 
         SectorChange.Update_Graphics()
 
-        Map.UndoStepCreate("Triangle Flip")
+        Main_Map.UndoStepCreate("Triangle Flip")
 
         DrawViewLater()
     End Sub
 
     Sub Apply_HeightSmoothing(ByVal Ratio As Double)
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
@@ -2088,47 +2251,51 @@ Public Class ctrlMapView
         Dim Z3 As Integer
         Dim X4 As Integer
         Dim Z4 As Integer
+        Dim Pos As sXY_int
 
         Dim TempHeight As Integer
         Dim Samples As Integer
 
         Dim NewHeight(,) As Byte
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Centre As sXY_int = MouseOverTerrain.Vertex
 
-        ReDim NewHeight(Map.TerrainSize.X, Map.TerrainSize.Y)
+        ReDim NewHeight(Main_Map.TerrainSize.X, Main_Map.TerrainSize.Y)
 
-        For Z = 0 To Map.TerrainSize.Y
-            For X = 0 To Map.TerrainSize.X
-                NewHeight(X, Z) = Map.TerrainVertex(X, Z).Height
+        For Z = 0 To Main_Map.TerrainSize.Y
+            For X = 0 To Main_Map.TerrainSize.X
+                NewHeight(X, Z) = Main_Map.TerrainVertex(X, Z).Height
             Next
         Next
 
-        For Z = Clamp(HeightBrushRadius.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(HeightBrushRadius.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-            Z2 = MouseOver_Vertex.Y + Z
-            For X = Clamp(HeightBrushRadius.XMin(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(HeightBrushRadius.XMax(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                X2 = MouseOver_Vertex.X + X
+        For Z = Clamp(HeightBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Z2 = Centre.Y + Z
+            For X = Clamp(HeightBrush.Tiles.XMin(Z - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Z - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+                X2 = Centre.X + X
 
                 TempHeight = 0
                 Samples = 0
 
-                For Z3 = Clamp(SmoothRadius.ZMin + Z2, 0, Map.TerrainSize.Y) - Z2 To Clamp(SmoothRadius.ZMax + Z2, 0, Map.TerrainSize.Y) - Z2
+                For Z3 = Clamp(SmoothRadius.Tiles.ZMin + Z2, 0, Main_Map.TerrainSize.Y) - Z2 To Clamp(SmoothRadius.Tiles.ZMax + Z2, 0, Main_Map.TerrainSize.Y) - Z2
                     Z4 = Z2 + Z3
-                    For X3 = Clamp(SmoothRadius.XMin(Z3 - SmoothRadius.ZMin) + X2, 0, Map.TerrainSize.X) - X2 To Clamp(SmoothRadius.XMax(Z3 - SmoothRadius.ZMin) + X2, 0, Map.TerrainSize.X) - X2
+                    For X3 = Clamp(SmoothRadius.Tiles.XMin(Z3 - SmoothRadius.Tiles.ZMin) + X2, 0, Main_Map.TerrainSize.X) - X2 To Clamp(SmoothRadius.Tiles.XMax(Z3 - SmoothRadius.Tiles.ZMin) + X2, 0, Main_Map.TerrainSize.X) - X2
                         X4 = X2 + X3
-                        TempHeight = TempHeight + Map.TerrainVertex(X4, Z4).Height
-                        Samples = Samples + 1
+                        TempHeight += Main_Map.TerrainVertex(X4, Z4).Height
+                        Samples += 1
                     Next
                 Next
 
-                NewHeight(X2, Z2) = Map.TerrainVertex(X2, Z2).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio
+                NewHeight(X2, Z2) = Main_Map.TerrainVertex(X2, Z2).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio
 
-                SectorChange.Vertex_And_Normals_Changed(X2, Z2)
+                Pos.X = X2
+                Pos.Y = Z2
+                SectorChange.Vertex_And_Normals_Changed(Pos)
             Next
         Next
 
-        For Z = 0 To Map.TerrainSize.Y
-            For X = 0 To Map.TerrainSize.X
-                Map.TerrainVertex(X, Z).Height = NewHeight(X, Z)
+        For Z = 0 To Main_Map.TerrainSize.Y
+            For X = 0 To Main_Map.TerrainSize.X
+                Main_Map.TerrainVertex(X, Z).Height = NewHeight(X, Z)
             Next
         Next
 
@@ -2137,30 +2304,53 @@ Public Class ctrlMapView
         DrawViewLater()
     End Sub
 
-    Sub Apply_Height_Change(ByVal Rate As Double)
-        If Not MouseOver_Pos_Exists Then
+    Sub Apply_Height_Change(ByVal Rate As Double, ByVal Fade As Boolean)
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
+        Dim Y2 As Integer
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Centre As sXY_int = MouseOverTerrain.Vertex
 
         Dim intRate As Integer
+        Dim Pos As sXY_int
+        Dim FadeValue As Double
+        Dim Radius As Double = HeightBrush.Radius
 
         intRate = Math.Round(Rate)
 
-        For Z = Clamp(HeightBrushRadius.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(HeightBrushRadius.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-            Z2 = MouseOver_Vertex.Y + Z
-            For X = Clamp(HeightBrushRadius.XMin(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(HeightBrushRadius.XMax(Z - HeightBrushRadius.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                X2 = MouseOver_Vertex.X + X
+        For Y = Clamp(HeightBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(HeightBrush.Tiles.XMin(Y - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Y - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+                X2 = Centre.X + X
 
-                Map.TerrainVertex(X2, Z2).Height = Clamp(CInt(Map.TerrainVertex(X2, Z2).Height) + intRate, 0, 255)
+                Pos.X = X2
+                Pos.Y = Y2
 
-                SectorChange.Vertex_And_Normals_Changed(X2, Z2)
+                If Fade Then
+                    If Radius <= 0.0# Then
+                        FadeValue = 1.0#
+                    Else
+                        Select Case HeightBrush.Shape
+                            Case clsBrush.enumShape.Circle
+                                FadeValue = 1.0# - GetDist(Centre, Pos) / Radius
+                            Case clsBrush.enumShape.Square
+                                FadeValue = 1.0# - Math.Min(Math.Abs(Pos.X - Centre.X), Math.Abs(Pos.Y - Centre.Y)) / Radius
+                        End Select
+                    End If
+                    Main_Map.TerrainVertex(X2, Y2).Height = Clamp(CInt(Main_Map.TerrainVertex(X2, Y2).Height) + CInt(Rate * FadeValue), 0, 255)
+                Else
+                    Main_Map.TerrainVertex(X2, Y2).Height = Clamp(CInt(Main_Map.TerrainVertex(X2, Y2).Height) + intRate, 0, 255)
+                End If
+
+                SectorChange.Vertex_And_Normals_Changed(Pos)
             Next
         Next
 
@@ -2170,27 +2360,33 @@ Public Class ctrlMapView
     End Sub
 
     Sub Apply_Height_Set(ByRef CircleTiles As sBrushTiles, ByVal HeightNew As Byte)
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
+        Dim Y2 As Integer
 
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim Centre As sXY_int = MouseOverTerrain.Vertex
+        Dim Pos As sXY_int
 
-        For Z = Clamp(CircleTiles.ZMin + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y To Clamp(CircleTiles.ZMax + MouseOver_Vertex.Y, 0, Map.TerrainSize.Y) - MouseOver_Vertex.Y
-            Z2 = MouseOver_Vertex.Y + Z
-            For X = Clamp(CircleTiles.XMin(Z - CircleTiles.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X To Clamp(CircleTiles.XMax(Z - CircleTiles.ZMin) + MouseOver_Vertex.X, 0, Map.TerrainSize.X) - MouseOver_Vertex.X
-                X2 = MouseOver_Vertex.X + X
+        For Y = Clamp(CircleTiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(CircleTiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(CircleTiles.XMin(Y - CircleTiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(CircleTiles.XMax(Y - CircleTiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+                X2 = Centre.X + X
 
-                If Map.TerrainVertex(X2, Z2).Height <> HeightNew Then
+                If Main_Map.TerrainVertex(X2, Y2).Height <> HeightNew Then
 
-                    Map.TerrainVertex(X2, Z2).Height = HeightNew
+                    Main_Map.TerrainVertex(X2, Y2).Height = HeightNew
 
-                    SectorChange.Vertex_And_Normals_Changed(X2, Z2)
+                    Pos.X = X2
+                    Pos.Y = Y2
+                    SectorChange.Vertex_And_Normals_Changed(Pos)
                 End If
             Next
         Next
@@ -2211,12 +2407,12 @@ Public Class ctrlMapView
         If ListSelectIsPicker Then
             ObjectPicker(tmpUnit.Type)
         Else
-            If tmpUnit.SelectedUnitNum < 0 Then
-                Map.SelectedUnit_Add(tmpUnit)
+            If tmpUnit.Map_SelectedUnitNum < 0 Then
+                Main_Map.SelectedUnit_Add(tmpUnit)
             Else
-                Map.SelectedUnit_Remove(tmpUnit.SelectedUnitNum)
+                Main_Map.SelectedUnit_Remove(tmpUnit.Map_SelectedUnitNum)
             End If
-            frmMainInstance.Selected_Object_Changed()
+            frmMainInstance.SelectedObject_Changed()
             DrawViewLater()
         End If
     End Sub
@@ -2235,166 +2431,137 @@ Public Class ctrlMapView
     End Sub
 
     Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
-        Static XY_int As sXY_int
-        Static NewUnitType As clsUnitType
-        Static NewUnit As clsMap.clsUnit
-        Static A As Integer
+        Dim ScreenPos As sXY_int
+        Dim NewUnitType As clsUnitType
+        Dim NewUnit As clsMap.clsUnit
+        Dim A As Integer
 
-        Map.SuppressMinimap = True
+        Main_Map.SuppressMinimap = True
 
-        XY_int.X = e.X
-        XY_int.Y = e.Y
+        ScreenPos.X = e.X
+        ScreenPos.Y = e.Y
         If e.Button = Windows.Forms.MouseButtons.Left Then
             MouseLeftIsDown = True
-
-            If IsViewPosOverMinimap(XY_int) Then
+            If IsViewPosOverMinimap(ScreenPos) Then
                 IsMinimap_MouseDown = True
-                LookAtTile(Int(XY_int.X * Tiles_Per_Minimap_Pixel), Int(XY_int.Y * Tiles_Per_Minimap_Pixel))
+                Dim Pos As New sXY_int(Int(ScreenPos.X * Tiles_Per_Minimap_Pixel), Int(ScreenPos.Y * Tiles_Per_Minimap_Pixel))
+                Main_Map.TileNumClampToMap(Pos)
+                LookAtTile(Pos)
             Else
-                If MouseOver_Pos_Exists Then
-                    If Tool = enumTool.None Then
-                        If Control_Picker.Active Then
-                            If MouseOver_UnitCount > 0 Then
-                                If MouseOver_UnitCount = 1 Then
-                                    ObjectPicker(MouseOver_Units(0).Type)
-                                Else
-                                    ListSelect.Close()
-                                    ListSelect.Items.Clear()
-                                    ReDim ListSelectItems(MouseOver_UnitCount - 1)
-                                    For A = 0 To MouseOver_UnitCount - 1
-                                        If MouseOver_Units(A).Type Is Nothing Then
-                                            ListSelectItems(A) = New ToolStripButton("<nothing>")
-                                        Else
-                                            ListSelectItems(A) = New ToolStripButton(MouseOver_Units(A).Type.Code)
-                                        End If
-                                        ListSelectItems(A).Tag = MouseOver_Units(A)
-                                        ListSelect.Items.Add(ListSelectItems(A))
-                                    Next
-                                    ListSelectIsPicker = True
-                                    ListSelect.Show(Me, New Drawing.Point(MouseOver_ScreenPos.X, MouseOver_ScreenPos.Y))
+                Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+                If MouseOverTerrain IsNot Nothing Then
+                    Select Case Tool
+                        Case enumTool.None
+                            If Control_Picker.Active Then
+                                If MouseOverTerrain.UnitCount > 0 Then
+                                    If MouseOverTerrain.UnitCount = 1 Then
+                                        ObjectPicker(MouseOverTerrain.Units(0).Type)
+                                    Else
+                                        ListSelect.Close()
+                                        ListSelect.Items.Clear()
+                                        ReDim ListSelectItems(MouseOverTerrain.UnitCount - 1)
+                                        For A = 0 To MouseOverTerrain.UnitCount - 1
+                                            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units(A).Type.GetDisplayText)
+                                            ListSelectItems(A).Tag = MouseOverTerrain.Units(A)
+                                            ListSelect.Items.Add(ListSelectItems(A))
+                                        Next
+                                        ListSelectIsPicker = True
+                                        ListSelect.Show(Me, New Drawing.Point(MouseOver.ScreenPos.X, MouseOver.ScreenPos.Y))
+                                    End If
                                 End If
-                            End If
-                        Else
-                            If Not Control_Unit_Multiselect.Active Then
-                                Map.SelectedUnits_Clear()
-                            End If
-                            frmMainInstance.Selected_Object_Changed()
-                            Map.Unit_Selected_Area_VertexA = MouseOver_Vertex
-                            Map.Unit_Selected_Area_VertexA_Exists = True
-                            DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.AutoTexture_Place Then
-                        If Map.Tileset IsNot Nothing Then
-                            If Control_Picker.Active Then
-                                TerrainPicker()
                             Else
-                                Apply_Terrain()
-                                If frmMainInstance.chkAutoTexSetHeight.Checked Then
-                                    Apply_Height_Set(AutoTextureBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                                If Not Control_Unit_Multiselect.Active Then
+                                    Main_Map.SelectedUnits_Clear()
                                 End If
-                            End If
-                        End If
-                    ElseIf Tool = enumTool.Height_Set_Brush Then
-                        If Control_Picker.Active Then
-                            HeightPickerL()
-                        Else
-                            Apply_Height_Set(HeightBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                        End If
-                    ElseIf Tool = enumTool.Texture_Brush Then
-                        If Map.Tileset IsNot Nothing Then
-                            If Control_Picker.Active Then
-                                TexturePicker()
-                            Else
-                                Apply_Texture()
-                            End If
-                        End If
-                    ElseIf Tool = enumTool.AutoCliff Then
-                        Apply_Cliff()
-                        DrawViewLater()
-                    ElseIf Tool = enumTool.AutoTexture_Fill Then
-                        If Map.Tileset IsNot Nothing Then
-                            If Control_Picker.Active Then
-                                TerrainPicker()
-                            Else
-                                Apply_Terrain_Fill()
+                                frmMainInstance.SelectedObject_Changed()
+                                Main_Map.Unit_Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex)
                                 DrawViewLater()
                             End If
-                        End If
-                    ElseIf Tool = enumTool.AutoRoad_Place Then
-                        If Map.Tileset IsNot Nothing Then
-                            Apply_Road()
+                        Case enumTool.AutoTexture_Place
+                            If Main_Map.Tileset IsNot Nothing Then
+                                If Control_Picker.Active Then
+                                    TerrainPicker()
+                                Else
+                                    Apply_Terrain()
+                                    If frmMainInstance.cbxAutoTexSetHeight.Checked Then
+                                        Apply_Height_Set(TerrainBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                                    End If
+                                End If
+                            End If
+                        Case enumTool.Height_Set_Brush
+                            If Control_Picker.Active Then
+                                HeightPickerL()
+                            Else
+                                Apply_Height_Set(HeightBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                            End If
+                        Case enumTool.Texture_Brush
+                            If Main_Map.Tileset IsNot Nothing Then
+                                If Control_Picker.Active Then
+                                    TexturePicker()
+                                Else
+                                    Apply_Texture()
+                                End If
+                            End If
+                        Case enumTool.AutoCliff
+                            Apply_Cliff()
                             DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.AutoRoad_Line Then
-                        If Map.Tileset IsNot Nothing Then
-                            Apply_Road_Line_Selection()
+                        Case enumTool.AutoTexture_Fill
+                            If Main_Map.Tileset IsNot Nothing Then
+                                If Control_Picker.Active Then
+                                    TerrainPicker()
+                                Else
+                                    Apply_Terrain_Fill()
+                                    DrawViewLater()
+                                End If
+                            End If
+                        Case enumTool.AutoRoad_Place
+                            If Main_Map.Tileset IsNot Nothing Then
+                                Apply_Road()
+                                DrawViewLater()
+                            End If
+                        Case enumTool.AutoRoad_Line
+                            If Main_Map.Tileset IsNot Nothing Then
+                                Apply_Road_Line_Selection()
+                                DrawViewLater()
+                            End If
+                        Case enumTool.AutoRoad_Remove
+                            Apply_Road_Remove()
                             DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.Object_Unit Then
-                        If frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex)
-                            NewUnit = New clsMap.clsUnit
-                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
-                            NewUnit.Rotation = 0
-                            NewUnit.Type = NewUnitType
-                            Map.Unit_Add_StoreChange(NewUnit)
-                            Map.UndoStepCreate("Place Droid")
-                            Map.SectorChange.Update_Graphics()
-                            Map.MinimapMakeLater()
+                        Case enumTool.ObjectPlace
+                            If frmMainInstance.SelectedObjectType IsNot Nothing Then
+                                NewUnitType = frmMainInstance.SelectedObjectType
+                                NewUnit = New clsMap.clsUnit
+                                NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
+                                NewUnit.Pos = Main_Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
+                                NewUnit.Rotation = 0
+                                NewUnit.Type = NewUnitType
+                                Main_Map.Unit_Add_StoreChange(NewUnit)
+                                Main_Map.UndoStepCreate("Place Object")
+                                Main_Map.SectorGraphicsChange.Update_Graphics()
+                                Main_Map.MinimapMakeLater()
+                                DrawViewLater()
+                            End If
+                        Case enumTool.Terrain_Select
+                            If Main_Map.Selected_Area_VertexA Is Nothing Then
+                                Main_Map.Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex)
+                                DrawViewLater()
+                            ElseIf Main_Map.Selected_Area_VertexB Is Nothing Then
+                                Main_Map.Selected_Area_VertexB = New clsXY_int(MouseOverTerrain.Vertex)
+                                DrawViewLater()
+                                frmMainInstance.Terrain_Selection_Changed()
+                            Else
+                                Main_Map.Selected_Area_VertexA = Nothing
+                                Main_Map.Selected_Area_VertexB = Nothing
+                                frmMainInstance.Terrain_Selection_Changed()
+                                DrawViewLater()
+                            End If
+                        Case enumTool.Gateways
+                            Apply_Gateway()
                             DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.Object_Structure Then
-                        If frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex)
-                            NewUnit = New clsMap.clsUnit
-                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
-                            NewUnit.Rotation = 0
-                            NewUnit.Type = NewUnitType
-                            Map.Unit_Add_StoreChange(NewUnit)
-                            Map.UndoStepCreate("Place Structure")
-                            Map.SectorChange.Update_Graphics()
-                            Map.MinimapMakeLater()
-                            DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.Object_Feature Then
-                        If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                            NewUnitType = frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex)
-                            NewUnit = New clsMap.clsUnit
-                            NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
-                            NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X, -MouseOver_Pos.Z, NewUnitType.LoadedInfo.Footprint)
-                            NewUnit.Rotation = 0
-                            NewUnit.Type = NewUnitType
-                            Map.Unit_Add_StoreChange(NewUnit)
-                            Map.UndoStepCreate("Place Feature")
-                            Map.SectorChange.Update_Graphics()
-                            Map.MinimapMakeLater()
-                            DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.Terrain_Select Then
-                        If Not Map.Selected_Area_VertexA_Exists Then
-                            Map.Selected_Area_VertexA = MouseOver_Vertex
-                            Map.Selected_Area_VertexA_Exists = True
-                            DrawViewLater()
-                        ElseIf Not Map.Selected_Area_VertexB_Exists Then
-                            Map.Selected_Area_VertexB = MouseOver_Vertex
-                            Map.Selected_Area_VertexB_Exists = True
-                            DrawViewLater()
-                            frmMainInstance.Terrain_Selection_Changed()
-                        Else
-                            Map.Selected_Area_VertexA_Exists = False
-                            Map.Selected_Area_VertexB_Exists = False
-                            frmMainInstance.Terrain_Selection_Changed()
-                            DrawViewLater()
-                        End If
-                    ElseIf Tool = enumTool.Gateways Then
-                        Apply_Gateway()
-                        DrawViewLater()
-                    End If
+                    End Select
                 ElseIf Tool = enumTool.None Then
-                    Map.SelectedUnits_Clear()
-                    frmMainInstance.Selected_Object_Changed()
+                    Main_Map.SelectedUnits_Clear()
+                    frmMainInstance.SelectedObject_Changed()
                 End If
             End If
         ElseIf e.Button = Windows.Forms.MouseButtons.Right Then
@@ -2402,30 +2569,32 @@ Public Class ctrlMapView
 
             Select Case Tool
                 Case enumTool.AutoRoad_Line
-                    Map.Selected_Tile_A_Exists = False
+                    Main_Map.Selected_Tile_A = Nothing
                     DrawViewLater()
                 Case enumTool.Terrain_Select
-                    Map.Selected_Area_VertexA_Exists = False
-                    Map.Selected_Area_VertexB_Exists = False
+                    Main_Map.Selected_Area_VertexA = Nothing
+                    Main_Map.Selected_Area_VertexB = Nothing
                     frmMainInstance.Terrain_Selection_Changed()
                     DrawViewLater()
                 Case enumTool.Gateways
-                    Map.Selected_Tile_A_Exists = False
-                    Map.Selected_Tile_B_Exists = False
+                    Main_Map.Selected_Tile_A = Nothing
+                    Main_Map.Selected_Tile_B = Nothing
                     DrawViewLater()
                 Case enumTool.Height_Set_Brush
                     If Control_Picker.Active Then
                         HeightPickerR()
                     Else
-                        Apply_Height_Set(HeightBrushRadius, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
+                        Apply_Height_Set(HeightBrush.Tiles, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
+                        DrawViewLater()
                     End If
             End Select
         End If
     End Sub
 
     Public Sub OpenGL_KeyDown(ByVal sender As Object, ByVal e As PreviewKeyDownEventArgs)
-        Static matrixA(8) As Double
-        Static A As Integer
+        Dim matrixA(8) As Double
+        Dim A As Integer
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         IsViewKeyDown(e.KeyCode) = True
 
@@ -2435,18 +2604,18 @@ Public Class ctrlMapView
 
         If e.KeyCode = Keys.F12 Then InputBox("", "", My.Application.Info.DirectoryPath)
         If Control_Undo.Active Then
-            If Map.Undo_Pos > 0 Then
-                DisplayUndoMessage("Undid: " & Map.Undos(Map.Undo_Pos - 1).Name)
-                Map.Undo_Perform()
+            If Main_Map.Undo_Pos > 0 Then
+                DisplayUndoMessage("Undid: " & Main_Map.Undos(Main_Map.Undo_Pos - 1).Name)
+                Main_Map.Undo_Perform()
                 DrawViewLater()
             Else
                 DisplayUndoMessage("Nothing to undo")
             End If
         End If
         If Control_Redo.Active Then
-            If Map.Undo_Pos < Map.UndoCount Then
-                DisplayUndoMessage("Redid: " & Map.Undos(Map.Undo_Pos).Name)
-                Map.Redo_Perform()
+            If Main_Map.Undo_Pos < Main_Map.UndoCount Then
+                DisplayUndoMessage("Redid: " & Main_Map.Undos(Main_Map.Undo_Pos).Name)
+                Main_Map.Redo_Perform()
                 DrawViewLater()
             Else
                 DisplayUndoMessage("Nothing to redo")
@@ -2507,7 +2676,7 @@ Public Class ctrlMapView
         End If
         If Control_View_Units.Active Then
             Draw_Units = Not Draw_Units
-            Map.SectorAll_GL_Update()
+            Main_Map.SectorAll_GL_Update()
             DrawViewLater()
         End If
         If Control_View_Lighting.Active Then
@@ -2521,111 +2690,107 @@ Public Class ctrlMapView
             DrawViewLater()
         End If
         If Tool = enumTool.Texture_Brush Then
-            If Control_Clockwise.Active Then
-                If MouseOver_Pos_Exists Then
+            If MouseOverTerrain IsNot Nothing Then
+                If Control_Clockwise.Active Then
                     Apply_Texture_Clockwise()
                 End If
-            End If
-            If Control_Anticlockwise.Active Then
-                If MouseOver_Pos_Exists Then
-                    Apply_Texture_Anticlockwise()
+                If Control_Anticlockwise.Active Then
+                    Apply_Texture_CounterClockwise()
                 End If
-            End If
-            If Control_Texture_Flip.Active Then
-                If MouseOver_Pos_Exists Then
+                If Control_Texture_Flip.Active Then
                     Apply_Texture_FlipX()
                 End If
-            End If
-            If Control_Tri_Flip.Active Then
-                If MouseOver_Pos_Exists Then
+                If Control_Tri_Flip.Active Then
                     Apply_Tri_Flip()
                 End If
             End If
         End If
         If Tool = enumTool.None Then
             If Control_Unit_Delete.Active Then
-                If Map.SelectedUnitCount > 0 Then
-                    Dim OldUnits() As clsMap.clsUnit = Map.SelectedUnits.Clone
+                If Main_Map.SelectedUnitCount > 0 Then
+                    Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
                     For A = 0 To OldUnits.GetUpperBound(0)
-                        Map.Unit_Remove_StoreChange(OldUnits(A).Num)
+                        Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
                     Next
-                    Map.SelectedUnits_Clear()
-                    frmMainInstance.Selected_Object_Changed()
-                    Map.UndoStepCreate("Object Deleted")
-                    Map.SectorChange.Update_Graphics()
-                    Map.MinimapMakeLater()
+                    Main_Map.SelectedUnits_Clear()
+                    frmMainInstance.SelectedObject_Changed()
+                    Main_Map.UndoStepCreate("Object Deleted")
+                    Main_Map.SectorGraphicsChange.Update_Graphics()
+                    Main_Map.MinimapMakeLater()
                     DrawViewLater()
                 End If
             End If
             If Control_Unit_Move.Active Then
-                If MouseOver_Pos_Exists Then
-                    If Map.SelectedUnitCount > 0 Then
+                If MouseOverTerrain IsNot Nothing Then
+                    If Main_Map.SelectedUnitCount > 0 Then
                         Dim Centre As sXY_dbl
-                        For A = 0 To Map.SelectedUnitCount - 1
-                            Centre.X += Map.SelectedUnits(A).Pos.X
-                            Centre.Y += Map.SelectedUnits(A).Pos.Z
+                        For A = 0 To Main_Map.SelectedUnitCount - 1
+                            Centre.X += Main_Map.SelectedUnits(A).Pos.Horizontal.X
+                            Centre.Y += Main_Map.SelectedUnits(A).Pos.Horizontal.Y
                         Next
-                        Centre.X /= Map.SelectedUnitCount
-                        Centre.Y /= Map.SelectedUnitCount
-                        Dim UnitsToMove(Map.SelectedUnitCount - 1) As clsMap.clsUnit
-                        Dim UnitsToMoveID(Map.SelectedUnitCount - 1) As UInteger
-                        For A = 0 To Map.SelectedUnitCount - 1
-                            UnitsToMove(A) = Map.SelectedUnits(A)
+                        Centre.X /= Main_Map.SelectedUnitCount
+                        Centre.Y /= Main_Map.SelectedUnitCount
+                        Dim UnitsToMove(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+                        Dim UnitsToMoveID(Main_Map.SelectedUnitCount - 1) As UInteger
+                        For A = 0 To Main_Map.SelectedUnitCount - 1
+                            UnitsToMove(A) = Main_Map.SelectedUnits(A)
                             UnitsToMoveID(A) = UnitsToMove(A).ID
                         Next
-                        Dim NewUnits(Map.SelectedUnitCount - 1) As clsMap.clsUnit
+                        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
                         Dim tmpUnit As clsMap.clsUnit
-                        For A = 0 To Map.SelectedUnitCount - 1
+                        Dim NewPos As sXY_int
+                        For A = 0 To Main_Map.SelectedUnitCount - 1
                             tmpUnit = New clsMap.clsUnit(UnitsToMove(A))
                             NewUnits(A) = tmpUnit
-                            If tmpUnit.Type.LoadedInfo Is Nothing Then
-                                tmpUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X + UnitsToMove(A).Pos.X - Centre.X, -MouseOver_Pos.Z + UnitsToMove(A).Pos.Z - Centre.Y, New sXY_int(1, 1))
-                            Else
-                                tmpUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOver_Pos.X + UnitsToMove(A).Pos.X - Centre.X, -MouseOver_Pos.Z + UnitsToMove(A).Pos.Z - Centre.Y, tmpUnit.Type.LoadedInfo.Footprint)
-                            End If
-                            Map.Unit_Remove_StoreChange(UnitsToMove(A).Num)
-                            Map.Unit_Add_StoreChange(tmpUnit, UnitsToMoveID(A))
+                            NewPos.X = MouseOverTerrain.Pos.Horizontal.X + UnitsToMove(A).Pos.Horizontal.X - Centre.X
+                            NewPos.Y = MouseOverTerrain.Pos.Horizontal.Y + UnitsToMove(A).Pos.Horizontal.Y - Centre.Y
+                            tmpUnit.Pos = Main_Map.TileAligned_Pos_From_MapPos(NewPos, tmpUnit.Type.GetFootprint)
+                            Main_Map.Unit_Remove_StoreChange(UnitsToMove(A).Map_UnitNum)
+                            Main_Map.Unit_Add_StoreChange(tmpUnit, UnitsToMoveID(A))
+                            ErrorIDChange(UnitsToMoveID(A), tmpUnit, "OpenGL_KeyDown->UnitMove")
                         Next
-                        Map.SelectedUnit_Add(NewUnits)
-                        Map.UndoStepCreate("Objects Moved")
-                        Map.SectorChange.Update_Graphics()
-                        Map.MinimapMakeLater()
-                        frmMainInstance.Selected_Object_Changed()
+                        Main_Map.SelectedUnit_Add(NewUnits)
+                        Main_Map.UndoStepCreate("Objects Moved")
+                        Main_Map.SectorGraphicsChange.Update_Graphics()
+                        Main_Map.MinimapMakeLater()
+                        frmMainInstance.SelectedObject_Changed()
                         DrawViewLater()
                     End If
                 End If
             End If
             If Control_Clockwise.Active Then
-                If Map.SelectedUnitCount = 1 Then
-                    Dim NewUnit As New clsMap.clsUnit(Map.SelectedUnits(0))
-                    Dim ID As UInteger = Map.SelectedUnits(0).ID
-                    Map.Unit_Remove_StoreChange(Map.SelectedUnits(0).Num)
+                If Main_Map.SelectedUnitCount = 1 Then
+                    Dim NewUnit As New clsMap.clsUnit(Main_Map.SelectedUnits(0))
+                    Dim ID As UInteger = Main_Map.SelectedUnits(0).ID
+                    Main_Map.Unit_Remove_StoreChange(Main_Map.SelectedUnits(0).Map_UnitNum)
                     NewUnit.Rotation -= 90
                     If NewUnit.Rotation < 0 Then
                         NewUnit.Rotation += 360
                     End If
-                    Map.Unit_Add_StoreChange(NewUnit, ID)
-                    Map.SelectedUnit_Add(NewUnit)
-                    Map.SectorChange.Update_Graphics()
-                    frmMainInstance.Selected_Object_Changed()
-                    Map.UndoStepCreate("Object Rotated")
+                    Main_Map.Unit_Add_StoreChange(NewUnit, ID)
+                    ErrorIDChange(ID, NewUnit, "OpenGL_KeyDown->UnitClockwise")
+                    Main_Map.SelectedUnit_Add(NewUnit)
+                    Main_Map.SectorGraphicsChange.Update_Graphics()
+                    frmMainInstance.SelectedObject_Changed()
+                    Main_Map.UndoStepCreate("Object Rotated")
                     DrawViewLater()
                 End If
             End If
             If Control_Anticlockwise.Active Then
-                If Map.SelectedUnitCount = 1 Then
-                    Dim NewUnit As New clsMap.clsUnit(Map.SelectedUnits(0))
-                    Dim ID As UInteger = Map.SelectedUnits(0).ID
-                    Map.Unit_Remove_StoreChange(Map.SelectedUnits(0).Num)
+                If Main_Map.SelectedUnitCount = 1 Then
+                    Dim NewUnit As New clsMap.clsUnit(Main_Map.SelectedUnits(0))
+                    Dim ID As UInteger = Main_Map.SelectedUnits(0).ID
+                    Main_Map.Unit_Remove_StoreChange(Main_Map.SelectedUnits(0).Map_UnitNum)
                     NewUnit.Rotation += 90
                     If NewUnit.Rotation > 359 Then
                         NewUnit.Rotation -= 360
                     End If
-                    Map.Unit_Add_StoreChange(NewUnit, ID)
-                    Map.SectorChange.Update_Graphics()
-                    Map.SelectedUnit_Add(NewUnit)
-                    frmMainInstance.Selected_Object_Changed()
-                    Map.UndoStepCreate("Object Rotated")
+                    Main_Map.Unit_Add_StoreChange(NewUnit, ID)
+                    ErrorIDChange(ID, NewUnit, "OpenGL_KeyDown->UnitCounterClockwise")
+                    Main_Map.SectorGraphicsChange.Update_Graphics()
+                    Main_Map.SelectedUnit_Add(NewUnit)
+                    frmMainInstance.SelectedObject_Changed()
+                    Main_Map.UndoStepCreate("Object Rotated")
                     DrawViewLater()
                 End If
             End If
@@ -2648,73 +2813,79 @@ Public Class ctrlMapView
     End Sub
 
     Sub Apply_Road_Line_Selection()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrian As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrian Is Nothing Then
             Exit Sub
         End If
 
         Dim Num As Integer
         Dim A As Integer
         Dim B As Integer
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
-        Dim AutoTextureChange As clsMap.clsAutoTextureChange = Map.AutoTextureChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
+        Dim AutoTextureChange As clsMap.clsAutoTextureChange = Main_Map.AutoTextureChange
+        Dim Tile As sXY_int = MouseOverTerrian.Tile
+        Dim SideNum As sXY_int
 
-        If Map.Selected_Tile_A_Exists Then
-            If MouseOver_Tile.X = Map.Selected_Tile_A.X Then
-                If MouseOver_Tile.Y <= Map.Selected_Tile_A.Y Then
-                    A = MouseOver_Tile.Y
-                    B = Map.Selected_Tile_A.Y
+        If Main_Map.Selected_Tile_A IsNot Nothing Then
+            If Tile.X = Main_Map.Selected_Tile_A.X Then
+                If Tile.Y <= Main_Map.Selected_Tile_A.Y Then
+                    A = Tile.Y
+                    B = Main_Map.Selected_Tile_A.Y
                 Else
-                    A = Map.Selected_Tile_A.Y
-                    B = MouseOver_Tile.Y
+                    A = Main_Map.Selected_Tile_A.Y
+                    B = Tile.Y
                 End If
                 For Num = A + 1 To B
-                    Map.TerrainSideH(Map.Selected_Tile_A.X, Num).Road = SelectedRoad
-                    AutoTextureChange.SideH_Set_Changed(Map.Selected_Tile_A.X, Num)
-                    SectorChange.SideH_Set_Changed(Map.Selected_Tile_A.X, Num)
+                    Main_Map.TerrainSideH(Main_Map.Selected_Tile_A.X, Num).Road = SelectedRoad
+                    SideNum.X = Main_Map.Selected_Tile_A.X
+                    SideNum.Y = Num
+                    AutoTextureChange.SideH_Set_Changed(SideNum)
+                    SectorChange.SideH_Set_Changed(SideNum)
                 Next
 
                 AutoTextureChange.Update_AutoTexture()
                 SectorChange.Update_Graphics()
 
-                Map.UndoStepCreate("Road Line")
+                Main_Map.UndoStepCreate("Road Line")
 
-                Map.Selected_Tile_A_Exists = False
+                Main_Map.Selected_Tile_A = Nothing
                 DrawViewLater()
-            ElseIf MouseOver_Tile.Y = Map.Selected_Tile_A.Y Then
-                If MouseOver_Tile.X <= Map.Selected_Tile_A.X Then
-                    A = MouseOver_Tile.X
-                    B = Map.Selected_Tile_A.X
+            ElseIf Tile.Y = Main_Map.Selected_Tile_A.Y Then
+                If Tile.X <= Main_Map.Selected_Tile_A.X Then
+                    A = Tile.X
+                    B = Main_Map.Selected_Tile_A.X
                 Else
-                    A = Map.Selected_Tile_A.X
-                    B = MouseOver_Tile.X
+                    A = Main_Map.Selected_Tile_A.X
+                    B = Tile.X
                 End If
                 For Num = A + 1 To B
-                    Map.TerrainSideV(Num, Map.Selected_Tile_A.Y).Road = SelectedRoad
-                    AutoTextureChange.SideV_Set_Changed(Num, Map.Selected_Tile_A.Y)
-                    SectorChange.SideV_Set_Changed(Num, Map.Selected_Tile_A.Y)
+                    Main_Map.TerrainSideV(Num, Main_Map.Selected_Tile_A.Y).Road = SelectedRoad
+                    SideNum.X = Num
+                    SideNum.Y = Main_Map.Selected_Tile_A.Y
+                    AutoTextureChange.SideV_Set_Changed(SideNum)
+                    SectorChange.SideV_Set_Changed(SideNum)
                 Next
 
                 AutoTextureChange.Update_AutoTexture()
                 SectorChange.Update_Graphics()
 
-                Map.UndoStepCreate("Road Line")
+                Main_Map.UndoStepCreate("Road Line")
 
-                Map.Selected_Tile_A_Exists = False
+                Main_Map.Selected_Tile_A = Nothing
                 DrawViewLater()
             Else
 
             End If
         Else
-            Map.Selected_Tile_A.X = MouseOver_Tile.X
-            Map.Selected_Tile_A.Y = MouseOver_Tile.Y
-            Map.Selected_Tile_A_Exists = True
+            Main_Map.Selected_Tile_A = New clsXY_int(Tile)
         End If
     End Sub
 
     Function IsViewPosOverMinimap(ByVal Pos As sXY_int) As Boolean
 
-        If Pos.X >= 0 And Pos.X < Map.TerrainSize.X / Tiles_Per_Minimap_Pixel _
-            And Pos.Y >= 0 And Pos.Y < Map.TerrainSize.Y / Tiles_Per_Minimap_Pixel Then
+        If Pos.X >= 0 And Pos.X < Main_Map.TerrainSize.X / Tiles_Per_Minimap_Pixel _
+            And Pos.Y >= 0 And Pos.Y < Main_Map.TerrainSize.Y / Tiles_Per_Minimap_Pixel Then
             IsViewPosOverMinimap = True
         Else
             IsViewPosOverMinimap = False
@@ -2722,8 +2893,9 @@ Public Class ctrlMapView
     End Function
 
     Sub OpenGL_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
-        Map.SuppressMinimap = False
+        Main_Map.SuppressMinimap = False
 
         If e.Button = Windows.Forms.MouseButtons.Left Then
             MouseLeftIsDown = False
@@ -2733,21 +2905,25 @@ Public Class ctrlMapView
             Else
                 Select Case Tool
                     Case enumTool.AutoTexture_Place
-                        Map.UndoStepCreate("Ground Painted")
+                        Main_Map.UndoStepCreate("Ground Painted")
                     Case enumTool.AutoCliff
-                        Map.UndoStepCreate("Cliff Brush")
+                        Main_Map.UndoStepCreate("Cliff Brush")
                     Case enumTool.Height_Change_Brush
-                        Map.UndoStepCreate("Height Change")
+                        Main_Map.UndoStepCreate("Height Change")
                     Case enumTool.Height_Set_Brush
-                        Map.UndoStepCreate("Height Set")
+                        Main_Map.UndoStepCreate("Height Set")
                     Case enumTool.Height_Smooth_Brush
-                        Map.UndoStepCreate("Height Smooth")
+                        Main_Map.UndoStepCreate("Height Smooth")
                     Case enumTool.Texture_Brush
-                        Map.UndoStepCreate("Texture")
+                        Main_Map.UndoStepCreate("Texture")
+                    Case enumTool.AutoRoad_Remove
+                        Main_Map.UndoStepCreate("Road Remove")
                     Case enumTool.None
-                        If Map.Unit_Selected_Area_VertexA_Exists Then
-                            SelectUnits(Map.Unit_Selected_Area_VertexA, MouseOver_Vertex)
-                            Map.Unit_Selected_Area_VertexA_Exists = False
+                        If Main_Map.Unit_Selected_Area_VertexA IsNot Nothing Then
+                            If MouseOverTerrain IsNot Nothing Then
+                                SelectUnits(Main_Map.Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex)
+                                Main_Map.Unit_Selected_Area_VertexA = Nothing
+                            End If
                         End If
                 End Select
             End If
@@ -2757,15 +2933,16 @@ Public Class ctrlMapView
             If Not IsMinimap_MouseDown Then
                 Select Case Tool
                     Case enumTool.Height_Change_Brush
-                        Map.UndoStepCreate("Height Change")
+                        Main_Map.UndoStepCreate("Height Change")
                     Case enumTool.Height_Set_Brush
-                        Map.UndoStepCreate("Height Set")
+                        Main_Map.UndoStepCreate("Height Set")
                 End Select
             End If
         End If
     End Sub
 
     Private Sub SelectUnits(ByVal VertexA As sXY_int, ByVal VertexB As sXY_int)
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
         Dim A As Integer
         Dim SectorNum As sXY_int
         Dim tmpUnit As clsMap.clsUnit
@@ -2777,29 +2954,30 @@ Public Class ctrlMapView
         Dim FinishVertex As sXY_int
 
         If Math.Abs(VertexA.X - VertexB.X) <= 1 And _
-            Math.Abs(VertexA.Y - VertexB.Y) <= 1 Then
-            If MouseOver_UnitCount > 0 Then
-                If MouseOver_UnitCount = 1 Then
-                    If MouseOver_Units(0).SelectedUnitNum < 0 Then
-                        Map.SelectedUnit_Add(MouseOver_Units(0))
+          Math.Abs(VertexA.Y - VertexB.Y) <= 1 And _
+          MouseOverTerrain IsNot Nothing Then
+            If MouseOverTerrain.UnitCount > 0 Then
+                If MouseOverTerrain.UnitCount = 1 Then
+                    If MouseOverTerrain.Units(0).Map_SelectedUnitNum < 0 Then
+                        Main_Map.SelectedUnit_Add(MouseOverTerrain.Units(0))
                     Else
-                        Map.SelectedUnit_Remove(MouseOver_Units(0).SelectedUnitNum)
+                        Main_Map.SelectedUnit_Remove(MouseOverTerrain.Units(0).Map_SelectedUnitNum)
                     End If
                 Else
                     ListSelect.Close()
                     ListSelect.Items.Clear()
-                    ReDim ListSelectItems(MouseOver_UnitCount - 1)
-                    For A = 0 To MouseOver_UnitCount - 1
-                        If MouseOver_Units(A).Type Is Nothing Then
+                    ReDim ListSelectItems(MouseOverTerrain.UnitCount - 1)
+                    For A = 0 To MouseOverTerrain.UnitCount - 1
+                        If MouseOverTerrain.Units(A).Type Is Nothing Then
                             ListSelectItems(A) = New ToolStripButton("<nothing>")
                         Else
-                            ListSelectItems(A) = New ToolStripButton(MouseOver_Units(A).Type.Code)
+                            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units(A).Type.GetDisplayText)
                         End If
-                        ListSelectItems(A).Tag = MouseOver_Units(A)
+                        ListSelectItems(A).Tag = MouseOverTerrain.Units(A)
                         ListSelect.Items.Add(ListSelectItems(A))
                     Next
                     ListSelectIsPicker = False
-                    ListSelect.Show(Me, New Drawing.Point(MouseOver_ScreenPos.X, MouseOver_ScreenPos.Y))
+                    ListSelect.Show(Me, New Drawing.Point(MouseOver.ScreenPos.X, MouseOver.ScreenPos.Y))
                 End If
             End If
         Else
@@ -2808,23 +2986,23 @@ Public Class ctrlMapView
             StartPos.Y = StartVertex.Y * TerrainGridSpacing
             FinishPos.X = FinishVertex.X * TerrainGridSpacing
             FinishPos.Y = FinishVertex.Y * TerrainGridSpacing
-            SectorStart.X = Math.Min(CInt(Int(StartVertex.X / SectorTileSize)), Map.SectorCount.X - 1)
-            SectorStart.Y = Math.Min(CInt(Int(StartVertex.Y / SectorTileSize)), Map.SectorCount.Y - 1)
-            SectorFinish.X = Math.Min(CInt(Int(FinishVertex.X / SectorTileSize)), Map.SectorCount.X - 1)
-            SectorFinish.Y = Math.Min(CInt(Int(FinishVertex.Y / SectorTileSize)), Map.SectorCount.Y - 1)
+            SectorStart.X = Math.Min(CInt(Int(StartVertex.X / SectorTileSize)), Main_Map.SectorCount.X - 1)
+            SectorStart.Y = Math.Min(CInt(Int(StartVertex.Y / SectorTileSize)), Main_Map.SectorCount.Y - 1)
+            SectorFinish.X = Math.Min(CInt(Int(FinishVertex.X / SectorTileSize)), Main_Map.SectorCount.X - 1)
+            SectorFinish.Y = Math.Min(CInt(Int(FinishVertex.Y / SectorTileSize)), Main_Map.SectorCount.Y - 1)
             For SectorNum.Y = SectorStart.Y To SectorFinish.Y
                 For SectorNum.X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
-                        tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
-                        If tmpUnit.Pos.X >= StartPos.X And tmpUnit.Pos.Z >= StartPos.Y And _
-                            tmpUnit.Pos.X <= FinishPos.X And tmpUnit.Pos.Z <= FinishPos.Y Then
-                            Map.SelectedUnit_Add(tmpUnit)
+                    For A = 0 To Main_Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
+                        tmpUnit = Main_Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
+                        If tmpUnit.Pos.Horizontal.X >= StartPos.X And tmpUnit.Pos.Horizontal.Y >= StartPos.Y And _
+                            tmpUnit.Pos.Horizontal.X <= FinishPos.X And tmpUnit.Pos.Horizontal.Y <= FinishPos.Y Then
+                            Main_Map.SelectedUnit_Add(tmpUnit)
                         End If
                     Next
                 Next
             Next
         End If
-        frmMainInstance.Selected_Object_Changed()
+        frmMainInstance.SelectedObject_Changed()
         DrawViewLater()
     End Sub
 
@@ -2850,33 +3028,35 @@ Public Class ctrlMapView
         CircleTiles_Create(Radius, VisionSectors, TerrainGridSpacing * SectorTileSize)
     End Sub
 
-    Public Function Pos_Get_Screen_XY(ByVal Pos As sXYZ_dbl, ByRef X_Output As Integer, ByRef Y_Output As Integer) As Boolean
-        Static RatioZ_px As Double
+    Public Function Pos_Get_Screen_XY(ByVal Pos As sXYZ_dbl, ByRef Result As sXY_int) As Boolean
+
+        If Pos.Z <= 0.0# Then
+            Return False
+        End If
 
         Try
-            If Pos.Z > 0.0# Then
-                RatioZ_px = 1.0# / (FOVMultiplier * Pos.Z)
-                Y_Output = GLSize.Y / 2.0# - (Pos.Y * RatioZ_px)
-                X_Output = GLSize.X / 2.0# + (Pos.X * RatioZ_px)
-                Return True
-            End If
+            Dim RatioZ_px As Double = 1.0# / (FOVMultiplier * Pos.Z)
+            Result.X = GLSize.X / 2.0# + (Pos.X * RatioZ_px)
+            Result.Y = GLSize.Y / 2.0# - (Pos.Y * RatioZ_px)
+            Return True
         Catch
 
         End Try
+
         Return False
     End Function
 
-    Public Function ScreenXY_Get_PlanePos(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
-        Static dblTemp As Double
-        Static XYZ_dbl As sXYZ_dbl
-        Static XYZ_dbl2 As sXYZ_dbl
-        Static dblTemp2 As Double
+    Public Function ScreenXY_Get_ViewPlanePos(ByVal ScreenPos As sXY_int, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
+        Dim dblTemp As Double
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim XYZ_dbl2 As sXYZ_dbl
+        Dim dblTemp2 As Double
 
         Try
             'convert screen pos to vector of one pos unit
             dblTemp2 = FOVMultiplier
-            XYZ_dbl.X = (ScreenX - GLSize.X / 2.0#) * dblTemp2
-            XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenY) * dblTemp2
+            XYZ_dbl.X = (ScreenPos.X - GLSize.X / 2.0#) * dblTemp2
+            XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenPos.Y) * dblTemp2
             XYZ_dbl.Z = 1.0#
             'factor in the view angle
             VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
@@ -2890,27 +3070,27 @@ Public Class ctrlMapView
         Return True
     End Function
 
-    Public Function ScreenXY_Get_TerrainPos(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByRef ResultPos As sXYZ_lng) As Boolean
-        Static dblTemp As Double
-        Static XYZ_dbl As sXYZ_dbl
-        Static TerrainViewVector As sXYZ_dbl
-        Static X As Integer
-        Static Z As Integer
-        Static LimitA As sXY_dbl
-        Static LimitB As sXY_dbl
-        Static Min As sXY_int
-        Static Max As sXY_int
-        Static TriGradientX As Double
-        Static TriGradientZ As Double
-        Static TriHeightOffset As Double
-        Static Dist As Double
-        Static BestPos As sXYZ_dbl
-        Static BestDist As Double
-        Static Dif As sXYZ_dbl
-        Static InTileX As Double
-        Static InTileZ As Double
-        Static TilePos As sXY_dbl
-        Static TerrainViewPos As sXYZ_dbl
+    Public Function ScreenXY_Get_TerrainPos(ByVal ScreenPos As sXY_int, ByRef ResultPos As sWorldPos) As Boolean
+        Dim dblTemp As Double
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim TerrainViewVector As sXYZ_dbl
+        Dim X As Integer
+        Dim Z As Integer
+        Dim LimitA As sXY_dbl
+        Dim LimitB As sXY_dbl
+        Dim Min As sXY_int
+        Dim Max As sXY_int
+        Dim TriGradientX As Double
+        Dim TriGradientZ As Double
+        Dim TriHeightOffset As Double
+        Dim Dist As Double
+        Dim BestPos As sXYZ_dbl
+        Dim BestDist As Double
+        Dim Dif As sXYZ_dbl
+        Dim InTileX As Double
+        Dim InTileZ As Double
+        Dim TilePos As sXY_dbl
+        Dim TerrainViewPos As sXYZ_dbl
 
         Try
 
@@ -2919,15 +3099,15 @@ Public Class ctrlMapView
             TerrainViewPos.Z = -ViewPos.Z
 
             'convert screen pos to vector of one pos unit
-            XYZ_dbl.X = (ScreenX - GLSize.X / 2.0#) * FOVMultiplier
-            XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenY) * FOVMultiplier
+            XYZ_dbl.X = (ScreenPos.X - GLSize.X / 2.0#) * FOVMultiplier
+            XYZ_dbl.Y = (GLSize.Y / 2.0# - ScreenPos.Y) * FOVMultiplier
             XYZ_dbl.Z = 1.0#
             'rotate the vector so that it points forward and level
             VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, TerrainViewVector)
             TerrainViewVector.Y = -TerrainViewVector.Y 'get the amount of looking down, not up
             TerrainViewVector.Z = -TerrainViewVector.Z 'convert to terrain coordinates from view coordinates
             'get range of possible tiles
-            dblTemp = (TerrainViewPos.Y - 255.0# * Map.HeightMultiplier) / TerrainViewVector.Y
+            dblTemp = (TerrainViewPos.Y - 255.0# * Main_Map.HeightMultiplier) / TerrainViewVector.Y
             LimitA.X = TerrainViewPos.X + TerrainViewVector.X * dblTemp
             LimitA.Y = TerrainViewPos.Z + TerrainViewVector.Z * dblTemp
             dblTemp = TerrainViewPos.Y / TerrainViewVector.Y
@@ -2935,8 +3115,8 @@ Public Class ctrlMapView
             LimitB.Y = TerrainViewPos.Z + TerrainViewVector.Z * dblTemp
             Min.X = Math.Max(Math.Floor(Math.Min(LimitA.X, LimitB.X) / TerrainGridSpacing), 0)
             Min.Y = Math.Max(Math.Floor(Math.Min(LimitA.Y, LimitB.Y) / TerrainGridSpacing), 0)
-            Max.X = Math.Min(Math.Floor(Math.Max(LimitA.X, LimitB.X) / TerrainGridSpacing), Map.TerrainSize.X - 1)
-            Max.Y = Math.Min(Math.Floor(Math.Max(LimitA.Y, LimitB.Y) / TerrainGridSpacing), Map.TerrainSize.Y - 1)
+            Max.X = Math.Min(Math.Floor(Math.Max(LimitA.X, LimitB.X) / TerrainGridSpacing), Main_Map.TerrainSize.X - 1)
+            Max.Y = Math.Min(Math.Floor(Math.Max(LimitA.Y, LimitB.Y) / TerrainGridSpacing), Main_Map.TerrainSize.Y - 1)
             'find the nearest valid tile to the view
             BestDist = Double.MaxValue
             BestPos.X = Double.NaN
@@ -2948,10 +3128,10 @@ Public Class ctrlMapView
                     TilePos.X = X * TerrainGridSpacing
                     TilePos.Y = Z * TerrainGridSpacing
 
-                    If Map.TerrainTiles(X, Z).Tri Then
-                        TriHeightOffset = Map.TerrainVertex(X, Z).Height * Map.HeightMultiplier
-                        TriGradientX = Map.TerrainVertex(X + 1, Z).Height * Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Map.TerrainVertex(X, Z + 1).Height * Map.HeightMultiplier - TriHeightOffset
+                    If Main_Map.TerrainTiles(X, Z).Tri Then
+                        TriHeightOffset = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + (TriGradientX * (TerrainViewPos.X - TilePos.X) + TriGradientZ * (TerrainViewPos.Z - TilePos.Y) + (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# + (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
@@ -2961,16 +3141,16 @@ Public Class ctrlMapView
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
                             Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
-                            GetDist(Dif, Dist)
+                            Dist = GetDist(Dif)
                             If Dist < BestDist Then
                                 BestDist = Dist
                                 BestPos = XYZ_dbl
                             End If
                         End If
 
-                        TriHeightOffset = Map.TerrainVertex(X + 1, Z + 1).Height * Map.HeightMultiplier
-                        TriGradientX = Map.TerrainVertex(X, Z + 1).Height * Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Map.TerrainVertex(X + 1, Z).Height * Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientX + TriGradientZ + (TriGradientX * (TilePos.X - TerrainViewPos.X) + TriGradientZ * (TilePos.Y - TerrainViewPos.Z) - (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# - (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
@@ -2980,7 +3160,7 @@ Public Class ctrlMapView
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
                             Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
-                            GetDist(Dif, Dist)
+                            Dist = GetDist(Dif)
                             If Dist < BestDist Then
                                 BestDist = Dist
                                 BestPos = XYZ_dbl
@@ -2989,9 +3169,9 @@ Public Class ctrlMapView
 
                     Else
 
-                        TriHeightOffset = Map.TerrainVertex(X + 1, Z).Height * Map.HeightMultiplier
-                        TriGradientX = Map.TerrainVertex(X, Z).Height * Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Map.TerrainVertex(X + 1, Z + 1).Height * Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientX + (TriGradientX * (TilePos.X - TerrainViewPos.X) + TriGradientZ * (TerrainViewPos.Z - TilePos.Y) - (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# - (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
@@ -3001,16 +3181,16 @@ Public Class ctrlMapView
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
                             Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
-                            GetDist(Dif, Dist)
+                            Dist = GetDist(Dif)
                             If Dist < BestDist Then
                                 BestDist = Dist
                                 BestPos = XYZ_dbl
                             End If
                         End If
 
-                        TriHeightOffset = Map.TerrainVertex(X, Z + 1).Height * Map.HeightMultiplier
-                        TriGradientX = Map.TerrainVertex(X + 1, Z + 1).Height * Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Map.TerrainVertex(X, Z).Height * Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientZ + (TriGradientX * (TerrainViewPos.X - TilePos.X) + TriGradientZ * (TilePos.Y - TerrainViewPos.Z) + (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# + (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
@@ -3020,7 +3200,7 @@ Public Class ctrlMapView
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
                             Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
-                            GetDist(Dif, Dist)
+                            Dist = GetDist(Dif)
                             If Dist < BestDist Then
                                 BestDist = Dist
                                 BestPos = XYZ_dbl
@@ -3035,20 +3215,20 @@ Public Class ctrlMapView
                 Return False
             End If
 
-            ResultPos.X = BestPos.X
-            ResultPos.Y = BestPos.Y
-            ResultPos.Z = BestPos.Z
+            ResultPos.Horizontal.X = BestPos.X
+            ResultPos.Altitude = BestPos.Y
+            ResultPos.Horizontal.Y = BestPos.Z
         Catch
             Return False
         End Try
         Return True
     End Function
 
-    Public Function ScreenXY_Get_PlanePos_ForwardDownOnly(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
-        Static dblTemp As Double
-        Static XYZ_dbl As sXYZ_dbl
-        Static XYZ_dbl2 As sXYZ_dbl
-        Static dblTemp2 As Double
+    Public Function ScreenXY_Get_ViewPlanePos_ForwardDownOnly(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
+        Dim dblTemp As Double
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim XYZ_dbl2 As sXYZ_dbl
+        Dim dblTemp2 As Double
 
         If ViewPos.Y < PlaneHeight Then
             Return False
@@ -3077,40 +3257,43 @@ Public Class ctrlMapView
     End Function
 
     Sub Apply_Gateway()
-        If Not MouseOver_Pos_Exists Then
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
             Exit Sub
         End If
+
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
 
         If Control_Gateway_Delete.Active Then
             Dim A As Integer
             Dim Low As sXY_int
             Dim High As sXY_int
             A = 0
-            Do While A < Map.GatewayCount
-                XY_Reorder(Map.Gateways(A).PosA, Map.Gateways(A).PosB, Low, High)
-                If Low.X <= MouseOver_Tile.X _
-                And High.X >= MouseOver_Tile.X _
-                And Low.Y <= MouseOver_Tile.Y _
-                And High.Y >= MouseOver_Tile.Y Then
-                    Map.Gateway_Remove(A)
-                    Map.UndoStepCreate("Gateway Delete")
-                    Map.MinimapMakeLater()
+            Do While A < Main_Map.GatewayCount
+                XY_Reorder(Main_Map.Gateways(A).PosA, Main_Map.Gateways(A).PosB, Low, High)
+                If Low.X <= Tile.X _
+                And High.X >= Tile.X _
+                And Low.Y <= Tile.Y _
+                And High.Y >= Tile.Y Then
+                    Main_Map.Gateway_Remove(A)
+                    Main_Map.UndoStepCreate("Gateway Delete")
+                    Main_Map.MinimapMakeLater()
                     DrawViewLater()
                     Exit Do
                 End If
                 A += 1
             Loop
         Else
-            If Not Map.Selected_Tile_A_Exists Then
-                Map.Selected_Tile_A = MouseOver_Tile
-                Map.Selected_Tile_A_Exists = True
+            If Main_Map.Selected_Tile_A Is Nothing Then
+                Main_Map.Selected_Tile_A = New clsXY_int(Tile)
                 DrawViewLater()
-            ElseIf MouseOver_Tile.X = Map.Selected_Tile_A.X Or MouseOver_Tile.Y = Map.Selected_Tile_A.Y Then
-                If Map.Gateway_Add(Map.Selected_Tile_A, MouseOver_Tile) Then
-                    Map.UndoStepCreate("Gateway Place")
-                    Map.Selected_Tile_A_Exists = False
-                    Map.Selected_Tile_B_Exists = False
-                    Map.MinimapMakeLater()
+            ElseIf Tile.X = Main_Map.Selected_Tile_A.X Or Tile.Y = Main_Map.Selected_Tile_A.Y Then
+                If Main_Map.Gateway_Add(Main_Map.Selected_Tile_A.XY, Tile) Then
+                    Main_Map.UndoStepCreate("Gateway Place")
+                    Main_Map.Selected_Tile_A = Nothing
+                    Main_Map.Selected_Tile_B = Nothing
+                    Main_Map.MinimapMakeLater()
                     DrawViewLater()
                 End If
             End If
@@ -3158,11 +3341,11 @@ Public Class ctrlMapView
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
     End Function
 
-    Public Sub DrawUnitRectangle(ByVal Position As sXYZ_dbl, ByVal Footprint As sXY_int, ByVal BorderInsideThickness As Double)
-        Static PosA As sXY_dbl
-        Static PosB As sXY_dbl
-        Static PosC As sXY_dbl
-        Static PosD As sXY_dbl
+    Public Sub DrawUnitRectangle(ByVal Position As sXYZ_dbl, ByVal Footprint As sXY_int, ByVal BorderInsideThickness As Double, ByVal InsideColour As sRGBA_sng, ByVal OutsideColour As sRGBA_sng)
+        Dim PosA As sXY_dbl
+        Dim PosB As sXY_dbl
+        Dim PosC As sXY_dbl
+        Dim PosD As sXY_dbl
 
         PosA.X = Position.X - (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
         PosA.Y = Position.Z - (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
@@ -3176,33 +3359,48 @@ Public Class ctrlMapView
         PosD.X = Position.X + (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
         PosD.Y = Position.Z + (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
 
+        GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
+        GL.Vertex3(PosB.X, Position.Y, -PosB.Y)
         GL.Vertex3(PosA.X, Position.Y, -PosA.Y)
+        GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
         GL.Vertex3(PosA.X + BorderInsideThickness, Position.Y, -(PosA.Y + BorderInsideThickness))
         GL.Vertex3(PosB.X - BorderInsideThickness, Position.Y, -(PosB.Y + BorderInsideThickness))
-        GL.Vertex3(PosB.X, Position.Y, -PosB.Y)
 
+        GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
         GL.Vertex3(PosA.X, Position.Y, -PosA.Y)
         GL.Vertex3(PosC.X, Position.Y, -PosC.Y)
+        GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
         GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
         GL.Vertex3(PosA.X + BorderInsideThickness, Position.Y, -(PosA.Y + BorderInsideThickness))
 
-        GL.Vertex3(PosB.X - BorderInsideThickness, Position.Y, -(PosB.Y + BorderInsideThickness))
-        GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
+        GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
         GL.Vertex3(PosD.X, Position.Y, -PosD.Y)
         GL.Vertex3(PosB.X, Position.Y, -PosA.Y)
+        GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
+        GL.Vertex3(PosB.X - BorderInsideThickness, Position.Y, -(PosB.Y + BorderInsideThickness))
+        GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
 
-        GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
+        GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
         GL.Vertex3(PosC.X, Position.Y, -PosC.Y)
         GL.Vertex3(PosD.X, Position.Y, -PosD.Y)
+        GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
         GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
+        GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
     End Sub
 
     Public Sub TerrainPicker()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+        If MouseOverTerrain Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim Vertex As sXY_int = MouseOverTerrain.Vertex
         Dim A As Integer
 
         frmMainInstance.lstAutoTexture.Enabled = False
         For A = 0 To frmMainInstance.lstAutoTexture.Items.Count - 1
-            If Map.Painter.Terrains(A) Is Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Terrain Then
+            If Main_Map.Painter.Terrains(A) Is Main_Map.TerrainVertex(Vertex.X, Vertex.Y).Terrain Then
                 frmMainInstance.lstAutoTexture.SelectedIndex = A
                 Exit For
             End If
@@ -3211,89 +3409,93 @@ Public Class ctrlMapView
             frmMainInstance.lstAutoTexture.SelectedIndex = -1
         End If
         frmMainInstance.lstAutoTexture.Enabled = True
-        SelectedTerrain = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Terrain
+        SelectedTerrain = Main_Map.TerrainVertex(Vertex.X, Vertex.Y).Terrain
     End Sub
 
     Public Sub TexturePicker()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
-        If Map.Tileset IsNot Nothing Then
-            If Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.TextureNum < Map.Tileset.TileCount Then
-                SelectedTextureNum = Map.TerrainTiles(MouseOver_Tile.X, MouseOver_Tile.Y).Texture.TextureNum
+        If MouseOverTerrain Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim Tile As sXY_int = MouseOverTerrain.Tile
+
+        If Main_Map.Tileset IsNot Nothing Then
+            If Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.TextureNum < Main_Map.Tileset.TileCount Then
+                SelectedTextureNum = Main_Map.TerrainTiles(Tile.X, Tile.Y).Texture.TextureNum
                 frmMainInstance.TextureView.DrawViewLater()
             End If
         End If
     End Sub
 
     Public Sub HeightPickerL()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
-        frmMainInstance.txtHeightSetL.Text = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height
+        If MouseOverTerrain Is Nothing Then
+            Exit Sub
+        End If
+
+        frmMainInstance.txtHeightSetL.Text = Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height
         frmMainInstance.txtHeightSetL.Focus()
         OpenGLControl.Focus()
     End Sub
 
     Public Sub HeightPickerR()
+        Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
-        frmMainInstance.txtHeightSetR.Text = Map.TerrainVertex(MouseOver_Vertex.X, MouseOver_Vertex.Y).Height
+        If MouseOverTerrain Is Nothing Then
+            Exit Sub
+        End If
+
+        frmMainInstance.txtHeightSetR.Text = Main_Map.TerrainVertex(MouseOverTerrain.Vertex.X, MouseOverTerrain.Vertex.Y).Height
         frmMainInstance.txtHeightSetR.Focus()
         OpenGLControl.Focus()
     End Sub
 
     Public Sub ObjectPicker(ByVal UnitType As clsUnitType)
-        Dim A As Integer
 
-        If UnitType Is Nothing Then
-            Exit Sub
-        End If
+        Tool = enumTool.ObjectPlace
+        frmMainInstance.lstFeatures.SelectedIndex = -1
+        frmMainInstance.lstStructures.SelectedIndex = -1
+        frmMainInstance.lstDroids.SelectedIndex = -1
+        frmMainInstance.SelectedObjectType = UnitType
+        Main_Map.MinimapMakeLater() 'for unit highlight
+        DrawViewLater()
 
-        For A = 0 To frmMainInstance.lstFeatures.Items.Count - 1
-            If frmMainInstance.lstFeatures_Objects(A) IsNot Nothing Then
-                If frmMainInstance.lstFeatures_Objects(A) Is UnitType Then
-                    frmMainInstance.lstFeatures.SelectedIndex = A
-                    Tool = enumTool.Object_Feature
-                    Exit For
-                End If
-            End If
-        Next
-        For A = 0 To frmMainInstance.lstStructures.Items.Count - 1
-            If frmMainInstance.lstStructures_Objects(A) IsNot Nothing Then
-                If frmMainInstance.lstStructures_Objects(A) Is UnitType Then
-                    frmMainInstance.lstStructures.SelectedIndex = A
-                    Tool = enumTool.Object_Structure
-                    Exit For
-                End If
-            End If
-        Next
-        For A = 0 To frmMainInstance.lstDroids.Items.Count - 1
-            If frmMainInstance.lstDroids_Objects(A) IsNot Nothing Then
-                If frmMainInstance.lstDroids_Objects(A) Is UnitType Then
-                    frmMainInstance.lstDroids.SelectedIndex = A
-                    Tool = enumTool.Object_Unit
-                    Exit For
-                End If
-            End If
-        Next
-    End Sub
+        'Dim A As Integer
 
-    Public Sub MouseOverUnit_Clear()
+        'If UnitType Is Nothing Then
+        '    Exit Sub
+        'End If
 
-        ReDim Preserve MouseOver_Units(-1)
-        MouseOver_UnitCount = 0
-    End Sub
-
-    Public Sub MouseOverUnit_Add(ByVal UnitToAdd As clsMap.clsUnit)
-
-        ReDim Preserve MouseOver_Units(MouseOver_UnitCount)
-        MouseOver_Units(MouseOver_UnitCount) = UnitToAdd
-        MouseOver_UnitCount += 1
-    End Sub
-
-    Public Sub MouseOverUnit_Remove(ByVal Num As Integer)
-
-        MouseOver_UnitCount -= 1
-        If Num <> MouseOver_UnitCount Then
-            MouseOver_Units(Num) = MouseOver_Units(MouseOver_UnitCount)
-        End If
-        ReDim Preserve MouseOver_Units(MouseOver_UnitCount - 1)
+        'For A = 0 To frmMainInstance.lstFeatures.Items.Count - 1
+        '    If frmMainInstance.lstFeatures_Objects(A) IsNot Nothing Then
+        '        If frmMainInstance.lstFeatures_Objects(A) Is UnitType Then
+        '            frmMainInstance.lstFeatures.SelectedIndex = A
+        '            Tool = enumTool.ObjectPlace
+        '            Exit Sub
+        '        End If
+        '    End If
+        'Next
+        'For A = 0 To frmMainInstance.lstStructures.Items.Count - 1
+        '    If frmMainInstance.lstStructures_Objects(A) IsNot Nothing Then
+        '        If frmMainInstance.lstStructures_Objects(A) Is UnitType Then
+        '            frmMainInstance.lstStructures.SelectedIndex = A
+        '            Tool = enumTool.ObjectPlace
+        '            Exit Sub
+        '        End If
+        '    End If
+        'Next
+        'For A = 0 To frmMainInstance.lstDroids.Items.Count - 1
+        '    If frmMainInstance.lstDroids_Objects(A) IsNot Nothing Then
+        '        If frmMainInstance.lstDroids_Objects(A) Is UnitType Then
+        '            frmMainInstance.lstDroids.SelectedIndex = A
+        '            Tool = enumTool.ObjectPlace
+        '            Exit Sub
+        '        End If
+        '    End If
+        'Next
     End Sub
 
     Public WithEvents UndoMessageTimer As Timer

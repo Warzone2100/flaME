@@ -2,7 +2,7 @@
 
 Public Class clsReadFile
 
-    Private Const DefaultBufferLength As Integer = 524288
+    Private Const DefaultBufferLength As Integer = 4194304
     Private _ByteBufferLength As Integer = DefaultBufferLength
     Private Enum enumStreamType As Byte
         None
@@ -13,7 +13,7 @@ Public Class clsReadFile
     Private Type As enumStreamType = enumStreamType.None
     Private FileStream As IO.FileStream
     Private FilePosition As Long
-    Private Bytes() As Byte
+    Private Bytes(-1) As Byte
     Private ByteCount As Integer
     Private BytesPosition As Integer
 
@@ -22,7 +22,7 @@ Public Class clsReadFile
             Return _ByteBufferLength
         End Get
         Set(ByVal value As Integer)
-            If value = _ByteBufferLength Or value < 8 Then
+            If value = _ByteBufferLength Then
                 Exit Property
             End If
             _ByteBufferLength = value
@@ -46,10 +46,14 @@ Public Class clsReadFile
     Private Function FindLength(ByVal Length As Integer) As Boolean
 
         If Length < 0 Or Length > _ByteBufferLength Then
-            Stop
             Return False
         End If
         If BytesPosition + Length > ByteCount Then
+            If Type <> enumStreamType.FileStream Then
+                Return False
+            End If
+            FilePosition = FileStream.Seek(FilePosition + BytesPosition, IO.SeekOrigin.Begin)
+            BytesPosition = 0
             Return ReadBlock()
         Else
             Return True
@@ -153,9 +157,20 @@ Public Class clsReadFile
         End If
     End Function
 
+    Function Get_F64(ByRef Output As Double) As Boolean
+
+        If FindLength(8) Then
+            Output = BitConverter.ToDouble(Bytes, BytesPosition)
+            BytesPosition += 8
+            Return True
+        Else
+            Return False
+        End If
+    End Function
+
     Function Get_Text_VariableLength(ByRef Output As String) As Boolean
-        Static Length As Integer
-        Static uintTemp As UInteger
+        Dim Length As Integer
+        Dim uintTemp As UInteger
 
         If Not Get_U32(uintTemp) Then
             Return False
@@ -169,11 +184,11 @@ Public Class clsReadFile
     End Function
 
     Function Get_Text(ByVal Length As Integer, ByRef Output As String) As Boolean
-        Static Chars() As Char
-        Static CharOffset As Integer
-        Static CharsLeft As Integer
-        Static ReadLength As Integer
-        Static ReadNum As Integer
+        Dim Chars() As Char
+        Dim CharOffset As Integer
+        Dim CharsLeft As Integer
+        Dim ReadLength As Integer
+        Dim ReadNum As Integer
 
         'read in buffer length blocks, for long strings
         ReDim Chars(Length - 1)
@@ -195,6 +210,56 @@ Public Class clsReadFile
         Loop
         Output = New String(Chars)
         Return True
+    End Function
+
+    Function Get_Text_Terminated(ByVal Terminators() As Char, ByVal IncludeTerminator As Boolean, ByVal EOFIsValid As Boolean, ByRef Output As String) As Boolean
+        Dim CharCount As Integer = 0
+        Dim Chars(0) As Char
+        Dim CurrentChar As Char
+        Dim A As Integer
+        Dim TerminatorCount As Integer = Terminators.GetUpperBound(0)
+
+        Do
+            If Not FindLength(1) Then
+                If CharCount > 0 Then
+                    If EOFIsValid Then
+                        ReDim Preserve Chars(CharCount - 1)
+                        Output = New String(Chars)
+                        Return True
+                    Else
+                        Return False
+                    End If
+                Else
+                    Return False
+                End If
+            End If
+            CurrentChar = Chr(Bytes(BytesPosition))
+            BytesPosition += 1
+
+            For A = 0 To TerminatorCount - 1
+                If CurrentChar = Terminators(A) Then
+                    Exit For
+                End If
+            Next
+            If A < TerminatorCount Then
+                If IncludeTerminator Then
+                    If Chars.GetUpperBound(0) < CharCount Then
+                        ReDim Preserve Chars(CharCount)
+                    End If
+                    Chars(CharCount) = CurrentChar
+                    CharCount += 1
+                Else
+                    ReDim Preserve Chars(CharCount - 1)
+                End If
+                Output = New String(Chars)
+                Return True
+            End If
+            If Chars.GetUpperBound(0) < CharCount Then
+                ReDim Preserve Chars(CharCount * 2 + 1)
+            End If
+            Chars(CharCount) = CurrentChar
+            CharCount += 1
+        Loop
     End Function
 
     Public Function Begin(ByVal Path As String) As sResult
@@ -257,7 +322,6 @@ Public Class clsReadFile
 
         Type = enumStreamType.None
         BufferLength = DefaultBufferLength
-        Erase Bytes
     End Sub
 
     Public Function Seek(ByVal NewPosition As Long) As Boolean

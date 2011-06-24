@@ -13,10 +13,21 @@ Public Class frmMain
     Public lstStructures_Objects() As clsUnitType
     Public lstDroids_Objects() As clsUnitType
 
+    Public cboBody_Objects() As clsBody
+    Public cboPropulsion_Objects() As clsPropulsion
+    Public cboTurret_Objects() As clsTurret
+
     Public HeightSetPalette(7) As Byte
+
+    Public SelectedObjectType As clsUnitType
 
     Public WithEvents NewPlayerNum As ctrlPlayerNum
     Public WithEvents ObjectPlayerNum As ctrlPlayerNum
+
+    Public WithEvents ctrlTextureBrush As ctrlBrush
+    Public WithEvents ctrlTerrainBrush As ctrlBrush
+    Public WithEvents ctrlCliffRemoveBrush As ctrlBrush
+    Public WithEvents ctrlHeightBrush As ctrlBrush
 
     Public Sub New()
 
@@ -69,37 +80,12 @@ Public Class frmMain
             Exit Sub
         End If
 
-        Dim InitializeResult As New clsResult
-
         InitializeDone = True
 
         InitializeDelay.Enabled = False
         RemoveHandler InitializeDelay.Tick, AddressOf Initialize
         InitializeDelay.Dispose()
         InitializeDelay = Nothing
-
-#If Mono <> 0.0# Then
-        AddHandler nudAutoCliffBrushRadius.ValueChanged, AddressOf nudAutoCliffBrushRadius_LostFocus
-        AddHandler nudAutoTextureRadius.ValueChanged, AddressOf nudAutoTextureRadius_LostFocus
-        AddHandler nudHeightBrushRadius.ValueChanged, AddressOf nudHeightBrushRadius_LostFocus
-        AddHandler nudTextureBrushRadius.ValueChanged, AddressOf nudTextureBrushRadius_LostFocus
-#End If
-        Try
-            flaMEIcon = New Icon(My.Application.Info.DirectoryPath & OSPathSeperator & "flaME.ico")
-        Catch ex As Exception
-            InitializeResult.Warning_Add("flaME icon is missing; " & ex.Message)
-        End Try
-        Icon = flaMEIcon
-        frmCompileInstance.Icon = flaMEIcon
-        frmMapTexturerInstance.Icon = flaMEIcon
-        frmGeneratorInstance.Icon = flaMEIcon
-#If MonoDevelop = 0.0# Then
-        frmSplashInstance.Icon = flaMEIcon
-#End If
-#If False Then
-		'if using splash in monodevelop
-        frmSplashInstance.BackgroundImage = New Bitmap(InterfaceImagesPath & "splash.png")
-#End If
 
         NewPlayerNum.Left = 112
         NewPlayerNum.Top = 10
@@ -108,7 +94,19 @@ Public Class frmMain
 
         ObjectPlayerNum.Left = 72
         ObjectPlayerNum.Top = 60
-        tpObject.Controls.Add(ObjectPlayerNum)
+        Panel14.Controls.Add(ObjectPlayerNum)
+
+        ctrlTextureBrush = New ctrlBrush(TextureBrush)
+        pnlTextureBrush.Controls.Add(ctrlTextureBrush)
+
+        ctrlTerrainBrush = New ctrlBrush(TerrainBrush)
+        pnlTerrainBrush.Controls.Add(ctrlTerrainBrush)
+
+        ctrlCliffRemoveBrush = New ctrlBrush(CliffBrush)
+        pnlCliffRemoveBrush.Controls.Add(ctrlCliffRemoveBrush)
+
+        ctrlHeightBrush = New ctrlBrush(HeightBrush)
+        pnlHeightSetBrush.Controls.Add(ctrlHeightBrush)
 
         Randomize()
 
@@ -169,29 +167,31 @@ Public Class frmMain
         View.BGColor.Green = 0.5F
         View.BGColor.Blue = 0.25F
 
-        InitializeResult.AppendAsWarning(LoadTilesets(), "Load tilesets; ")
+        InitializeResult.AppendAsWarning(LoadTilesets(), "Load tilesets: ")
 
         cmbTileset_CreateItems(-1)
 
         NoTile_Texture_Load()
         cmbTileType_Refresh()
 
-        InitializeResult.AppendAsWarning(DataLoad(ObjectDataPath), "Load object data; ")
+        CreateTemplateDroidTypes() 'do before loading data
+
+        InitializeResult.AppendAsWarning(DataLoad(ObjectDataPath), "Load object data: ")
 
         CreateGeneratorTilesets()
         CreatePainterArizona()
         CreatePainterUrban()
         CreatePainterRockies()
 
-        Map = New clsMap(1, 1)
+        Main_Map = New clsMap(1, 1)
 
-        Settings_Load()
+        InitializeResult.AppendAsWarning(Settings_Load(), "Load settings: ")
 
         SetMenuPointerModeChecked()
 
-        Objects_Refresh()
+        Objects_Update()
 
-        Selected_Object_Changed()
+        SelectedObject_Changed()
         Copied_Map_Changed()
         Terrain_Selection_Changed()
 
@@ -200,12 +200,6 @@ Public Class frmMain
 
         VisionRadius_2E = 10
         VisionRadius_2E_Changed()
-
-        CircleTiles_Create(0.0#, TextureBrushRadius, 1.0#)
-        CircleTiles_Create(2.0#, AutoTextureBrushRadius, 1.0#)
-        CircleTiles_Create(2.0#, HeightBrushRadius, 1.0#)
-        CircleTiles_Create(1.5#, SmoothRadius, 1.0#)
-        CircleTiles_Create(2.0#, AutoCliffBrushRadius, 1.0#)
 
         HeightSetPalette(0) = 0
         HeightSetPalette(1) = 85
@@ -225,13 +219,13 @@ Public Class frmMain
         tabHeightSetL_SelectedIndexChanged(Nothing, Nothing)
         tabHeightSetR_SelectedIndexChanged(Nothing, Nothing)
 
-        Dim matrixA(8) As Double
-        MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
-        View.ViewAngleSet(matrixA)
+        View.ViewAngleSetToDefault()
 
         View.ViewPos.Y = 3072
 
         NewMap()
+        Main_Map.RandomizeTileOrientations()
+        Main_Map.SectorGraphicsChange.Update_Graphics()
 
         View.DrawView_SetEnabled(True)
 
@@ -254,19 +248,29 @@ Public Class frmMain
         Show()
 #End If
 
-        If InitializeResult.HasWarnings Then
-            Dim WarningForm As New frmWarnings(InitializeResult, "Startup Result", flaMEIcon)
-            WarningForm.Show()
-            WarningForm.Activate()
-        End If
+        ShowWarnings(InitializeResult, "Startup Result")
     End Sub
 
     Private InitializeDelay As Timer
+
+    Private InitializeResult As New clsResult
 
     Private Sub frmMain_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
 
 #If MonoDevelop = 0.0# Then
         Hide()
+
+        Try
+            ProgramIcon = New Icon(My.Application.Info.DirectoryPath & OSPathSeperator & "flaME.ico")
+        Catch ex As Exception
+            InitializeResult.Warning_Add(ProgramName & " icon is missing: " & ex.Message)
+        End Try
+        Icon = ProgramIcon
+        frmCompileInstance.Icon = ProgramIcon
+        frmMapTexturerInstance.Icon = ProgramIcon
+        frmGeneratorInstance.Icon = ProgramIcon
+        frmSplashInstance.Icon = ProgramIcon
+
         frmSplashInstance.Show()
 #End If
 
@@ -289,18 +293,17 @@ Public Class frmMain
             Exit Sub
         End If
 
-        Static XYZ_dbl As sXYZ_dbl
-        Static Rate As Double
-        Static Move As Double
-        Static Zoom As Double
-        Static PanRate As Double
-        Static AnglePY As sAnglePY
-        Static matrixA(8) As Double
-        Static matrixB(8) As Double
-        Static ViewAngleChange As sXYZ_dbl
-        Static ViewPosChange As sXYZ_int
-        Static AngleChanged As Boolean
-        Static dblTemp As Double
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim Rate As Double
+        Dim Move As Double
+        Dim Zoom As Double
+        Dim PanRate As Double
+        Dim AnglePY As sAnglePY
+        Dim matrixA(8) As Double
+        Dim matrixB(8) As Double
+        Dim ViewAngleChange As sXYZ_dbl
+        Dim ViewPosChange As sXYZ_int
+        Dim AngleChanged As Boolean
 
         Rate = Rate_Get()
 
@@ -399,8 +402,7 @@ Public Class frmMain
             If ViewAngleChange.X <> 0.0# Or ViewAngleChange.Y <> 0.0# Or ViewAngleChange.Z <> 0.0# Then
                 GetAnglePY(ViewAngleChange, AnglePY)
                 MatrixSetToPY(matrixA, AnglePY)
-                GetDist(ViewAngleChange, dblTemp)
-                MatrixRotationAroundAxis(View.ViewAngleMatrix, matrixA, dblTemp, matrixB)
+                MatrixRotationAroundAxis(View.ViewAngleMatrix, matrixA, GetDist(ViewAngleChange), matrixB)
                 View.ViewAngleSet_Rotate(matrixB)
             End If
         ElseIf View.ViewMoveType = ctrlMapView.enumView_Move_Type.RTS Then
@@ -520,199 +522,199 @@ Public Class frmMain
 
         'interface controls
 
-        Control_Deselect = Input_Control_Create()
+        Control_Deselect = InputControl_Create()
         With Control_Deselect
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Escape)
         End With
 
         'selected unit controls
 
-        Control_Unit_Move = Input_Control_Create()
+        Control_Unit_Move = InputControl_Create()
         With Control_Unit_Move
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.M)
         End With
 
-        Control_Unit_Delete = Input_Control_Create()
+        Control_Unit_Delete = InputControl_Create()
         With Control_Unit_Delete
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Delete)
         End With
 
-        Control_Unit_Multiselect = Input_Control_Create()
+        Control_Unit_Multiselect = InputControl_Create()
         With Control_Unit_Multiselect
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ShiftKey)
         End With
 
         'generalised controls
 
-        Control_Slow = Input_Control_Create()
+        Control_Slow = InputControl_Create()
         With Control_Slow
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.R)
         End With
 
-        Control_Fast = Input_Control_Create()
+        Control_Fast = InputControl_Create()
         With Control_Fast
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F)
         End With
 
         'picker controls
 
-        Control_Picker = Input_Control_Create()
+        Control_Picker = InputControl_Create()
         With Control_Picker
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ControlKey)
         End With
 
         'view controls
 
-        Control_View_Textures = Input_Control_Create()
+        Control_View_Textures = InputControl_Create()
         With Control_View_Textures
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F5)
         End With
 
-        Control_View_Lighting = Input_Control_Create()
+        Control_View_Lighting = InputControl_Create()
         With Control_View_Lighting
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F8)
         End With
 
-        Control_View_Wireframe = Input_Control_Create()
+        Control_View_Wireframe = InputControl_Create()
         With Control_View_Wireframe
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F6)
         End With
 
-        Control_View_Units = Input_Control_Create()
+        Control_View_Units = InputControl_Create()
         With Control_View_Units
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F7)
         End With
 
-        Control_View_Move_Type = Input_Control_Create()
+        Control_View_Move_Type = InputControl_Create()
         With Control_View_Move_Type
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F1)
         End With
 
-        Control_View_Rotate_Type = Input_Control_Create()
+        Control_View_Rotate_Type = InputControl_Create()
         With Control_View_Rotate_Type
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F2)
         End With
 
-        Control_View_Move_Left = Input_Control_Create()
+        Control_View_Move_Left = InputControl_Create()
         With Control_View_Move_Left
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.A)
         End With
 
-        Control_View_Move_Right = Input_Control_Create()
+        Control_View_Move_Right = InputControl_Create()
         With Control_View_Move_Right
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.D)
         End With
 
-        Control_View_Move_Forward = Input_Control_Create()
+        Control_View_Move_Forward = InputControl_Create()
         With Control_View_Move_Forward
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.W)
         End With
 
-        Control_View_Move_Backward = Input_Control_Create()
+        Control_View_Move_Backward = InputControl_Create()
         With Control_View_Move_Backward
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.S)
         End With
 
-        Control_View_Move_Up = Input_Control_Create()
+        Control_View_Move_Up = InputControl_Create()
         With Control_View_Move_Up
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.E)
         End With
 
-        Control_View_Move_Down = Input_Control_Create()
+        Control_View_Move_Down = InputControl_Create()
         With Control_View_Move_Down
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.C)
         End With
 
-        Control_View_Zoom_In = Input_Control_Create()
+        Control_View_Zoom_In = InputControl_Create()
         With Control_View_Zoom_In
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Home)
         End With
 
-        Control_View_Zoom_Out = Input_Control_Create()
+        Control_View_Zoom_Out = InputControl_Create()
         With Control_View_Zoom_Out
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.End)
         End With
 
-        Control_View_Left = Input_Control_Create()
+        Control_View_Left = InputControl_Create()
         With Control_View_Left
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Left)
         End With
 
-        Control_View_Right = Input_Control_Create()
+        Control_View_Right = InputControl_Create()
         With Control_View_Right
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Right)
         End With
 
-        Control_View_Forward = Input_Control_Create()
+        Control_View_Forward = InputControl_Create()
         With Control_View_Forward
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Up)
         End With
 
-        Control_View_Backward = Input_Control_Create()
+        Control_View_Backward = InputControl_Create()
         With Control_View_Backward
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Down)
         End With
 
-        Control_View_Up = Input_Control_Create()
+        Control_View_Up = InputControl_Create()
         With Control_View_Up
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.PageUp)
         End With
 
-        Control_View_Down = Input_Control_Create()
+        Control_View_Down = InputControl_Create()
         With Control_View_Down
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.PageDown)
         End With
 
-        Control_View_Roll_Left = Input_Control_Create()
+        Control_View_Roll_Left = InputControl_Create()
         With Control_View_Roll_Left
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.OemOpenBrackets)
         End With
 
-        Control_View_Roll_Right = Input_Control_Create()
+        Control_View_Roll_Right = InputControl_Create()
         With Control_View_Roll_Right
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.OemCloseBrackets)
         End With
 
-        Control_View_Reset = Input_Control_Create()
+        Control_View_Reset = InputControl_Create()
         With Control_View_Reset
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.Back)
         End With
 
         'texture controls
 
-        Control_Anticlockwise = Input_Control_Create()
+        Control_Anticlockwise = InputControl_Create()
         With Control_Anticlockwise
             .DefaultKeys = New clsInputControl.clsKeyCombo(188) ',<
         End With
 
-        Control_Clockwise = Input_Control_Create()
+        Control_Clockwise = InputControl_Create()
         With Control_Clockwise
             .DefaultKeys = New clsInputControl.clsKeyCombo(190) '.>
         End With
 
-        Control_Texture_Flip = Input_Control_Create()
+        Control_Texture_Flip = InputControl_Create()
         With Control_Texture_Flip
             .DefaultKeys = New clsInputControl.clsKeyCombo(191) '/?
         End With
 
-        Control_Tri_Flip = Input_Control_Create()
+        Control_Tri_Flip = InputControl_Create()
         With Control_Tri_Flip
             .DefaultKeys = New clsInputControl.clsKeyCombo(220) '\|
         End With
 
-        Control_Gateway_Delete = Input_Control_Create()
+        Control_Gateway_Delete = InputControl_Create()
         With Control_Gateway_Delete
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ShiftKey)
         End With
 
         'undo controls
 
-        Control_Undo = Input_Control_Create()
+        Control_Undo = InputControl_Create()
         With Control_Undo
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ControlKey, Keys.Z)
         End With
 
-        Control_Redo = Input_Control_Create()
+        Control_Redo = InputControl_Create()
         With Control_Redo
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ControlKey, Keys.Y)
         End With
@@ -720,54 +722,59 @@ Public Class frmMain
         Controls_Set_Default()
     End Sub
 
-    Function Input_Control_Create() As clsInputControl
+    Function InputControl_Create() As clsInputControl
 
         ReDim Preserve InputControls(InputControlCount)
         InputControls(InputControlCount) = New clsInputControl
-        Input_Control_Create = InputControls(InputControlCount)
+        InputControl_Create = InputControls(InputControlCount)
         InputControlCount += 1
     End Function
 
     Private Sub Load_MainMap(ByVal Path As String)
         Dim NewMap As clsMap = Nothing
-        Dim ReturnResult As New clsResult
+        Dim Result As New clsResult
+        Dim InterfaceOptions As clsMap.clsInterfaceOptions = Nothing
 
-        ReturnResult = Load_Map(Path, NewMap)
+        Result = Load_Map(Path, NewMap, InterfaceOptions)
 
-        If ReturnResult.HasProblems Then
+        If Result.HasProblems Then
             If NewMap IsNot Nothing Then
                 NewMap.Deallocate()
             End If
         Else
-            Map.Deallocate()
+            Main_Map.Deallocate()
 
-            Map = NewMap
+            Main_Map = NewMap
 
-            Map.QuickSave_Path = Path
-
-            Resize_Update()
-            HeightMultiplier_Update()
-            cmbTileset_Refresh()
-            PainterTerrains_Refresh(-1, -1)
-
-            Map.SectorAll_GL_Update()
-            View.LookAtTile(Map.TerrainSize.X / 2.0#, Map.TerrainSize.Y / 2.0#)
-
-            tsbSave.Enabled = False
-
-            TextureView.ScrollUpdate()
-            TextureView.DrawViewLater()
-            DrawView()
-            Title_Text_Update()
+            If InterfaceOptions Is Nothing Then
+                InterfaceOptions = New clsMap.clsInterfaceOptions
+            End If
+            Map_Changed(InterfaceOptions)
         End If
-        If ReturnResult.HasWarnings Then
-            Dim WarningsForm As New frmWarnings(ReturnResult, "Load Map", flaMEIcon)
-            WarningsForm.Show()
-            WarningsForm.Activate()
-        End If
+        ShowWarnings(Result, "Load Map")
     End Sub
 
-    Private Function Load_Map(ByVal Path As String, ByRef ResultMap As clsMap) As clsResult
+    Public Sub Map_Changed(ByVal InterfaceOptions As clsMap.clsInterfaceOptions)
+
+        Resize_Update()
+        cmbTileset_Refresh()
+        PainterTerrains_Refresh(-1, -1)
+
+        Main_Map.SectorAll_GL_Update()
+        View.ViewAngleSetToDefault()
+        View.LookAtTile(New sXY_int(Math.Floor(Main_Map.TerrainSize.X / 2.0#), Math.Floor(Main_Map.TerrainSize.Y / 2.0#)))
+
+        tsbSave.Enabled = False
+        SetInterface(InterfaceOptions)
+        Title_Text_Update()
+
+        TextureView.ScrollUpdate()
+
+        TextureView.DrawViewLater()
+        View_DrawViewLater()
+    End Sub
+
+    Private Function Load_Map(ByVal Path As String, ByRef ResultMap As clsMap, ByRef InterfaceOptions As clsMap.clsInterfaceOptions) As clsResult
         Load_Map = New clsResult
 
         Dim SplitPath As New sSplitPath(Path)
@@ -776,17 +783,17 @@ Public Class frmMain
 
         ResultMap = New clsMap
 
-        If SplitPath.FileExtension = "lnd" Then
+        If SplitPath.FileExtension = "fmap" Then
+            ReturnResult.Append(ResultMap.Load_FMap(Path, InterfaceOptions), "Load Fmap: ")
+            ResultMap.LastFMapSaveInfo = New clsMap.clsFMapSaveInfo(Path)
+        ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
+            ReturnResult.Append(ResultMap.Load_FME(Path, InterfaceOptions), "")
+        ElseIf SplitPath.FileExtension = "wz" Then
+            ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
+        ElseIf SplitPath.FileExtension = "lnd" Then
             Result = ResultMap.Load_LND(Path)
             If Not Result.Success Then
-                ReturnResult.Problem_Add("Load LND; " & Result.Problem)
-            End If
-        ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
-            ReturnResult.Append(ResultMap.Load_FME(Path), "")
-        ElseIf SplitPath.FileExtension = "wz" Then
-            Result = ResultMap.Load_WZ(Path)
-            If Not Result.Success Then
-                ReturnResult.Problem_Add("Load LND; " & Result.Problem)
+                ReturnResult.Problem_Add("Load LND: " & Result.Problem)
             End If
         Else
             ReturnResult.Problem_Add("File extension not recognised.")
@@ -799,7 +806,7 @@ Public Class frmMain
         Dim NewMap As clsMap = Nothing
         Dim Result As clsResult
 
-        Result = Load_Map(Path, NewMap)
+        Result = Load_Map(Path, NewMap, Nothing)
 
         If Result.HasProblems Then
             If NewMap IsNot Nothing Then
@@ -810,11 +817,6 @@ Public Class frmMain
                 Copied_Map.Deallocate()
                 Copied_Map = Nothing
             End If
-            'If NewMap.Tileset IsNot Map.Tileset Then
-            '    Result.Success = False
-            '    Result.Problem = "Tilesets are different."
-            '    Return Result
-            'End If
 
             Copied_Map = NewMap
 
@@ -827,90 +829,101 @@ Public Class frmMain
     Sub Load_Map_Prompt()
 
         If LoseMapQuestion() Then
-            OpenFileDialog.FileName = ""
-            OpenFileDialog.Filter = "Warzone Map Files (*.fme, *.wz, *.lnd)|*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
-            If OpenFileDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Dim Dialog As New OpenFileDialog
+            If Main_Map.LastFMapSaveInfo Is Nothing Then
+                Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+            Else
+                Dialog.InitialDirectory = Main_Map.LastFMapSaveInfo.Path
+            End If
+            Dialog.FileName = ""
+            Dialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.lnd)|*.fmap;*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
+            If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
                 Exit Sub
             End If
-            Load_MainMap(OpenFileDialog.FileName)
+            Load_MainMap(Dialog.FileName)
         End If
     End Sub
 
     Sub Load_Heightmap_Prompt()
+        Dim Dialog As New OpenFileDialog
 
-        OpenFileDialog.FileName = ""
-        OpenFileDialog.Filter = "Image Files (*.bmp, *.png)|*.bmp;*.png|All Files (*.*)|*.*"
-        If OpenFileDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "Image Files (*.bmp, *.png)|*.bmp;*.png|All Files (*.*)|*.*"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
 
-        Dim HeightmapBitmap As New clsBitmapFile
-        Dim Result As sResult = HeightmapBitmap.Load(OpenFileDialog.FileName)
+        Dim HeightmapBitmap As Bitmap = Nothing
+        Dim Result As sResult = LoadBitmap(Dialog.FileName, HeightmapBitmap)
         If Result.Success Then
 
-            Map.Terrain_Resize(0, 0, HeightmapBitmap.CurrentBitmap.Width - 1, HeightmapBitmap.CurrentBitmap.Height - 1)
+            Main_Map.Terrain_Resize(0, 0, HeightmapBitmap.Width - 1, HeightmapBitmap.Height - 1)
             Dim X As Integer
             Dim Y As Integer
             Dim PixelColor As Color
 
-            For Y = 0 To HeightmapBitmap.CurrentBitmap.Height - 1
-                For X = 0 To HeightmapBitmap.CurrentBitmap.Width - 1
-                    PixelColor = HeightmapBitmap.CurrentBitmap.GetPixel(X, Y)
-                    Map.TerrainVertex(X, Y).Height = Int((CInt(PixelColor.R) + PixelColor.G + PixelColor.B) / 3.0# + 0.5#)
+            For Y = 0 To HeightmapBitmap.Height - 1
+                For X = 0 To HeightmapBitmap.Width - 1
+                    PixelColor = HeightmapBitmap.GetPixel(X, Y)
+                    Main_Map.TerrainVertex(X, Y).Height = Int((CInt(PixelColor.R) + PixelColor.G + PixelColor.B) / 3.0# + 0.5#)
                 Next
             Next
-            Map.UnitHeight_Update_All()
-            Map.SectorAll_GL_Update()
-            Map.SectorAll_Set_Changed()
+            Main_Map.UnitHeight_Update_All()
+            Main_Map.SectorAll_GL_Update()
+            Main_Map.SectorAll_Set_Changed()
 
-            Map.UndoStepCreate("Import Heightmap")
+            Main_Map.UndoStepCreate("Import Heightmap")
 
             Resize_Update()
-            HeightMultiplier_Update()
 
-            DrawView()
+            View_DrawViewLater()
             Exit Sub
         Else
-            MsgBox("Failed to load image; " & Result.Problem)
+            MsgBox("Failed to load image: " & Result.Problem)
         End If
 Error_Exit:
     End Sub
 
     Sub Load_TTP_Prompt()
+        Dim Dialog As New OpenFileDialog
 
-        OpenFileDialog.FileName = ""
-        OpenFileDialog.Filter = "TTP Files (*.ttp)|*.ttp|All Files (*.*)|*.*"
-        If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then Exit Sub
-        Dim Result As sResult = Map.Load_TTP(OpenFileDialog.FileName)
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "TTP Files (*.ttp)|*.ttp|All Files (*.*)|*.*"
+        If Not Dialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+        Dim Result As sResult = Main_Map.Load_TTP(Dialog.FileName)
         If Result.Success Then
             TextureView.DrawViewLater()
         Else
-            MsgBox("Importing tile types failed; " & Result.Problem)
+            MsgBox("Importing tile types failed: " & Result.Problem)
         End If
     End Sub
 
     Public Sub cmbTileset_CreateItems(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
-        cmbTileset.Items.Clear()
+        cboTileset.Items.Clear()
         For A = 0 To TilesetCount - 1
-            cmbTileset.Items.Add(Tilesets(A).Name)
+            cboTileset.Items.Add(Tilesets(A).Name)
         Next
-        cmbTileset.SelectedIndex = NewSelectedIndex
+        cboTileset.SelectedIndex = NewSelectedIndex
     End Sub
 
     Sub cmbTileset_Refresh()
         Dim A As Integer
 
         For A = 0 To TilesetCount - 1
-            If Tilesets(A) Is Map.Tileset Then
+            If Tilesets(A) Is Main_Map.Tileset Then
                 Exit For
             End If
         Next
         If A = TilesetCount Then
-            cmbTileset.SelectedIndex = -1
+            cboTileset.SelectedIndex = -1
         Else
-            cmbTileset.SelectedIndex = A
+            cboTileset.SelectedIndex = A
         End If
 
         SetBackgroundColour()
@@ -918,15 +931,15 @@ Error_Exit:
 
     Public Sub SetBackgroundColour()
 
-        If Map.Tileset Is Tileset_Arizona Then
+        If Main_Map.Tileset Is Tileset_Arizona Then
             View.BGColor.Red = 204.0# / 255.0#
             View.BGColor.Green = 149.0# / 255.0#
             View.BGColor.Blue = 70.0# / 255.0#
-        ElseIf Map.Tileset Is Tileset_Urban Then
+        ElseIf Main_Map.Tileset Is Tileset_Urban Then
             View.BGColor.Red = 118.0# / 255.0#
             View.BGColor.Green = 165.0# / 255.0#
             View.BGColor.Blue = 203.0# / 255.0#
-        ElseIf Map.Tileset Is Tileset_Rockies Then
+        ElseIf Main_Map.Tileset Is Tileset_Rockies Then
             View.BGColor.Red = 182.0# / 255.0#
             View.BGColor.Green = 225.0# / 255.0#
             View.BGColor.Blue = 236.0# / 255.0#
@@ -937,28 +950,28 @@ Error_Exit:
         End If
     End Sub
 
-    Private Sub cmbTileset_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmbTileset.SelectedIndexChanged
+    Private Sub cmbTileset_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboTileset.SelectedIndexChanged
         Dim NewTileset As clsTileset
 
-        If cmbTileset.SelectedIndex < 0 Then
+        If cboTileset.SelectedIndex < 0 Then
             NewTileset = Nothing
         Else
-            NewTileset = Tilesets(cmbTileset.SelectedIndex)
+            NewTileset = Tilesets(cboTileset.SelectedIndex)
         End If
-        If NewTileset IsNot Map.Tileset Then
-            Map.Tileset = NewTileset
-            If Map.Tileset IsNot Nothing Then
-                SelectedTextureNum = Math.Min(0, Map.Tileset.TileCount - 1)
+        If NewTileset IsNot Main_Map.Tileset Then
+            Main_Map.Tileset = NewTileset
+            If Main_Map.Tileset IsNot Nothing Then
+                SelectedTextureNum = Math.Min(0, Main_Map.Tileset.TileCount - 1)
             End If
-            Map.TileType_Reset()
+            Main_Map.TileType_Reset()
 
-            Map.SetPainterToDefaults()
+            Main_Map.SetPainterToDefaults()
             PainterTerrains_Refresh(-1, -1)
 
             SetBackgroundColour()
 
-            Map.SectorAll_GL_Update()
-            DrawView()
+            Main_Map.SectorAll_GL_Update()
+            View_DrawViewLater()
             TextureView.ScrollUpdate()
             TextureView.DrawViewLater()
         End If
@@ -969,11 +982,11 @@ Error_Exit:
         lstAutoTexture.Items.Clear()
         lstAutoRoad.Items.Clear()
         Dim A As Integer
-        For A = 0 To Map.Painter.TerrainCount - 1
-            lstAutoTexture.Items.Add(Map.Painter.Terrains(A).Name)
+        For A = 0 To Main_Map.Painter.TerrainCount - 1
+            lstAutoTexture.Items.Add(Main_Map.Painter.Terrains(A).Name)
         Next
-        For A = 0 To Map.Painter.RoadCount - 1
-            lstAutoRoad.Items.Add(Map.Painter.Roads(A).Name)
+        For A = 0 To Main_Map.Painter.RoadCount - 1
+            lstAutoRoad.Items.Add(Main_Map.Painter.Roads(A).Name)
         Next
         lstAutoTexture.SelectedIndex = Terrain_NewSelectedIndex
         lstAutoRoad.SelectedIndex = Road_NewSelectedIndex
@@ -1003,6 +1016,8 @@ Error_Exit:
                 Tool = enumTool.AutoTexture_Fill
             ElseIf rdoAutoRoadLine.Checked Then
                 Tool = enumTool.AutoRoad_Line
+            ElseIf rdoRoadRemove.Checked Then
+                Tool = enumTool.AutoRoad_Remove
             Else
                 Tool = enumTool.None
             End If
@@ -1022,10 +1037,10 @@ Error_Exit:
         Dim NewTri As Boolean
 
         'tri set to the direction where the diagonal edge will be the flattest, so that cliff edges are level
-        For Z = 0 To Map.TerrainSize.Y - 1
-            For X = 0 To Map.TerrainSize.X - 1
-                difA = Math.Abs(CDbl(Map.TerrainVertex(X + 1, Z + 1).Height) - Map.TerrainVertex(X, Z).Height)
-                difB = Math.Abs(CDbl(Map.TerrainVertex(X, Z + 1).Height) - Map.TerrainVertex(X + 1, Z).Height)
+        For Z = 0 To Main_Map.TerrainSize.Y - 1
+            For X = 0 To Main_Map.TerrainSize.X - 1
+                difA = Math.Abs(CDbl(Main_Map.TerrainVertex(X + 1, Z + 1).Height) - Main_Map.TerrainVertex(X, Z).Height)
+                difB = Math.Abs(CDbl(Main_Map.TerrainVertex(X, Z + 1).Height) - Main_Map.TerrainVertex(X + 1, Z).Height)
                 If difA = difB Then
                     If CInt(Int(Rnd() * 2.0F)) = 0 Then
                         NewTri = False
@@ -1037,37 +1052,18 @@ Error_Exit:
                 Else
                     NewTri = True
                 End If
-                If Not Map.TerrainTiles(X, Z).Tri = NewTri Then
-                    Map.TerrainTiles(X, Z).Tri = NewTri
+                If Not Main_Map.TerrainTiles(X, Z).Tri = NewTri Then
+                    Main_Map.TerrainTiles(X, Z).Tri = NewTri
                 End If
             Next X
         Next Z
 
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
+        Main_Map.SectorAll_Set_Changed()
+        Main_Map.SectorAll_GL_Update()
 
-        Map.UndoStepCreate("Set All Triangles")
+        Main_Map.UndoStepCreate("Set All Triangles")
 
-        DrawView()
-    End Sub
-
-    Private Sub btnMultiplier_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnMultiplier.Click
-
-        Exit Sub
-
-        Map.HeightMultiplier = Clamp(CInt(Val(txtMultiplier.Text)), 0, 5)
-
-        Map.UnitHeight_Update_All()
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
-
-        HeightMultiplier_Update()
-        DrawView()
-    End Sub
-
-    Private Sub txtSmoothRadius_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles txtSmoothRadius.LostFocus
-
-        CircleTiles_Create(Clamp(Val(txtSmoothRadius.Text), 0.0#, 512.0#), SmoothRadius, 1.0#)
+        View_DrawViewLater()
     End Sub
 
     Private Sub rdoHeightSet_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoHeightSet.Click
@@ -1107,14 +1103,18 @@ Error_Exit:
 
         If View IsNot Nothing Then
             If Tool = enumTool.Height_Smooth_Brush Then
-                If View.MouseLeftIsDown And View.MouseOver_Pos_Exists Then
-                    View.Apply_HeightSmoothing(Clamp(Val(txtSmoothRate.Text) * tmrTool.Interval / 1000.0#, 0.0#, 1.0#))
+                If View.GetMouseOverTerrain IsNot Nothing Then
+                    If View.MouseLeftIsDown Then
+                        View.Apply_HeightSmoothing(Clamp(Val(txtSmoothRate.Text) * tmrTool.Interval / 1000.0#, 0.0#, 1.0#))
+                    End If
                 End If
             ElseIf Tool = enumTool.Height_Change_Brush Then
-                If View.MouseLeftIsDown And View.MouseOver_Pos_Exists Then
-                    View.Apply_Height_Change(Clamp(Val(txtHeightChangeRate.Text), -255.0#, 255.0#))
-                ElseIf View.MouseRightIsDown And View.MouseOver_Pos_Exists Then
-                    View.Apply_Height_Change(Clamp(-Val(txtHeightChangeRate.Text), -255.0#, 255.0#))
+                If View.GetMouseOverTerrain IsNot Nothing Then
+                    If View.MouseLeftIsDown Then
+                        View.Apply_Height_Change(Clamp(Val(txtHeightChangeRate.Text), -255.0#, 255.0#), cbxHeightChangeFade.Checked)
+                    ElseIf View.MouseRightIsDown Then
+                        View.Apply_Height_Change(Clamp(-Val(txtHeightChangeRate.Text), -255.0#, 255.0#), cbxHeightChangeFade.Checked)
+                    End If
                 End If
             End If
         End If
@@ -1122,35 +1122,48 @@ Error_Exit:
 
     Private Sub btnResize_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnResize.Click
         Dim NewSize As sXY_int
+        Dim Offset As sXY_int
+        Dim Max As Double = MaxMapTileSize
+
+        NewSize.X = Clamp(Val(txtSizeX.Text), 1.0#, Max)
+        NewSize.Y = Clamp(Val(txtSizeY.Text), 1.0#, Max)
+        Offset.X = Clamp(Val(txtOffsetX.Text), -Max, Max)
+        Offset.Y = Clamp(Val(txtOffsetY.Text), -Max, Max)
+
+        Map_Resize(Offset, NewSize)
+    End Sub
+
+    Public Sub Map_Resize(ByVal Offset As sXY_int, ByVal NewSize As sXY_int)
 
         If MsgBox("Resizing can't be undone. Continue?", vbOKCancel + vbQuestion, "") <> MsgBoxResult.Ok Then
             Exit Sub
         End If
 
-        NewSize.X = Clamp(Val(txtSizeX.Text), 1.0#, 512.0#)
-        NewSize.Y = Clamp(Val(txtSizeY.Text), 1.0#, 512.0#)
-
+        If NewSize.X < 1 Or NewSize.Y < 1 Then
+            MsgBox("Map sizes must be at least 1.", MsgBoxStyle.OkOnly, "")
+            Exit Sub
+        End If
         If NewSize.X > 250 Or NewSize.Y > 250 Then
             If MsgBox("Warzone doesn't support map sizes above 250. Continue anyway?", MsgBoxStyle.YesNo, "") <> MsgBoxResult.Yes Then
                 Exit Sub
             End If
         End If
 
-        Map.Terrain_Resize(Clamp(Val(txtOffsetX.Text), -512.0#, 512.0#), Clamp(Val(txtOffsetY.Text), -512, 512.0#), NewSize.X, NewSize.Y)
-        View.MouseOver_Exists = False
+        View.MouseOver = Nothing
+        Main_Map.Terrain_Resize(Offset.X, Offset.Y, NewSize.X, NewSize.Y)
 
         Resize_Update()
 
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
+        Main_Map.SectorAll_Set_Changed()
+        Main_Map.SectorAll_GL_Update()
 
-        DrawView()
+        View_DrawViewLater()
     End Sub
 
     Sub Resize_Update()
 
-        txtSizeX.Text = Map.TerrainSize.X
-        txtSizeY.Text = Map.TerrainSize.Y
+        txtSizeX.Text = Main_Map.TerrainSize.X
+        txtSizeY.Text = Main_Map.TerrainSize.Y
         txtOffsetX.Text = "0"
         txtOffsetY.Text = "0"
 
@@ -1173,47 +1186,82 @@ Error_Exit:
     End Sub
 
     Sub Save_LND_Prompt()
+        Dim Dialog As New SaveFileDialog
 
-        SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "Editworld Files (*.lnd)|*.lnd"
-        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            Dim Result As sResult
-            Result = Map.Write_LND(SaveFileDialog.FileName, True)
-            If Not Result.Success Then
-                MsgBox("There was a problem saving the lnd; " & Result.Problem)
-            End If
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "Editworld Files (*.lnd)|*.lnd"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
         End If
+
+        Dim Result As clsResult
+        Result = Main_Map.Write_LND(Dialog.FileName, True)
+
+        ShowWarnings(Result, "Save LND")
     End Sub
 
-    Sub Save_FME_Prompt()
+    Private Sub Save_FMap_Prompt()
+        Dim Dialog As New SaveFileDialog
 
-        SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "flaME Map Files (*.fme)|*.fme"
-        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            Dim Result As sResult
-            Result = Map.Write_FME(SaveFileDialog.FileName, True)
-            If Result.Success Then
-                Map.QuickSave_Path = SaveFileDialog.FileName
+        If Main_Map.LastFMapSaveInfo Is Nothing Then
+            Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Else
+            Dialog.InitialDirectory = Main_Map.LastFMapSaveInfo.Path
+        End If
+        Dialog.FileName = ""
+        Dialog.Filter = ProgramName & " Map Files (*.fmap)|*.fmap"
+        If Dialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+            'If Not PromptFileFMEVersion(Dialog.FileName) Then
+            '    Save_FME_Prompt()
+            '    Exit Sub
+            'End If
+            Dim Result As clsResult
+            Result = Main_Map.Write_FMap(Dialog.FileName, True)
+            If Not Result.HasProblems Then
+                Main_Map.LastFMapSaveInfo = New clsMap.clsFMapSaveInfo(Dialog.FileName)
                 tsbSave.Enabled = False
                 Title_Text_Update()
-            Else
-                MsgBox("There was a problem saving the file; " & Result.Problem)
             End If
+            ShowWarnings(Result, "Save FMap")
         End If
     End Sub
 
-    Sub Save_FME_Quick()
+    'Public Function PromptFileFMEVersion(ByVal Path As String) As Boolean
 
-        If Map.QuickSave_Path = "" Then
-            Save_FME_Prompt()
+    '    Dim File As New clsReadFile
+    '    If Not File.Begin(Path).Success Then
+    '        Return True
+    '    End If
+    '    Dim GotVersion As Boolean
+    '    Dim Version As UInteger
+    '    GotVersion = File.Get_U32(Version)
+    '    File.Close()
+    '    If GotVersion Then
+    '        If Version <> SaveVersion Then
+    '            If MsgBox("The file you are overwriting uses a different format to this version of " & ProgramName & ". You may only be able to open the file in this version if you continue. Do you want to overwrite?", vbOKCancel + vbQuestion, ProgramName) <> MsgBoxResult.Ok Then
+    '                Return False
+    '            End If
+    '        End If
+    '    End If
+    '    Return True
+    'End Function
+
+    Sub Save_FMap_Quick()
+
+        If Main_Map.LastFMapSaveInfo Is Nothing Then
+            Save_FMap_Prompt()
         Else
-            Dim Result As sResult = Map.Write_FME(Map.QuickSave_Path, True)
-            If Result.Success Then
+            'If Not PromptFileFMEVersion(Map.LastFMESaveInfo.Path) Then
+            '    Save_FME_Prompt()
+            '    Exit Sub
+            'End If
+
+            Dim Result As clsResult = Main_Map.Write_FMap(Main_Map.LastFMapSaveInfo.Path, True)
+            If Not Result.HasProblems Then
                 tsbSave.Enabled = False
-            Else
-                MsgBox("Quick save error; " & Result.Problem)
-                Save_FME_Prompt()
             End If
+            ShowWarnings(Result, "Quick Save FMap")
         End If
     End Sub
 
@@ -1224,57 +1272,51 @@ Error_Exit:
     End Sub
 
     Sub PromptSave_Minimap()
+        Dim Dialog As New SaveFileDialog
 
-        SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "Bitmap File (*.bmp)|*.bmp"
-        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            Dim Result As sResult
-            Result = Map.Write_MinimapFile(SaveFileDialog.FileName, True)
-            If Not Result.Success Then
-                MsgBox("There was a problem saving the minimap bitmap; " & Result.Problem)
-            End If
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "Bitmap File (*.bmp)|*.bmp"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+        Dim Result As sResult
+        Result = Main_Map.Write_MinimapFile(Dialog.FileName, True)
+        If Not Result.Success Then
+            MsgBox("There was a problem saving the minimap bitmap: " & Result.Problem)
         End If
     End Sub
 
     Sub Save_Heightmap_Prompt()
+        Dim Dialog As New SaveFileDialog
 
-        SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "Bitmap Files (*.bmp)|*.bmp"
-        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            Dim Result As sResult
-            Result = Map.Write_HeightmapBMP(SaveFileDialog.FileName, True)
-            If Not Result.Success Then
-                MsgBox("There was a problem saving the heightmap bitmap; " & Result.Problem)
-            End If
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "Bitmap Files (*.bmp)|*.bmp"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+        Dim Result As sResult
+        Result = Main_Map.Write_HeightmapBMP(Dialog.FileName, True)
+        If Not Result.Success Then
+            MsgBox("There was a problem saving the heightmap bitmap: " & Result.Problem)
         End If
     End Sub
 
     Sub PromptSave_TTP()
+        Dim Dialog As New SaveFileDialog
 
-        SaveFileDialog.FileName = ""
-        SaveFileDialog.Filter = "TTP Files (*.ttp)|*.ttp"
-        If SaveFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            Dim Result As sResult
-            Result = Map.Write_TTP(SaveFileDialog.FileName, True)
-            If Not Result.Success Then
-                MsgBox("There was a problem saving the tile types; " & Result.Problem)
-            End If
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "TTP Files (*.ttp)|*.ttp"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
         End If
-    End Sub
-
-    Private Sub nudTextureBrushRadius_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles nudTextureBrushRadius.LostFocus
-
-        TextureBrush_Create()
-    End Sub
-
-    Private Sub nudHeightBrushRadius_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles nudHeightBrushRadius.LostFocus
-
-        HeightBrush_Create()
-    End Sub
-
-    Private Sub nudAutoTextureRadius_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles nudAutoTextureRadius.LostFocus
-
-        AutoTextureBrush_Create()
+        Dim Result As sResult
+        Result = Main_Map.Write_TTP(Dialog.FileName, True)
+        If Not Result.Success Then
+            MsgBox("There was a problem saving the tile types: " & Result.Problem)
+        End If
     End Sub
 
     Sub New_Prompt()
@@ -1286,24 +1328,12 @@ Error_Exit:
 
     Sub NewMap()
 
-        Map.Deallocate()
+        Main_Map.Deallocate()
 
-        Map = New clsMap(64, 64)
+        Main_Map = New clsMap(64, 64)
 
-        Map.SectorAll_GL_Update()
-
-        View.LookAtTile(31, 31)
-
-        Resize_Update()
-        HeightMultiplier_Update()
-        cmbTileset_Refresh()
-        PainterTerrains_Refresh(-1, -1)
-        Selected_Object_Changed()
-
-        TextureView.ScrollUpdate()
-        TextureView.DrawViewLater()
-        DrawView()
-        Title_Text_Update()
+        Dim InterfaceOptions As New clsMap.clsInterfaceOptions
+        Map_Changed(InterfaceOptions)
     End Sub
 
     Private Sub rdoAutoCliffRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoCliffRemove.Click
@@ -1316,6 +1346,7 @@ Error_Exit:
             rdoAutoTexturePlace.Checked = False
             rdoAutoRoadPlace.Checked = False
             rdoAutoRoadLine.Checked = False
+            rdoRoadRemove.Checked = False
         End If
     End Sub
 
@@ -1328,17 +1359,8 @@ Error_Exit:
             rdoAutoTexturePlace.Checked = False
             rdoAutoRoadPlace.Checked = False
             rdoAutoRoadLine.Checked = False
+            rdoRoadRemove.Checked = False
         End If
-    End Sub
-
-    Private Sub nudAutoCliffBrushRadius_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles nudAutoCliffBrushRadius.LostFocus
-
-        CircleTiles_Create(Clamp(Val(nudAutoCliffBrushRadius.Text), 0.0#, 512.0#), AutoCliffBrushRadius, 1.0#)
-    End Sub
-
-    Sub HeightMultiplier_Update()
-
-        txtMultiplier.Text = Map.HeightMultiplier
     End Sub
 
     Private Sub MinimapBMPToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MinimapBMPToolStripMenuItem.Click
@@ -1348,7 +1370,7 @@ Error_Exit:
 
     Private Sub FMEToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MapFMEToolStripMenuItem.Click
 
-        Save_FME_Prompt()
+        Save_FMap_Prompt()
     End Sub
 
     Private Sub MapWZToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MapWZToolStripMenuItem.Click
@@ -1364,34 +1386,38 @@ Error_Exit:
             rdoAutoCliffBrush.Checked = False
             rdoAutoTexturePlace.Checked = False
             rdoAutoRoadLine.Checked = False
+            rdoRoadRemove.Checked = False
         End If
     End Sub
 
     Private Sub btnHeightOffsetSelection_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnHeightOffsetSelection.Click
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If (Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing) Then
             Exit Sub
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim Offset As Double
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
         Dim StartXY As sXY_int
         Dim FinishXY As sXY_int
+        Dim Pos As sXY_int
 
         Offset = Clamp(Val(txtHeightOffset.Text), -255.0#, 255.0#)
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, StartXY, FinishXY)
-        For Z = StartXY.Y To FinishXY.Y
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, StartXY, FinishXY)
+        For Y = StartXY.Y To FinishXY.Y
             For X = StartXY.X To FinishXY.X
-                Map.TerrainVertex(X, Z).Height = Math.Round(Clamp(Map.TerrainVertex(X, Z).Height + Offset, 0.0#, 255.0#))
-                SectorChange.Vertex_And_Normals_Changed(X, Z)
+                Main_Map.TerrainVertex(X, Y).Height = Math.Round(Clamp(Main_Map.TerrainVertex(X, Y).Height + Offset, 0.0#, 255.0#))
+                Pos.X = X
+                Pos.Y = Y
+                SectorChange.Vertex_And_Normals_Changed(Pos)
             Next
         Next
 
         SectorChange.Update_Graphics_And_UnitHeights()
-        Map.UndoStepCreate("Selection Heights Offset")
+        Main_Map.UndoStepCreate("Selection Heights Offset")
 
-        DrawView()
+        View_DrawViewLater()
     End Sub
 
     Private Sub rdoAutoTexturePlace_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoTexturePlace.Click
@@ -1403,6 +1429,7 @@ Error_Exit:
             rdoAutoTextureFill.Checked = False
             rdoAutoRoadPlace.Checked = False
             rdoAutoRoadLine.Checked = False
+            rdoRoadRemove.Checked = False
         End If
     End Sub
 
@@ -1421,15 +1448,29 @@ Error_Exit:
 
         If rdoAutoRoadLine.Checked Then
             Tool = enumTool.AutoRoad_Line
-            If Map IsNot Nothing Then
-                Map.Selected_Tile_A_Exists = False
-                Map.Selected_Tile_B_Exists = False
+            If Main_Map IsNot Nothing Then
+                Main_Map.Selected_Tile_A = Nothing
+                Main_Map.Selected_Tile_B = Nothing
             End If
             rdoAutoCliffRemove.Checked = False
             rdoAutoCliffBrush.Checked = False
             rdoAutoTextureFill.Checked = False
             rdoAutoTexturePlace.Checked = False
             rdoAutoRoadPlace.Checked = False
+            rdoRoadRemove.Checked = False
+        End If
+    End Sub
+
+    Private Sub rdoRoadRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoRoadRemove.Click
+
+        If rdoRoadRemove.Checked Then
+            Tool = enumTool.AutoRoad_Remove
+            rdoAutoCliffRemove.Checked = False
+            rdoAutoCliffBrush.Checked = False
+            rdoAutoTextureFill.Checked = False
+            rdoAutoTexturePlace.Checked = False
+            rdoAutoRoadPlace.Checked = False
+            rdoAutoRoadLine.Checked = False
         End If
     End Sub
 
@@ -1456,62 +1497,174 @@ Error_Exit:
     Private Sub lstFeatures_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstFeatures.SelectedIndexChanged
 
         If lstFeatures.SelectedIndex >= 0 Then
-            Tool = enumTool.Object_Feature
+            Tool = enumTool.ObjectPlace
+            SelectedObjectType = lstFeatures_Objects(lstFeatures.SelectedIndex)
             lstStructures.SelectedIndex = -1
             lstDroids.SelectedIndex = -1
         End If
-        Map.MinimapMakeLater() 'for unit highlight
-        DrawView()
+        Main_Map.MinimapMakeLater() 'for unit highlight
+        View_DrawViewLater()
     End Sub
 
     Private Sub lstStructures_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstStructures.SelectedIndexChanged
 
         If lstStructures.SelectedIndex >= 0 Then
-            Tool = enumTool.Object_Structure
+            Tool = enumTool.ObjectPlace
+            SelectedObjectType = lstStructures_Objects(lstStructures.SelectedIndex)
             lstFeatures.SelectedIndex = -1
             lstDroids.SelectedIndex = -1
         End If
-        Map.MinimapMakeLater() 'for unit highlight
-        DrawView()
+        Main_Map.MinimapMakeLater() 'for unit highlight
+        View_DrawViewLater()
     End Sub
 
     Private Sub lstDroids_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstDroids.SelectedIndexChanged
 
         If lstDroids.SelectedIndex >= 0 Then
-            Tool = enumTool.Object_Unit
+            Tool = enumTool.ObjectPlace
+            SelectedObjectType = lstDroids_Objects(lstDroids.SelectedIndex)
             lstFeatures.SelectedIndex = -1
             lstStructures.SelectedIndex = -1
         End If
-        Map.MinimapMakeLater() 'for unit highlight
-        DrawView()
+        Main_Map.MinimapMakeLater() 'for unit highlight
+        View_DrawViewLater()
     End Sub
 
-    Sub Objects_Refresh()
+    Sub Objects_Update()
         Dim A As Integer
+        Dim tmpDroid As clsDroidDesign
+        Dim tmpTemplate As clsDroidTemplate
+        Dim tmpFeature As clsFeatureType
+        Dim tmpStructure As clsStructureType
 
         lstFeatures.Items.Clear()
         lstStructures.Items.Clear()
         lstDroids.Items.Clear()
         For A = 0 To UnitTypeCount - 1
             If UnitTypes(A).Type = clsUnitType.enumType.Feature Then
-                lstFeatures.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
+                tmpFeature = CType(UnitTypes(A), clsFeatureType)
+                lstFeatures.Items.Add(tmpFeature.Code & " (" & tmpFeature.Name & ")")
                 ReDim Preserve lstFeatures_Objects(lstFeatures.Items.Count - 1)
-                lstFeatures_Objects(lstFeatures.Items.Count - 1) = UnitTypes(A)
-            ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerDroidTemplate Then
-                If UnitTypes(A).Code <> "ConstructorDroid" Then
-                    lstDroids.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
-                    ReDim Preserve lstDroids_Objects(lstDroids.Items.Count - 1)
-                    lstDroids_Objects(lstDroids.Items.Count - 1) = UnitTypes(A)
+                lstFeatures_Objects(lstFeatures.Items.Count - 1) = tmpFeature
+            ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerDroid Then
+                tmpDroid = CType(UnitTypes(A), clsDroidDesign)
+                If tmpDroid.IsTemplate Then
+                    tmpTemplate = CType(tmpDroid, clsDroidTemplate)
+                    If tmpTemplate.Code <> "ConstructorDroid" Then
+                        lstDroids.Items.Add(tmpTemplate.Code & " (" & tmpTemplate.Name & ")")
+                        ReDim Preserve lstDroids_Objects(lstDroids.Items.Count - 1)
+                        lstDroids_Objects(lstDroids.Items.Count - 1) = tmpTemplate
+                    End If
                 End If
             ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerStructure Then
-                lstStructures.Items.Add(UnitTypes(A).Code & " (" & UnitTypes(A).LoadedInfo.Name & ")")
+                tmpStructure = CType(UnitTypes(A), clsStructureType)
+                lstStructures.Items.Add(tmpStructure.Code & " (" & tmpStructure.Name & ")")
                 ReDim Preserve lstStructures_Objects(lstStructures.Items.Count - 1)
                 lstStructures_Objects(lstStructures.Items.Count - 1) = UnitTypes(A)
             End If
         Next
+
+        Dim tmpBody As clsBody
+        Dim tmpPropulsion As clsPropulsion
+        Dim tmpTurret As clsTurret
+        Dim strTemp As String
+        Dim B As Integer
+
+        cboDroidBody.Items.Clear()
+        ReDim cboBody_Objects(BodyCount - 1)
+        B = 0
+        For A = 0 To BodyCount - 1
+            tmpBody = Bodies(A)
+            If tmpBody.Designable Or True Then
+                cboDroidBody.Items.Add("(" & tmpBody.Name & ") " & tmpBody.Code)
+                cboBody_Objects(B) = tmpBody
+                B += 1
+            End If
+        Next
+        ReDim Preserve cboBody_Objects(B - 1)
+
+        cboDroidPropulsion.Items.Clear()
+        ReDim cboPropulsion_Objects(PropulsionCount - 1)
+        B = 0
+        For A = 0 To PropulsionCount - 1
+            tmpPropulsion = Propulsions(A)
+            If tmpPropulsion.Designable Or True Then
+                cboDroidPropulsion.Items.Add("(" & tmpPropulsion.Name & ") " & tmpPropulsion.Code)
+                cboPropulsion_Objects(B) = tmpPropulsion
+                B += 1
+            End If
+        Next
+        ReDim Preserve cboPropulsion_Objects(B - 1)
+
+        cboDroidTurret1.Items.Clear()
+        cboDroidTurret2.Items.Clear()
+        cboDroidTurret3.Items.Clear()
+        ReDim cboTurret_Objects(WeaponCount + ConstructCount + RepairCount + SensorCount + BrainCount - 1)
+        B = 0
+        For A = 0 To WeaponCount - 1
+            tmpTurret = Weapons(A)
+            If tmpTurret.Designable Or True Then
+                strTemp = "(Weapon - " & tmpTurret.Name & ") " & tmpTurret.Code
+                cboDroidTurret1.Items.Add(strTemp)
+                cboDroidTurret2.Items.Add(strTemp)
+                cboDroidTurret3.Items.Add(strTemp)
+                cboTurret_Objects(B) = tmpTurret
+                B += 1
+            End If
+        Next
+        For A = 0 To ConstructCount - 1
+            tmpTurret = Constructs(A)
+            If tmpTurret.Designable Or True Then
+                strTemp = "(Construct - " & tmpTurret.Name & ") " & tmpTurret.Code
+                cboDroidTurret1.Items.Add(strTemp)
+                cboDroidTurret2.Items.Add(strTemp)
+                cboDroidTurret3.Items.Add(strTemp)
+                cboTurret_Objects(B) = tmpTurret
+                B += 1
+            End If
+        Next
+        For A = 0 To RepairCount - 1
+            tmpTurret = Repairs(A)
+            If tmpTurret.Designable Or True Then
+                strTemp = "(Repair - " & tmpTurret.Name & ") " & tmpTurret.Code
+                cboDroidTurret1.Items.Add(strTemp)
+                cboDroidTurret2.Items.Add(strTemp)
+                cboDroidTurret3.Items.Add(strTemp)
+                cboTurret_Objects(B) = tmpTurret
+                B += 1
+            End If
+        Next
+        For A = 0 To SensorCount - 1
+            tmpTurret = Sensors(A)
+            If tmpTurret.Designable Or True Then
+                strTemp = "(Sensor - " & tmpTurret.Name & ") " & tmpTurret.Code
+                cboDroidTurret1.Items.Add(strTemp)
+                cboDroidTurret2.Items.Add(strTemp)
+                cboDroidTurret3.Items.Add(strTemp)
+                cboTurret_Objects(B) = tmpTurret
+                B += 1
+            End If
+        Next
+        For A = 0 To BrainCount - 1
+            tmpTurret = Brains(A)
+            If tmpTurret.Designable Or True Then
+                strTemp = "(Brain - " & tmpTurret.Name & ") " & tmpTurret.Code
+                cboDroidTurret1.Items.Add(strTemp)
+                cboDroidTurret2.Items.Add(strTemp)
+                cboDroidTurret3.Items.Add(strTemp)
+                cboTurret_Objects(B) = tmpTurret
+                B += 1
+            End If
+        Next
+        ReDim Preserve cboTurret_Objects(B - 1)
+
+        cboDroidType.Items.Clear()
+        For A = 0 To TemplateDroidTypeCount - 1
+            cboDroidType.Items.Add(TemplateDroidTypes(A).Name)
+        Next
     End Sub
 
-    Private Sub txtObjectPlayer_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtObjectPlayer.LostFocus
+    Private Sub txtObjectPlayer_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs)
         'If Not txtObjectPlayer.Enabled Then Exit Sub
         'If Map Is Nothing Then Exit Sub
         'If Map.Selected_Unit Is Nothing Then Exit Sub
@@ -1527,7 +1680,7 @@ Error_Exit:
         'view_draw()
     End Sub
 
-    Private Sub txtObjectName_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtObjectName.LostFocus
+    Private Sub txtObjectName_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs)
         'If Not txtObjectName.Enabled Then Exit Sub
         'If Map Is Nothing Then Exit Sub
         'If Map.numSelected_Units Is Nothing Then Exit Sub
@@ -1546,14 +1699,14 @@ Error_Exit:
     Private Sub txtObjectRotation_LostFocus(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtObjectRotation.LostFocus
         If Not txtObjectRotation.Enabled Then Exit Sub
         If txtObjectRotation.Text = "" Then Exit Sub
-        If Map Is Nothing Then Exit Sub
-        If Map.SelectedUnitCount <= 0 Then Exit Sub
+        If Main_Map Is Nothing Then Exit Sub
+        If Main_Map.SelectedUnitCount <= 0 Then Exit Sub
         Dim Angle As Integer = Clamp(Val(txtObjectRotation.Text), 0.0#, 359.0#)
-        Dim NewUnits(Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
         Dim ID As UInteger
         Dim A As Integer
 
-        If Map.SelectedUnitCount > 1 Then
+        If Main_Map.SelectedUnitCount > 1 Then
             If MsgBox("Change rotation of multiple objects?", MsgBoxStyle.OkCancel, "") <> MsgBoxResult.Ok Then
                 txtObjectRotation.Enabled = False
                 txtObjectRotation.Text = ""
@@ -1562,43 +1715,54 @@ Error_Exit:
             End If
         End If
 
-        Dim OldUnits() As clsMap.clsUnit = Map.SelectedUnits.Clone
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
 
         For A = 0 To OldUnits.GetUpperBound(0)
             NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
             ID = OldUnits(A).ID
             NewUnits(A).Rotation = Angle
-            Map.Unit_Remove_StoreChange(OldUnits(A).Num)
-            Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+            Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            ErrorIDChange(ID, NewUnits(A), "txtObjectRotation_LostFocus")
         Next
-        Map.SelectedUnits_Clear()
-        Map.SelectedUnit_Add(NewUnits)
-        Map.SectorChange.Update_Graphics()
-        Selected_Object_Changed()
-        Map.UndoStepCreate("Object Rotated")
-        DrawView()
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        Main_Map.SectorGraphicsChange.Update_Graphics()
+        SelectedObject_Changed()
+        Main_Map.UndoStepCreate("Object Rotated")
+        View_DrawViewLater()
     End Sub
 
-    Sub Selected_Object_Changed()
+    Sub SelectedObject_Changed()
 
         lblObjectType.Enabled = False
-        txtObjectPlayer.Enabled = False
         ObjectPlayerNum.Enabled = False
-        txtObjectName.Enabled = False
         txtObjectRotation.Enabled = False
         txtObjectID.Enabled = False
         txtObjectPriority.Enabled = False
-        If Map.SelectedUnitCount > 1 Then
-            lblObjectType.Text = "Multiple Units"
+        txtObjectHealth.Enabled = False
+        btnDroidToDesign.Enabled = False
+        cboDroidType.Enabled = False
+        cboDroidBody.Enabled = False
+        cboDroidPropulsion.Enabled = False
+        cboDroidTurret1.Enabled = False
+        cboDroidTurret2.Enabled = False
+        cboDroidTurret3.Enabled = False
+        rdoDroidTurret0.Enabled = False
+        rdoDroidTurret1.Enabled = False
+        rdoDroidTurret2.Enabled = False
+        rdoDroidTurret3.Enabled = False
+        If Main_Map.SelectedUnitCount > 1 Then
+            lblObjectType.Text = "Multiple objects"
             Dim A As Integer
             Dim PlayerNum As Integer
-            PlayerNum = Map.SelectedUnits(0).PlayerNum
-            For A = 1 To Map.SelectedUnitCount - 1
-                If Map.SelectedUnits(A).PlayerNum <> PlayerNum Then
+            PlayerNum = Main_Map.SelectedUnits(0).PlayerNum
+            For A = 1 To Main_Map.SelectedUnitCount - 1
+                If Main_Map.SelectedUnits(A).PlayerNum <> PlayerNum Then
                     Exit For
                 End If
             Next
-            If A = Map.SelectedUnitCount Then
+            If A = Main_Map.SelectedUnitCount Then
                 ObjectPlayerNum.SelectedPlayerNum = PlayerNum
             Else
                 ObjectPlayerNum.SelectedPlayerNum = -1
@@ -1610,29 +1774,228 @@ Error_Exit:
             txtObjectRotation.Enabled = True
             txtObjectPriority.Text = ""
             txtObjectPriority.Enabled = True
-        ElseIf Map.SelectedUnitCount = 1 Then
-            With Map.SelectedUnits(0)
-                If .Type.LoadedInfo IsNot Nothing Then
-                    lblObjectType.Text = .Type.Code & " (" & .Type.LoadedInfo.Name & ")"
-                Else
-                    lblObjectType.Text = .Type.Code
+            txtObjectHealth.Text = ""
+            txtObjectHealth.Enabled = True
+            'design
+            For A = 0 To Main_Map.SelectedUnitCount - 1
+                If Main_Map.SelectedUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    If CType(Main_Map.SelectedUnits(A).Type, clsDroidDesign).IsTemplate Then
+                        Exit For
+                    End If
                 End If
+            Next
+            If A < Main_Map.SelectedUnitCount Then
+                btnDroidToDesign.Enabled = True
+            End If
+
+            For A = 0 To Main_Map.SelectedUnitCount - 1
+                If Main_Map.SelectedUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    If Not CType(Main_Map.SelectedUnits(A).Type, clsDroidDesign).IsTemplate Then
+                        Exit For
+                    End If
+                End If
+            Next
+            If A < Main_Map.SelectedUnitCount Then
+                cboDroidType.SelectedIndex = -1
+                cboDroidBody.SelectedIndex = -1
+                cboDroidPropulsion.SelectedIndex = -1
+                cboDroidTurret1.SelectedIndex = -1
+                cboDroidTurret2.SelectedIndex = -1
+                cboDroidTurret3.SelectedIndex = -1
+                rdoDroidTurret1.Checked = False
+                rdoDroidTurret2.Checked = False
+                rdoDroidTurret3.Checked = False
+                cboDroidType.Enabled = True
+                cboDroidBody.Enabled = True
+                cboDroidPropulsion.Enabled = True
+                cboDroidTurret1.Enabled = True
+                cboDroidTurret2.Enabled = True
+                cboDroidTurret3.Enabled = True
+                rdoDroidTurret0.Enabled = True
+                rdoDroidTurret1.Enabled = True
+                rdoDroidTurret2.Enabled = True
+                rdoDroidTurret3.Enabled = True
+            End If
+        ElseIf Main_Map.SelectedUnitCount = 1 Then
+            Dim A As Integer
+            With Main_Map.SelectedUnits(0)
+                lblObjectType.Text = .Type.GetDisplayText
                 ObjectPlayerNum.SelectedPlayerNum = .PlayerNum
                 txtObjectRotation.Text = CStr(.Rotation)
                 txtObjectID.Text = CStr(.ID)
                 txtObjectPriority.Text = CStr(.SavePriority)
+                txtObjectHealth.Text = .Health * 100.0#
+                lblObjectType.Enabled = True
+                ObjectPlayerNum.Enabled = True
+                txtObjectRotation.Enabled = True
+                'txtObjectID.Enabled = True 'no known need to change IDs
+                txtObjectPriority.Enabled = True
+                txtObjectHealth.Enabled = True
+                Dim ClearDesignControls As Boolean = False
+                If .Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    Dim tmpDroid As clsDroidDesign = CType(.Type, clsDroidDesign)
+                    If tmpDroid.IsTemplate Then
+                        btnDroidToDesign.Enabled = True
+                        ClearDesignControls = True
+                    Else
+                        If tmpDroid.TemplateDroidType Is Nothing Then
+                            cboDroidType.SelectedIndex = -1
+                        Else
+                            cboDroidType.SelectedIndex = tmpDroid.TemplateDroidType.Num
+                        End If
+
+                        If tmpDroid.Body Is Nothing Then
+                            cboDroidBody.SelectedIndex = -1
+                        Else
+                            For A = 0 To cboDroidBody.Items.Count - 1
+                                If cboBody_Objects(A) Is tmpDroid.Body Then
+                                    Exit For
+                                End If
+                            Next
+                            If A < 0 Then
+
+                            ElseIf A < cboDroidBody.Items.Count Then
+                                cboDroidBody.SelectedIndex = A
+                            Else
+                                cboDroidBody.SelectedIndex = -1
+                                cboDroidBody.Text = tmpDroid.Body.Code
+                            End If
+                        End If
+
+                        If tmpDroid.Propulsion Is Nothing Then
+                            cboDroidPropulsion.SelectedIndex = -1
+                        Else
+                            For A = 0 To cboDroidPropulsion.Items.Count - 1
+                                If cboPropulsion_Objects(A) Is tmpDroid.Propulsion Then
+                                    Exit For
+                                End If
+                            Next
+                            If A < cboDroidPropulsion.Items.Count Then
+                                cboDroidPropulsion.SelectedIndex = A
+                            Else
+                                cboDroidPropulsion.SelectedIndex = -1
+                                cboDroidPropulsion.Text = tmpDroid.Propulsion.Code
+                            End If
+                        End If
+
+                        If tmpDroid.Turret1 Is Nothing Then
+                            cboDroidTurret1.SelectedIndex = -1
+                        Else
+                            For A = 0 To cboDroidTurret1.Items.Count - 1
+                                If cboTurret_Objects(A) Is tmpDroid.Turret1 Then
+                                    Exit For
+                                End If
+                            Next
+                            If A < cboDroidTurret1.Items.Count Then
+                                cboDroidTurret1.SelectedIndex = A
+                            Else
+                                cboDroidTurret1.SelectedIndex = -1
+                                cboDroidTurret1.Text = tmpDroid.Turret1.Code
+                            End If
+                        End If
+
+                        If tmpDroid.Turret2 Is Nothing Then
+                            cboDroidTurret2.SelectedIndex = -1
+                        Else
+                            For A = 0 To cboDroidTurret2.Items.Count - 1
+                                If cboTurret_Objects(A) Is tmpDroid.Turret2 Then
+                                    Exit For
+                                End If
+                            Next
+                            If A < cboDroidTurret2.Items.Count Then
+                                cboDroidTurret2.SelectedIndex = A
+                            Else
+                                cboDroidTurret2.SelectedIndex = -1
+                                cboDroidTurret2.Text = tmpDroid.Turret2.Code
+                            End If
+                        End If
+
+                        If tmpDroid.Turret3 Is Nothing Then
+                            cboDroidTurret3.SelectedIndex = -1
+                        Else
+                            For A = 0 To cboDroidTurret3.Items.Count - 1
+                                If cboTurret_Objects(A) Is tmpDroid.Turret3 Then
+                                    Exit For
+                                End If
+                            Next
+                            If A < cboDroidTurret3.Items.Count Then
+                                cboDroidTurret3.SelectedIndex = A
+                            Else
+                                cboDroidTurret3.SelectedIndex = -1
+                                cboDroidTurret3.Text = tmpDroid.Turret3.Code
+                            End If
+                        End If
+
+                        If tmpDroid.TurretCount = 3 Then
+                            rdoDroidTurret0.Checked = False
+                            rdoDroidTurret1.Checked = False
+                            rdoDroidTurret2.Checked = False
+                            rdoDroidTurret3.Checked = True
+                        ElseIf tmpDroid.TurretCount = 2 Then
+                            rdoDroidTurret0.Checked = False
+                            rdoDroidTurret1.Checked = False
+                            rdoDroidTurret2.Checked = True
+                            rdoDroidTurret3.Checked = False
+                        ElseIf tmpDroid.TurretCount = 1 Then
+                            rdoDroidTurret0.Checked = False
+                            rdoDroidTurret1.Checked = True
+                            rdoDroidTurret2.Checked = False
+                            rdoDroidTurret3.Checked = False
+                        ElseIf tmpDroid.TurretCount = 0 Then
+                            rdoDroidTurret0.Checked = True
+                            rdoDroidTurret1.Checked = False
+                            rdoDroidTurret2.Checked = False
+                            rdoDroidTurret3.Checked = False
+                        Else
+                            rdoDroidTurret0.Checked = False
+                            rdoDroidTurret1.Checked = False
+                            rdoDroidTurret2.Checked = False
+                            rdoDroidTurret3.Checked = False
+                        End If
+
+                        cboDroidType.Enabled = True
+                        cboDroidBody.Enabled = True
+                        cboDroidPropulsion.Enabled = True
+                        cboDroidTurret1.Enabled = True
+                        cboDroidTurret2.Enabled = True
+                        cboDroidTurret3.Enabled = True
+                        rdoDroidTurret0.Enabled = True
+                        rdoDroidTurret1.Enabled = True
+                        rdoDroidTurret2.Enabled = True
+                        rdoDroidTurret3.Enabled = True
+                    End If
+                Else
+                    ClearDesignControls = True
+                End If
+                If ClearDesignControls Then
+                    cboDroidType.SelectedIndex = -1
+                    cboDroidBody.SelectedIndex = -1
+                    cboDroidPropulsion.SelectedIndex = -1
+                    cboDroidTurret1.SelectedIndex = -1
+                    cboDroidTurret2.SelectedIndex = -1
+                    cboDroidTurret3.SelectedIndex = -1
+                    rdoDroidTurret1.Checked = False
+                    rdoDroidTurret2.Checked = False
+                    rdoDroidTurret3.Checked = False
+                End If
             End With
-            lblObjectType.Enabled = True
-            ObjectPlayerNum.Enabled = True
-            txtObjectRotation.Enabled = True
-            'txtObjectID.Enabled = True 'no known need to change IDs
-            txtObjectPriority.Enabled = True
         Else
             lblObjectType.Text = ""
             ObjectPlayerNum.SelectedPlayerNum = -1
             txtObjectRotation.Text = ""
             txtObjectID.Text = ""
             txtObjectPriority.Text = ""
+            txtObjectHealth.Text = ""
+            cboDroidType.SelectedIndex = -1
+            cboDroidBody.SelectedIndex = -1
+            cboDroidPropulsion.SelectedIndex = -1
+            cboDroidTurret1.SelectedIndex = -1
+            cboDroidTurret2.SelectedIndex = -1
+            cboDroidTurret3.SelectedIndex = -1
+            rdoDroidTurret0.Checked = False
+            rdoDroidTurret1.Checked = False
+            rdoDroidTurret2.Checked = False
+            rdoDroidTurret3.Checked = False
         End If
         'this steals focus, so give it back
         View.OpenGLControl.Focus()
@@ -1673,10 +2036,10 @@ Error_Exit:
     Sub Terrain_Selection_Changed()
         Dim EnableCopy As Boolean = (Tool = enumTool.Terrain_Select)
 
-        If Map Is Nothing Then
+        If Main_Map Is Nothing Then
             EnableCopy = False
         Else
-            If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+            If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
                 EnableCopy = False
             End If
         End If
@@ -1686,7 +2049,7 @@ Error_Exit:
 
     Private Sub tsbSelectionCopy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionCopy.Click
 
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
             Exit Sub
         End If
         If Copied_Map IsNot Nothing Then
@@ -1695,17 +2058,17 @@ Error_Exit:
         Dim Area As sXY_int
         Dim Start As sXY_int
         Dim Finish As sXY_int
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, Start, Finish)
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, Start, Finish)
         Area.X = Finish.X - Start.X
         Area.Y = Finish.Y - Start.Y
-        Copied_Map = New clsMap(Map, Start, Area)
+        Copied_Map = New clsMap(Main_Map, Start, Area)
 
         Copied_Map_Changed()
     End Sub
 
     Private Sub tsbSelectionPaste_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionPaste.Click
 
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
             Exit Sub
         End If
         If Copied_Map Is Nothing Then
@@ -1717,51 +2080,32 @@ Error_Exit:
         Dim Area As sXY_int
         Dim Start As sXY_int
         Dim Finish As sXY_int
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, Start, Finish)
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, Start, Finish)
         Area.X = Finish.X - Start.X
         Area.Y = Finish.Y - Start.Y
-        Map.Map_Insert(Copied_Map, Start, Area, menuSelPasteHeights.Checked, menuSelPasteTextures.Checked, menuSelPasteUnits.Checked, menuSelPasteDeleteUnits.Checked, menuSelPasteGateways.Checked, menuSelPasteDeleteGateways.Checked)
+        Main_Map.Map_Insert(Copied_Map, Start, Area, menuSelPasteHeights.Checked, menuSelPasteTextures.Checked, menuSelPasteUnits.Checked, menuSelPasteDeleteUnits.Checked, menuSelPasteGateways.Checked, menuSelPasteDeleteGateways.Checked)
 
-        Selected_Object_Changed()
-        Map.UndoStepCreate("Paste")
+        SelectedObject_Changed()
+        Main_Map.UndoStepCreate("Paste")
 
-        DrawView()
+        View_DrawViewLater()
     End Sub
 
     Private Sub btnSelResize_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnSelResize.Click
 
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
             MsgBox("You haven't selected anything.", vbOKOnly, "")
-            Exit Sub
-        End If
-
-        If MsgBox("Resizing can't be undone. Continue?", vbOKCancel + vbQuestion, "") <> MsgBoxResult.Ok Then
             Exit Sub
         End If
 
         Dim Start As sXY_int
         Dim Finish As sXY_int
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, Start, Finish)
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, Start, Finish)
         Dim Area As sXY_int
         Area.X = Finish.X - Start.X
         Area.Y = Finish.Y - Start.Y
-        If Area.X < 1 Or Area.Y < 1 Then Exit Sub
 
-        If Area.X > 256 Or Area.Y > 256 Then
-            If MsgBox("Warzone doesn't support map sizes above 256. Continue anyway?", MsgBoxStyle.YesNo, "") = MsgBoxResult.No Then
-                Exit Sub
-            End If
-        End If
-
-        Map.Terrain_Resize(Start.X, Start.Y, Area.X, Area.Y)
-        View.MouseOver_Exists = False
-
-        Resize_Update()
-
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
-
-        DrawView()
+        Map_Resize(Start, Area)
     End Sub
 
     Private Sub tsbSelectionRotateClockwise_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionRotateClockwise.Click
@@ -1779,85 +2123,50 @@ Error_Exit:
             Exit Sub
         End If
 
-        Copied_Map.Rotate_Anticlockwise(frmMainInstance.PasteRotateObjects)
+        Copied_Map.Rotate_CounterClockwise(frmMainInstance.PasteRotateObjects)
     End Sub
 
     Private Sub menuMiniShowTex_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuMiniShowTex.Click
 
-        Map.MinimapMakeLater()
+        Main_Map.MinimapMakeLater()
     End Sub
 
     Private Sub menuMiniShowHeight_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuMiniShowHeight.Click
 
-        Map.MinimapMakeLater()
+        Main_Map.MinimapMakeLater()
     End Sub
 
     Private Sub menuMiniShowUnits_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuMiniShowUnits.Click
 
-        Map.MinimapMakeLater()
-    End Sub
-
-    Private Sub menuMinimapSize_TextChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles menuMinimapSize.LostFocus
-
-        DrawView()
+        Main_Map.MinimapMakeLater()
     End Sub
 
     Sub NoTile_Texture_Load()
-        Dim Bitmap As New clsBitmapFile
-        'Dim Texture(63, 63, 3) As Byte
-        'Dim X As Integer
-        'Dim Y As Integer
+        Dim tmpBitmap As Bitmap = Nothing
 
-        'For Y = 0 To 63
-        '    For X = 0 To 63
-        '        Texture(X, Y, 0) = 0
-        '        Texture(X, Y, 1) = 0
-        '        Texture(X, Y, 2) = 0
-        '        Texture(X, Y, 3) = 255
-        '    Next
-        'Next
-
-        'GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        'GL.GenTextures(1, GLTexture_BlackTile)
-        'GL.BindTexture(TextureTarget.Texture2D, GLTexture_BlackTile)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
-        'GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 64, 64, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Texture)
-
-        'For Y = 0 To 63
-        '    For X = 0 To 63
-        '        Texture(X, Y, 0) = 255
-        '        Texture(X, Y, 1) = 255
-        '        Texture(X, Y, 2) = 255
-        '        Texture(X, Y, 3) = 255
-        '    Next
-        'Next
-
-        'GL.GenTextures(1, GLTexture_WhiteTile)
-        'GL.BindTexture(TextureTarget.Texture2D, GLTexture_WhiteTile)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
-        'GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
-        'GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 64, 64, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Texture)
-
-        If Bitmap.Load(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "notile.png").Success Then
-            GLTexture_NoTile = Bitmap.GLTexture(View.OpenGLControl, False)
+        If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "notile.png", tmpBitmap).Success Then
+            GLTexture_NoTile = BitmapGLTexture(tmpBitmap, View.OpenGLControl, False, False)
         End If
-        If Bitmap.Load(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "overflow.png").Success Then
-            GLTexture_OverflowTile = Bitmap.GLTexture(View.OpenGLControl, False)
+        If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "overflow.png", tmpBitmap).Success Then
+            GLTexture_OverflowTile = BitmapGLTexture(tmpBitmap, View.OpenGLControl, False, False)
         End If
     End Sub
 
     Private Sub tsbGateways_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbGateways.Click
 
-        Tool = enumTool.Gateways
-        If Map IsNot Nothing Then
-            Map.Selected_Tile_A_Exists = False
-            Map.Selected_Tile_B_Exists = False
-            DrawView()
+        If Tool = enumTool.Gateways Then
+            View.Draw_Gateways = False
+            Tool = enumTool.None
+            tsbGateways.Checked = False
+        Else
+            View.Draw_Gateways = True
+            Tool = enumTool.Gateways
+            tsbGateways.Checked = True
+        End If
+        If Main_Map IsNot Nothing Then
+            Main_Map.Selected_Tile_A = Nothing
+            Main_Map.Selected_Tile_B = Nothing
+            View_DrawViewLater()
         End If
     End Sub
 
@@ -1866,7 +2175,7 @@ Error_Exit:
         If View IsNot Nothing Then
             If View.Draw_VertexTerrain <> tsbDrawAutotexture.Checked Then
                 View.Draw_VertexTerrain = tsbDrawAutotexture.Checked
-                DrawView()
+                View_DrawViewLater()
             End If
         End If
     End Sub
@@ -1876,7 +2185,7 @@ Error_Exit:
         If View IsNot Nothing Then
             If DisplayTileOrientation <> tsbDrawTileOrientation.Checked Then
                 DisplayTileOrientation = tsbDrawTileOrientation.Checked
-                DrawView()
+                View_DrawViewLater()
                 TextureView.DrawViewLater()
             End If
         End If
@@ -1884,43 +2193,43 @@ Error_Exit:
 
     Private Sub menuMiniShowGateways_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuMiniShowGateways.Click
 
-        Map.MinimapMakeLater()
+        Main_Map.MinimapMakeLater()
     End Sub
 
     Private Sub menuMiniShowCliffs_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles menuMiniShowCliffs.Click
 
-        Map.MinimapMakeLater()
+        Main_Map.MinimapMakeLater()
     End Sub
 
-    Private Sub cmbTileType_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmbTileType.SelectedIndexChanged
-        If Not cmbTileType.Enabled Then Exit Sub
-        If Map Is Nothing Then Exit Sub
-        If cmbTileType.SelectedIndex < 0 Then Exit Sub
-        If SelectedTextureNum < 0 Or SelectedTextureNum >= Map.Tileset.TileCount Then Exit Sub
+    Private Sub cmbTileType_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboTileType.SelectedIndexChanged
+        If Not cboTileType.Enabled Then Exit Sub
+        If Main_Map Is Nothing Then Exit Sub
+        If cboTileType.SelectedIndex < 0 Then Exit Sub
+        If SelectedTextureNum < 0 Or SelectedTextureNum >= Main_Map.Tileset.TileCount Then Exit Sub
 
-        Map.Tile_TypeNum(SelectedTextureNum) = cmbTileType.SelectedIndex
+        Main_Map.Tile_TypeNum(SelectedTextureNum) = cboTileType.SelectedIndex
 
         TextureView.DrawViewLater()
     End Sub
 
-    Private Sub chkTileTypes_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles chkTileTypes.CheckedChanged
+    Private Sub chkTileTypes_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cbxTileTypes.CheckedChanged
 
-        TextureView.DisplayTileTypes = chkTileTypes.Checked
+        TextureView.DisplayTileTypes = cbxTileTypes.Checked
         TextureView.DrawViewLater()
     End Sub
 
-    Private Sub chkTileNumbers_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles chkTileNumbers.CheckedChanged
+    Private Sub chkTileNumbers_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cbxTileNumbers.CheckedChanged
 
-        TextureView.DisplayTileNumbers = chkTileNumbers.Checked
+        TextureView.DisplayTileNumbers = cbxTileNumbers.Checked
         TextureView.DrawViewLater()
     End Sub
 
     Private Sub cmbTileType_Refresh()
         Dim A As Integer
 
-        cmbTileType.Items.Clear()
+        cboTileType.Items.Clear()
         For A = 0 To TileTypeCount - 1
-            cmbTileType.Items.Add(TileTypes(A).Name)
+            cboTileType.Items.Add(TileTypes(A).Name)
         Next
     End Sub
 
@@ -2067,45 +2376,22 @@ Error_Exit:
             Exit Sub
         End If
         If LoseMapQuestion() Then
-            OpenFileDialog.FileName = ""
-            OpenFileDialog.Filter = "FME Files (*.fme)|*.fme|All Files (*.*)|*.*"
-            OpenFileDialog.InitialDirectory = AutoSavePath
-            If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then Exit Sub
+            Dim Dialog As New OpenFileDialog
 
-            Dim NewMap As New clsMap
-            Dim Result As clsResult
-            Result = NewMap.Load_FME(OpenFileDialog.FileName)
-            If Result.HasProblems Then
-                NewMap.Deallocate()
-            Else
-                Map.Deallocate()
-
-                Map = NewMap
-
-                Resize_Update()
-                HeightMultiplier_Update()
-                cmbTileset_Refresh()
-                PainterTerrains_Refresh(-1, -1)
-
-                Map.SectorAll_GL_Update()
-                View.LookAtTile(Map.TerrainSize.X / 2.0#, Map.TerrainSize.Y / 2.0#)
-
-                TextureView.ScrollUpdate()
-                TextureView.DrawViewLater()
-                DrawView()
-                Title_Text_Update()
+            Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+            Dialog.FileName = ""
+            Dialog.Filter = ProgramName & " Files (*.fmap, *.fme)|*.fmap;*.fme|All Files (*.*)|*.*"
+            Dialog.InitialDirectory = AutoSavePath
+            If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+                Exit Sub
             End If
-            If Result.HasWarnings Then
-                Dim WarningsForm As New frmWarnings(Result, "Load Map", flaMEIcon)
-                WarningsForm.Show()
-                WarningsForm.Activate()
-            End If
+            Load_MainMap(Dialog.FileName)
         End If
     End Sub
 
     Private Sub tsbSave_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSave.Click
 
-        Save_FME_Quick()
+        Save_FMap_Quick()
     End Sub
 
     Private Sub btnGenerator_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGenerator.Click
@@ -2115,26 +2401,157 @@ Error_Exit:
     End Sub
 
     Sub Title_Text_Update()
-        Dim SplitPath As New sSplitPath(Map.QuickSave_Path)
+        Dim MapFileTitle As String
 
-        If SplitPath.FileTitle = "" Then
-            Text = "flaME " & ProgramVersionNumber
+        If Main_Map.LastFMapSaveInfo Is Nothing Then
+            MapFileTitle = "Unsaved map"
+            tsbSave.ToolTipText = "Save FMap"
         Else
-            Text = SplitPath.FileTitleWithoutExtension & " - flaME " & ProgramVersionNumber
+            Dim SplitPath As New sSplitPath(Main_Map.LastFMapSaveInfo.Path)
+            MapFileTitle = SplitPath.FileTitleWithoutExtension
+            tsbSave.ToolTipText = "Quick save FMap to " & ControlChars.Quote & Main_Map.LastFMapSaveInfo.Path & ControlChars.Quote
         End If
+
+        Text = MapFileTitle & " - " & ProgramName & " " & ProgramVersionNumber
     End Sub
 
-    Private Sub Settings_Load()
+    Private Function Settings_Load() As clsResult
+        Dim ReturnResult As New clsResult
 
-        Dim File As New clsReadFile
+        UnitLabelFontSize = 20.0F
+        SetFont(New Font("Verdana", 1.0F, FontStyle.Bold))
 
-        File.Begin(SettingsPath)
-        Settings_Read(File)
-        File.Close()
-    End Sub
+        Dim File_Settings As New clsReadFile
+        If File_Settings.Begin(SettingsPath).Success Then
+            ReturnResult.Append(Read_Settings(File_Settings), "Read settings.ini: ")
+            File_Settings.Close()
+        Else
+            Dim File_OldSettings As New clsReadFile
+            If File_OldSettings.Begin(OldSettingsPath).Success Then
+                Read_OldSettings(File_OldSettings)
+                File_OldSettings.Close()
+            End If
+        End If
 
-    Private Function Settings_Read(ByVal File As clsReadFile) As Boolean
-        Settings_Read = False
+        Return ReturnResult
+    End Function
+
+    Public Class clsSettings
+
+        Public FontFamily As String = ""
+        Public FontBold As Boolean = True
+        Public FontItalic As Boolean = False
+        Public AutoSaveEnabled As Boolean
+
+        Public Function Translate_INI(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+
+            Select Case INIProperty.Name
+                Case "directpointer"
+                    Try
+                        DirectPointer = CBool(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "fontfamily"
+                    FontFamily = INIProperty.Value
+                Case "fontbold"
+                    Try
+                        FontBold = CBool(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "fontitalic"
+                    Try
+                        FontItalic = CBool(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "fontsize"
+                    Dim sngTemp As Single
+                    Try
+                        sngTemp = CSng(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                    If sngTemp <= 0.0F Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    UnitLabelFontSize = sngTemp
+                Case "minimapsize"
+                    Dim Size As Integer
+                    Try
+                        Size = CInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                    If Size < 0 Or Size > MaxMinimapSize Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    MinimapSize = Size
+                Case "undolimit"
+                    Try
+                        Undo_Limit = CUInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "autosave"
+                    Try
+                        AutoSaveEnabled = CBool(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "autosavemininterval"
+                    Try
+                        AutoSave_MinInterval_s = CUInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "autosaveminchanges"
+                    Try
+                        AutoSave_MinChanges = CUInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "autosaveminchanges"
+                    Try
+                        AutoSave_MinChanges = CUInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case Else
+                    Return clsINIRead.enumTranslatorResult.NameUnknown
+            End Select
+            Return clsINIRead.enumTranslatorResult.Translated
+        End Function
+    End Class
+
+    Private Function Read_Settings(ByVal File As clsReadFile) As clsResult
+        Dim ReturnResult As New clsResult
+
+        Dim INISection As New clsINIRead.clsSection
+        ReturnResult.Append(INISection.ReadFile(File), "")
+        Dim NewSettings As New clsSettings
+        ReturnResult.Append(INISection.Translate(AddressOf NewSettings.Translate_INI), "")
+
+        menuAutosaveEnabled.Checked = NewSettings.AutoSaveEnabled
+
+        If NewSettings.FontFamily <> "" Then
+            Dim tmpFontStyle As Integer = FontStyle.Regular
+            If NewSettings.FontBold Then
+                tmpFontStyle += FontStyle.Bold
+            End If
+            If NewSettings.FontItalic Then
+                tmpFontStyle += FontStyle.Italic
+            End If
+            Dim tmpFont As New Font(NewSettings.FontFamily, 1.0F, CType(tmpFontStyle, FontStyle))
+            SetFont(tmpFont)
+        End If
+
+        Return ReturnResult
+    End Function
+
+    Private Function Read_OldSettings(ByVal File As clsReadFile) As Boolean
+        Read_OldSettings = False
 
         Dim uintTemp As UInteger
         Dim byteTemp As Byte
@@ -2160,12 +2577,6 @@ Error_Exit:
             If Not File.Get_U8(BoldByte) Then Exit Function
             If Not File.Get_U8(ItalicByte) Then Exit Function
         End If
-        If UnitLabelFont IsNot Nothing Then
-            UnitLabelFont.Deallocate()
-        End If
-        If TextureViewFont IsNot Nothing Then
-            TextureViewFont.Deallocate()
-        End If
         Dim tmpFontStyle As Integer = FontStyle.Regular
         If BoldByte Then
             tmpFontStyle += FontStyle.Bold
@@ -2174,65 +2585,58 @@ Error_Exit:
             tmpFontStyle += FontStyle.Italic
         End If
         Dim tmpFont As New Font(strTemp, 1.0F, CType(tmpFontStyle, FontStyle))
-        UnitLabelFont = View.CreateGLFont(tmpFont)
-        TextureViewFont = TextureView.CreateGLFont(tmpFont)
+        SetFont(tmpFont)
         If Not File.Get_F32(UnitLabelFontSize) Then Exit Function
 
-        Settings_Read = True
+        Read_OldSettings = True
     End Function
 
-    Private Sub Settings_Write()
+    Private Sub SetFont(ByVal NewFont As Font)
 
-        Try
-            If Not IO.Directory.Exists(MyDocumentsPath) Then
-                IO.Directory.CreateDirectory(MyDocumentsPath)
-            End If
-        Catch ex As Exception
-            Exit Sub
-        End Try
-
-        Dim ByteFile As New clsWriteFile
-
-        ByteFile.U32_Append(5UI) 'version
-        ByteFile.U32_Append(Undo_Limit)
-        ByteFile.U32_Append(AutoSave_MinInterval_s)
-        ByteFile.U32_Append(AutoSave_MinChanges)
-        If menuAutosaveEnabled.Checked Then
-            ByteFile.U8_Append(1)
-        Else
-            ByteFile.U8_Append(0)
-        End If
-        If DirectPointer Then
-            ByteFile.U8_Append(1)
-        Else
-            ByteFile.U8_Append(0)
-        End If
         If UnitLabelFont IsNot Nothing Then
-            ByteFile.Text_Append(UnitLabelFont.BaseFont.FontFamily.Name, True)
-            If UnitLabelFont.BaseFont.Bold Then
-                ByteFile.U8_Append(1)
-            Else
-                ByteFile.U8_Append(0)
-            End If
-            If UnitLabelFont.BaseFont.Italic Then
-                ByteFile.U8_Append(1)
-            Else
-                ByteFile.U8_Append(0)
-            End If
+            UnitLabelFont.Deallocate()
         End If
-        ByteFile.F32_Append(UnitLabelFontSize)
-
-        ByteFile.Trim_Buffer()
-
-        Try
-            If IO.File.Exists(SettingsPath) Then
-                IO.File.Delete(SettingsPath)
-            End If
-            IO.File.WriteAllBytes(SettingsPath, ByteFile.Bytes)
-        Catch ex As Exception
-            Exit Sub
-        End Try
+        If TextureViewFont IsNot Nothing Then
+            TextureViewFont.Deallocate()
+        End If
+        UnitLabelFont = View.CreateGLFont(NewFont)
+        TextureViewFont = TextureView.CreateGLFont(NewFont)
     End Sub
+
+    Private Function Settings_Write() As clsResult
+        Dim ReturnResult As New clsResult
+
+        Dim INI_Settings As clsINIWrite = CreateINIWriteFile()
+
+        ReturnResult.Append(Data_Settings(INI_Settings), "Compile settings.ini: ")
+
+        If ReturnResult.HasProblems Then
+            Return ReturnResult
+        End If
+
+        ReturnResult.Append(INI_Settings.File.WriteFile(SettingsPath, True), "Write settings.ini: ")
+
+        Return ReturnResult
+    End Function
+
+    Private Function Data_Settings(ByVal File As clsINIWrite) As clsResult
+        Dim ReturnResult As New clsResult
+
+        File.Property_Append("DirectPointer", DirectPointer)
+        If UnitLabelFont IsNot Nothing Then
+            File.Property_Append("FontFamily", UnitLabelFont.BaseFont.FontFamily.Name)
+            File.Property_Append("FontBold", UnitLabelFont.BaseFont.Bold)
+            File.Property_Append("FontItalic", UnitLabelFont.BaseFont.Italic)
+            File.Property_Append("FontSize", UnitLabelFontSize)
+        End If
+        File.Property_Append("MinimapSize", MinimapSize)
+        File.Property_Append("UndoLimit", Undo_Limit)
+        File.Property_Append("AutoSave", menuAutosaveEnabled.Checked)
+        File.Property_Append("AutoSaveMinInterval", AutoSave_MinInterval_s)
+        File.Property_Append("AutoSaveMinChanges", AutoSave_MinChanges)
+
+        Return ReturnResult
+    End Function
 
     Private Sub lstAutoTexture_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstAutoTexture.Click
         If Not lstAutoTexture.Enabled Then
@@ -2259,26 +2663,26 @@ Error_Exit:
             Exit Sub
         End If
 
-        Map.Terrain_Interpret()
+        Main_Map.Terrain_Interpret(New sXY_int(0, 0), New sXY_int(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1))
 
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
+        Main_Map.SectorAll_Set_Changed()
+        Main_Map.SectorAll_GL_Update()
 
-        Map.UndoStepCreate("Interpret Terrain")
+        Main_Map.UndoStepCreate("Interpret Terrain")
     End Sub
 
     Private Sub tabPlayerNum_SelectedIndexChanged() Handles ObjectPlayerNum.SelectedPlayerNumChanged
         ObjectPlayerNum.Focus() 'so that the rotation textbox and anything else loses focus, and performs its effects
 
         If Not ObjectPlayerNum.Enabled Then Exit Sub
-        If Map Is Nothing Then Exit Sub
-        If Map.SelectedUnitCount <= 0 Then Exit Sub
+        If Main_Map Is Nothing Then Exit Sub
+        If Main_Map.SelectedUnitCount <= 0 Then Exit Sub
         If ObjectPlayerNum.SelectedPlayerNum < 0 Or ObjectPlayerNum.SelectedPlayerNum > 10 Then
             Stop
             Exit Sub
         End If
 
-        If Map.SelectedUnitCount > 1 Then
+        If Main_Map.SelectedUnitCount > 1 Then
             If MsgBox("Change player of multiple objects?", MsgBoxStyle.OkCancel, "") <> MsgBoxResult.Ok Then
                 ObjectPlayerNum.Enabled = False
                 ObjectPlayerNum.SelectedPlayerNum = -1
@@ -2288,22 +2692,23 @@ Error_Exit:
         End If
 
         Dim A As Integer
-        Dim OldUnits() As clsMap.clsUnit = Map.SelectedUnits.Clone 'copy the array because it will change as units are removed
-        Dim NewUnits(Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone 'copy the array because it will change as units are removed
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
         Dim ID As UInteger
 
         For A = 0 To OldUnits.GetUpperBound(0)
             NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
             ID = OldUnits(A).ID
             NewUnits(A).PlayerNum = ObjectPlayerNum.SelectedPlayerNum
-            Map.Unit_Remove_StoreChange(OldUnits(A).Num)
-            Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+            Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            ErrorIDChange(ID, NewUnits(A), "ObjectPlayerNum_SelectedPlayerNumChanged")
         Next
-        Map.SelectedUnits_Clear()
-        Map.SelectedUnit_Add(NewUnits)
-        Selected_Object_Changed()
-        Map.UndoStepCreate("Object Player Changed")
-        DrawView()
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        Main_Map.UndoStepCreate("Object Player Changed")
+        View_DrawViewLater()
     End Sub
 
     Private Sub txtHeightSetL_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles txtHeightSetL.LostFocus
@@ -2340,90 +2745,42 @@ Error_Exit:
         txtHeightSetR.Text = HeightSetPalette(tabHeightSetR.SelectedIndex)
     End Sub
 
-    Private Sub tabHeightBrushShape_SelectedIndexChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles tabHeightBrushShape.SelectedIndexChanged
-
-        HeightBrush_Create()
-    End Sub
-
-    Private Sub HeightBrush_Create()
-
-        Select Case tabHeightBrushShape.SelectedIndex
-            Case 0
-                CircleTiles_Create(Clamp(Val(nudHeightBrushRadius.Text), 0.0#, 512.0#), HeightBrushRadius, 1.0#)
-            Case 1
-                SquareTiles_Create(Clamp(Val(nudHeightBrushRadius.Text), 0.0#, 512.0#), HeightBrushRadius, 1.0#)
-        End Select
-    End Sub
-
-    Private Sub tabAutoTextureBrushShape_SelectedIndexChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles tabAutoTextureBrushShape.SelectedIndexChanged
-
-        AutoTextureBrush_Create()
-    End Sub
-
-    Private Sub AutoTextureBrush_Create()
-
-        Select Case tabAutoTextureBrushShape.SelectedIndex
-            Case 0
-                CircleTiles_Create(Clamp(Val(nudAutoTextureRadius.Text), 0.0#, 512.0#), AutoTextureBrushRadius, 1.0#)
-            Case 1
-                SquareTiles_Create(Clamp(Val(nudAutoTextureRadius.Text), 0.0#, 512.0#), AutoTextureBrushRadius, 1.0#)
-        End Select
-    End Sub
-
-    Private Sub tabTextureBrushShape_SelectedIndexChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles tabTextureBrushShape.SelectedIndexChanged
-
-        TextureBrush_Create()
-    End Sub
-
-    Private Sub TextureBrush_Create()
-
-        Select Case tabTextureBrushShape.SelectedIndex
-            Case 0
-                CircleTiles_Create(Clamp(Val(nudTextureBrushRadius.Text), 0.0#, 512.0#), TextureBrushRadius, 1.0#)
-            Case 1
-                SquareTiles_Create(Clamp(Val(nudTextureBrushRadius.Text), 0.0#, 512.0#), TextureBrushRadius, 1.0#)
-        End Select
-    End Sub
-
     Private Sub tsbSelectionObjects_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionObjects.Click
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
             Exit Sub
         End If
         Dim Start As sXY_int
         Dim Finish As sXY_int
         Dim A As Integer
 
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, Start, Finish)
-        For A = 0 To Map.UnitCount - 1
-            If Map.Units(A).Pos.X >= Start.X * TerrainGridSpacing And Map.Units(A).Pos.X <= Finish.X * TerrainGridSpacing _
-              And Map.Units(A).Pos.Z >= Start.Y * TerrainGridSpacing And Map.Units(A).Pos.Z <= Finish.Y * TerrainGridSpacing Then
-                Map.SelectedUnit_Add(Map.Units(A))
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, Start, Finish)
+        For A = 0 To Main_Map.UnitCount - 1
+            If PosIsWithinTileArea(Main_Map.Units(A).Pos.Horizontal, Start, Finish) Then
+                Main_Map.SelectedUnit_Add(Main_Map.Units(A))
             End If
         Next
 
-        Selected_Object_Changed()
+        SelectedObject_Changed()
         Tool = enumTool.None
-        DrawView()
+        View_DrawViewLater()
     End Sub
 
     Private Sub menuImportMapCopy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuImportMapCopy.Click
+        Dim Dialog As New OpenFileDialog
 
-        OpenFileDialog.FileName = ""
-        OpenFileDialog.Filter = "Warzone Map Files (*.fme, *.wz, *.lnd)|*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
-        If Not OpenFileDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.lnd)|*.fmap;*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
 
         Dim Result As clsResult
-        Result = Load_Map_As_Copy(OpenFileDialog.FileName)
-        If Result.HasWarnings Then
-            Dim WarningsForm As New frmWarnings(Result, "Load Map", flaMEIcon)
-            WarningsForm.Show()
-            WarningsForm.Activate()
-        End If
+        Result = Load_Map_As_Copy(Dialog.FileName)
+        ShowWarnings(Result, "Load Map As Copy")
     End Sub
 
-    Public Sub DrawView()
+    Public Sub View_DrawViewLater()
 
         If View IsNot Nothing Then
             View.DrawViewLater()
@@ -2432,10 +2789,10 @@ Error_Exit:
 
     Private Sub btnWaterTri_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnWaterTri.Click
 
-        Map.WaterTriCorrection()
-        Map.SectorChange.Update_Graphics()
-        Map.UndoStepCreate("Water Triangle Correction")
-        DrawView()
+        Main_Map.WaterTriCorrection()
+        Main_Map.SectorGraphicsChange.Update_Graphics()
+        Main_Map.UndoStepCreate("Water Triangle Correction")
+        View_DrawViewLater()
     End Sub
 
     Private Sub tsbSelectionFlipX_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionFlipX.Click
@@ -2444,7 +2801,7 @@ Error_Exit:
             Exit Sub
         End If
 
-        Copied_Map.FlipX(frmMainInstance.PasteRotateObjects)
+        Copied_Map.Rotate_FlipX(frmMainInstance.PasteRotateObjects)
     End Sub
 
     Public Sub SetMenuPointerModeChecked()
@@ -2471,30 +2828,33 @@ Error_Exit:
     End Sub
 
     Private Sub btnHeightsMultiplySelection_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnHeightsMultiplySelection.Click
-        If Not (Map.Selected_Area_VertexA_Exists And Map.Selected_Area_VertexB_Exists) Then
+        If Main_Map.Selected_Area_VertexA Is Nothing Or Main_Map.Selected_Area_VertexB Is Nothing Then
             Exit Sub
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim Multiplier As Double
-        Dim SectorChange As clsMap.clsSectorChange = Map.SectorChange
+        Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
         Dim StartXY As sXY_int
         Dim FinishXY As sXY_int
+        Dim Pos As sXY_int
 
         Multiplier = Clamp(Val(txtHeightMultiply.Text), 0.0#, 255.0#)
-        XY_Reorder(Map.Selected_Area_VertexA, Map.Selected_Area_VertexB, StartXY, FinishXY)
-        For Z = StartXY.Y To FinishXY.Y
+        XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, StartXY, FinishXY)
+        For Y = StartXY.Y To FinishXY.Y
             For X = StartXY.X To FinishXY.X
-                Map.TerrainVertex(X, Z).Height = Math.Round(Clamp(Map.TerrainVertex(X, Z).Height * Multiplier, 0.0#, 255.0#))
-                SectorChange.Vertex_And_Normals_Changed(X, Z)
+                Main_Map.TerrainVertex(X, Y).Height = Math.Round(Clamp(Main_Map.TerrainVertex(X, Y).Height * Multiplier, 0.0#, 255.0#))
+                Pos.X = X
+                Pos.Y = Y
+                SectorChange.Vertex_And_Normals_Changed(Pos)
             Next
         Next
 
         SectorChange.Update_Graphics_And_UnitHeights()
-        Map.UndoStepCreate("Selection Heights Multiply")
+        Main_Map.UndoStepCreate("Selection Heights Multiply")
 
-        DrawView()
+        View_DrawViewLater()
     End Sub
 
     Private Sub btnTextureAnticlockwise_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnTextureAnticlockwise.Click
@@ -2525,21 +2885,16 @@ Error_Exit:
     Private Sub menuUnitLabelFont_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menuFont.Click
 
         If UnitLabelFont IsNot Nothing Then
-            FontDialog.Font = UnitLabelFont.BaseFont
+            FontDialog.Font = New Font(UnitLabelFont.BaseFont.FontFamily, UnitLabelFontSize, UnitLabelFont.BaseFont.Style)
         End If
-        If FontDialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-            If FontDialog.Font IsNot Nothing Then
-                If UnitLabelFont IsNot Nothing Then
-                    UnitLabelFont.Deallocate()
-                End If
-                If TextureViewFont IsNot Nothing Then
-                    TextureViewFont.Deallocate()
-                End If
-                UnitLabelFont = View.CreateGLFont(FontDialog.Font)
-                TextureViewFont = TextureView.CreateGLFont(FontDialog.Font)
-                UnitLabelFontSize = FontDialog.Font.SizeInPoints
-            End If
+        If FontDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
         End If
+        If FontDialog.Font Is Nothing Then
+            Exit Sub
+        End If
+        SetFont(FontDialog.Font)
+        UnitLabelFontSize = FontDialog.Font.SizeInPoints
     End Sub
 
     Private Function LoadTilesets() As clsResult
@@ -2549,7 +2904,7 @@ Error_Exit:
         Try
             TilesetDirs = IO.Directory.GetDirectories(TilesetsPath)
         Catch ex As Exception
-            LoadTilesets.Problem_Add("Error reading tilesets directory; " & ex.Message)
+            LoadTilesets.Problem_Add("Error reading tilesets directory: " & ex.Message)
             Exit Function
         End Try
         Dim A As Integer
@@ -2570,7 +2925,7 @@ Error_Exit:
             Path = TilesetDirs(A)
             Tilesets(TilesetCount) = New clsTileset
             Result = Tilesets(TilesetCount).LoadDirectory(Path)
-            LoadTilesets.AppendAsWarning(Result, "Loading tileset directory " & ControlChars.Quote & Path & ControlChars.Quote & "; ")
+            LoadTilesets.AppendAsWarning(Result, "Loading tileset directory " & ControlChars.Quote & Path & ControlChars.Quote & ": ")
             If Not Result.HasProblems Then
                 Tilesets(TilesetCount).Num = TilesetCount
                 TilesetCount += 1
@@ -2613,8 +2968,8 @@ Error_Exit:
 
         If lstAutoTexture.SelectedIndex < 0 Then
             SelectedTerrain = Nothing
-        ElseIf lstAutoTexture.SelectedIndex < Map.Painter.TerrainCount Then
-            SelectedTerrain = Map.Painter.Terrains(lstAutoTexture.SelectedIndex)
+        ElseIf lstAutoTexture.SelectedIndex < Main_Map.Painter.TerrainCount Then
+            SelectedTerrain = Main_Map.Painter.Terrains(lstAutoTexture.SelectedIndex)
         Else
             Stop
             SelectedTerrain = Nothing
@@ -2625,8 +2980,8 @@ Error_Exit:
 
         If lstAutoRoad.SelectedIndex < 0 Then
             SelectedRoad = Nothing
-        ElseIf lstAutoRoad.SelectedIndex < Map.Painter.RoadCount Then
-            SelectedRoad = Map.Painter.Roads(lstAutoRoad.SelectedIndex)
+        ElseIf lstAutoRoad.SelectedIndex < Main_Map.Painter.RoadCount Then
+            SelectedRoad = Main_Map.Painter.Roads(lstAutoRoad.SelectedIndex)
         Else
             Stop
             SelectedRoad = Nothing
@@ -2637,10 +2992,10 @@ Error_Exit:
         If Not txtObjectID.Enabled Then
             Exit Sub
         End If
-        If Map Is Nothing Then
+        If Main_Map Is Nothing Then
             Exit Sub
         End If
-        If Map.SelectedUnitCount <> 1 Then
+        If Main_Map.SelectedUnitCount <> 1 Then
             Exit Sub
         End If
 
@@ -2683,10 +3038,10 @@ Error_Exit:
         If Not txtObjectPriority.Enabled Then
             Exit Sub
         End If
-        If Map Is Nothing Then
+        If Main_Map Is Nothing Then
             Exit Sub
         End If
-        If Map.SelectedUnitCount <= 0 Then
+        If Main_Map.SelectedUnitCount <= 0 Then
             Exit Sub
         End If
         Dim Priority As Integer = CInt(Clamp(Val(txtObjectPriority.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue)))
@@ -2698,21 +3053,21 @@ Error_Exit:
             Exit Sub
         End If
 
-        If Map.SelectedUnitCount > 1 Then
+        If Main_Map.SelectedUnitCount > 1 Then
             If MsgBox("Change priority of multiple objects?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
                 txtObjectPriority.Enabled = False
                 txtObjectPriority.Text = ""
                 txtObjectPriority.Enabled = True
                 Exit Sub
             End If
-        ElseIf Map.SelectedUnitCount = 1 Then
-            If Priority = Map.SelectedUnits(0).SavePriority Then
+        ElseIf Main_Map.SelectedUnitCount = 1 Then
+            If Priority = Main_Map.SelectedUnits(0).SavePriority Then
                 Exit Sub
             End If
         End If
 
-        Dim NewUnits(Map.SelectedUnitCount - 1) As clsMap.clsUnit
-        Dim OldUnits() As clsMap.clsUnit = Map.SelectedUnits.Clone
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
         Dim ID As UInteger
         Dim A As Integer
 
@@ -2720,14 +3075,115 @@ Error_Exit:
             NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
             ID = OldUnits(A).ID
             NewUnits(A).SavePriority = Priority
-            Map.Unit_Remove_StoreChange(OldUnits(A).Num)
-            Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+            Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            ErrorIDChange(ID, NewUnits(A), "ObjectPriority_LostFocus")
         Next
-        Map.SelectedUnits_Clear()
-        Map.SelectedUnit_Add(NewUnits)
-        Selected_Object_Changed()
-        Map.UndoStepCreate("Object Priority Changed")
-        DrawView()
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        Main_Map.UndoStepCreate("Object Priority Changed")
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub txtObjectHealth_LostFocus(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtObjectHealth.LostFocus
+        If Not txtObjectHealth.Enabled Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+        Dim Health As Double = CInt(Clamp(Val(txtObjectHealth.Text), 1.0#, 100.0#)) / 100.0#
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change health of multiple objects?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                txtObjectHealth.Enabled = False
+                txtObjectHealth.Text = ""
+                txtObjectHealth.Enabled = True
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim A As Integer
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+            ID = OldUnits(A).ID
+            NewUnits(A).Health = Health
+            Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+            Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+            ErrorIDChange(ID, NewUnits(A), "ObjectHealth_LostFocus")
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        Main_Map.UndoStepCreate("Object Health Changed")
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub btnDroidToDesign_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnDroidToDesign.Click
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change design of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        Else
+            If MsgBox("Change design of a droid?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "btnDroidToDesign_Click")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Template Removed")
+            View_DrawViewLater()
+        End If
     End Sub
 
 #If MonoDevelop <> 0.0# Then
@@ -5769,5 +6225,601 @@ Error_Exit:
         menuRotateUnits.Checked = False
         menuRotateWalls.Checked = False
         menuRotateNothing.Checked = True
+    End Sub
+
+    Private Sub cboDroidBody_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidBody.SelectedIndexChanged
+        If Not cboDroidBody.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidBody.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change body of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.Body = cboBody_Objects(cboDroidBody.SelectedIndex)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "cboDroidBody_SelectedIndexChanged")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Body Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub cboDroidPropulsion_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidPropulsion.SelectedIndexChanged
+        If Not cboDroidPropulsion.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidPropulsion.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change propulsion of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.Propulsion = cboPropulsion_Objects(cboDroidPropulsion.SelectedIndex)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "cboDroidPropulsion_SelectedIndexChanged")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Propulsion Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub cboDroidTurret1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidTurret1.SelectedIndexChanged
+        If Not cboDroidTurret1.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidTurret1.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change turret of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.Turret1 = cboTurret_Objects(cboDroidTurret1.SelectedIndex)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "cboDroidTurret1_SelectedIndexChanged")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Turret Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub cboDroidTurret2_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidTurret2.SelectedIndexChanged
+        If Not cboDroidTurret2.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidTurret2.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change turret of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.Turret2 = cboTurret_Objects(cboDroidTurret2.SelectedIndex)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "cboDroidTurret2_SelectedIndexChanged")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Turret Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub cboDroidTurret3_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidTurret3.SelectedIndexChanged
+        If Not cboDroidTurret3.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidTurret3.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change turret of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.Turret3 = cboTurret_Objects(cboDroidTurret3.SelectedIndex)
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "cboDroidTurret3_SelectedIndexChanged")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Turret Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub rdoDroidTurret0_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoDroidTurret0.CheckedChanged
+        If Not rdoDroidTurret0.Enabled Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Not rdoDroidTurret0.Checked Then
+            Exit Sub
+        End If
+
+        rdoDroidTurret1.Checked = False
+        rdoDroidTurret2.Checked = False
+        rdoDroidTurret3.Checked = False
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change number of turrets of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        SelectedObjects_SetTurretCount(0)
+    End Sub
+
+    Private Sub rdoDroidTurret1_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoDroidTurret1.CheckedChanged
+        If Not rdoDroidTurret1.Enabled Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Not rdoDroidTurret1.Checked Then
+            Exit Sub
+        End If
+
+        rdoDroidTurret0.Checked = False
+        rdoDroidTurret2.Checked = False
+        rdoDroidTurret3.Checked = False
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change number of turrets of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        SelectedObjects_SetTurretCount(1)
+    End Sub
+
+    Private Sub rdoDroidTurret2_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoDroidTurret2.CheckedChanged
+        If Not rdoDroidTurret2.Enabled Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Not rdoDroidTurret2.Checked Then
+            Exit Sub
+        End If
+
+        rdoDroidTurret0.Checked = False
+        rdoDroidTurret1.Checked = False
+        rdoDroidTurret3.Checked = False
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change number of turrets of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        SelectedObjects_SetTurretCount(2)
+    End Sub
+
+    Private Sub rdoDroidTurret3_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoDroidTurret3.CheckedChanged
+        If Not rdoDroidTurret2.Enabled Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Not rdoDroidTurret3.Checked Then
+            Exit Sub
+        End If
+
+        rdoDroidTurret0.Checked = False
+        rdoDroidTurret1.Checked = False
+        rdoDroidTurret2.Checked = False
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change number of turrets of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        SelectedObjects_SetTurretCount(3)
+    End Sub
+
+    Private Sub SelectedObjects_SetTurretCount(ByVal Count As Integer)
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.TurretCount = Count
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "SelectedObjects_SetTurretCount")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Number Of Turrets Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub SelectedObjects_SetDroidType(ByVal NewType As clsDroidDesign.clsTemplateDroidType)
+
+        Dim NewUnits(Main_Map.SelectedUnitCount - 1) As clsMap.clsUnit
+        Dim OldUnits() As clsMap.clsUnit = Main_Map.SelectedUnits.Clone
+        Dim ID As UInteger
+        Dim OldDroidType As clsDroidDesign
+        Dim NewDroidType As clsDroidDesign
+        Dim A As Integer
+        Dim Changed As Boolean = False
+        Dim DoUnit As Boolean
+
+        For A = 0 To OldUnits.GetUpperBound(0)
+            If OldUnits(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+                NewUnits(A) = New clsMap.clsUnit(OldUnits(A))
+                ID = OldUnits(A).ID
+                NewDroidType = New clsDroidDesign
+                NewUnits(A).Type = NewDroidType
+                OldDroidType = CType(OldUnits(A).Type, clsDroidDesign)
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.TemplateDroidType = NewType
+                NewDroidType.UpdateAttachments()
+                Main_Map.Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
+                Main_Map.Unit_Add_StoreChange(NewUnits(A), ID)
+                ErrorIDChange(ID, NewUnits(A), "SelectedObjects_SetDroidType")
+            Else
+                NewUnits(A) = OldUnits(A)
+            End If
+        Next
+        Main_Map.SelectedUnits_Clear()
+        Main_Map.SelectedUnit_Add(NewUnits)
+        SelectedObject_Changed()
+        If Changed Then
+            Main_Map.UndoStepCreate("Object Body Changed")
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub cboDroidType_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboDroidType.SelectedIndexChanged
+        If Not cboDroidType.Enabled Then
+            Exit Sub
+        End If
+        If cboDroidType.SelectedIndex < 0 Then
+            Exit Sub
+        End If
+        If Main_Map Is Nothing Then
+            Exit Sub
+        End If
+        If Main_Map.SelectedUnitCount <= 0 Then
+            Exit Sub
+        End If
+
+        If Main_Map.SelectedUnitCount > 1 Then
+            If MsgBox("Change type of multiple droids?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question, "") <> MsgBoxResult.Ok Then
+                Exit Sub
+            End If
+        End If
+
+        SelectedObjects_SetDroidType(TemplateDroidTypes(cboDroidType.SelectedIndex))
+    End Sub
+
+    Public Sub SetInterface(ByVal InterfaceOptions As clsMap.clsInterfaceOptions)
+
+        frmCompileInstance.cbxAutoScrollLimits.Checked = InterfaceOptions.AutoScrollLimits
+        frmCompileInstance.txtCampTime.Text = InterfaceOptions.CampaignGameTime
+        frmCompileInstance.cboCampType.SelectedIndex = InterfaceOptions.CampaignGameType
+        frmCompileInstance.txtAuthor.Text = InterfaceOptions.CompileMultiAuthor
+        frmCompileInstance.cboLicense.Text = InterfaceOptions.CompileMultiLicense
+        frmCompileInstance.txtName.Text = InterfaceOptions.CompileName
+        frmCompileInstance.txtMultiPlayers.Text = InterfaceOptions.CompileMultiPlayers
+        frmCompileInstance.cbxNewPlayerFormat.Checked = InterfaceOptions.CompileMultiXPlayers
+        frmCompileInstance.txtScrollMinX.Text = InterfaceOptions.ScrollMin.X
+        frmCompileInstance.txtScrollMinY.Text = InterfaceOptions.ScrollMin.Y
+        frmCompileInstance.txtScrollMaxX.Text = InterfaceOptions.ScrollMax.X
+        frmCompileInstance.txtScrollMaxY.Text = InterfaceOptions.ScrollMax.Y
+
+        frmCompileInstance.AutoScrollLimits_Update()
+    End Sub
+
+    Public Enum enumTextureTerrainAction As Byte
+        Ignore
+        Reinterpret
+        Remove
+    End Enum
+
+    Public TextureTerrainAction As enumTextureTerrainAction = enumTextureTerrainAction.Reinterpret
+
+    Private Sub rdoTextureIgnoreTerrain_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoTextureIgnoreTerrain.Click
+
+        If rdoTextureIgnoreTerrain.Checked Then
+            TextureTerrainAction = enumTextureTerrainAction.Ignore
+            rdoTextureReinterpretTerrain.Checked = False
+            rdoTextureRemoveTerrain.Checked = False
+        End If
+    End Sub
+
+    Private Sub rdoTextureReinterpretTerrain_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoTextureReinterpretTerrain.Click
+
+        If rdoTextureReinterpretTerrain.Checked Then
+            TextureTerrainAction = enumTextureTerrainAction.Reinterpret
+            rdoTextureIgnoreTerrain.Checked = False
+            rdoTextureRemoveTerrain.Checked = False
+        End If
+    End Sub
+
+    Private Sub rdoTextureRemoveTerrain_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoTextureRemoveTerrain.Click
+
+        If rdoTextureRemoveTerrain.Checked Then
+            TextureTerrainAction = enumTextureTerrainAction.Remove
+            rdoTextureIgnoreTerrain.Checked = False
+            rdoTextureReinterpretTerrain.Checked = False
+        End If
+    End Sub
+
+    Private Sub MinimapSizeToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MinimapSizeToolStripMenuItem.Click
+
+        Dim Result As String = InputBox("Enter minimap size.", "", MinimapSize)
+        If Result Is Nothing Or Result = "" Then
+            Exit Sub
+        End If
+        MinimapSize = Clamp(Val(Result), 0.0#, MaxMinimapSize)
+        View_DrawViewLater()
     End Sub
 End Class

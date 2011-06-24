@@ -1,8 +1,8 @@
 ﻿Public Class clsResult
 
-    Public Warning(-1) As String
+    Public Warnings(0) As String
     Public WarningCount As Integer
-    Public Problem(-1) As String
+    Public Problems(0) As String
     Public ProblemCount As Integer
 
     Public ReadOnly Property HasWarnings As Boolean
@@ -17,39 +17,43 @@
         End Get
     End Property
 
-    Public Sub Append(ByVal Result_To_Add As clsResult, ByVal Prefix As String)
+    Public Sub Append(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
         Dim A As Integer
 
-        For A = 0 To Result_To_Add.WarningCount - 1
-            Warning_Add(Prefix & Result_To_Add.Warning(A))
+        For A = 0 To ResultToAdd.WarningCount - 1
+            Warning_Add(Prefix & ResultToAdd.Warnings(A))
         Next
-        For A = 0 To Result_To_Add.ProblemCount - 1
-            Problem_Add(Prefix & Result_To_Add.Problem(A))
+        For A = 0 To ResultToAdd.ProblemCount - 1
+            Problem_Add(Prefix & ResultToAdd.Problems(A))
         Next
     End Sub
 
-    Public Sub AppendAsWarning(ByRef Result_To_Add As clsResult, ByVal Prefix As String)
+    Public Sub AppendAsWarning(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
         Dim A As Integer
 
-        For A = 0 To Result_To_Add.WarningCount - 1
-            Warning_Add(Prefix & Result_To_Add.Warning(A))
+        For A = 0 To ResultToAdd.WarningCount - 1
+            Warning_Add(Prefix & ResultToAdd.Warnings(A))
         Next
-        For A = 0 To Result_To_Add.ProblemCount - 1
-            Warning_Add(Prefix & Result_To_Add.Problem(A))
+        For A = 0 To ResultToAdd.ProblemCount - 1
+            Warning_Add(Prefix & ResultToAdd.Problems(A))
         Next
     End Sub
 
-    Public Sub Warning_Add(ByRef Text As String)
+    Public Sub Warning_Add(ByVal Text As String)
 
-        ReDim Preserve Warning(WarningCount)
-        Warning(WarningCount) = Text
+        If Warnings.GetUpperBound(0) < WarningCount Then
+            ReDim Preserve Warnings(WarningCount * 2 + 1)
+        End If
+        Warnings(WarningCount) = Text
         WarningCount += 1
     End Sub
 
-    Public Sub Problem_Add(ByRef Text As String)
+    Public Sub Problem_Add(ByVal Text As String)
 
-        ReDim Preserve Problem(ProblemCount)
-        Problem(ProblemCount) = Text
+        If Problems.GetUpperBound(0) < ProblemCount Then
+            ReDim Preserve Problems(ProblemCount * 2 + 1)
+        End If
+        Problems(ProblemCount) = Text
         ProblemCount += 1
     End Sub
 End Class

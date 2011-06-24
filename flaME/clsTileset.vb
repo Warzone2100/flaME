@@ -63,11 +63,11 @@ Public Class clsTileset
     Public Function LoadDirectory(ByVal Path As String) As clsResult
         LoadDirectory = New clsResult
 
-        Dim tmpBitmap As clsBitmapFile
-        Dim tmpBitmap8 As New clsBitmapFile
-        Dim tmpBitmap4 As New clsBitmapFile
-        Dim tmpBitmap2 As New clsBitmapFile
-        Dim tmpBitmap1 As New clsBitmapFile
+        Dim tmpBitmap As Bitmap = Nothing
+        Dim tmpBitmap8 As Bitmap
+        Dim tmpBitmap4 As Bitmap
+        Dim tmpBitmap2 As Bitmap
+        Dim tmpBitmap1 As Bitmap
         Dim SplitPath As New sSplitPath(Path)
         Dim SlashPath As String = EndWithPathSeperator(Path)
         Dim Result As sResult
@@ -80,7 +80,7 @@ Public Class clsTileset
 
         Result = Default_TileTypes_Load(SlashPath & Name & ".ttp")
         If Not Result.Success Then
-            LoadDirectory.Problem_Add("Loading tile types; " & Result.Problem)
+            LoadDirectory.Problem_Add("Loading tile types: " & Result.Problem)
             Exit Function
         End If
 
@@ -120,21 +120,20 @@ Public Class clsTileset
             GreenTotal = 0
             BlueTotal = 0
 
-            tmpBitmap = New clsBitmapFile
-            Result = tmpBitmap.Load(GraphicPath)
+            Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
                 'ignore and exit, since not all tile types have a corresponding tile graphic
                 Exit Function
             End If
 
-            If tmpBitmap.CurrentBitmap.Width <> 128 Or tmpBitmap.CurrentBitmap.Height <> 128 Then
+            If tmpBitmap.Width <> 128 Or tmpBitmap.Height <> 128 Then
                 LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 128x128.")
                 Exit Function
             End If
 
             For PixY = 0 To 127
                 For PixX = 0 To 127
-                    PixelColor = tmpBitmap.CurrentBitmap.GetPixel(PixX, PixY)
+                    PixelColor = tmpBitmap.GetPixel(PixX, PixY)
                     'Texture128(PixY, PixX, 0) = PixelColor.R
                     'Texture128(PixY, PixX, 1) = PixelColor.G
                     'Texture128(PixY, PixX, 2) = PixelColor.B
@@ -155,148 +154,145 @@ Public Class clsTileset
             Tiles(TileNum).Average_Color.Green = GreenTotal / PixelCountForAverage
             Tiles(TileNum).Average_Color.Blue = BlueTotal / PixelCountForAverage
 
-            Tiles(TileNum).TextureView_GL_Texture_Num = tmpBitmap.GLTexture(frmMainInstance.TextureView.OpenGLControl, False)
-            Tiles(TileNum).MapView_GL_Texture_Num = tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, True)
+            Tiles(TileNum).TextureView_GL_Texture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.TextureView.OpenGLControl, False, False)
+            Tiles(TileNum).MapView_GL_Texture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, True, False)
 
             '-------- 64 --------
 
             GraphicPath = SlashPath & Name & "-64" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsBitmapFile
-            Result = tmpBitmap.Load(GraphicPath)
+            Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
-                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
+                LoadDirectory.Warning_Add("Unable to load tile graphic: " & Result.Problem)
                 Exit Function
             End If
 
-            If tmpBitmap.CurrentBitmap.Width <> 64 Or tmpBitmap.CurrentBitmap.Height <> 64 Then
+            If tmpBitmap.Width <> 64 Or tmpBitmap.Height <> 64 Then
                 LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 64x64.")
                 Exit Function
             End If
 
-            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 1)
+            BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 1)
 
             '-------- 32 --------
 
             GraphicPath = SlashPath & Name & "-32" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsBitmapFile
-            Result = tmpBitmap.Load(GraphicPath)
+            Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
-                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
+                LoadDirectory.Warning_Add("Unable to load tile graphic: " & Result.Problem)
                 Exit Function
             End If
 
-            If tmpBitmap.CurrentBitmap.Width <> 32 Or tmpBitmap.CurrentBitmap.Height <> 32 Then
+            If tmpBitmap.Width <> 32 Or tmpBitmap.Height <> 32 Then
                 LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 32x32.")
                 Exit Function
             End If
 
-            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 2)
+            BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 2)
 
             '-------- 16 --------
 
             GraphicPath = SlashPath & Name & "-16" & OSPathSeperator & strTile
 
-            tmpBitmap = New clsBitmapFile
-            Result = tmpBitmap.Load(GraphicPath)
+            Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
-                LoadDirectory.Warning_Add("Unable to load tile graphic; " & Result.Problem)
+                LoadDirectory.Warning_Add("Unable to load tile graphic: " & Result.Problem)
                 Exit Function
             End If
 
-            If tmpBitmap.CurrentBitmap.Width <> 16 Or tmpBitmap.CurrentBitmap.Height <> 16 Then
+            If tmpBitmap.Width <> 16 Or tmpBitmap.Height <> 16 Then
                 LoadDirectory.Warning_Add("Tile graphic " & GraphicPath & " from tileset " & Name & " is not 16x16.")
                 Exit Function
             End If
 
-            tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 3)
+            BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 3)
 
             '-------- 8 --------
 
-            tmpBitmap8.CurrentBitmap = New Bitmap(8, 8, Imaging.PixelFormat.Format32bppArgb)
+            tmpBitmap8 = New Bitmap(8, 8, Imaging.PixelFormat.Format32bppArgb)
             For PixY = 0 To 7
                 Y1 = PixY * 2
                 Y2 = Y1 + 1
                 For PixX = 0 To 7
                     X1 = PixX * 2
                     X2 = X1 + 1
-                    PixelColorA = tmpBitmap.CurrentBitmap.GetPixel(X1, Y1)
-                    PixelColorB = tmpBitmap.CurrentBitmap.GetPixel(X2, Y1)
-                    PixelColorC = tmpBitmap.CurrentBitmap.GetPixel(X1, Y2)
-                    PixelColorD = tmpBitmap.CurrentBitmap.GetPixel(X2, Y2)
+                    PixelColorA = tmpBitmap.GetPixel(X1, Y1)
+                    PixelColorB = tmpBitmap.GetPixel(X2, Y1)
+                    PixelColorC = tmpBitmap.GetPixel(X1, Y2)
+                    PixelColorD = tmpBitmap.GetPixel(X2, Y2)
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap8.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
+                    tmpBitmap8.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap8.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 4)
+            BitmapGLTexture(tmpBitmap8, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 4)
 
             '-------- 4 --------
 
-            tmpBitmap4.CurrentBitmap = New Bitmap(4, 4, Imaging.PixelFormat.Format32bppArgb)
+            tmpBitmap4 = New Bitmap(4, 4, Imaging.PixelFormat.Format32bppArgb)
             For PixY = 0 To 3
                 Y1 = PixY * 2
                 Y2 = Y1 + 1
                 For PixX = 0 To 3
                     X1 = PixX * 2
                     X2 = X1 + 1
-                    PixelColorA = tmpBitmap.CurrentBitmap.GetPixel(X1, Y1)
-                    PixelColorB = tmpBitmap.CurrentBitmap.GetPixel(X2, Y1)
-                    PixelColorC = tmpBitmap.CurrentBitmap.GetPixel(X1, Y2)
-                    PixelColorD = tmpBitmap.CurrentBitmap.GetPixel(X2, Y2)
+                    PixelColorA = tmpBitmap.GetPixel(X1, Y1)
+                    PixelColorB = tmpBitmap.GetPixel(X2, Y1)
+                    PixelColorC = tmpBitmap.GetPixel(X1, Y2)
+                    PixelColorD = tmpBitmap.GetPixel(X2, Y2)
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap4.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
+                    tmpBitmap4.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap4.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 5)
+            BitmapGLTexture(tmpBitmap4, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 5)
 
             '-------- 2 --------
 
-            tmpBitmap2.CurrentBitmap = New Bitmap(2, 2, Imaging.PixelFormat.Format32bppArgb)
+            tmpBitmap2 = New Bitmap(2, 2, Imaging.PixelFormat.Format32bppArgb)
             For PixY = 0 To 1
                 Y1 = PixY * 2
                 Y2 = Y1 + 1
                 For PixX = 0 To 1
                     X1 = PixX * 2
                     X2 = X1 + 1
-                    PixelColorA = tmpBitmap.CurrentBitmap.GetPixel(X1, Y1)
-                    PixelColorB = tmpBitmap.CurrentBitmap.GetPixel(X2, Y1)
-                    PixelColorC = tmpBitmap.CurrentBitmap.GetPixel(X1, Y2)
-                    PixelColorD = tmpBitmap.CurrentBitmap.GetPixel(X2, Y2)
+                    PixelColorA = tmpBitmap.GetPixel(X1, Y1)
+                    PixelColorB = tmpBitmap.GetPixel(X2, Y1)
+                    PixelColorC = tmpBitmap.GetPixel(X1, Y2)
+                    PixelColorD = tmpBitmap.GetPixel(X2, Y2)
                     Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
                     Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
                     Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-                    tmpBitmap2.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
+                    tmpBitmap2.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
                 Next
             Next
 
-            tmpBitmap2.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 6)
+            BitmapGLTexture(tmpBitmap2, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 6)
 
             '-------- 1 --------
 
-            tmpBitmap1.CurrentBitmap = New Bitmap(1, 1, Imaging.PixelFormat.Format32bppArgb)
+            tmpBitmap1 = New Bitmap(1, 1, Imaging.PixelFormat.Format32bppArgb)
             PixX = 0
             PixY = 0
             Y1 = PixY * 2
             Y2 = Y1 + 1
             X1 = PixX * 2
             X2 = X1 + 1
-            PixelColorA = tmpBitmap.CurrentBitmap.GetPixel(X1, Y1)
-            PixelColorB = tmpBitmap.CurrentBitmap.GetPixel(X2, Y1)
-            PixelColorC = tmpBitmap.CurrentBitmap.GetPixel(X1, Y2)
-            PixelColorD = tmpBitmap.CurrentBitmap.GetPixel(X2, Y2)
+            PixelColorA = tmpBitmap.GetPixel(X1, Y1)
+            PixelColorB = tmpBitmap.GetPixel(X2, Y1)
+            PixelColorC = tmpBitmap.GetPixel(X1, Y2)
+            PixelColorD = tmpBitmap.GetPixel(X2, Y2)
             Red = (CInt(PixelColorA.R) + PixelColorB.R + PixelColorC.R + PixelColorD.R) / 4.0F
             Green = (CInt(PixelColorA.G) + PixelColorB.G + PixelColorC.G + PixelColorD.G) / 4.0F
             Blue = (CInt(PixelColorA.B) + PixelColorB.B + PixelColorC.B + PixelColorD.B) / 4.0F
-            tmpBitmap1.CurrentBitmap.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
+            tmpBitmap1.SetPixel(PixX, PixY, ColorTranslator.FromOle(OSRGB(Red, Green, Blue)))
 
-            tmpBitmap1.GLTexture(frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 7)
+            BitmapGLTexture(tmpBitmap1, frmMainInstance.View.OpenGLControl, Tiles(TileNum).MapView_GL_Texture_Num, 7)
         Next
     End Function
 End Class

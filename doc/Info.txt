@@ -58,10 +58,10 @@ Rotation
 The space a structure or feature takes up doesn't rotate with the object. Many of them should not be rotated. Straight walls should only be rotated to 0 or 90 degrees. Cranes are an example of one that can be rotated.
 
 ID
-This is a unique number for the unit. It is only needed in campaign scripts.
+This is a unique number for the object. It is only needed in campaign scripts.
 
 Priority
-Depending on what level of bases the user chooses to play on, some or all of your players' base structures will be removed. The structures with the lowest priority will be removed last. You can enter negative numbers.
+Depending on what level of bases the user chooses to play on, some or all of your players' base structures will be removed. The structures with the highest priority will be removed last. You can enter negative numbers. Modules must have a priorty greater than or equal to their underlying structure to work.
 
 Selection toolbar
 -----------------

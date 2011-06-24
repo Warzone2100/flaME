@@ -4,7 +4,7 @@ f1 - camera movement mode
 f2 - camera rotation mode
 f5 - terrain on/off
 f6 - grid on/off
-f7 - units on/off
+f7 - objects on/off
 f8 - lighting on/off
 arrows - rotate
 home,end - zoom
@@ -23,12 +23,12 @@ Texture
 Height
 height change; right click changes in opposite direction.
 
-Units
-escape - unit select/edit mode
+Objects
+escape - object select/edit mode
 <, > - rotate
-m - move selected unit to mouse position
-delete - delete selected unit
-shift - select multiple units
+m - move selected objects to mouse position
+delete - delete selected objects
+shift - select multiple objects
 
 Entire Map Painter
 after clicking in the layers list:
@@ -42,5 +42,5 @@ shift + left click - remove gateway
 Other
 ctrl-z - undo
 ctrl-y - redo
-hold ctrl + left click - texture/ground/unit picker tool
+hold ctrl + left click - texture/ground/object picker tool
 

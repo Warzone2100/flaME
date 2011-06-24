@@ -7,9 +7,9 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{35445AD6-5363-42FB-8005-68D8371789A5}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <StartupObject>flaME.My.MyApplication</StartupObject>
-    <RootNamespace>flaME</RootNamespace>
-    <AssemblyName>flaME</AssemblyName>
+    <StartupObject>FlaME.My.MyApplication</StartupObject>
+    <RootNamespace>FlaME</RootNamespace>
+    <AssemblyName>FlaME</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
@@ -32,7 +32,7 @@
     </FileUpgradeFlags>
     <OldToolsVersion>3.5</OldToolsVersion>
     <UpgradeBackupLocation />
-    <PublishUrl>C:\flaME\</PublishUrl>
+    <PublishUrl>C:\FlaME\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -43,11 +43,11 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>false</MapFileExtensions>
     <TargetCulture>en-AU</TargetCulture>
-    <ProductName>flaME</ProductName>
-    <PublisherName>flaME</PublisherName>
+    <ProductName>FlaME</ProductName>
+    <PublisherName>FlaME</PublisherName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>59</ApplicationRevision>
-    <ApplicationVersion>1.19.0.59</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.20.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -58,7 +58,7 @@
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\VB 2010\</OutputPath>
-    <DocumentationFile>flaME.xml</DocumentationFile>
+    <DocumentationFile>FlaME.xml</DocumentationFile>
     <NoWarn>41999,42016</NoWarn>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Optimize>true</Optimize>
@@ -70,7 +70,7 @@
     <DefineTrace>true</DefineTrace>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DocumentationFile>flaME.xml</DocumentationFile>
+    <DocumentationFile>FlaME.xml</DocumentationFile>
     <NoWarn>41999,42016</NoWarn>
     <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
@@ -105,12 +105,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
+    <Compile Include="clsComponent.vb" />
+    <Compile Include="clsMapFMap.vb" />
+    <Compile Include="clsMapOtherIO.vb" />
+    <Compile Include="clsMapTools.vb" />
+    <Compile Include="clsMapWZ.vb" />
     <Compile Include="clsReadFile.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="clsWriteFile.vb" />
-    <Compile Include="clsBitmapFile.vb" />
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
+    <Compile Include="ctrlBrush.Designer.vb">
+      <DependentUpon>ctrlBrush.vb</DependentUpon>
+    </Compile>
+    <Compile Include="ctrlBrush.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="frmGenerator.Designer.vb">
       <DependentUpon>frmGenerator.vb</DependentUpon>
     </Compile>
@@ -141,7 +151,9 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Application.vb" />
+    <Compile Include="modBitmap.vb" />
     <Compile Include="modGenerator.vb" />
+    <Compile Include="modINI.vb" />
     <Compile Include="My Project\Resources.Designer.vb">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -199,6 +211,10 @@
     <Compile Include="TileOrientation.vb" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ctrlBrush.resx">
+      <DependentUpon>ctrlBrush.vb</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="ctrlMapView.resx">
       <DependentUpon>ctrlMapView.vb</DependentUpon>
     </EmbeddedResource>
@@ -223,6 +239,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmSplash.resx">
       <DependentUpon>frmSplash.vb</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="frmWarnings.resx">
       <DependentUpon>frmWarnings.vb</DependentUpon>

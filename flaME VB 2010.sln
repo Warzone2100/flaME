@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Basic Express 2010
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "flaME", "flaME\flaME VB 2010.vbproj", "{35445AD6-5363-42FB-8005-68D8371789A5}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "FlaME", "FlaME\FlaME VB 2010.vbproj", "{35445AD6-5363-42FB-8005-68D8371789A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

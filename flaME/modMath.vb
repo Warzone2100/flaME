@@ -29,8 +29,33 @@
             Y = NewY
         End Sub
     End Structure
+    Public Class clsXY_int
+        Public XY As sXY_int
+
+        Public Property X As Integer
+            Get
+                Return XY.X
+            End Get
+            Set(ByVal value As Integer)
+                XY.X = value
+            End Set
+        End Property
+        Public Property Y As Integer
+            Get
+                Return XY.Y
+            End Get
+            Set(ByVal value As Integer)
+                XY.Y = value
+            End Set
+        End Property
+
+        Public Sub New(ByVal NewXY As sXY_int)
+
+            XY = NewXY
+        End Sub
+    End Class
     Public Structure sXY_uint
-        Dim X As UInteger
+        Public X As UInteger
         Dim Y As UInteger
     End Structure
     Public Structure sXY_byte
@@ -99,30 +124,30 @@
     End Function
 
     Public Function GetDist(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Double
-        Static XY_dbl As sXY_dbl
+        Dim Dif As sXY_dbl
 
-        XY_dbl.X = PosB.X - PosA.X
-        XY_dbl.Y = PosB.Y - PosA.Y
-        Return Math.Sqrt(XY_dbl.X * XY_dbl.X + XY_dbl.Y * XY_dbl.Y)
+        Dif.X = PosB.X - PosA.X
+        Dif.Y = PosB.Y - PosA.Y
+        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y)
     End Function
 
     Public Function GetDist(ByVal PosA As sXYZ_dbl, ByVal PosB As sXYZ_dbl) As Double
-        Static XYZ_dbl As sXYZ_dbl
+        Dim Dif As sXYZ_dbl
 
-        XYZ_dbl.X = PosB.X - PosA.X
-        XYZ_dbl.Y = PosB.Y - PosA.Y
-        XYZ_dbl.Z = PosB.z - PosA.z
-        Return Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Y * XYZ_dbl.Y + XYZ_dbl.Z * XYZ_dbl.Z)
+        Dif.X = PosB.X - PosA.X
+        Dif.Y = PosB.Y - PosA.Y
+        Dif.Z = PosB.Z - PosA.Z
+        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y + Dif.Z * Dif.Z)
     End Function
 
-    Sub GetDist(ByVal XYZ_dbl As sXYZ_dbl, ByRef ResultDist As Double)
+    Public Function GetDist(ByVal Dif As sXYZ_dbl) As Double
 
-        ResultDist = Math.Sqrt(XYZ_dbl.Z * XYZ_dbl.Z + XYZ_dbl.Y * XYZ_dbl.Y + XYZ_dbl.X * XYZ_dbl.X)
-    End Sub
+        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y + Dif.Z * Dif.Z)
+    End Function
 
     Sub GetAnglePY(ByVal XYZ_dbl As sXYZ_dbl, ByRef Output_AnglePY As sAnglePY)
 
-        Output_AnglePY.Pitch = Math.Atan2(-XYZ_dbl.Y, Math.Sqrt(XYZ_dbl.Z * XYZ_dbl.Z + XYZ_dbl.X * XYZ_dbl.X))
+        Output_AnglePY.Pitch = Math.Atan2(-XYZ_dbl.Y, Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Z * XYZ_dbl.Z))
         If Output_AnglePY.Pitch > RadOf90Deg Then
             Output_AnglePY.Pitch = Pi - Output_AnglePY.Pitch
         ElseIf Output_AnglePY.Pitch < -RadOf90Deg Then

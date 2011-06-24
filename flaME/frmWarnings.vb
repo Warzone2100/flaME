@@ -4,21 +4,18 @@
 #End If
 
     Public Sub New(ByVal Result As clsResult, ByVal WindowTitle As String, ByVal WindowIcon As Icon)
-
-        ' This call is required by the Windows Form Designer.
         InitializeComponent()
-        ' Add any initialization after the InitializeComponent() call.
 
         Text = WindowTitle
         Icon = WindowIcon
 
         Dim A As Integer
         lstWarnings.Items.Clear()
-        For A = 0 To Result.WarningCount - 1
-            lstWarnings.Items.Add("(Warning) " & Result.Warning(A))
-        Next
         For A = 0 To Result.ProblemCount - 1
-            lstWarnings.Items.Add("(Problem) " & Result.Problem(A))
+            lstWarnings.Items.Add("(Problem) " & Result.Problems(A))
+        Next
+        For A = 0 To Result.WarningCount - 1
+            lstWarnings.Items.Add("(Warning) " & Result.Warnings(A))
         Next
     End Sub
 

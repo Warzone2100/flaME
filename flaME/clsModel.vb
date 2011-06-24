@@ -92,26 +92,16 @@ Public Class clsModel
         Dim PointCount As Integer
     End Structure
 
-    Function LoadPIE(ByVal Path As String) As sResult
+    Function LoadPIE(ByVal File As clsReadFile) As sResult
         LoadPIE.Success = False
         LoadPIE.Problem = ""
 
+        Dim TerminatorChars(1) As Char
+        TerminatorChars(0) = Chr(10)
+        TerminatorChars(1) = Chr(13)
+
         Dim A As Integer
         Dim B As Integer
-        Dim LineCount As Integer
-
-        Dim LineData(-1) As String
-
-        Dim tmpBytes() As Byte
-        Try
-            tmpBytes = IO.File.ReadAllBytes(Path)
-        Catch ex As Exception
-            LoadPIE.Problem = ex.Message
-            Exit Function
-        End Try
-        BytesToLines(tmpBytes, LineData)
-        LineCount = LineData.GetUpperBound(0) + 1
-
         Dim strTemp As String
         Dim SplitText() As String
         Dim LevelCount As Integer
@@ -132,11 +122,10 @@ Public Class clsModel
         LevelNum = -1
         Do
             LineNum += 1
-            If LineNum >= LineCount Then
-                Exit Do
+            strTemp = Nothing
+            If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                GoTo FileFinished
             End If
-            strTemp = LineData(LineNum)
-
 Reeval:
             If Left(strTemp, 3) = "PIE" Then
                 PIEVersion = Val(Right(strTemp, strTemp.Length - 4))
@@ -170,11 +159,10 @@ Reeval:
                 ReDim Level(LevelNum).Point(Level(LevelNum).PointCount - 1)
                 A = 0
                 Do
-                    LineNum += 1
-                    If LineNum >= LineCount Then
-                        Exit Do
+                    strTemp = Nothing
+                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                        GoTo FileFinished
                     End If
-                    strTemp = LineData(LineNum)
 
                     strTemp2 = Strings.Left(strTemp, 1)
                     If strTemp2 = Chr(9) Or strTemp2 = " " Then
@@ -212,11 +200,10 @@ Reeval:
                 ReDim Level(LevelNum).Polygon(Level(LevelNum).PolygonCount - 1)
                 A = 0
                 Do
-                    LineNum += 1
-                    If LineNum >= LineCount Then
-                        Exit Do
+                    strTemp = Nothing
+                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                        GoTo FileFinished
                     End If
-                    strTemp = LineData(LineNum)
 
                     strTemp2 = Strings.Left(strTemp, 1)
                     If strTemp2 = Chr(9) Or strTemp2 = " " Then
@@ -274,11 +261,10 @@ Reeval:
                 ReDim Connectors(ConnectorCount - 1)
                 A = 0
                 Do
-                    LineNum += 1
-                    If LineNum >= LineCount Then
-                        Exit Do
+                    strTemp = Nothing
+                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                        GoTo FileFinished
                     End If
-                    strTemp = LineData(LineNum)
 
                     strTemp2 = Strings.Left(strTemp, 1)
                     If strTemp2 = Chr(9) Or strTemp2 = " " Then
@@ -314,6 +300,7 @@ Reeval:
             Else
             End If
         Loop
+FileFinished:
 
         GLTextureNum = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
 

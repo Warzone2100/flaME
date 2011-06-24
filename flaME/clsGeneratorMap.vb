@@ -1544,22 +1544,22 @@ PointMakingFinished:
     End Sub
 
     Private Sub OilValueCalc(ByRef OilNodes() As clsPassageNode, ByRef OilClusterSizes() As Integer, ByRef BestNodes(,) As clsPassageNode, ByRef BestNodeScores() As Single, ByRef BestNodeCount As Integer, ByRef BestPlayerScoreAddition() As Single, ByRef BestValue As Single, ByRef PlayerOilScore() As Single, ByRef GenerateLayoutArgs As sGenerateLayoutArgs)
-        Static OilDistScore As Single
-        Static OilStraightDistScore As Single
-        Static LowestScore As Single
-        Static HighestScore As Single
-        Static EnemiesOilScore As Single
-        Static PlayerOilScoreAddition() As Single
-        Static UnbalancedScore As Single
-        Static sngTemp As Single
-        Static A As Integer
-        Static B As Integer
-        Static C As Integer
-        Static D As Integer
-        Static E As Integer
-        Static F As Integer
-        Static Value As Single
-        Static BaseOilScore() As Single
+        Dim OilDistScore As Single
+        Dim OilStraightDistScore As Single
+        Dim LowestScore As Single
+        Dim HighestScore As Single
+        Dim EnemiesOilScore As Single
+        Dim PlayerOilScoreAddition() As Single
+        Dim UnbalancedScore As Single
+        Dim sngTemp As Single
+        Dim A As Integer
+        Dim B As Integer
+        Dim C As Integer
+        Dim D As Integer
+        Dim E As Integer
+        Dim F As Integer
+        Dim Value As Single
+        Dim BaseOilScore() As Single
 
         ReDim PlayerOilScoreAddition(GenerateLayoutArgs.PlayerCount - 1)
         ReDim BaseOilScore(GenerateLayoutArgs.PlayerCount - 1)
@@ -1725,13 +1725,13 @@ PointMakingFinished:
     End Structure
 
     Private Function TestNearest(ByRef Args As sTestNearestArgs) As Boolean
-        Static XY_int As sXY_int
+        Dim XY_int As sXY_int
         Dim NearestA As clsNearest
-        Static Dist2 As Integer
-        Static A As Integer
-        Static B As Integer
-        Static ReflectionNum As Integer
-        Static ReflectionCount As Integer
+        Dim Dist2 As Integer
+        Dim A As Integer
+        Dim B As Integer
+        Dim ReflectionNum As Integer
+        Dim ReflectionCount As Integer
 
         If Args.tmpPassageNodeA.MirrorNum <> 0 Then
             Stop
@@ -1921,6 +1921,8 @@ PointMakingFinished:
         Dim TilePosB As sXY_int
         Dim X2 As Integer
         Dim Y2 As Integer
+        Dim Remainder As Integer
+        Dim Footprint As sXY_int
 
         PosNode = GetNearestNode(TilePathMap, Pos, Clearance)
         If PosNode IsNot Nothing Then
@@ -1933,29 +1935,32 @@ PointMakingFinished:
 
                 FinalTilePos.X = Int(NodeTag.Pos.X / TerrainGridSpacing)
                 FinalTilePos.Y = Int(NodeTag.Pos.Y / TerrainGridSpacing)
-                If Type.LoadedInfo.Footprint.X <> CInt(Int(Type.LoadedInfo.Footprint.X / 2.0#)) * 2 Then
-                    NewUnit.Pos.X = NodeTag.Pos.X
+                Footprint = Type.GetFootprint
+                Math.DivRem(Footprint.X, 2, Remainder)
+                If Remainder > 0 Then
+                    NewUnit.Pos.Horizontal.X = NodeTag.Pos.X
                 Else
                     If Rnd() >= 0.5F Then
-                        NewUnit.Pos.X = NodeTag.Pos.X - TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X - TerrainGridSpacing / 2.0#
                     Else
-                        NewUnit.Pos.X = NodeTag.Pos.X + TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X + TerrainGridSpacing / 2.0#
                     End If
                 End If
-                If Type.LoadedInfo.Footprint.Y <> CInt(Int(Type.LoadedInfo.Footprint.Y / 2.0#)) * 2 Then
-                    NewUnit.Pos.Z = NodeTag.Pos.Y
+                Math.DivRem(Footprint.Y, 2, Remainder)
+                If Remainder > 0 Then
+                    NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y
                 Else
                     If Rnd() >= 0.5F Then
-                        NewUnit.Pos.Z = NodeTag.Pos.Y - TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y - TerrainGridSpacing / 2.0#
                     Else
-                        NewUnit.Pos.Z = NodeTag.Pos.Y + TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y + TerrainGridSpacing / 2.0#
                     End If
                 End If
-                NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
-                TilePosA.X = Int(NewUnit.Pos.X / TerrainGridSpacing - Type.LoadedInfo.Footprint.X / 2.0# + 0.5#)
-                TilePosA.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing - Type.LoadedInfo.Footprint.Y / 2.0# + 0.5#)
-                TilePosB.X = Int(NewUnit.Pos.X / TerrainGridSpacing + Type.LoadedInfo.Footprint.X / 2.0# - 0.5#)
-                TilePosB.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing + Type.LoadedInfo.Footprint.Y / 2.0# - 0.5#)
+                NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
+                TilePosA.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#)
+                TilePosA.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#)
+                TilePosB.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#)
+                TilePosB.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#)
                 NewUnit.Rotation = Rotation
 
                 Unit_Add(NewUnit)
@@ -1977,25 +1982,28 @@ PointMakingFinished:
         End If
     End Function
 
-    Public Function PlaceUnit(ByVal Type As clsUnitType, ByVal Pos As sXYZ_int, ByVal PlayerNum As Byte, ByVal Rotation As Integer) As clsMap.clsUnit
+    Public Function PlaceUnit(ByVal Type As clsUnitType, ByVal Pos As sWorldPos, ByVal PlayerNum As Byte, ByVal Rotation As Integer) As clsMap.clsUnit
         Dim TilePosA As sXY_int
         Dim TilePosB As sXY_int
         Dim X2 As Integer
         Dim Y2 As Integer
         Dim FinalTilePos As sXY_int
+        Dim Footprint As sXY_int
 
         Dim NewUnit As New clsMap.clsUnit
         NewUnit.Type = Type
         NewUnit.PlayerNum = PlayerNum
 
-        FinalTilePos.X = Int(Pos.X / TerrainGridSpacing)
-        FinalTilePos.Y = Int(Pos.Z / TerrainGridSpacing)
+        FinalTilePos.X = Int(Pos.Horizontal.X / TerrainGridSpacing)
+        FinalTilePos.Y = Int(Pos.Horizontal.Y / TerrainGridSpacing)
+
+        Footprint = Type.GetFootprint
 
         NewUnit.Pos = Pos
-        TilePosA.X = Int(NewUnit.Pos.X / TerrainGridSpacing - Type.LoadedInfo.Footprint.X / 2.0# + 0.5#)
-        TilePosA.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing - Type.LoadedInfo.Footprint.Y / 2.0# + 0.5#)
-        TilePosB.X = Int(NewUnit.Pos.X / TerrainGridSpacing + Type.LoadedInfo.Footprint.X / 2.0# - 0.5#)
-        TilePosB.Y = Int(NewUnit.Pos.Z / TerrainGridSpacing + Type.LoadedInfo.Footprint.Y / 2.0# - 0.5#)
+        TilePosA.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#)
+        TilePosA.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#)
+        TilePosB.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#)
+        TilePosB.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#)
         NewUnit.Rotation = Rotation
 
         Unit_Add(NewUnit)
@@ -2169,14 +2177,14 @@ PointMakingFinished:
                         Exit Function
                     End If
                     'flatten ground underneath
-                    TilePos.X = Int(tmpUnit.Pos.X / TerrainGridSpacing)
-                    TilePos.Y = Int(tmpUnit.Pos.Z / TerrainGridSpacing)
+                    TilePos.X = Int(tmpUnit.Pos.Horizontal.X / TerrainGridSpacing)
+                    TilePos.Y = Int(tmpUnit.Pos.Horizontal.Y / TerrainGridSpacing)
                     AverageHeight = CByte((CInt(TerrainVertex(TilePos.X, TilePos.Y).Height) + CInt(TerrainVertex(TilePos.X + 1, TilePos.Y).Height) + CInt(TerrainVertex(TilePos.X, TilePos.Y + 1).Height) + CInt(TerrainVertex(TilePos.X + 1, TilePos.Y + 1).Height)) / 4.0#)
                     TerrainVertex(TilePos.X, TilePos.Y).Height = AverageHeight
                     TerrainVertex(TilePos.X + 1, TilePos.Y).Height = AverageHeight
                     TerrainVertex(TilePos.X, TilePos.Y + 1).Height = AverageHeight
                     TerrainVertex(TilePos.X + 1, TilePos.Y + 1).Height = AverageHeight
-                    tmpUnit.Pos.Y = AverageHeight * HeightMultiplier 'GetTerrainHeight(tmpUnit.Pos.X, tmpUnit.Pos.Z)
+                    tmpUnit.Pos.Altitude = AverageHeight * HeightMultiplier
                     If C < _PlayerCount Then
                         'place base derrick
                         tmpUnit = PlaceUnit(UnitType_Derrick, tmpUnit.Pos, C, 0)
@@ -2207,6 +2215,7 @@ PointMakingFinished:
         Dim uintTemp As UInteger
         Dim tmpNode As PathfinderNode
         Dim E As Integer
+        Dim Footprint As sXY_int
 
         If GenerateTileset.ClusteredUnitChanceTotal > 0 Then
             For A = 0 To PassageNodeCount - 1
@@ -2222,7 +2231,8 @@ PointMakingFinished:
                                     Exit For
                                 End If
                             Next
-                            E = CInt(Math.Ceiling(Math.Max(GenerateTileset.ClusteredUnits(C).Type.LoadedInfo.Footprint.X, GenerateTileset.ClusteredUnits(C).Type.LoadedInfo.Footprint.Y) / 2.0F)) + 1
+                            Footprint = GenerateTileset.ClusteredUnits(C).Type.GetFootprint
+                            E = CInt(Math.Ceiling(Math.Max(Footprint.X, Footprint.Y) / 2.0F)) + 1
                             tmpUnit = PlaceUnitNear(GenerateTileset.ClusteredUnits(C).Type, PassageNodes(D, A).Pos, 0, E, 0, FeaturePlaceRange)
                             If tmpUnit Is Nothing Then
                                 GenerateUnits.Problem = "Not enough space for a clustered unit"
@@ -2249,7 +2259,8 @@ PointMakingFinished:
                         Exit For
                     End If
                 Next
-                B = 2 + CInt(Math.Ceiling(Math.Max(GenerateTileset.ScatteredUnits(C).Type.LoadedInfo.Footprint.X, GenerateTileset.ScatteredUnits(C).Type.LoadedInfo.Footprint.Y) / 2.0F))
+                Footprint = GenerateTileset.ScatteredUnits(C).Type.GetFootprint
+                B = 2 + CInt(Math.Ceiling(Math.Max(Footprint.X, Footprint.Y) / 2.0F))
                 tmpNode = GetRandomChildNode(TilePathMap.GetNodeLayer(TilePathMap.GetNodeLayerCount - 1).GetNode(0), B + 2)
                 If tmpNode Is Nothing Then
                     GenerateUnits.Problem = "Not enough space for a scattered unit"
@@ -2433,13 +2444,13 @@ PointMakingFinished:
     End Function
 
     Private Function MakePassageNodes(ByVal Pos As sXY_int, ByVal IsOnBorder As Boolean, ByRef Args As sGenerateLayoutArgs) As Boolean
-        Static A As Integer
-        Static B As Integer
-        Static tmpNode As clsPassageNode
-        Static RatioPos As sXY_dbl
-        Static RotatedPos As sXY_dbl
-        Static SymmetrySize As sXY_dbl
-        Static Positions(3) As sXY_int
+        Dim A As Integer
+        Dim B As Integer
+        Dim tmpNode As clsPassageNode
+        Dim RatioPos As sXY_dbl
+        Dim RotatedPos As sXY_dbl
+        Dim SymmetrySize As sXY_dbl
+        Dim Positions(3) As sXY_int
 
         SymmetrySize.X = Args.Size.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X
         SymmetrySize.Y = Args.Size.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y
@@ -2552,12 +2563,35 @@ PointMakingFinished:
     '    RoadPathMap.Deallocate()
     'End Sub
 
-    Public Overrides Sub Deallocate()
+    Public Sub ClearGenerator(ByVal SymmetryBlockCount As Integer)
 
-        VertexPathMap.Deallocate()
+        Dim A As Integer
+        Dim B As Integer
+
         TilePathMap.Deallocate()
+        TilePathMap = Nothing
+        VertexPathMap.Deallocate()
+        VertexPathMap = Nothing
 
-        MyBase.Deallocate()
+        Erase GenerateTerrainVertex
+        Erase GenerateTerrainTiles
+
+        For A = 0 To ConnectionCount - 1
+            Connections(A).PassageNodeA = Nothing
+            Connections(A).PassageNodeB = Nothing
+            Erase Connections(A).Reflections
+        Next
+        Erase Connections
+
+        For A = 0 To PassageNodeCount - 1
+            For B = 0 To SymmetryBlockCount - 1
+                Erase PassageNodes(B, A).Connections
+            Next
+        Next
+        Erase PassageNodes
+        Erase PassageNodeDists
+        Erase Nearests
+        Erase BasePassageNodes
     End Sub
 
     Public Sub New(ByVal Size As sXY_int)

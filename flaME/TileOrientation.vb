@@ -89,7 +89,7 @@
     Public TileDirection_None As New sTileDirection(1, 1)
 
     Public Function OrientateTile(ByRef TileChance As clsPainter.sTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.sTerrainTile.sTexture
-        Static IsDiagonal As Boolean
+        Dim IsDiagonal As Boolean
 
         'use random for empty tiles
         If TileChance.TextureNum < 0 Then
@@ -194,6 +194,36 @@
         End If
     End Sub
 
+    Public Function GetTileRotatedOffset(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_int) As sXY_int
+        Dim Result As sXY_int
+
+        If TileOrientation.SwitchedAxes Then
+            If TileOrientation.ResultXFlip Then
+                Result.X = TerrainGridSpacing - Pos.Y
+            Else
+                Result.X = Pos.Y
+            End If
+            If TileOrientation.ResultZFlip Then
+                Result.Y = TerrainGridSpacing - Pos.X
+            Else
+                Result.Y = Pos.X
+            End If
+        Else
+            If TileOrientation.ResultXFlip Then
+                Result.X = TerrainGridSpacing - Pos.X
+            Else
+                Result.X = Pos.X
+            End If
+            If TileOrientation.ResultZFlip Then
+                Result.Y = TerrainGridSpacing - Pos.Y
+            Else
+                Result.Y = Pos.Y
+            End If
+        End If
+
+        Return Result
+    End Function
+
     Public Function GetTileRotatedPos(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_sng) As sXY_sng
 
         If TileOrientation.SwitchedAxes Then
@@ -249,13 +279,13 @@
     End Function
 
     Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
-        Static XFlip As Boolean
-        Static ZFlip As Boolean
+        Dim XFlip As Boolean
+        Dim ZFlip As Boolean
 
         XFlip = TileOrientation.ResultXFlip
         ZFlip = TileOrientation.ResultZFlip
 
-        'texcoords are reverse of normal, so reverse any rotation. flip is the reverse of itself so nothing needs to be done there.
+        'texcoords are reverse of normal
         If TileOrientation.SwitchedAxes Then
             If XFlip Xor ZFlip Then
                 XFlip = Not XFlip

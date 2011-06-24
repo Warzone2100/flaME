@@ -1,8 +1,7 @@
 ﻿Imports OpenTK.Graphics
 Imports OpenTK.Graphics.OpenGL
-Imports ICSharpCode.SharpZipLib
 
-Public Class clsMap
+Partial Public Class clsMap
 
     Public TerrainSize As sXY_int
     Structure sTerrainVertex
@@ -115,45 +114,55 @@ Public Class clsMap
 
     Public SelectedUnits() As clsUnit
     Public SelectedUnitCount As Integer
-    Public Selected_Tile_A_Exists As Boolean
-    Public Selected_Tile_A As sXY_int
-    Public Selected_Tile_B_Exists As Boolean
-    Public Selected_Tile_B As sXY_int
-    Public Selected_Area_VertexA As sXY_int
-    Public Selected_Area_VertexA_Exists As Boolean
-    Public Selected_Area_VertexB As sXY_int
-    Public Selected_Area_VertexB_Exists As Boolean
-    Public Unit_Selected_Area_VertexA As sXY_int
-    Public Unit_Selected_Area_VertexA_Exists As Boolean
-
-    Public Unrecognised_UnitTypes(-1) As clsUnitType
-    Public Unrecognised_UnitType_Count As Integer
+    Public Selected_Tile_A As clsXY_int
+    Public Selected_Tile_B As clsXY_int
+    Public Selected_Area_VertexA As clsXY_int
+    Public Selected_Area_VertexB As clsXY_int
+    Public Unit_Selected_Area_VertexA As clsXY_int
 
     Class clsUnit
-        Public ID As UInteger
-        Public SavePriority As Integer
-        Public Type As clsUnitType
-        Public Pos As sXYZ_int
-        Public Rotation As Integer
-        Public Name As String = "NONAME"
-        Public PlayerNum As Byte
-        Public Num As Integer = -1
-        Public SelectedUnitNum As Integer = -1
+        Public Map_UnitNum As Integer = -1
+        Public Map_SelectedUnitNum As Integer = -1
         Public Sectors(-1) As clsSector
         Public Sectors_UnitNum(-1) As Integer
         Public SectorCount As Integer
+
+        Public ID As UInteger
+        Public SavePriority As Integer
+        Public Type As clsUnitType
+        Public Pos As sWorldPos
+        Public Rotation As Integer
+        'Public Name As String = "NONAME"
+        Public PlayerNum As Byte
+        Public Health As Double = 1.0#
+        Public PreferPartsOutput As Boolean = False
 
         Sub New()
 
         End Sub
 
         Sub New(ByVal Unit_To_Copy As clsUnit)
+            Dim IsDesign As Boolean
 
-            Type = Unit_To_Copy.Type
+            If Unit_To_Copy.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                IsDesign = Not CType(Unit_To_Copy.Type, clsDroidDesign).IsTemplate
+            Else
+                IsDesign = False
+            End If
+            If IsDesign Then
+                Dim tmpDroidDesign As New clsDroidDesign
+                Type = tmpDroidDesign
+                tmpDroidDesign.CopyDesign(CType(Unit_To_Copy.Type, clsDroidDesign))
+                tmpDroidDesign.UpdateAttachments()
+            Else
+                Type = Unit_To_Copy.Type
+            End If
             Pos = Unit_To_Copy.Pos
             Rotation = Unit_To_Copy.Rotation
             PlayerNum = Unit_To_Copy.PlayerNum
             SavePriority = Unit_To_Copy.SavePriority
+            Health = Unit_To_Copy.Health
+            PreferPartsOutput = Unit_To_Copy.PreferPartsOutput
         End Sub
 
         Sub Sectors_Remove()
@@ -162,6 +171,22 @@ Public Class clsMap
             ReDim Sectors(-1)
             ReDim Sectors_UnitNum(-1)
         End Sub
+
+        Public Function GetINIRotation() As String
+            Dim Rotation16 As Integer
+
+            Rotation16 = CInt(Rotation * 65536.0# / 360.0#)
+            If Rotation16 >= 63356 Then
+                Rotation16 -= 65536
+            End If
+
+            Return Rotation16 & ", 0, 0"
+        End Function
+
+        Public Function GetPosText() As String
+
+            Return Pos.Horizontal.X & ", " & Pos.Horizontal.Y
+        End Function
     End Class
     Public Units(-1) As clsUnit
     Public UnitCount As Integer
@@ -171,7 +196,14 @@ Public Class clsMap
 
     Public Tileset As clsTileset
 
-    Public QuickSave_Path As String = ""
+    Public Class clsFMapSaveInfo
+        Public Path As String
+
+        Public Sub New(ByVal NewPath As String)
+            Path = NewPath
+        End Sub
+    End Class
+    Public LastFMapSaveInfo As clsFMapSaveInfo
 
     Class clsAutoSave
         Public ChangeCount As UInteger
@@ -195,7 +227,7 @@ Public Class clsMap
     Public Gateways(-1) As sGateway
     Public GatewayCount As Integer
 
-    Class clsSectorChange
+    Class clsSectorGraphicsChange
         Public Parent_Map As clsMap
 
         Public SectorIsChanged(,) As Boolean
@@ -213,10 +245,10 @@ Public Class clsMap
         Public Sub TerrainUndoChanged(ByVal SectorNum As sXY_int)
 
             Parent_Map.Sectors(SectorNum.X, SectorNum.Y).Changed = True 'do this every time. it can be changed by units without having this set
-            TerrainGraphicsChanged(SectorNum)
+            SectorChanged(SectorNum)
         End Sub
 
-        Public Sub TerrainGraphicsChanged(ByVal SectorNum As sXY_int)
+        Public Sub SectorChanged(ByVal SectorNum As sXY_int)
 
             If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
                 SectorIsChanged(SectorNum.X, SectorNum.Y) = True
@@ -225,104 +257,95 @@ Public Class clsMap
             End If
         End Sub
 
-        Public Sub UnitChanged(ByVal SectorNum As sXY_int)
+        Sub Tile_Set_Changed(ByVal TileNum As sXY_int)
+            Dim SectorNum As sXY_int
 
-            If Not SectorIsChanged(SectorNum.X, SectorNum.Y) Then
-                SectorIsChanged(SectorNum.X, SectorNum.Y) = True
-                ChangedSectors(ChangedSectorCount) = SectorNum
-                ChangedSectorCount += 1
-            End If
-        End Sub
-
-        Sub Tile_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
-            Static SectorNum As sXY_int
-
-            Parent_Map.Tile_Get_Sector(X, Z, SectorNum)
+            SectorNum = Parent_Map.GetTileSectorNum(TileNum)
             TerrainUndoChanged(SectorNum)
         End Sub
 
-        Sub Vertex_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub Vertex_Set_Changed(ByVal VertexNum As sXY_int)
 
-            If X > 0 Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X - 1, Z - 1)
+            If VertexNum.X > 0 Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y - 1))
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X - 1, Z)
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y))
                 End If
             End If
-            If X < Parent_Map.TerrainSize.X Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X, Z - 1)
+            If VertexNum.X < Parent_Map.TerrainSize.X Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X, VertexNum.Y - 1))
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X, Z)
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(VertexNum)
                 End If
             End If
         End Sub
 
-        Sub Vertex_And_Normals_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub Vertex_And_Normals_Changed(ByVal VertexNum As sXY_int)
 
-            If X > 1 Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X - 2, Z - 1)
+            If VertexNum.X > 1 Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 2, VertexNum.Y - 1))
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X - 2, Z)
-                End If
-            End If
-            If X > 0 Then
-                If Z > 1 Then
-                    Tile_Set_Changed(X - 1, Z - 2)
-                End If
-                If Z > 0 Then
-                    Tile_Set_Changed(X - 1, Z - 1)
-                End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X - 1, Z)
-                End If
-                If Z < Parent_Map.TerrainSize.Y - 1 Then
-                    Tile_Set_Changed(X - 1, Z + 1)
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 2, VertexNum.Y))
                 End If
             End If
-            If X < Parent_Map.TerrainSize.X Then
-                If Z > 1 Then
-                    Tile_Set_Changed(X, Z - 2)
+            If VertexNum.X > 0 Then
+                If VertexNum.Y > 1 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y - 2))
                 End If
-                If Z > 0 Then
-                    Tile_Set_Changed(X, Z - 1)
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y - 1))
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X, Z)
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y))
                 End If
-                If Z < Parent_Map.TerrainSize.Y - 1 Then
-                    Tile_Set_Changed(X, Z + 1)
+                If VertexNum.Y < Parent_Map.TerrainSize.Y - 1 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y + 1))
                 End If
             End If
-            If X < Parent_Map.TerrainSize.X - 1 Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X + 1, Z - 1)
+            If VertexNum.X < Parent_Map.TerrainSize.X Then
+                If VertexNum.Y > 1 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X, VertexNum.Y - 2))
                 End If
-                If Z < Parent_Map.TerrainSize.Y Then
-                    Tile_Set_Changed(X + 1, Z)
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X, VertexNum.Y - 1))
+                End If
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(VertexNum)
+                End If
+                If VertexNum.Y < Parent_Map.TerrainSize.Y - 1 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X, VertexNum.Y + 1))
+                End If
+            End If
+            If VertexNum.X < Parent_Map.TerrainSize.X - 1 Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X + 1, VertexNum.Y - 1))
+                End If
+                If VertexNum.Y < Parent_Map.TerrainSize.Y Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X + 1, VertexNum.Y))
                 End If
             End If
         End Sub
 
-        Sub SideH_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub SideH_Set_Changed(ByVal SideHNum As sXY_int)
 
-            If Z > 0 Then
-                Tile_Set_Changed(X, Z - 1)
+            If SideHNum.Y > 0 Then
+                Tile_Set_Changed(New sXY_int(SideHNum.X, SideHNum.Y - 1))
             End If
-            Tile_Set_Changed(X, Z)
+            Tile_Set_Changed(SideHNum)
         End Sub
 
-        Sub SideV_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub SideV_Set_Changed(ByVal SideVNum As sXY_int)
 
-            If X > 0 Then
-                Tile_Set_Changed(X - 1, Z)
+            If SideVNum.X > 0 Then
+                Tile_Set_Changed(New sXY_int(SideVNum.X - 1, SideVNum.Y))
             End If
-            Tile_Set_Changed(X, Z)
+            Tile_Set_Changed(SideVNum)
         End Sub
 
         Sub Update_Graphics()
@@ -383,15 +406,16 @@ Public Class clsMap
                 tmpUnit = OldUnits(A)
                 NewUnit = New clsUnit(tmpUnit)
                 ID = tmpUnit.ID
-                NewUnit.Pos.Y = Parent_Map.GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
+                NewUnit.Pos.Altitude = Parent_Map.GetTerrainHeight(NewUnit.Pos.Horizontal)
                 'these create changed sectors and must be done before drawing the new sectors
-                Parent_Map.Unit_Remove_StoreChange(tmpUnit.Num)
+                Parent_Map.Unit_Remove_StoreChange(tmpUnit.Map_UnitNum)
                 Parent_Map.Unit_Add_StoreChange(NewUnit, ID)
+                ErrorIDChange(ID, NewUnit, "SectorChange->UpdateGraphicsAndUnitHeights")
             Next
             Update_Graphics()
         End Sub
     End Class
-    Public SectorChange As clsSectorChange
+    Public SectorGraphicsChange As clsSectorGraphicsChange
 
     Public Class clsAutoTextureChange
         Public ParentMap As clsMap
@@ -407,50 +431,49 @@ Public Class clsMap
             ReDim ChangedTiles(NewParentMap.TerrainSize.X * NewParentMap.TerrainSize.Y - 1)
         End Sub
 
-        Sub Tile_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub Tile_Set_Changed(ByVal TileNum As sXY_int)
 
-            If Not TileIsChanged(X, Z) Then
-                TileIsChanged(X, Z) = True
-                ChangedTiles(ChangedTileCount).X = X
-                ChangedTiles(ChangedTileCount).Y = Z
+            If Not TileIsChanged(TileNum.X, TileNum.Y) Then
+                TileIsChanged(TileNum.X, TileNum.Y) = True
+                ChangedTiles(ChangedTileCount) = TileNum
                 ChangedTileCount += 1
             End If
         End Sub
 
-        Sub Vertex_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub Vertex_Set_Changed(ByVal VertexNum As sXY_int)
 
-            If X > 0 Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X - 1, Z - 1)
+            If VertexNum.X > 0 Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y - 1))
                 End If
-                If Z < ParentMap.TerrainSize.Y Then
-                    Tile_Set_Changed(X - 1, Z)
+                If VertexNum.Y < ParentMap.TerrainSize.Y Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X - 1, VertexNum.Y))
                 End If
             End If
-            If X < ParentMap.TerrainSize.X Then
-                If Z > 0 Then
-                    Tile_Set_Changed(X, Z - 1)
+            If VertexNum.X < ParentMap.TerrainSize.X Then
+                If VertexNum.Y > 0 Then
+                    Tile_Set_Changed(New sXY_int(VertexNum.X, VertexNum.Y - 1))
                 End If
-                If Z < ParentMap.TerrainSize.Y Then
-                    Tile_Set_Changed(X, Z)
+                If VertexNum.Y < ParentMap.TerrainSize.Y Then
+                    Tile_Set_Changed(VertexNum)
                 End If
             End If
         End Sub
 
-        Sub SideH_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub SideH_Set_Changed(ByVal SideHNum As sXY_int)
 
-            If Z > 0 Then
-                Tile_Set_Changed(X, Z - 1)
+            If SideHNum.Y > 0 Then
+                Tile_Set_Changed(New sXY_int(SideHNum.X, SideHNum.Y - 1))
             End If
-            Tile_Set_Changed(X, Z)
+            Tile_Set_Changed(SideHNum)
         End Sub
 
-        Sub SideV_Set_Changed(ByVal X As Integer, ByVal Z As Integer)
+        Sub SideV_Set_Changed(ByVal SideVNum As sXY_int)
 
-            If X > 0 Then
-                Tile_Set_Changed(X - 1, Z)
+            If SideVNum.X > 0 Then
+                Tile_Set_Changed(New sXY_int(SideVNum.X - 1, SideVNum.Y))
             End If
-            Tile_Set_Changed(X, Z)
+            Tile_Set_Changed(SideVNum)
         End Sub
 
         Sub Update_AutoTexture()
@@ -461,7 +484,7 @@ Public Class clsMap
             For A = 0 To ChangedTileCount - 1
                 X = ChangedTiles(A).X
                 Z = ChangedTiles(A).Y
-                ParentMap.Tile_AutoTexture_Changed(X, Z, frmMainInstance.chkInvalidTiles.Checked)
+                ParentMap.Tile_AutoTexture_Changed(X, Z, frmMainInstance.cbxInvalidTiles.Checked)
                 TileIsChanged(X, Z) = False
             Next
             ChangedTileCount = 0
@@ -484,7 +507,7 @@ Public Class clsMap
         ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange = New clsSectorChange(Me)
+        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
         TileType_Reset()
     End Sub
 
@@ -496,13 +519,7 @@ Public Class clsMap
         Dim X As Integer
         Dim Z As Integer
 
-        'MakeMinimapTimer = New Timer
-        'MakeMinimapTimer.Interval = MinimapDelay
-
         'make some map data for selection
-
-        Unrecognised_UnitTypes = Map_To_Copy.Unrecognised_UnitTypes.Clone
-        Unrecognised_UnitType_Count = Map_To_Copy.Unrecognised_UnitType_Count
 
         StartX = Math.Max(0 - Offset.X, 0)
         StartZ = Math.Max(0 - Offset.Y, 0)
@@ -559,9 +576,9 @@ Public Class clsMap
 
         For A = 0 To Map_To_Copy.GatewayCount - 1
             If (Map_To_Copy.Gateways(A).PosA.X >= Offset.X And Map_To_Copy.Gateways(A).PosA.Y >= Offset.Y And _
-                 Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
-                 (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
-                 Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
+                    Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
+                    (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
+                    Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
                 Gateway_Add(New sXY_int(Map_To_Copy.Gateways(A).PosA.X - Offset.X, Map_To_Copy.Gateways(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways(A).PosB.X - Offset.X, Map_To_Copy.Gateways(A).PosB.Y - Offset.Y))
             End If
         Next
@@ -570,12 +587,12 @@ Public Class clsMap
         PosDifZ = -Offset.Y * TerrainGridSpacing
         For A = 0 To Map_To_Copy.UnitCount - 1
             NewUnit = New clsUnit(Map_To_Copy.Units(A))
-            NewUnit.Pos.X += PosDifX
-            NewUnit.Pos.Z += PosDifZ
-            If Not (NewUnit.Pos.X < 0 _
-                    Or NewUnit.Pos.X >= TerrainSize.X * TerrainGridSpacing _
-                    Or NewUnit.Pos.Z < 0 _
-                    Or NewUnit.Pos.Z >= TerrainSize.Y * TerrainGridSpacing) Then
+            NewUnit.Pos.Horizontal.X += PosDifX
+            NewUnit.Pos.Horizontal.Y += PosDifZ
+            If Not (NewUnit.Pos.Horizontal.X < 0 _
+                    Or NewUnit.Pos.Horizontal.X >= TerrainSize.X * TerrainGridSpacing _
+                    Or NewUnit.Pos.Horizontal.Y < 0 _
+                    Or NewUnit.Pos.Horizontal.Y >= TerrainSize.Y * TerrainGridSpacing) Then
                 Unit_Add(NewUnit)
             End If
         Next
@@ -583,7 +600,7 @@ Public Class clsMap
         ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSector_CreateAll()
         AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange = New clsSectorChange(Me)
+        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
     End Sub
 
     Sub Terrain_Blank(ByVal TileSizeX As Integer, ByVal TileSizeZ As Integer)
@@ -602,55 +619,60 @@ Public Class clsMap
         Next
         ReDim TerrainVertex(TerrainSize.X, TerrainSize.Y)
         ReDim TerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
+        For Z = 0 To TerrainSize.Y - 1
+            For X = 0 To TerrainSize.X - 1
+                TerrainTiles(X, Z).DownSide = TileDirection_None
+            Next
+        Next
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
         ReDim TerrainSideV(TerrainSize.X, TerrainSize.Y - 1)
         Clear_Textures()
     End Sub
 
-    Function GetTerrainSlopeAngle(ByVal X As Integer, ByVal Z As Integer) As Double
-        Static X1 As Integer
-        Static X2 As Integer
-        Static Z1 As Integer
-        Static Z2 As Integer
-        Static InTileX As Double
-        Static InTileZ As Double
-        Static XG As Integer
-        Static ZG As Integer
-        Static GradientX As Double
-        Static GradientZ As Double
-        Static Offset As Double
-        Static XYZ_dbl As sXYZ_dbl
-        Static XYZ_dbl2 As sXYZ_dbl
-        Static XYZ_dbl3 As sXYZ_dbl
-        Static AnglePY As sAnglePY
+    Function GetTerrainSlopeAngle(ByVal Horizontal As sXY_int) As Double
+        Dim X1 As Integer
+        Dim X2 As Integer
+        Dim Y1 As Integer
+        Dim Y2 As Integer
+        Dim InTileX As Double
+        Dim InTileZ As Double
+        Dim XG As Integer
+        Dim YG As Integer
+        Dim GradientX As Double
+        Dim GradientY As Double
+        Dim Offset As Double
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim XYZ_dbl2 As sXYZ_dbl
+        Dim XYZ_dbl3 As sXYZ_dbl
+        Dim AnglePY As sAnglePY
 
-        XG = Int(X / TerrainGridSpacing)
-        ZG = Int(Z / TerrainGridSpacing)
-        InTileX = Clamp(X / TerrainGridSpacing - XG, 0.0#, 1.0#)
-        InTileZ = Clamp(Z / TerrainGridSpacing - ZG, 0.0#, 1.0#)
+        XG = Int(Horizontal.X / TerrainGridSpacing)
+        YG = Int(Horizontal.Y / TerrainGridSpacing)
+        InTileX = Clamp(Horizontal.X / TerrainGridSpacing - XG, 0.0#, 1.0#)
+        InTileZ = Clamp(Horizontal.Y / TerrainGridSpacing - YG, 0.0#, 1.0#)
         X1 = Clamp(XG, 0, TerrainSize.X - 1)
-        Z1 = Clamp(ZG, 0, TerrainSize.Y - 1)
+        Y1 = Clamp(YG, 0, TerrainSize.Y - 1)
         X2 = Clamp(XG + 1, 0, TerrainSize.X)
-        Z2 = Clamp(ZG + 1, 0, TerrainSize.Y)
-        If TerrainTiles(X1, Z1).Tri Then
+        Y2 = Clamp(YG + 1, 0, TerrainSize.Y)
+        If TerrainTiles(X1, Y1).Tri Then
             If InTileZ <= 1.0# - InTileX Then
-                Offset = TerrainVertex(X1, Z1).Height
-                GradientX = TerrainVertex(X2, Z1).Height - Offset
-                GradientZ = TerrainVertex(X1, Z2).Height - Offset
+                Offset = TerrainVertex(X1, Y1).Height
+                GradientX = TerrainVertex(X2, Y1).Height - Offset
+                GradientY = TerrainVertex(X1, Y2).Height - Offset
             Else
-                Offset = TerrainVertex(X2, Z2).Height
-                GradientX = TerrainVertex(X1, Z2).Height - Offset
-                GradientZ = TerrainVertex(X2, Z1).Height - Offset
+                Offset = TerrainVertex(X2, Y2).Height
+                GradientX = TerrainVertex(X1, Y2).Height - Offset
+                GradientY = TerrainVertex(X2, Y1).Height - Offset
             End If
         Else
             If InTileZ <= InTileX Then
-                Offset = TerrainVertex(X2, Z1).Height
-                GradientX = TerrainVertex(X1, Z1).Height - Offset
-                GradientZ = TerrainVertex(X2, Z2).Height - Offset
+                Offset = TerrainVertex(X2, Y1).Height
+                GradientX = TerrainVertex(X1, Y1).Height - Offset
+                GradientY = TerrainVertex(X2, Y2).Height - Offset
             Else
-                Offset = TerrainVertex(X1, Z2).Height
-                GradientX = TerrainVertex(X2, Z2).Height - Offset
-                GradientZ = TerrainVertex(X1, Z1).Height - Offset
+                Offset = TerrainVertex(X1, Y2).Height
+                GradientX = TerrainVertex(X2, Y2).Height - Offset
+                GradientY = TerrainVertex(X1, Y1).Height - Offset
             End If
         End If
 
@@ -658,7 +680,7 @@ Public Class clsMap
         XYZ_dbl.Y = GradientX * HeightMultiplier
         XYZ_dbl.Z = 0.0#
         XYZ_dbl2.X = 0.0#
-        XYZ_dbl2.Y = GradientZ * HeightMultiplier
+        XYZ_dbl2.Y = GradientY * HeightMultiplier
         XYZ_dbl2.Z = TerrainGridSpacing
         VectorCrossProduct(XYZ_dbl, XYZ_dbl2, XYZ_dbl3)
         If XYZ_dbl3.X <> 0.0# Or XYZ_dbl3.Z <> 0.0# Then
@@ -669,71 +691,71 @@ Public Class clsMap
         End If
     End Function
 
-    Function GetTerrainHeight(ByVal X As Integer, ByVal Z As Integer) As Double
-        Static X1 As Integer
-        Static X2 As Integer
-        Static Z1 As Integer
-        Static Z2 As Integer
-        Static InTileX As Double
-        Static InTileZ As Double
-        Static XG As Integer
-        Static ZG As Integer
-        Static GradientX As Double
-        Static GradientZ As Double
-        Static Offset As Double
-        Static RatioX As Double
-        Static RatioZ As Double
+    Function GetTerrainHeight(ByVal Horizontal As sXY_int) As Double
+        Dim X1 As Integer
+        Dim X2 As Integer
+        Dim Y1 As Integer
+        Dim Y2 As Integer
+        Dim InTileX As Double
+        Dim InTileZ As Double
+        Dim XG As Integer
+        Dim YG As Integer
+        Dim GradientX As Double
+        Dim GradientY As Double
+        Dim Offset As Double
+        Dim RatioX As Double
+        Dim RatioY As Double
 
-        XG = Int(X / TerrainGridSpacing)
-        ZG = Int(Z / TerrainGridSpacing)
-        InTileX = Clamp(X / TerrainGridSpacing - XG, 0.0#, 1.0#)
-        InTileZ = Clamp(Z / TerrainGridSpacing - ZG, 0.0#, 1.0#)
+        XG = Int(Horizontal.X / TerrainGridSpacing)
+        YG = Int(Horizontal.Y / TerrainGridSpacing)
+        InTileX = Clamp(Horizontal.X / TerrainGridSpacing - XG, 0.0#, 1.0#)
+        InTileZ = Clamp(Horizontal.Y / TerrainGridSpacing - YG, 0.0#, 1.0#)
         X1 = Clamp(XG, 0, TerrainSize.X - 1)
-        Z1 = Clamp(ZG, 0, TerrainSize.Y - 1)
+        Y1 = Clamp(YG, 0, TerrainSize.Y - 1)
         X2 = Clamp(XG + 1, 0, TerrainSize.X)
-        Z2 = Clamp(ZG + 1, 0, TerrainSize.Y)
-        If TerrainTiles(X1, Z1).Tri Then
+        Y2 = Clamp(YG + 1, 0, TerrainSize.Y)
+        If TerrainTiles(X1, Y1).Tri Then
             If InTileZ <= 1.0# - InTileX Then
-                Offset = TerrainVertex(X1, Z1).Height
-                GradientX = TerrainVertex(X2, Z1).Height - Offset
-                GradientZ = TerrainVertex(X1, Z2).Height - Offset
+                Offset = TerrainVertex(X1, Y1).Height
+                GradientX = TerrainVertex(X2, Y1).Height - Offset
+                GradientY = TerrainVertex(X1, Y2).Height - Offset
                 RatioX = InTileX
-                RatioZ = InTileZ
+                RatioY = InTileZ
             Else
-                Offset = TerrainVertex(X2, Z2).Height
-                GradientX = TerrainVertex(X1, Z2).Height - Offset
-                GradientZ = TerrainVertex(X2, Z1).Height - Offset
+                Offset = TerrainVertex(X2, Y2).Height
+                GradientX = TerrainVertex(X1, Y2).Height - Offset
+                GradientY = TerrainVertex(X2, Y1).Height - Offset
                 RatioX = 1.0# - InTileX
-                RatioZ = 1.0# - InTileZ
+                RatioY = 1.0# - InTileZ
             End If
         Else
             If InTileZ <= InTileX Then
-                Offset = TerrainVertex(X2, Z1).Height
-                GradientX = TerrainVertex(X1, Z1).Height - Offset
-                GradientZ = TerrainVertex(X2, Z2).Height - Offset
+                Offset = TerrainVertex(X2, Y1).Height
+                GradientX = TerrainVertex(X1, Y1).Height - Offset
+                GradientY = TerrainVertex(X2, Y2).Height - Offset
                 RatioX = 1.0# - InTileX
-                RatioZ = InTileZ
+                RatioY = InTileZ
             Else
-                Offset = TerrainVertex(X1, Z2).Height
-                GradientX = TerrainVertex(X2, Z2).Height - Offset
-                GradientZ = TerrainVertex(X1, Z1).Height - Offset
+                Offset = TerrainVertex(X1, Y2).Height
+                GradientX = TerrainVertex(X2, Y2).Height - Offset
+                GradientY = TerrainVertex(X1, Y1).Height - Offset
                 RatioX = InTileX
-                RatioZ = 1.0# - InTileZ
+                RatioY = 1.0# - InTileZ
             End If
         End If
-        Return (Offset + GradientX * RatioX + GradientZ * RatioZ) * HeightMultiplier
+        Return (Offset + GradientX * RatioX + GradientY * RatioY) * HeightMultiplier
     End Function
 
     Function TerrainVertexNormalCalc(ByVal X As Integer, ByVal Z As Integer) As sXYZ_sng
-        Static TerrainHeightX1 As Integer
-        Static TerrainHeightX2 As Integer
-        Static TerrainHeightZ1 As Integer
-        Static TerrainHeightZ2 As Integer
-        Static X2 As Integer
-        Static Z2 As Integer
-        Static XYZ_dbl As sXYZ_dbl
-        Static XYZ_dbl2 As sXYZ_dbl
-        Static dblTemp As Double
+        Dim TerrainHeightX1 As Integer
+        Dim TerrainHeightX2 As Integer
+        Dim TerrainHeightZ1 As Integer
+        Dim TerrainHeightZ2 As Integer
+        Dim X2 As Integer
+        Dim Z2 As Integer
+        Dim XYZ_dbl As sXYZ_dbl
+        Dim XYZ_dbl2 As sXYZ_dbl
+        Dim dblTemp As Double
 
         X2 = Clamp(X - 1, 0, TerrainSize.X)
         Z2 = Clamp(Z, 0, TerrainSize.Y)
@@ -801,9 +823,9 @@ Public Class clsMap
             AutoTextureChange.ParentMap = Nothing
             AutoTextureChange = Nothing
         End If
-        If SectorChange IsNot Nothing Then
-            SectorChange.Parent_Map = Nothing
-            SectorChange = Nothing
+        If SectorGraphicsChange IsNot Nothing Then
+            SectorGraphicsChange.Parent_Map = Nothing
+            SectorGraphicsChange = Nothing
         End If
         Undo_Clear()
     End Sub
@@ -868,8 +890,8 @@ Public Class clsMap
         PosDifZ = -TileOffsetZ * TerrainGridSpacing
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
-            Units(A).Pos.X += PosDifX
-            Units(A).Pos.Z += PosDifZ
+            Units(A).Pos.Horizontal.X += PosDifX
+            Units(A).Pos.Horizontal.Y += PosDifZ
         Next
         For A = 0 To GatewayCount - 1
             Gateways(A).PosA.X -= TileOffsetX
@@ -877,58 +899,58 @@ Public Class clsMap
             Gateways(A).PosB.X -= TileOffsetX
             Gateways(A).PosB.Y -= TileOffsetZ
         Next
-        If Selected_Tile_A_Exists Then
+        If Selected_Tile_A IsNot Nothing Then
             Selected_Tile_A.X -= TileOffsetX
             Selected_Tile_A.Y -= TileOffsetZ
             If Selected_Tile_A.X < 0 _
-              Or Selected_Tile_A.X >= TileCountX _
-              Or Selected_Tile_A.Y < 0 _
-              Or Selected_Tile_A.Y >= TileCountZ Then
-                Selected_Tile_A_Exists = False
-                Selected_Tile_B_Exists = False
+                Or Selected_Tile_A.X >= TileCountX _
+                Or Selected_Tile_A.Y < 0 _
+                Or Selected_Tile_A.Y >= TileCountZ Then
+                Selected_Tile_A = Nothing
+                Selected_Tile_B = Nothing
             End If
         End If
-        If Selected_Tile_B_Exists Then
+        If Selected_Tile_B IsNot Nothing Then
             Selected_Tile_B.X -= TileOffsetX
             Selected_Tile_B.Y -= TileOffsetZ
             If Selected_Tile_B.X < 0 _
-              Or Selected_Tile_B.X >= TileCountX _
-              Or Selected_Tile_B.Y < 0 _
-              Or Selected_Tile_B.Y >= TileCountZ Then
-                Selected_Tile_A_Exists = False
-                Selected_Tile_B_Exists = False
+                Or Selected_Tile_B.X >= TileCountX _
+                Or Selected_Tile_B.Y < 0 _
+                Or Selected_Tile_B.Y >= TileCountZ Then
+                Selected_Tile_A = Nothing
+                Selected_Tile_B = Nothing
             End If
         End If
-        If Selected_Area_VertexA_Exists Then
+        If Selected_Area_VertexA IsNot Nothing Then
             Selected_Area_VertexA.X -= TileOffsetX
             Selected_Area_VertexA.Y -= TileOffsetZ
             If Selected_Area_VertexA.X < 0 _
-              Or Selected_Area_VertexA.X > TileCountX _
-              Or Selected_Area_VertexA.Y < 0 _
-              Or Selected_Area_VertexA.Y > TileCountZ Then
-                Selected_Area_VertexA_Exists = False
-                Selected_Area_VertexB_Exists = False
+                Or Selected_Area_VertexA.X > TileCountX _
+                Or Selected_Area_VertexA.Y < 0 _
+                Or Selected_Area_VertexA.Y > TileCountZ Then
+                Selected_Area_VertexA = Nothing
+                Selected_Area_VertexB = Nothing
             End If
         End If
-        If Selected_Area_VertexB_Exists Then
+        If Selected_Area_VertexB IsNot Nothing Then
             Selected_Area_VertexB.X -= TileOffsetX
             Selected_Area_VertexB.Y -= TileOffsetZ
             If Selected_Area_VertexB.X < 0 _
-              Or Selected_Area_VertexB.X > TileCountX _
-              Or Selected_Area_VertexB.Y < 0 _
-              Or Selected_Area_VertexB.Y > TileCountZ Then
-                Selected_Area_VertexA_Exists = False
-                Selected_Area_VertexB_Exists = False
+                Or Selected_Area_VertexB.X > TileCountX _
+                Or Selected_Area_VertexB.Y < 0 _
+                Or Selected_Area_VertexB.Y > TileCountZ Then
+                Selected_Area_VertexA = Nothing
+                Selected_Area_VertexB = Nothing
             End If
         End If
-        If Unit_Selected_Area_VertexA_Exists Then
+        If Unit_Selected_Area_VertexA IsNot Nothing Then
             Unit_Selected_Area_VertexA.X -= TileOffsetX
             Unit_Selected_Area_VertexA.Y -= TileOffsetZ
             If Unit_Selected_Area_VertexA.X < 0 _
-              Or Unit_Selected_Area_VertexA.X > TileCountX _
-              Or Unit_Selected_Area_VertexA.Y < 0 _
-              Or Unit_Selected_Area_VertexA.Y > TileCountZ Then
-                Unit_Selected_Area_VertexA_Exists = False
+                Or Unit_Selected_Area_VertexA.X > TileCountX _
+                Or Unit_Selected_Area_VertexA.Y < 0 _
+                Or Unit_Selected_Area_VertexA.Y > TileCountZ Then
+                Unit_Selected_Area_VertexA = Nothing
             End If
         End If
 
@@ -944,10 +966,10 @@ Public Class clsMap
 
         A = 0
         Do While A < UnitCount
-            If Units(A).Pos.X < 0 _
-              Or Units(A).Pos.X >= TileCountX * TerrainGridSpacing _
-              Or Units(A).Pos.Z < 0 _
-              Or Units(A).Pos.Z >= TileCountZ * TerrainGridSpacing Then
+            If Units(A).Pos.Horizontal.X < 0 _
+                Or Units(A).Pos.Horizontal.X >= TileCountX * TerrainGridSpacing _
+                Or Units(A).Pos.Horizontal.Y < 0 _
+                Or Units(A).Pos.Horizontal.Y >= TileCountZ * TerrainGridSpacing Then
                 Unit_Remove(A)
             Else
                 Unit_Sectors_Calc(A)
@@ -957,13 +979,13 @@ Public Class clsMap
         A = 0
         Do While A < GatewayCount
             If Gateways(A).PosA.X < 0 _
-              Or Gateways(A).PosA.X >= TileCountX _
-              Or Gateways(A).PosA.Y < 0 _
-              Or Gateways(A).PosA.Y >= TileCountZ _
-              Or Gateways(A).PosB.X < 0 _
-              Or Gateways(A).PosB.X >= TileCountX _
-              Or Gateways(A).PosB.Y < 0 _
-              Or Gateways(A).PosB.Y >= TileCountZ Then
+                Or Gateways(A).PosA.X >= TileCountX _
+                Or Gateways(A).PosA.Y < 0 _
+                Or Gateways(A).PosA.Y >= TileCountZ _
+                Or Gateways(A).PosB.X < 0 _
+                Or Gateways(A).PosB.X >= TileCountX _
+                Or Gateways(A).PosB.Y < 0 _
+                Or Gateways(A).PosB.Y >= TileCountZ Then
                 Gateway_Remove(A)
             Else
                 A += 1
@@ -981,8 +1003,8 @@ Public Class clsMap
         ShadowSector_CreateAll()
         AutoTextureChange.ParentMap = Nothing
         AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange.Parent_Map = Nothing
-        SectorChange = New clsSectorChange(Me)
+        SectorGraphicsChange.Parent_Map = Nothing
+        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
     End Sub
 
     Sub Sector_GLList_Make(ByVal X As Integer, ByVal Z As Integer)
@@ -1019,14 +1041,18 @@ Public Class clsMap
             Dim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1) As Boolean
             Dim tmpUnit As clsUnit
             Dim BaseOffset As sXY_int
+            Dim tmpStructure As clsStructureType
+            Dim Footprint As sXY_int
             For UnitNum = 0 To Sectors(X, Z).UnitCount - 1
                 tmpUnit = Sectors(X, Z).Units(UnitNum)
-                If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-                    BaseOffset.X = CInt((tmpUnit.Type.LoadedInfo.Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
-                    BaseOffset.Y = CInt((tmpUnit.Type.LoadedInfo.Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
-                    If tmpUnit.Type.LoadedInfo.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or (tmpUnit.Type.LoadedInfo.Footprint.X = tmpUnit.Type.LoadedInfo.Footprint.Y And (tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270))) Then
-                        For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Z - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Z + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
-                            For TileX = Math.Max(CInt(Int((tmpUnit.Pos.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
+                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    tmpStructure = CType(tmpUnit.Type, clsStructureType)
+                    Footprint = tmpStructure.Footprint
+                    If tmpStructure.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or tmpUnit.Rotation = 180 Or (Footprint.X = Footprint.Y And (tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270))) Then
+                        BaseOffset.X = CInt((Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
+                        BaseOffset.Y = CInt((Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
+                        For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Horizontal.Y - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Horizontal.Y + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
+                            For TileX = Math.Max(CInt(Int((tmpUnit.Pos.Horizontal.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.Horizontal.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
                                 IsBasePlate(TileX - StartX, TileZ - StartZ) = True
                             Next
                         Next
@@ -1063,11 +1089,11 @@ Public Class clsMap
     End Sub
 
     Sub DrawTileWireframe(ByVal TileX As Integer, ByVal TileZ As Integer)
-        Static TileTerrainHeight(3) As Double
-        Static Vertex0 As sXYZ_sng
-        Static Vertex1 As sXYZ_sng
-        Static Vertex2 As sXYZ_sng
-        Static Vertex3 As sXYZ_sng
+        Dim TileTerrainHeight(3) As Double
+        Dim Vertex0 As sXYZ_sng
+        Dim Vertex1 As sXYZ_sng
+        Dim Vertex2 As sXYZ_sng
+        Dim Vertex3 As sXYZ_sng
 
         TileTerrainHeight(0) = TerrainVertex(TileX, TileZ).Height
         TileTerrainHeight(1) = TerrainVertex(TileX + 1, TileZ).Height
@@ -1120,60 +1146,47 @@ Public Class clsMap
         GL.End()
     End Sub
 
-    Sub DrawTileOrientation(ByVal TileX As Integer, ByVal TileZ As Integer)
-        Static TileOrientation As sTileOrientation
-        Static UnrotatedPos As sXY_sng
-        Static RotatedPos As sXY_sng
-        Static Vertex0 As sXYZ_int
-        Static Vertex1 As sXYZ_int
-        Static Vertex2 As sXYZ_int
+    Sub DrawTileOrientation(ByVal Tile As sXY_int)
+        Dim TileOrientation As sTileOrientation
+        Dim UnrotatedPos As sXY_int
+        Dim Vertex0 As sWorldPos
+        Dim Vertex1 As sWorldPos
+        Dim Vertex2 As sWorldPos
 
-        TileOrientation = TerrainTiles(TileX, TileZ).Texture.Orientation
+        TileOrientation = TerrainTiles(Tile.X, Tile.Y).Texture.Orientation
 
-        UnrotatedPos.X = 0.25F
-        UnrotatedPos.Y = 0.25F
-        RotatedPos = GetTileRotatedPos(TileOrientation, UnrotatedPos)
-        Vertex0.X = TileX * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.X
-        Vertex0.Z = TileZ * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.Y
-        Vertex0.Y = GetTerrainHeight(Vertex0.X, Vertex0.Z)
-        Vertex0.Z = -Vertex0.Z
+        UnrotatedPos.X = 32
+        UnrotatedPos.Y = 32
+        Vertex0 = GetTileOffsetRotatedWorldPos(Tile, UnrotatedPos)
 
-        UnrotatedPos.X = 0.5F
-        UnrotatedPos.Y = 0.25F
-        RotatedPos = GetTileRotatedPos(TileOrientation, UnrotatedPos)
-        Vertex1.X = TileX * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.X
-        Vertex1.Z = TileZ * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.Y
-        Vertex1.Y = GetTerrainHeight(Vertex1.X, Vertex1.Z)
-        Vertex1.Z = -Vertex1.Z
+        UnrotatedPos.X = 64
+        UnrotatedPos.Y = 32
+        Vertex1 = GetTileOffsetRotatedWorldPos(Tile, UnrotatedPos)
 
-        UnrotatedPos.X = 0.5F
-        UnrotatedPos.Y = 0.5F
-        RotatedPos = GetTileRotatedPos(TileOrientation, UnrotatedPos)
-        Vertex2.X = TileX * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.X
-        Vertex2.Z = TileZ * TerrainGridSpacing + TerrainGridSpacing * RotatedPos.Y
-        Vertex2.Y = GetTerrainHeight(Vertex2.X, Vertex2.Z)
-        Vertex2.Z = -Vertex2.Z
+        UnrotatedPos.X = 64
+        UnrotatedPos.Y = 64
+        Vertex2 = GetTileOffsetRotatedWorldPos(Tile, UnrotatedPos)
 
-        GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-        GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-        GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+        GL.Vertex3(Vertex0.Horizontal.X, Vertex0.Altitude, Vertex0.Horizontal.Y)
+        GL.Vertex3(Vertex1.Horizontal.X, Vertex1.Altitude, Vertex1.Horizontal.Y)
+        GL.Vertex3(Vertex2.Horizontal.X, Vertex2.Altitude, Vertex2.Horizontal.Y)
     End Sub
 
     Sub DrawTile(ByVal TileX As Integer, ByVal TileZ As Integer)
-        Static TileTerrainHeight(3) As Double
-        Static Vertex0 As sXYZ_sng
-        Static Vertex1 As sXYZ_sng
-        Static Vertex2 As sXYZ_sng
-        Static Vertex3 As sXYZ_sng
-        Static Normal0 As sXYZ_sng
-        Static Normal1 As sXYZ_sng
-        Static Normal2 As sXYZ_sng
-        Static Normal3 As sXYZ_sng
-        Static TexCoord0 As sXY_sng
-        Static TexCoord1 As sXY_sng
-        Static TexCoord2 As sXY_sng
-        Static TexCoord3 As sXY_sng
-        Static A As Integer
+        Dim TileTerrainHeight(3) As Double
+        Dim Vertex0 As sXYZ_sng
+        Dim Vertex1 As sXYZ_sng
+        Dim Vertex2 As sXYZ_sng
+        Dim Vertex3 As sXYZ_sng
+        Dim Normal0 As sXYZ_sng
+        Dim Normal1 As sXYZ_sng
+        Dim Normal2 As sXYZ_sng
+        Dim Normal3 As sXYZ_sng
+        Dim TexCoord0 As sXY_sng
+        Dim TexCoord1 As sXY_sng
+        Dim TexCoord2 As sXY_sng
+        Dim TexCoord3 As sXY_sng
+        Dim A As Integer
 
         If TerrainTiles(TileX, TileZ).Texture.TextureNum < 0 Then
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_NoTile)
@@ -1260,1174 +1273,46 @@ Public Class clsMap
         GL.End()
     End Sub
 
-    Structure sLNDTile
-        Dim Vertex0Height As Short
-        Dim Vertex1Height As Short
-        Dim Vertex2Height As Short
-        Dim Vertex3Height As Short
-        Dim TID As Short
-        Dim VF As Short
-        Dim TF As Short
-        Dim F As Short
-    End Structure
-
-    Structure sLNDObject
-        Dim ID As Integer
-        Dim TypeNum As Integer
-        Dim Code As String
-        Dim PlayerNum As Integer
-        Dim Name As String
-        Dim Pos As sXYZ_sng
-        Dim Rotation As sXYZ_int
-    End Structure
-
-    Function Load_LND(ByVal Path As String) As sResult
-        Load_LND.Success = False
-        Load_LND.Problem = ""
-
-        Try
-
-            Dim strTemp As String
-            Dim strTemp2 As String
-            Dim X As Integer
-            Dim Z As Integer
-            Dim A As Integer
-            Dim B As Integer
-            Dim Tile_Num As Integer
-            Dim LineData(-1) As String
-            Dim LineCount As Integer
-            Dim Bytes() As Byte
-            Dim ByteCount As Integer
-            Dim Line_Num As Integer
-            Dim LNDTile() As sLNDTile
-            Dim LNDObject(-1) As sLNDObject
-
-            'load all bytes
-            Bytes = IO.File.ReadAllBytes(Path)
-            ByteCount = Bytes.GetUpperBound(0) + 1
-
-            BytesToLines(Bytes, LineData)
-            LineCount = LineData.GetUpperBound(0) + 1
-
-            ReDim Preserve LNDTile(LineCount - 1)
-
-            Dim strTemp3 As String
-            Dim GotTiles As Boolean
-            Dim GotObjects As Boolean
-            Dim GotGates As Boolean
-            Dim GotTileTypes As Boolean
-            Dim LNDTileType(-1) As Byte
-            Dim ObjectCount As Integer
-            Dim ObjectText(10) As String
-            Dim GateText(3) As String
-            Dim TileTypeText(255) As String
-            Dim LNDTileTypeCount As Integer
-            Dim LNDGate(-1) As sGateway
-            Dim LNDGateCount As Integer
-            Dim C As Integer
-            Dim D As Integer
-            Dim GotText As Boolean
-            Dim FlipX As Boolean
-            Dim FlipZ As Boolean
-            Dim Rotation As Byte
-
-            Line_Num = 0
-            Do While Line_Num < LineCount
-                strTemp = LineData(Line_Num)
-
-                A = InStr(1, strTemp, "HeightScale ")
-                If A = 0 Then
-                Else
-                    'HeightMultiplier = Val(Right(strTemp, Len(strTemp) - (A + 11)))
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "TileWidth ")
-                If A = 0 Then
-                Else
-                End If
-
-                A = InStr(1, strTemp, "TileHeight ")
-                If A = 0 Then
-                Else
-                End If
-
-                A = InStr(1, strTemp, "MapHeight ")
-                If A = 0 Then
-                Else
-                    TerrainSize.Y = Val(Right(strTemp, Len(strTemp) - (A + 9)))
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "MapWidth ")
-                If A = 0 Then
-                Else
-                    TerrainSize.X = Val(Right(strTemp, Len(strTemp) - (A + 8)))
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "Textures {")
-                If A = 0 Then
-                Else
-                    Line_Num += 1
-                    strTemp = LineData(Line_Num)
-
-                    strTemp2 = LCase(strTemp)
-                    If InStr(1, strTemp2, "tertilesc1") > 0 Then
-                        Tileset = Tileset_Arizona
-
-                        GoTo LineDone
-                    ElseIf InStr(1, strTemp2, "tertilesc2") > 0 Then
-                        Tileset = Tileset_Urban
-
-                        GoTo LineDone
-                    ElseIf InStr(1, strTemp2, "tertilesc3") > 0 Then
-                        Tileset = Tileset_Rockies
-
-                        GoTo LineDone
-                    End If
-
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "Tiles {")
-                If A = 0 Or GotTiles Then
-                Else
-                    Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData(Line_Num)
-
-                        A = InStr(1, strTemp, "}")
-                        If A = 0 Then
-
-                            A = InStr(1, strTemp, "TID ")
-                            If A = 0 Then
-                                Load_LND.Success = False
-                                Load_LND.Problem = "Tile ID missing"
-                                Exit Function
-                            Else
-                                strTemp2 = Right(strTemp, strTemp.Length - A - 3)
-                                A = InStr(1, strTemp2, " ")
-                                If A > 0 Then
-                                    strTemp2 = Left(strTemp2, A - 1)
-                                End If
-                                LNDTile(Tile_Num).TID = Val(strTemp2)
-                            End If
-
-                            A = InStr(1, strTemp, "VF ")
-                            If A = 0 Then
-                                Load_LND.Success = False
-                                Load_LND.Problem = "Tile VF missing"
-                                Exit Function
-                            Else
-                                strTemp2 = Right(strTemp, strTemp.Length - A - 2)
-                                A = InStr(1, strTemp2, " ")
-                                If A > 0 Then
-                                    strTemp2 = Left(strTemp2, A - 1)
-                                End If
-                                LNDTile(Tile_Num).VF = Val(strTemp2)
-                            End If
-
-                            A = InStr(1, strTemp, "TF ")
-                            If A = 0 Then
-                                Load_LND.Success = False
-                                Load_LND.Problem = "Tile TF missing"
-                                Exit Function
-                            Else
-                                strTemp2 = Right(strTemp, strTemp.Length - A - 2)
-                                A = InStr(1, strTemp2, " ")
-                                If A > 0 Then
-                                    strTemp2 = Left(strTemp2, A - 1)
-                                End If
-                                LNDTile(Tile_Num).TF = Val(strTemp2)
-                            End If
-
-                            A = InStr(1, strTemp, " F ")
-                            If A = 0 Then
-                                Load_LND.Success = False
-                                Load_LND.Problem = "Tile flip missing"
-                                Exit Function
-                            Else
-                                strTemp2 = Strings.Right(strTemp, strTemp.Length - A - 2)
-                                A = InStr(1, strTemp2, " ")
-                                If A > 0 Then
-                                    strTemp2 = Left(strTemp2, A - 1)
-                                End If
-                                LNDTile(Tile_Num).F = Val(strTemp2)
-                            End If
-
-                            A = InStr(1, strTemp, " VH ")
-                            If A = 0 Then
-                                Load_LND.Success = False
-                                Load_LND.Problem = "Tile height is missing"
-                                Exit Function
-                            Else
-                                strTemp3 = Right(strTemp, Len(strTemp) - A - 3)
-                                For A = 0 To 2
-                                    B = InStr(1, strTemp3, " ")
-                                    If B = 0 Then
-                                        Load_LND.Success = False
-                                        Load_LND.Problem = "A tile height value is missing"
-                                        Exit Function
-                                    End If
-                                    strTemp2 = Left(strTemp3, B - 1)
-                                    strTemp3 = Right(strTemp3, Len(strTemp3) - B)
-
-                                    If A = 0 Then
-                                        LNDTile(Tile_Num).Vertex0Height = Val(strTemp2)
-                                    ElseIf A = 1 Then
-                                        LNDTile(Tile_Num).Vertex1Height = Val(strTemp2)
-                                    ElseIf A = 2 Then
-                                        LNDTile(Tile_Num).Vertex2Height = Val(strTemp2)
-                                    End If
-                                Next A
-                                LNDTile(Tile_Num).Vertex3Height = Val(strTemp3)
-                            End If
-
-                            Tile_Num += 1
-                        Else
-                            GotTiles = True
-                            GoTo LineDone
-                        End If
-
-                        Line_Num += 1
-                    Loop
-
-                    GotTiles = True
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "Objects {")
-                If A = 0 Or GotObjects Then
-                Else
-                    Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData(Line_Num)
-
-                        A = InStr(1, strTemp, "}")
-                        If A = 0 Then
-
-                            C = 0
-                            ObjectText(0) = ""
-                            GotText = False
-                            For B = 0 To strTemp.Length - 1
-                                If strTemp.Chars(B) <> " " And strTemp.Chars(B) <> Chr(9) Then
-                                    GotText = True
-                                    ObjectText(C) = ObjectText(C) & strTemp.Chars(B)
-                                Else
-                                    If GotText Then
-                                        C += 1
-                                        If C = 11 Then
-                                            Load_LND.Problem = "Too many fields for an object, or a space at the end."
-                                            Exit Function
-                                        End If
-                                        ObjectText(C) = ""
-                                        GotText = False
-                                    End If
-                                End If
-                            Next
-
-                            ReDim Preserve LNDObject(ObjectCount)
-                            With LNDObject(ObjectCount)
-                                .ID = Val(ObjectText(0))
-                                .TypeNum = Val(ObjectText(1))
-                                .Code = Mid(ObjectText(2), 2, ObjectText(2).Length - 2) 'remove quotes
-                                .PlayerNum = Val(ObjectText(3))
-                                .Name = Mid(ObjectText(4), 2, ObjectText(4).Length - 2) 'remove quotes
-                                .Pos.X = Val(ObjectText(5))
-                                .Pos.Y = Val(ObjectText(6))
-                                .Pos.Z = Val(ObjectText(7))
-                                .Rotation.X = Clamp(Val(ObjectText(8)), 0.0#, 359.0#)
-                                .Rotation.Y = Clamp(Val(ObjectText(9)), 0.0#, 359.0#)
-                                .Rotation.Z = Clamp(Val(ObjectText(10)), 0.0#, 359.0#)
-                            End With
-
-                            ObjectCount += 1
-                        Else
-                            GotObjects = True
-                            GoTo LineDone
-                        End If
-
-                        Line_Num += 1
-                    Loop
-
-                    GotObjects = True
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "Gates {")
-                If A = 0 Or GotGates Then
-                Else
-                    Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData(Line_Num)
-
-                        A = InStr(1, strTemp, "}")
-                        If A = 0 Then
-
-                            C = 0
-                            GateText(0) = ""
-                            GotText = False
-                            For B = 0 To strTemp.Length - 1
-                                If strTemp.Chars(B) <> " " And strTemp.Chars(B) <> Chr(9) Then
-                                    GotText = True
-                                    GateText(C) = GateText(C) & strTemp.Chars(B)
-                                Else
-                                    If GotText Then
-                                        C += 1
-                                        If C = 4 Then
-                                            Load_LND.Problem = "Too many fields for a gateway, or a space at the end."
-                                            Exit Function
-                                        End If
-                                        GateText(C) = ""
-                                        GotText = False
-                                    End If
-                                End If
-                            Next
-
-                            ReDim Preserve LNDGate(LNDGateCount)
-                            With LNDGate(LNDGateCount)
-                                .PosA.X = Clamp(Val(GateText(0)), 0.0#, Integer.MaxValue)
-                                .PosA.Y = Clamp(Val(GateText(1)), 0.0#, Integer.MaxValue)
-                                .PosB.X = Clamp(Val(GateText(2)), 0.0#, Integer.MaxValue)
-                                .PosB.Y = Clamp(Val(GateText(3)), 0.0#, Integer.MaxValue)
-                            End With
-
-                            LNDGateCount += 1
-                        Else
-                            GotGates = True
-                            GoTo LineDone
-                        End If
-
-                        Line_Num += 1
-                    Loop
-
-                    GotGates = True
-                    GoTo LineDone
-                End If
-
-                A = InStr(1, strTemp, "Tiles {")
-                If A = 0 Or GotTileTypes Or Not GotTiles Then
-                Else
-                    Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData(Line_Num)
-
-                        A = InStr(1, strTemp, "}")
-                        If A = 0 Then
-
-                            C = 0
-                            TileTypeText(0) = ""
-                            GotText = False
-                            For B = 0 To strTemp.Length - 1
-                                If strTemp.Chars(B) <> " " And strTemp.Chars(B) <> Chr(9) Then
-                                    GotText = True
-                                    TileTypeText(C) = TileTypeText(C) & strTemp.Chars(B)
-                                Else
-                                    If GotText Then
-                                        C += 1
-                                        If C = 256 Then
-                                            Load_LND.Problem = "Too many fields for tile types."
-                                            Exit Function
-                                        End If
-                                        TileTypeText(C) = ""
-                                        GotText = False
-                                    End If
-                                End If
-                            Next
-
-                            If TileTypeText(C) = "" Or TileTypeText(C) = " " Then C = C - 1
-
-                            For D = 0 To C
-                                ReDim Preserve LNDTileType(LNDTileTypeCount)
-                                LNDTileType(LNDTileTypeCount) = Clamp(Val(TileTypeText(D)), 0.0#, 11.0#)
-                                LNDTileTypeCount += 1
-                            Next
-                        Else
-                            GotTileTypes = True
-                            GoTo LineDone
-                        End If
-
-                        Line_Num += 1
-                    Loop
-
-                    GotTileTypes = True
-                    GoTo LineDone
-                End If
-
-LineDone:
-                Line_Num += 1
-            Loop
-
-            ReDim Preserve LNDTile(Tile_Num - 1)
-
-            SetPainterToDefaults()
-
-            'If .HeightScale = -1 Or .TileSize = -1 Or .SizeY = -1 Or .SizeX = -1 Then Stop
-
-            If TerrainSize.X < 1 Or TerrainSize.Y < 1 Then
-                Load_LND.Success = False
-                Load_LND.Problem = "The LND's terrain dimensions are missing or invalid."
-                Exit Function
-            End If
-
-            Terrain_Blank(TerrainSize.X, TerrainSize.Y)
-            TileType_Reset()
-
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    Tile_Num = Z * TerrainSize.X + X
-                    'lnd uses different order! (3 = 2, 2 = 3), this program goes left to right, lnd goes clockwise around each tile
-                    TerrainVertex(X, Z).Height = LNDTile(Tile_Num).Vertex0Height
-                Next X
-            Next Z
-
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    Tile_Num = Z * TerrainSize.X + X
-
-                    TerrainTiles(X, Z).Texture.TextureNum = LNDTile(Tile_Num).TID - 1
-
-                    'ignore higher values
-                    A = Int(LNDTile(Tile_Num).F / 64.0#)
-                    LNDTile(Tile_Num).F = LNDTile(Tile_Num).F - A * 64
-
-                    A = Int(LNDTile(Tile_Num).F / 16.0#)
-                    LNDTile(Tile_Num).F = LNDTile(Tile_Num).F - A * 16
-                    If A < 0 Or A > 3 Then
-                        Load_LND.Problem = "Invalid flip value."
-                        Exit Function
-                    End If
-                    Rotation = A
-
-                    A = Int(LNDTile(Tile_Num).F / 8.0#)
-                    LNDTile(Tile_Num).F -= A * 8
-                    FlipZ = (A = 1)
-
-                    A = Int(LNDTile(Tile_Num).F / 4.0#)
-                    LNDTile(Tile_Num).F -= A * 4
-                    FlipX = (A = 1)
-
-                    A = Int(LNDTile(Tile_Num).F / 2.0#)
-                    LNDTile(Tile_Num).F -= A * 2
-                    TerrainTiles(X, Z).Tri = (A = 1)
-
-                    'vf, tf, ignore
-
-                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
-                Next
-            Next
-
-            Dim NewUnit As clsUnit
-            Dim XYZ_int As sXYZ_int
-            Dim Result As sResult
-
-            For A = 0 To ObjectCount - 1
-                NewUnit = New clsUnit
-                NewUnit.ID = LNDObject(A).ID
-                Result = FindUnitType(LNDObject(A).Code, LNDObject(A).TypeNum, NewUnit.Type)
-                If Not Result.Success Then
-                    Load_LND.Problem = Result.Problem
-                    Exit Function
-                End If
-                NewUnit.Name = LNDObject(A).Name
-                NewUnit.PlayerNum = LNDObject(A).PlayerNum
-                XYZ_int.X = LNDObject(A).Pos.X
-                XYZ_int.Y = LNDObject(A).Pos.Y
-                XYZ_int.Z = LNDObject(A).Pos.Z
-                NewUnit.Pos = MapPos_From_LNDPos(XYZ_int)
-                NewUnit.Rotation = LNDObject(A).Rotation.Y
-                Unit_Add(NewUnit, LNDObject(A).ID)
-            Next
-
-            GatewayCount = LNDGateCount
-            ReDim Gateways(GatewayCount - 1)
-            For A = 0 To LNDGateCount - 1
-                Gateways(A).PosA.X = Clamp(LNDGate(A).PosA.X, 0, TerrainSize.X - 1)
-                Gateways(A).PosA.Y = Clamp(LNDGate(A).PosA.Y, 0, TerrainSize.Y - 1)
-                Gateways(A).PosB.X = Clamp(LNDGate(A).PosB.X, 0, TerrainSize.X - 1)
-                Gateways(A).PosB.Y = Clamp(LNDGate(A).PosB.Y, 0, TerrainSize.Y - 1)
-            Next
-
-            If Tileset IsNot Nothing Then
-                For A = 0 To Math.Min(LNDTileTypeCount - 1, Tileset.TileCount) - 1
-                    Tile_TypeNum(A) = LNDTileType(A + 1) 'lnd value 0 is ignored
-                Next
-            End If
-
-            ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-            ShadowSector_CreateAll()
-            AutoTextureChange = New clsAutoTextureChange(Me)
-            SectorChange = New clsSectorChange(Me)
-
-        Catch ex As Exception
-            Load_LND.Problem = ex.Message
-            Exit Function
-        End Try
-
-        Load_LND.Success = True
-    End Function
-
-    Function FindUnitType(ByVal Code As String, ByVal TypeNum As Integer, ByRef ResultType As clsUnitType) As sResult
-        FindUnitType.Success = False
-        FindUnitType.Problem = ""
-
-        Dim A As Integer
-
-        For A = 0 To UnitTypeCount - 1
-            If UnitTypes(A).Code = Code Then
-                Exit For
-            End If
-        Next
-        If A < UnitTypeCount Then
-            ResultType = UnitTypes(A)
-        Else
-            For A = 0 To Unrecognised_UnitType_Count - 1
-                If Unrecognised_UnitTypes(A).Code = Code Then
-                    Exit For
-                End If
-            Next A
-            If A < Unrecognised_UnitType_Count Then
-                ResultType = Unrecognised_UnitTypes(A)
-            Else
-                ResultType = New clsUnitType(Unrecognised_UnitType_Count)
-
-                ReDim Preserve Unrecognised_UnitTypes(Unrecognised_UnitType_Count)
-                Unrecognised_UnitTypes(Unrecognised_UnitType_Count) = ResultType
-                Unrecognised_UnitType_Count += 1
-
-                With ResultType
-                    .Code = Code
-                    Select Case TypeNum
-                        Case 0
-                            .Type = clsUnitType.enumType.Feature
-                        Case 1
-                            .Type = clsUnitType.enumType.PlayerStructure
-                        Case 2
-                            .Type = clsUnitType.enumType.PlayerDroidTemplate
-                        Case Else
-                            FindUnitType.Problem = "Invalid object type number."
-                            Exit Function
-                    End Select
-                End With
-            End If
-        End If
-        FindUnitType.Success = True
-    End Function
-
-    Structure sFMEUnit
-        Dim Code As String
-        Dim ID As UInteger
-        Dim SavePriority As Integer
-        Dim LNDType As Byte
-        Dim X As UInteger
-        Dim Y As UInteger
-        Dim Z As UInteger
-        Dim Rotation As UShort
-        Dim Name As String
-        Dim Player As Byte
-    End Structure
-
-    Function Load_FME(ByVal Path As String) As clsResult
-        Load_FME = New clsResult
-
-        Dim File As New clsReadFile
-        Dim Result As sResult
-
-        Result = File.Begin(Path)
-        If Not Result.Success Then
-            Load_FME.Problem_Add("Load FME; " & Result.Problem)
-            Exit Function
-        End If
-        Load_FME.Append(Read_FME(File), "Load FME; ")
-        File.Close()
-        If Load_FME.HasProblems Then
-            Exit Function
-        End If
-
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange = New clsSectorChange(Me)
-    End Function
-
-    Private Function Read_FME(ByVal File As clsReadFile) As clsResult
-        Read_FME = New clsResult
-
-        Dim Result As sResult
-        Dim Version As UInteger
-
-        If Not File.Get_U32(Version) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-        If Version = 1UI Then
-            Read_FME.Problem_Add("Version 1 is not supported.")
-            Exit Function
-        ElseIf Version = 2UI Then
-            Read_FME.Problem_Add("Version 2 is not supported.")
-            Exit Function
-        ElseIf Version = 3UI Or Version = 4UI Then
-
-            Dim byteTemp As Byte
-
-            'tileset
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If byteTemp = 0 Then
-                Tileset = Nothing
-            ElseIf byteTemp = 1 Then
-                Tileset = Tileset_Arizona
-            ElseIf byteTemp = 2 Then
-                Tileset = Tileset_Urban
-            ElseIf byteTemp = 3 Then
-                Tileset = Tileset_Rockies
-            Else
-                Read_FME.Warning_Add("Tileset value was out of range.")
-                Tileset = Nothing
-            End If
-
-            SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
-
-            Dim MapWidth As UShort
-            Dim MapHeight As UShort
-
-            If Not File.Get_U16(MapWidth) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_U16(MapHeight) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-            If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                Read_FME.Problem_Add("Map size is invalid.")
-                Exit Function
-            End If
-
-            Terrain_Blank(MapWidth, MapHeight)
-            TileType_Reset()
-
-            Dim X As Integer
-            Dim Z As Integer
-            Dim A As Integer
-            Dim B As Integer
-            Dim intTemp As Integer
-            Dim Rotation As Byte
-            Dim FlipX As Boolean
-            Dim FlipZ As Boolean
-            Dim MakeWarning As Boolean
-
-            MakeWarning = False
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainVertex(X, Z).Terrain = Nothing
-                    ElseIf intTemp >= Painter.TerrainCount Then
-                        MakeWarning = True
-                        TerrainVertex(X, Z).Terrain = Nothing
-                    Else
-                        TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
-                    End If
-                Next
-            Next
-            If MakeWarning Then
-                Read_FME.Warning_Add("A painted ground type value was out of range.")
-            End If
-            MakeWarning = False
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
-
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-                    intTemp = 128
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Terrain_IsCliff = (A = 1)
-
-                    intTemp = 32
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    Rotation = A
-
-                    intTemp = 16
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    FlipX = (A = 1)
-
-                    intTemp = 8
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    FlipZ = (A = 1)
-
-                    OldOrientation_To_TileOrientation(Rotation, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
-
-                    intTemp = 4
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Tri = (A = 1)
-
-                    intTemp = 2
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    If TerrainTiles(X, Z).Tri Then
-                        TerrainTiles(X, Z).TriTopLeftIsCliff = (A = 1)
-                    Else
-                        TerrainTiles(X, Z).TriBottomLeftIsCliff = (A = 1)
-                    End If
-
-                    intTemp = 1
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    If TerrainTiles(X, Z).Tri Then
-                        TerrainTiles(X, Z).TriBottomRightIsCliff = (A = 1)
-                    Else
-                        TerrainTiles(X, Z).TriTopRightIsCliff = (A = 1)
-                    End If
-
-                    'attributes2
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-                    'ignore large values - nothing should be stored there
-                    intTemp = 16
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-
-                    intTemp = 1
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    Select Case A
-                        Case 1
-                            TerrainTiles(X, Z).DownSide = TileDirection_Top
-                        Case 3
-                            TerrainTiles(X, Z).DownSide = TileDirection_Right
-                        Case 5
-                            TerrainTiles(X, Z).DownSide = TileDirection_Bottom
-                        Case 7
-                            TerrainTiles(X, Z).DownSide = TileDirection_Left
-                        Case 8
-                            TerrainTiles(X, Z).DownSide = TileDirection_None
-                        Case Else
-                            TerrainTiles(X, Z).DownSide = TileDirection_None
-                            MakeWarning = True
-                    End Select
-                Next
-            Next
-            If MakeWarning Then
-                Read_FME.Warning_Add("A tile cliff down-side was out of range.") 
-            End If
-            MakeWarning = False
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainSideH(X, Z).Road = Nothing
-                    ElseIf intTemp >= Painter.RoadCount Then
-                        MakeWarning = True
-                        TerrainSideH(X, Z).Road = Nothing
-                    Else
-                        TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
-                    End If
-                Next
-            Next
-            If MakeWarning Then
-                Read_FME.Warning_Add("A horizontal road value was out of range.")
-            End If
-            MakeWarning = False
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainSideV(X, Z).Road = Nothing
-                    ElseIf intTemp >= Painter.RoadCount Then
-                        MakeWarning = True
-                        TerrainSideV(X, Z).Road = Nothing
-                    Else
-                        TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
-                    End If
-                Next
-            Next
-            If MakeWarning Then
-                Read_FME.Warning_Add("A vertical road value was out of range.")
-            End If
-            Dim TempUnitCount As UInteger
-            File.Get_U32(TempUnitCount)
-            Dim TempUnit(TempUnitCount - 1) As sFMEUnit
-            For A = 0 To TempUnitCount - 1
-                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                B = Strings.InStr(TempUnit(A).Code, Chr(0))
-                If B > 0 Then
-                    TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
-                End If
-                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            Next
-
-            Dim NewUnit As clsUnit
-            Dim tmpUnitType As clsUnitType = Nothing
-            Dim WarningCount As Integer
-            WarningCount = 0
-            For A = 0 To TempUnitCount - 1
-                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, tmpUnitType)
-                If Result.Success Then
-                    NewUnit = New clsUnit
-                    NewUnit.Type = tmpUnitType
-                    NewUnit.ID = TempUnit(A).ID
-                    NewUnit.Name = TempUnit(A).Name
-                    NewUnit.PlayerNum = TempUnit(A).Player
-                    NewUnit.Pos.X = TempUnit(A).X
-                    NewUnit.Pos.Y = TempUnit(A).Y
-                    NewUnit.Pos.Z = TempUnit(A).Z
-                    NewUnit.Rotation = Math.Min(TempUnit(A).Rotation, 359)
-                    Unit_Add(NewUnit, TempUnit(A).ID)
-                Else
-                    WarningCount += 1
-                End If
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " types of a unit were out of range. That many units were ignored.")
-            End If
-
-            File.Get_U32(GatewayCount)
-            ReDim Gateways(GatewayCount - 1)
-            For A = 0 To GatewayCount - 1
-                If Not File.Get_U16(Gateways(A).PosA.X) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(Gateways(A).PosA.Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.X) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(Gateways(A).PosB.Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            Next
-
-            If Version = 4UI And Tileset IsNot Nothing Then
-                For A = 0 To 89
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    If A < Tileset.TileCount Then
-                        Tile_TypeNum(A) = byteTemp
-                    End If
-                Next
-            End If
-
-            If Not File.IsEOF Then
-                Read_FME.Warning_Add("There were unread bytes at the end of the file.")
-            End If
-        ElseIf Version = 5UI Or Version = 6UI Then
-
-            Dim byteTemp As Byte
-            Dim uintTemp As UInteger
-
-            'tileset
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If byteTemp = 0 Then
-                Tileset = Nothing
-            ElseIf byteTemp = 1 Then
-                Tileset = Tileset_Arizona
-            ElseIf byteTemp = 2 Then
-                Tileset = Tileset_Urban
-            ElseIf byteTemp = 3 Then
-                Tileset = Tileset_Rockies
-            Else
-                Read_FME.Warning_Add("Tileset value out of range.")
-                Tileset = Nothing
-            End If
-
-            SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
-
-            Dim MapWidth As UShort
-            Dim MapHeight As UShort
-
-            If Not File.Get_U16(MapWidth) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_U16(MapHeight) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-            If MapWidth < 1US Or MapHeight < 1US Or MapWidth > 1024US Or MapHeight > 1024US Then
-                Read_FME.Problem_Add("Map size is invalid.")
-                Exit Function
-            End If
-
-            Terrain_Blank(MapWidth, MapHeight)
-            TileType_Reset()
-
-            Dim X As Integer
-            Dim Z As Integer
-            Dim A As Integer
-            Dim B As Integer
-            Dim intTemp As Integer
-            Dim WarningCount As Integer
-
-            WarningCount = 0
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainVertex(X, Z).Terrain = Nothing
-                    ElseIf intTemp >= Painter.TerrainCount Then
-                        WarningCount += 1
-                        TerrainVertex(X, Z).Terrain = Nothing
-                    Else
-                        TerrainVertex(X, Z).Terrain = Painter.Terrains(intTemp)
-                    End If
-                Next
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " painted ground vertices were out of range.")
-            End If
-            WarningCount = 0
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    TerrainTiles(X, Z).Texture.TextureNum = CInt(byteTemp) - 1
-
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-                    intTemp = 128
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Terrain_IsCliff = (A = 1)
-
-                    intTemp = 64
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Texture.Orientation.SwitchedAxes = (A = 1)
-
-                    intTemp = 32
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Texture.Orientation.ResultXFlip = (A = 1)
-
-                    intTemp = 16
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Texture.Orientation.ResultZFlip = (A = 1)
-
-                    intTemp = 4
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    TerrainTiles(X, Z).Tri = (A = 1)
-
-                    intTemp = 2
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    If TerrainTiles(X, Z).Tri Then
-                        TerrainTiles(X, Z).TriTopLeftIsCliff = (A = 1)
-                    Else
-                        TerrainTiles(X, Z).TriBottomLeftIsCliff = (A = 1)
-                    End If
-
-                    intTemp = 1
-                    A = CInt(Int(byteTemp / intTemp))
-                    byteTemp -= A * intTemp
-                    If TerrainTiles(X, Z).Tri Then
-                        TerrainTiles(X, Z).TriBottomRightIsCliff = (A = 1)
-                    Else
-                        TerrainTiles(X, Z).TriTopRightIsCliff = (A = 1)
-                    End If
-
-                    'attributes2
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-
-                    Select Case byteTemp
-                        Case 0
-                            TerrainTiles(X, Z).DownSide = TileDirection_None
-                        Case 1
-                            TerrainTiles(X, Z).DownSide = TileDirection_Top
-                        Case 2
-                            TerrainTiles(X, Z).DownSide = TileDirection_Left
-                        Case 3
-                            TerrainTiles(X, Z).DownSide = TileDirection_Right
-                        Case 4
-                            TerrainTiles(X, Z).DownSide = TileDirection_Bottom
-                        Case Else
-                            WarningCount += 1
-                    End Select
-                Next
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " tile cliff down-sides were out of range.")
-            End If
-            WarningCount = 0
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainSideH(X, Z).Road = Nothing
-                    ElseIf intTemp >= Painter.RoadCount Then
-                        WarningCount += 1
-                        TerrainSideH(X, Z).Road = Nothing
-                    Else
-                        TerrainSideH(X, Z).Road = Painter.Roads(intTemp)
-                    End If
-                Next
-            Next
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    intTemp = CInt(byteTemp) - 1
-                    If intTemp < 0 Then
-                        TerrainSideV(X, Z).Road = Nothing
-                    ElseIf intTemp >= Painter.RoadCount Then
-                        WarningCount += 1
-                        TerrainSideV(X, Z).Road = Nothing
-                    Else
-                        TerrainSideV(X, Z).Road = Painter.Roads(intTemp)
-                    End If
-                Next
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " roads were out of range.")
-            End If
-            Dim TempUnitCount As UInteger
-            File.Get_U32(TempUnitCount)
-            Dim TempUnit(TempUnitCount - 1) As sFMEUnit
-            For A = 0 To TempUnitCount - 1
-                If Not File.Get_Text(40, TempUnit(A).Code) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                B = Strings.InStr(TempUnit(A).Code, Chr(0))
-                If B > 0 Then
-                    TempUnit(A).Code = Strings.Left(TempUnit(A).Code, B - 1)
-                End If
-                If Not File.Get_U8(TempUnit(A).LNDType) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).ID) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Version = 6UI Then
-                    If Not File.Get_S32(TempUnit(A).SavePriority) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                End If
-                If Not File.Get_U32(TempUnit(A).X) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).Z) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U32(TempUnit(A).Y) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(TempUnit(A).Rotation) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_Text_VariableLength(TempUnit(A).Name) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U8(TempUnit(A).Player) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            Next
-
-            Dim NewUnit As clsUnit
-            Dim tmpUnitType As clsUnitType = Nothing
-            WarningCount = 0
-            For A = 0 To TempUnitCount - 1
-                Result = FindUnitType(TempUnit(A).Code, TempUnit(A).LNDType, tmpUnitType)
-                If Result.Success Then
-                    NewUnit = New clsUnit
-                    NewUnit.Type = tmpUnitType
-                    NewUnit.ID = TempUnit(A).ID
-                    NewUnit.SavePriority = TempUnit(A).SavePriority
-                    NewUnit.Name = TempUnit(A).Name
-                    NewUnit.PlayerNum = TempUnit(A).Player
-                    NewUnit.Pos.X = TempUnit(A).X
-                    NewUnit.Pos.Y = TempUnit(A).Y
-                    NewUnit.Pos.Z = TempUnit(A).Z
-                    NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
-                    Unit_Add(NewUnit, TempUnit(A).ID)
-                Else
-                    WarningCount += 1
-                End If
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " types of units were invalid. That many units were ignored.")
-            End If
-
-            Dim NewGatewayCount As UInteger
-            Dim NewGateStartX As UShort
-            Dim NewGateStartY As UShort
-            Dim NewGateFinishX As UShort
-            Dim NewGateFinishY As UShort
-            Dim NewGateStart As sXY_int
-            Dim NewGateFinish As sXY_int
-
-            File.Get_U32(NewGatewayCount)
-            WarningCount = 0
-            For A = 0 To CInt(NewGatewayCount) - 1
-                If Not File.Get_U16(NewGateStartX) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(NewGateStartY) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(NewGateFinishX) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                If Not File.Get_U16(NewGateFinishY) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                NewGateStart.X = NewGateStartX
-                NewGateStart.Y = NewGateStartY
-                NewGateFinish.X = NewGateFinishX
-                NewGateFinish.Y = NewGateFinishY
-                If Not Gateway_Add(NewGateStart, NewGateFinish) Then
-                    WarningCount += 1
-                End If
-            Next
-            If WarningCount > 0 Then
-                Read_FME.Warning_Add(WarningCount & " gateways were invalid.")
-            End If
-
-            If Tileset IsNot Nothing Then
-                For A = 0 To Tileset.TileCount - 1
-                    If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-                    Tile_TypeNum(A) = byteTemp
-                Next
-            End If
-
-            'scroll limits
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            frmCompileInstance.txtCampMinX.Text = intTemp
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            frmCompileInstance.txtCampMinY.Text = intTemp
-            If Not File.Get_U32(uintTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            frmCompileInstance.txtCampMaxX.Text = uintTemp
-            If Not File.Get_U32(uintTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            frmCompileInstance.txtCampMaxY.Text = uintTemp
-
-            'other compile info
-
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtName.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            Select Case byteTemp
-                Case 0
-                    frmCompileInstance.rdoMulti.Checked = False
-                    frmCompileInstance.rdoCamp.Checked = False
-                Case 1
-                    frmCompileInstance.rdoMulti.Checked = True
-                Case 2
-                    frmCompileInstance.rdoCamp.Checked = True
-                Case Else
-                    frmCompileInstance.rdoMulti.Checked = False
-                    frmCompileInstance.rdoCamp.Checked = False
-                    Read_FME.Warning_Add("Compile type out of range.")
-            End Select
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtMultiPlayers.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_U8(byteTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            Select Case byteTemp
-                Case 0
-                    frmCompileInstance.chkNewPlayerFormat.Checked = False
-                Case 1
-                    frmCompileInstance.chkNewPlayerFormat.Checked = True
-                Case Else
-                    frmCompileInstance.chkNewPlayerFormat.Checked = False
-                    Read_FME.Warning_Add("Compile player format out of range.")
-            End Select
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtAuthor.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_Text_VariableLength(frmCompileInstance.cmbLicense.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_Text_VariableLength(frmCompileInstance.txtCampTime.Text) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If Not File.Get_S32(intTemp) Then Read_FME.Problem_Add("Read error.") : Exit Function
-            If intTemp < -1 Or intTemp >= frmCompileInstance.cmbCampType.Items.Count Then
-                Read_FME.Warning_Add("Compile campaign type out of range.")
-                frmCompileInstance.cmbCampType.SelectedIndex = -1
-            Else
-                frmCompileInstance.cmbCampType.SelectedIndex = intTemp
-            End If
-
-            If Not File.IsEOF Then
-                Read_FME.Warning_Add("There were unread bytes at the end of the file.")
-            End If
-        Else
-            Read_FME.Problem_Add("File version number not recognised.")
-        End If
-    End Function
+    Public Class clsInterfaceOptions
+        Public CompileName As String
+        Public CompileMultiPlayers As String
+        Public CompileMultiXPlayers As Boolean
+        Public CompileMultiAuthor As String
+        Public CompileMultiLicense As String
+        Public AutoScrollLimits As Boolean
+        Public ScrollMin As sXY_int
+        Public ScrollMax As sXY_uint
+        Public CampaignGameTime As String
+        Public CampaignGameType As Integer
+
+        Public Sub New()
+
+            'set to default
+            CompileName = ""
+            CompileMultiPlayers = 2
+            CompileMultiXPlayers = False
+            CompileMultiAuthor = ""
+            CompileMultiLicense = ""
+            AutoScrollLimits = True
+            ScrollMin.X = 0
+            ScrollMin.Y = 0
+            ScrollMax.X = 0UI
+            ScrollMax.Y = 0UI
+            CampaignGameTime = 2
+            CampaignGameType = -1
+        End Sub
+    End Class
 
     Private Sub MinimapTextureFill(ByRef Texture(,,) As Byte)
-        Static X As Integer
-        Static Z As Integer
-        Static A As Integer
-        Static Low As sXY_int
-        Static High As sXY_int
-        Static Footprint As sXY_int
-        Static Flag As Boolean
-        Static RGB_sng As sRGB_sng
+        Dim X As Integer
+        Dim Z As Integer
+        Dim A As Integer
+        Dim Low As sXY_int
+        Dim High As sXY_int
+        Dim Footprint As sXY_int
+        Dim Flag As Boolean
+        Dim RGB_sng As sRGB_sng
+        Dim UnitMap(Texture.GetUpperBound(0), Texture.GetUpperBound(1)) As Boolean
 
         For Z = 0 To Texture.GetUpperBound(0)
             For X = 0 To Texture.GetUpperBound(1)
@@ -2495,52 +1380,53 @@ LineDone:
             Next
         End If
         If frmMainInstance.menuMiniShowUnits.Checked Then
+            'units that are not selected
             For A = 0 To UnitCount - 1
-                Flag = False
-                If Units(A).Type.LoadedInfo IsNot Nothing Then
-                    Footprint = Units(A).Type.LoadedInfo.Footprint
-                    If Footprint.X < 1 Then Footprint.X = 1
-                    If Footprint.Y < 1 Then Footprint.Y = 1
-                    'highlight unit if selected
-                    If frmMainInstance.lstFeatures.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstFeatures_Objects(frmMainInstance.lstFeatures.SelectedIndex) Is Units(A).Type Then
-                            Flag = True
-                        End If
-                    ElseIf frmMainInstance.lstStructures.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstStructures_Objects(frmMainInstance.lstStructures.SelectedIndex) Is Units(A).Type Then
-                            Flag = True
-                        End If
-                    ElseIf frmMainInstance.lstDroids.SelectedIndex >= 0 Then
-                        If frmMainInstance.lstDroids_Objects(frmMainInstance.lstDroids.SelectedIndex) Is Units(A).Type Then
-                            Flag = True
-                        End If
-                    End If
-                    If Flag Then
-                        Footprint.X += 2
-                        Footprint.Y += 2
-                    End If
+                Flag = True
+                If frmMainInstance.SelectedObjectType Is Units(A).Type Then
+                    Flag = False
                 Else
-                    Footprint.X = 1
-                    Footprint.Y = 1
+                    Footprint = Units(A).Type.GetFootprint
                 End If
-                Low.X = Math.Max(Int(Units(A).Pos.X / TerrainGridSpacing - Footprint.X / 2.0#), 0)
-                Low.Y = Math.Max(Int(Units(A).Pos.Z / TerrainGridSpacing - Footprint.Y / 2.0#), 0)
-                High.X = Math.Min(Int((Units(A).Pos.X - 1) / TerrainGridSpacing + Footprint.X / 2.0#), TerrainSize.X - 1)
-                High.Y = Math.Min(Int((Units(A).Pos.Z - 1) / TerrainGridSpacing + Footprint.Y / 2.0#), TerrainSize.Y - 1)
                 If Flag Then
+                    GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
                     For Z = Low.Y To High.Y
                         For X = Low.X To High.X
-                            Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
-                            Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 510S) / 3.0#
-                            Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 510S) / 3.0#
+                            If Not UnitMap(Z, X) Then
+                                UnitMap(Z, X) = True
+                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
+                                Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 0S) / 3.0#
+                                Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 0S) / 3.0#
+                            End If
                         Next
                     Next
-                Else
+                End If
+            Next
+            'reset unit map
+            For Z = 0 To Texture.GetUpperBound(0)
+                For X = 0 To Texture.GetUpperBound(1)
+                    UnitMap(Z, X) = False
+                Next
+            Next
+            'units that are selected and highlighted
+            For A = 0 To UnitCount - 1
+                Flag = False
+                If frmMainInstance.SelectedObjectType Is Units(A).Type Then
+                    Flag = True
+                    Footprint = Units(A).Type.GetFootprint
+                    Footprint.X += 2
+                    Footprint.Y += 2
+                End If
+                If Flag Then
+                    GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
                     For Z = Low.Y To High.Y
                         For X = Low.X To High.X
-                            Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
-                            Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 0S) / 3.0#
-                            Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 0S) / 3.0#
+                            If Not UnitMap(Z, X) Then
+                                UnitMap(Z, X) = True
+                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
+                                Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 510S) / 3.0#
+                                Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 510S) / 3.0#
+                            End If
                         Next
                     Next
                 End If
@@ -2549,7 +1435,7 @@ LineDone:
     End Sub
 
 #If Mono <> 0.0# Then
-    Private MinimapBitmap As Bitmap
+        Private MinimapBitmap As Bitmap
 #End If
     Private MinimapPending As Boolean
     Private WithEvents MakeMinimapTimer As Timer
@@ -2571,10 +1457,10 @@ LineDone:
 
     Public Sub MinimapMakeLater()
 
-        If MakeMinimapTimer.enabled Then
+        If MakeMinimapTimer.Enabled Then
             MinimapPending = True
         Else
-            MakeMinimapTimer.enabled = True
+            MakeMinimapTimer.Enabled = True
             If SuppressMinimap Then
                 MinimapPending = True
             Else
@@ -2590,7 +1476,7 @@ LineDone:
         If NewTextureSize <> Minimap_Texture_Size Then
             Minimap_Texture_Size = NewTextureSize
 #If Mono <> 0.0# Then
-            MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
+                MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
 #End If
         End If
 
@@ -2601,16 +1487,16 @@ LineDone:
         MinimapTextureFill(Pixels)
 
 #If Mono <> 0.0# Then
-        Dim Texture As New clsBitmapFile
+        Dim Texture As Bitmap
 
-        Texture.CurrentBitmap = MinimapBitmap
+        Texture = MinimapBitmap
 
         Dim X As Integer
         Dim Y As Integer
 
         For Y = 0 To Size
             For X = 0 To Size
-                Texture.CurrentBitmap.SetPixel(X, Y, ColorTranslator.FromOle(OSRGB(Pixels(Y, X, 0), Pixels(Y, X, 1), Pixels(Y, X, 2))))
+                Texture.SetPixel(X, Y, ColorTranslator.FromOle(OSRGB(Pixels(Y, X, 0), Pixels(Y, X, 1), Pixels(Y, X, 2))))
             Next
         Next
 #End If
@@ -2634,22 +1520,22 @@ LineDone:
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Minimap_Texture_Size, Minimap_Texture_Size, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Pixels)
 #Else
-        Minimap_Texture = Texture.GLTexture(frmMainInstance.View.OpenGLControl, False)
+        Minimap_Texture = BitmapGLTexture(Texture, frmMainInstance.View.OpenGLControl, False, False)
 #End If
 
-        frmMainInstance.DrawView()
+        frmMainInstance.View_DrawViewLater()
     End Sub
 
     Public Sub Tile_AutoTexture_Changed(ByVal X As Integer, ByVal Z As Integer, ByVal MakeInvalidTiles As Boolean)
-        Static Terrain_Inner As clsPainter.clsTerrain
-        Static Terrain_Outer As clsPainter.clsTerrain
-        Static Road As clsPainter.clsRoad
-        Static A As Integer
-        Static Brush_Num As Integer
-        Static RoadTop As Boolean
-        Static RoadLeft As Boolean
-        Static RoadRight As Boolean
-        Static RoadBottom As Boolean
+        Dim Terrain_Inner As clsPainter.clsTerrain
+        Dim Terrain_Outer As clsPainter.clsTerrain
+        Dim Road As clsPainter.clsRoad
+        Dim A As Integer
+        Dim Brush_Num As Integer
+        Dim RoadTop As Boolean
+        Dim RoadLeft As Boolean
+        Dim RoadRight As Boolean
+        Dim RoadBottom As Boolean
 
         'apply centre brushes
         If Not TerrainTiles(X, Z).Terrain_IsCliff Then
@@ -3078,7 +1964,7 @@ LineDone:
         Next
         For Z = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                Tile_AutoTexture_Changed(X, Z, frmMainInstance.chkInvalidTiles.Checked)
+                Tile_AutoTexture_Changed(X, Z, frmMainInstance.cbxInvalidTiles.Checked)
             Next
         Next
         For Z = 0 To TerrainSize.Y
@@ -3092,1063 +1978,6 @@ LineDone:
             Next
         Next
     End Sub
-
-    Public Structure sWrite_WZ_Args
-        Public Path As String
-        Public Overwrite As Boolean
-        Public MapName As String
-        Public Class clsMultiplayer
-            Public PlayerCount As Integer
-            Public AuthorName As String
-            Public License As String
-            Public IsBetaPlayerFormat As Boolean
-        End Class
-        Public Multiplayer As clsMultiplayer
-        Public Class clsCampaign
-            Public GAMTime As UInteger
-            Public GAMType As UInteger
-        End Class
-        Public Campaign As clsCampaign
-        Enum enumCompileType As Byte
-            Multiplayer
-            Campaign
-        End Enum
-        Public ScrollMin As sXY_int
-        Public ScrollMax As sXY_uint
-        Public CompileType As enumCompileType
-    End Structure
-
-    Function Write_WZ(ByVal Args As sWrite_WZ_Args) As sResult
-        Write_WZ.Success = False
-        Write_WZ.Problem = ""
-
-        Try
-
-            Select Case Args.CompileType
-                Case sWrite_WZ_Args.enumCompileType.Multiplayer
-                    If Args.Multiplayer Is Nothing Then
-                        Write_WZ.Problem = "Multiplayer arguments were not passed."
-                        Exit Function
-                    End If
-                    If Args.Multiplayer.PlayerCount < 2 Or Args.Multiplayer.PlayerCount > 10 Then
-                        Write_WZ.Problem = "Number of players was below 2 or above 10."
-                        Exit Function
-                    End If
-                    If Not Args.Multiplayer.IsBetaPlayerFormat Then
-                        If Not (Args.Multiplayer.PlayerCount = 2 Or Args.Multiplayer.PlayerCount = 4 Or Args.Multiplayer.PlayerCount = 8) Then
-                            Write_WZ.Problem = "Number of players was not 2, 4 or 8 in original format."
-                            Exit Function
-                        End If
-                    End If
-                Case sWrite_WZ_Args.enumCompileType.Campaign
-                    If Args.Campaign Is Nothing Then
-                        Write_WZ.Problem = "Campaign arguments were not passed."
-                        Exit Function
-                    End If
-                Case Else
-                    Write_WZ.Problem = "Unknown compile method."
-                    Exit Function
-            End Select
-
-            If Not Args.Overwrite Then
-                If IO.File.Exists(Args.Path) Then
-                    Write_WZ.Problem = "The selected file already exists."
-                    Exit Function
-                End If
-            End If
-
-            Dim Quote As Char = ControlChars.Quote
-            Dim EndChar As Char = Chr(10)
-            Dim Text As String
-
-            Dim File_LEV As New clsWriteFile
-            Dim File_MAP As New clsWriteFile
-            Dim File_GAM As New clsWriteFile
-            Dim File_featBJO As New clsWriteFile
-            Dim File_TTP As New clsWriteFile
-            Dim File_structBJO As New clsWriteFile
-            Dim File_droidBJO As New clsWriteFile
-
-            Dim PlayersPrefix As String = ""
-
-            If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
-
-                PlayersPrefix = Args.Multiplayer.PlayerCount & "c-"
-                Dim fog As String
-                Dim TilesetNum As String
-                If Tileset Is Tileset_Arizona Then
-                    fog = "fog1.wrf"
-                    TilesetNum = "1"
-                ElseIf Tileset Is Tileset_Urban Then
-                    fog = "fog2.wrf"
-                    TilesetNum = "2"
-                ElseIf Tileset Is Tileset_Rockies Then
-                    fog = "fog3.wrf"
-                    TilesetNum = "3"
-                Else
-                    Write_WZ.Problem = "Unknown tileset selected."
-                    Exit Function
-                End If
-
-                Text = "// Made with flaME " & ProgramVersion & EndChar
-                File_LEV.Text_Append(Text)
-                Dim DateNow As Date = Now
-                Text = "// Date: " & DateNow.Year & "/" & MinDigits(DateNow.Month, 2) & "/" & MinDigits(DateNow.Day, 2) & " " & MinDigits(DateNow.Hour, 2) & ":" & MinDigits(DateNow.Minute, 2) & ":" & MinDigits(DateNow.Second, 2) & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "// Author: " & Args.Multiplayer.AuthorName & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "// License: " & Args.Multiplayer.License & EndChar
-                File_LEV.Text_Append(Text)
-                Text = EndChar
-                File_LEV.Text_Append(Text)
-                Text = "level   " & Args.MapName & "-T1" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "players " & Args.Multiplayer.PlayerCount & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "type    14" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "dataset MULTI_CAM_" & TilesetNum & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "game    " & Quote & "multiplay/maps/" & PlayersPrefix & Args.MapName & ".gam" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/skirmish" & Args.Multiplayer.PlayerCount & ".wrf" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/" & fog & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = EndChar
-                File_LEV.Text_Append(Text)
-                Text = "level   " & Args.MapName & "-T2" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "players " & Args.Multiplayer.PlayerCount & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "type    18" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "dataset MULTI_T2_C" & TilesetNum & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "game    " & Quote & "multiplay/maps/" & PlayersPrefix & Args.MapName & ".gam" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/t2-skirmish" & Args.Multiplayer.PlayerCount & ".wrf" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/" & fog & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = EndChar
-                File_LEV.Text_Append(Text)
-                Text = "level   " & Args.MapName & "-T3" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "players " & Args.Multiplayer.PlayerCount & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "type    19" & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "dataset MULTI_T3_C" & TilesetNum & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "game    " & Quote & "multiplay/maps/" & PlayersPrefix & Args.MapName & ".gam" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/t3-skirmish" & Args.Multiplayer.PlayerCount & ".wrf" & Quote & EndChar
-                File_LEV.Text_Append(Text)
-                Text = "data    " & Quote & "wrf/multi/" & fog & Quote & EndChar
-                File_LEV.Text_Append(Text)
-
-            End If
-
-            File_GAM.U8_Append(Asc("g"))
-            File_GAM.U8_Append(Asc("a"))
-            File_GAM.U8_Append(Asc("m"))
-            File_GAM.U8_Append(Asc("e"))
-            File_GAM.U32_Append(8)
-            If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
-                File_GAM.U32_Append(0)
-                File_GAM.U32_Append(0)
-                'File_GAM.S32_Append(0)
-                'File_GAM.S32_Append(0)
-                'File_GAM.U32_Append(TerrainSize.X)
-                'File_GAM.U32_Append(TerrainSize.Y)
-            ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
-                File_GAM.U32_Append(Args.Campaign.GAMTime)
-                File_GAM.U32_Append(Args.Campaign.GAMType)
-            End If
-            File_GAM.S32_Append(Args.ScrollMin.X)
-            File_GAM.S32_Append(Args.ScrollMin.Y)
-            File_GAM.U32_Append(Args.ScrollMax.X)
-            File_GAM.U32_Append(Args.ScrollMax.Y)
-            File_GAM.Make_Length(20)
-
-            Dim A As Integer
-            Dim B As Integer
-            Dim X As Integer
-            Dim Y As Integer
-
-            File_MAP.U8_Append(Asc("m"))
-            File_MAP.U8_Append(Asc("a"))
-            File_MAP.U8_Append(Asc("p"))
-            File_MAP.U8_Append(Asc(" "))
-            File_MAP.U32_Append(10)
-            File_MAP.U32_Append(TerrainSize.X)
-            File_MAP.U32_Append(TerrainSize.Y)
-            Dim Flip As Byte
-            Dim Rotation As Byte
-            Dim DoFlipX As Boolean
-            For Y = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    TileOrientation_To_OldOrientation(TerrainTiles(X, Y).Texture.Orientation, Rotation, DoFlipX)
-                    Flip = 0
-                    If TerrainTiles(X, Y).Tri Then
-                        Flip += 8
-                    End If
-                    Flip += Rotation * 16
-                    If DoFlipX Then
-                        Flip += 128
-                    End If
-                    File_MAP.U8_Append(Clamp(TerrainTiles(X, Y).Texture.TextureNum, 0, 255))
-                    File_MAP.U8_Append(Flip)
-                    File_MAP.U8_Append(TerrainVertex(X, Y).Height)
-                Next
-            Next
-            File_MAP.U32_Append(1) 'gateway version
-            File_MAP.U32_Append(GatewayCount)
-            For A = 0 To GatewayCount - 1
-                File_MAP.U8_Append(Clamp(Gateways(A).PosA.X, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosA.Y, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosB.X, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosB.Y, 0, 255))
-            Next
-
-            File_featBJO.U8_Append(Asc("f"))
-            File_featBJO.U8_Append(Asc("e"))
-            File_featBJO.U8_Append(Asc("a"))
-            File_featBJO.U8_Append(Asc("t"))
-            File_featBJO.U32_Append(8)
-            Dim Features(UnitCount - 1) As Integer
-            Dim FeatureCount As Integer = 0
-            Dim C As Integer
-            For A = 0 To UnitCount - 1
-                If Units(A).Type.Type = clsUnitType.enumType.Feature Then
-                    For B = 0 To FeatureCount - 1
-                        If Units(Features(B)).SavePriority < Units(A).SavePriority Then
-                            Exit For
-                        End If
-                    Next
-                    For C = FeatureCount - 1 To B Step -1
-                        Features(C + 1) = Features(C)
-                    Next
-                    Features(B) = A
-                    FeatureCount += 1
-                End If
-            Next
-            File_featBJO.U32_Append(FeatureCount)
-            For B = 0 To FeatureCount - 1
-                A = Features(B)
-                File_featBJO.Text_Append(Units(A).Type.Code, 40)
-                File_featBJO.U32_Append(Units(A).ID)
-                File_featBJO.U32_Append(Units(A).Pos.X)
-                File_featBJO.U32_Append(Units(A).Pos.Z)
-                File_featBJO.U32_Append(Units(A).Pos.Y)
-                File_featBJO.U32_Append(Units(A).Rotation)
-                File_featBJO.U32_Append(Units(A).PlayerNum)
-                File_featBJO.Make_Length(12)
-            Next
-
-            File_TTP.Text_Append("ttyp")
-            File_TTP.U32_Append(8UI)
-            File_TTP.U32_Append(Map.Tileset.TileCount)
-            For A = 0 To Map.Tileset.TileCount - 1
-                File_TTP.U16_Append(Map.Tile_TypeNum(A))
-            Next
-
-            File_structBJO.U8_Append(Asc("s"))
-            File_structBJO.U8_Append(Asc("t"))
-            File_structBJO.U8_Append(Asc("r"))
-            File_structBJO.U8_Append(Asc("u"))
-            File_structBJO.U32_Append(8)
-            Dim TempStructs(UnitCount - 1) As Integer
-            Dim TempStructCount As Integer = 0
-            Dim AddToList As Boolean
-            'non-module structures
-            For A = 0 To UnitCount - 1
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    AddToList = False
-                    If Units(A).Type.LoadedInfo IsNot Nothing Then
-                        If Not (Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.FactoryModule _
-                          Or Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerModule _
-                          Or Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResearchModule) Then
-                            AddToList = True
-                        End If
-                    Else
-                        AddToList = True
-                    End If
-                    If AddToList Then
-                        For B = 0 To TempStructCount - 1
-                            If Units(TempStructs(B)).SavePriority < Units(A).SavePriority Then
-                                Exit For
-                            End If
-                        Next
-                        For C = TempStructCount - 1 To B Step -1
-                            TempStructs(C + 1) = TempStructs(C)
-                        Next
-                        TempStructs(B) = A
-                        TempStructCount += 1
-                    End If
-                End If
-            Next
-            'module structures
-            For A = 0 To UnitCount - 1
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    If Units(A).Type.LoadedInfo IsNot Nothing Then
-                        If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.FactoryModule _
-                          Or Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerModule _
-                          Or Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResearchModule Then
-                            For B = 0 To TempStructCount - 1
-                                If Units(TempStructs(B)).SavePriority < Units(A).SavePriority Then
-                                    Exit For
-                                End If
-                            Next
-                            For C = TempStructCount - 1 To B Step -1
-                                TempStructs(C + 1) = TempStructs(C)
-                            Next
-                            TempStructs(B) = A
-                            TempStructCount += 1
-                        End If
-                    End If
-                End If
-            Next
-            File_structBJO.U32_Append(TempStructCount)
-            For B = 0 To TempStructCount - 1
-                A = TempStructs(B)
-                File_structBJO.Text_Append(Units(A).Type.Code, 40)
-                File_structBJO.U32_Append(Units(A).ID)
-                File_structBJO.U32_Append(Units(A).Pos.X)
-                File_structBJO.U32_Append(Units(A).Pos.Z)
-                File_structBJO.U32_Append(Units(A).Pos.Y)
-                File_structBJO.U32_Append(Units(A).Rotation)
-                File_structBJO.U32_Append(Units(A).PlayerNum)
-                File_structBJO.Make_Length(12)
-                File_structBJO.U8_Append(1)
-                File_structBJO.U8_Append(26)
-                File_structBJO.U8_Append(127)
-                File_structBJO.U8_Append(0)
-                File_structBJO.Make_Length(40)
-            Next
-
-            File_droidBJO.U8_Append(Asc("d"))
-            File_droidBJO.U8_Append(Asc("i"))
-            File_droidBJO.U8_Append(Asc("n"))
-            File_droidBJO.U8_Append(Asc("t"))
-            File_droidBJO.U32_Append(8)
-            Dim Droids(UnitCount - 1) As Integer
-            Dim DroidCount As Integer = 0
-            For A = 0 To UnitCount - 1
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerDroidTemplate Then
-                    For B = 0 To DroidCount - 1
-                        If Units(Droids(B)).SavePriority < Units(A).SavePriority Then
-                            Exit For
-                        End If
-                    Next
-                    For C = DroidCount - 1 To B Step -1
-                        Droids(C + 1) = Droids(C)
-                    Next
-                    Droids(B) = A
-                    DroidCount += 1
-                End If
-            Next
-            File_droidBJO.U32_Append(DroidCount)
-            For B = 0 To DroidCount - 1
-                A = Droids(B)
-                File_droidBJO.Text_Append(Units(A).Type.Code, 40)
-                File_droidBJO.U32_Append(Units(A).ID)
-                File_droidBJO.U32_Append(Units(A).Pos.X)
-                File_droidBJO.U32_Append(Units(A).Pos.Z)
-                File_droidBJO.U32_Append(Units(A).Pos.Y)
-                File_droidBJO.U32_Append(Units(A).Rotation)
-                File_droidBJO.U32_Append(Units(A).PlayerNum)
-                File_droidBJO.Make_Length(12)
-            Next
-
-            File_LEV.Trim_Buffer()
-            File_GAM.Trim_Buffer()
-            File_droidBJO.Trim_Buffer()
-            File_featBJO.Trim_Buffer()
-            File_MAP.Trim_Buffer()
-            File_structBJO.Trim_Buffer()
-            File_TTP.Trim_Buffer()
-
-            If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
-
-                If Not Args.Overwrite Then
-                    If IO.File.Exists(Args.Path) Then
-                        Write_WZ.Problem = "File already exists. Will not overwrite."
-                        Exit Function
-                    End If
-                Else
-                    If IO.File.Exists(Args.Path) Then
-                        IO.File.Delete(Args.Path)
-                    End If
-                End If
-
-                Dim WZStream As Zip.ZipOutputStream = New Zip.ZipOutputStream(IO.File.Create(Args.Path))
-
-                Try
-
-                    Dim Crc32 As New Checksums.Crc32
-                    Dim ZippedFile As Zip.ZipEntry
-
-                    WZStream.SetLevel(9)
-
-                    If Args.Multiplayer.IsBetaPlayerFormat Then
-                        ZippedFile = New Zip.ZipEntry(PlayersPrefix & Args.MapName & ".xplayers.lev")
-                    Else
-                        ZippedFile = New Zip.ZipEntry(PlayersPrefix & Args.MapName & ".addon.lev")
-                    End If
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_LEV.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_LEV.Bytes, 0, File_LEV.ByteCount)
-                    Crc32.Update(File_LEV.Bytes, 0, File_LEV.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/")
-                    WZStream.PutNextEntry(ZippedFile)
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/")
-                    WZStream.PutNextEntry(ZippedFile)
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/")
-                    WZStream.PutNextEntry(ZippedFile)
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & ".gam")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_GAM.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_GAM.Bytes, 0, File_GAM.ByteCount)
-                    Crc32.Update(File_GAM.Bytes, 0, File_GAM.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "dinit.bjo")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_droidBJO.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_droidBJO.Bytes, 0, File_droidBJO.ByteCount)
-                    Crc32.Update(File_droidBJO.Bytes, 0, File_droidBJO.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "feat.bjo")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_featBJO.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_featBJO.Bytes, 0, File_featBJO.ByteCount)
-                    Crc32.Update(File_featBJO.Bytes, 0, File_featBJO.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "game.map")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_MAP.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_MAP.Bytes, 0, File_MAP.ByteCount)
-                    Crc32.Update(File_MAP.Bytes, 0, File_MAP.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "struct.bjo")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_structBJO.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_structBJO.Bytes, 0, File_structBJO.ByteCount)
-                    Crc32.Update(File_structBJO.Bytes, 0, File_structBJO.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    ZippedFile = New Zip.ZipEntry("multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "ttypes.ttp")
-                    ZippedFile.DateTime = Now
-                    ZippedFile.Size = File_TTP.ByteCount
-                    ZippedFile.ExternalFileAttributes = 32
-                    Crc32.Reset()
-                    WZStream.PutNextEntry(ZippedFile)
-                    WZStream.Write(File_TTP.Bytes, 0, File_TTP.ByteCount)
-                    Crc32.Update(File_TTP.Bytes, 0, File_TTP.ByteCount)
-                    ZippedFile.Crc = Crc32.Value
-
-                    WZStream.Finish()
-                Catch ex As Exception
-                    WZStream.Close()
-                    Write_WZ.Problem = ex.Message
-                    Exit Function
-                Finally
-                    WZStream.Close()
-                End Try
-
-            ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
-
-                Dim tmpPath As String = EndWithPathSeperator(Args.Path)
-
-                If Not IO.Directory.Exists(tmpPath) Then
-                    Write_WZ.Problem = "Folder does not exist."
-                    Exit Function
-                End If
-
-                Dim tmpFilePath As String
-                tmpFilePath = tmpPath & Args.MapName & ".gam"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_GAM.Bytes)
-                tmpPath &= Args.MapName & OSPathSeperator
-                IO.Directory.CreateDirectory(tmpPath)
-                tmpFilePath = tmpPath & "dinit.bjo"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_droidBJO.Bytes)
-                tmpFilePath = tmpPath & "feat.bjo"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_featBJO.Bytes)
-                tmpFilePath = tmpPath & "game.map"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_MAP.Bytes)
-                tmpFilePath = tmpPath & "struct.bjo"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_structBJO.Bytes)
-                tmpFilePath = tmpPath & "ttypes.ttp"
-                If IO.File.Exists(tmpFilePath) Then
-                    Write_WZ.Problem = tmpFilePath & " already exists."
-                    Exit Function
-                End If
-                IO.File.WriteAllBytes(tmpFilePath, File_TTP.Bytes)
-            End If
-
-        Catch ex As Exception
-            Write_WZ.Problem = ex.Message
-            Exit Function
-        End Try
-
-        Write_WZ.Success = True
-    End Function
-
-    Function Write_LND(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Write_LND.Success = False
-        Write_LND.Problem = ""
-
-        If IO.File.Exists(Path) Then
-            If Overwrite Then
-                IO.File.Delete(Path)
-            Else
-                Write_LND.Problem = "The selected file already exists."
-                Exit Function
-            End If
-        End If
-
-        Try
-
-            Dim Text As String
-            Dim EndChar As Char
-            Dim Quote As Char
-            Dim A As Integer
-            Dim X As Integer
-            Dim Z As Integer
-            Dim Flip As Byte
-            Dim B As Integer
-            Dim VF As Integer
-            Dim TF As Integer
-            Dim C As Integer
-            Dim Rotation As Byte
-            Dim FlipX As Boolean
-
-            Quote = ControlChars.Quote
-            EndChar = Chr(10)
-
-            Dim ByteFile As clsWriteFile = New clsWriteFile
-
-            If Tileset Is Tileset_Arizona Then
-                Text = "DataSet WarzoneDataC1.eds" & EndChar
-            ElseIf Tileset Is Tileset_Urban Then
-                Text = "DataSet WarzoneDataC2.eds" & EndChar
-            ElseIf Tileset Is Tileset_Rockies Then
-                Text = "DataSet WarzoneDataC3.eds" & EndChar
-            Else
-                Text = "DataSet " & EndChar
-            End If
-            ByteFile.Text_Append(Text)
-            Text = "GrdLand {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Version 4" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    3DPosition 0.000000 3072.000000 0.000000" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    3DRotation 80.000000 0.000000 0.000000" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    2DPosition 0 0" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    CustomSnap 16 16" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    SnapMode 0" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Gravity 1" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    HeightScale " & HeightMultiplier & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    MapWidth " & TerrainSize.X & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    MapHeight " & TerrainSize.Y & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    TileWidth 128" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    TileHeight 128" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    SeaLevel 0" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    TextureWidth 64" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    TextureHeight 64" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumTextures 1" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Textures {" & EndChar
-            ByteFile.Text_Append(Text)
-            If Tileset Is Tileset_Arizona Then
-                Text = "        texpages\tertilesc1.pcx" & EndChar
-            ElseIf Tileset Is Tileset_Urban Then
-                Text = "        texpages\tertilesc2.pcx" & EndChar
-            ElseIf Tileset Is Tileset_Rockies Then
-                Text = "        texpages\tertilesc3.pcx" & EndChar
-            Else
-                Text = "        " & EndChar
-            End If
-            ByteFile.Text_Append(Text)
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumTiles " & TerrainSize.X * TerrainSize.Y & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Tiles {" & EndChar
-            ByteFile.Text_Append(Text)
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    TileOrientation_To_OldOrientation(TerrainTiles(X, Z).Texture.Orientation, Rotation, FlipX)
-                    Flip = 0
-                    If TerrainTiles(X, Z).Tri Then
-                        Flip += 2
-                    End If
-                    If FlipX Then
-                        Flip += 4
-                    End If
-                    'If TerrainTile(X, Z).Texture.FlipZ Then
-                    '    Flip += 8
-                    'End If
-                    Flip += Rotation * 16
-
-                    If TerrainTiles(X, Z).Tri Then
-                        VF = 1
-                    Else
-                        VF = 0
-                    End If
-                    If FlipX Then
-                        TF = 1
-                    Else
-                        TF = 0
-                    End If
-
-                    Text = "        TID " & TerrainTiles(X, Z).Texture.TextureNum + 1 & " VF " & VF & " TF " & TF & " F " & Flip & " VH " & TerrainVertex(X, Z).Height & " " & TerrainVertex(X + 1, Z).Height & " " & TerrainVertex(X + 1, Z + 1).Height & " " & TerrainVertex(X, Z + 1).Height & EndChar
-                    ByteFile.Text_Append(Text)
-                Next
-            Next
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "ObjectList {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Version 3" & EndChar
-            ByteFile.Text_Append(Text)
-            If Tileset Is Tileset_Arizona Then
-                Text = "	FeatureSet WarzoneDataC1.eds" & EndChar
-            ElseIf Tileset Is Tileset_Urban Then
-                Text = "	FeatureSet WarzoneDataC2.eds" & EndChar
-            ElseIf Tileset Is Tileset_Rockies Then
-                Text = "	FeatureSet WarzoneDataC3.eds" & EndChar
-            Else
-                Text = "	FeatureSet " & EndChar
-            End If
-            ByteFile.Text_Append(Text)
-            Text = "    NumObjects " & UnitCount & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Objects {" & EndChar
-            ByteFile.Text_Append(Text)
-            Dim XYZ_int As sXYZ_int
-            For A = 0 To UnitCount - 1
-                Select Case Units(A).Type.Type
-                    Case clsUnitType.enumType.Feature
-                        B = 0
-                    Case clsUnitType.enumType.PlayerStructure
-                        B = 1
-                    Case clsUnitType.enumType.PlayerDroidTemplate
-                        B = 2
-                    Case Else
-                        Write_LND.Problem = "Unit type classification not accounted for."
-                        Exit Function
-                End Select
-                XYZ_int = LNDPos_From_MapPos(Units(A).Pos.X, Units(A).Pos.Z)
-                Text = "        " & Units(A).ID & " " & B & " " & Quote & Units(A).Type.Code & Quote & " " & Units(A).PlayerNum & " " & Quote & Units(A).Name & Quote & " " & Strings.FormatNumber(XYZ_int.X, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(XYZ_int.Y, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(XYZ_int.Z, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(0, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(Units(A).Rotation, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(0, 2, TriState.True, TriState.False, TriState.False) & EndChar
-                ByteFile.Text_Append(Text)
-            Next
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "ScrollLimits {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Version 1" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumLimits 1" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Limits {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        " & Quote & "Entire Map" & Quote & " 0 0 0 " & TerrainSize.X & " " & TerrainSize.Y & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "Gateways {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Version 1" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumGateways " & GatewayCount & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Gates {" & EndChar
-            ByteFile.Text_Append(Text)
-            For A = 0 To GatewayCount - 1
-                Text = "        " & Gateways(A).PosA.X & " " & Gateways(A).PosA.Y & " " & Gateways(A).PosB.X & " " & Gateways(A).PosB.Y & EndChar
-                ByteFile.Text_Append(Text)
-            Next
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "TileTypes {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumTiles " & Tileset.TileCount & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Tiles {" & EndChar
-            ByteFile.Text_Append(Text)
-            For A = 0 To Math.Ceiling((Tileset.TileCount + 1) / 16.0#) - 1 '+1 because the first number is not a tile type
-                Text = "        "
-                C = A * 16 - 1 '-1 because the first number is not a tile type
-                For B = 0 To Math.Min(16, Tileset.TileCount - C) - 1
-                    If C + B < 0 Then
-                        Text = Text & "2 "
-                    Else
-                        Text = Text & Map.Tile_TypeNum(C + B) & " "
-                    End If
-                Next
-                Text = Text & EndChar
-                ByteFile.Text_Append(Text)
-            Next
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "TileFlags {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumTiles 90" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Flags {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "        0 0 0 0 0 0 0 0 0 0 " & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "Brushes {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    Version 2" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumEdgeBrushes 0" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    NumUserBrushes 0" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    EdgeBrushes {" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "    }" & EndChar
-            ByteFile.Text_Append(Text)
-            Text = "}" & EndChar
-            ByteFile.Text_Append(Text)
-
-            ByteFile.Trim_Buffer()
-
-            IO.File.WriteAllBytes(Path, ByteFile.Bytes)
-
-        Catch ex As Exception
-            Write_LND.Problem = ex.Message
-            Exit Function
-        End Try
-
-        Write_LND.Success = True
-    End Function
-
-    Function Write_FME(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Write_FME.Success = False
-        Write_FME.Problem = ""
-
-        If Not Overwrite Then
-            If IO.File.Exists(Path) Then
-                Write_FME.Problem = "The selected file already exists."
-                Exit Function
-            End If
-        End If
-
-        Try
-
-            Dim X As Integer
-            Dim Z As Integer
-            Dim ByteFile As New clsWriteFile
-
-            ByteFile.U32_Append(SaveVersion)
-
-            If Tileset Is Nothing Then
-                ByteFile.U8_Append(0)
-            ElseIf Tileset Is Tileset_Arizona Then
-                ByteFile.U8_Append(1)
-            ElseIf Tileset Is Tileset_Urban Then
-                ByteFile.U8_Append(2)
-            ElseIf Tileset Is Tileset_Rockies Then
-                ByteFile.U8_Append(3)
-            End If
-
-            ByteFile.U16_Append(TerrainSize.X)
-            ByteFile.U16_Append(TerrainSize.Y)
-
-            Dim TileAttributes As Byte
-            Dim DownSideData As Byte
-
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X
-                    ByteFile.U8_Append(TerrainVertex(X, Z).Height)
-                    If TerrainVertex(X, Z).Terrain Is Nothing Then
-                        ByteFile.U8_Append(0)
-                    ElseIf TerrainVertex(X, Z).Terrain.Num < 0 Then
-                        Write_FME.Problem = "Terrain number out of range."
-                        Exit Function
-                    Else
-                        ByteFile.U8_Append(TerrainVertex(X, Z).Terrain.Num + 1)
-                    End If
-                Next
-            Next
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    ByteFile.U8_Append(TerrainTiles(X, Z).Texture.TextureNum + 1)
-
-                    TileAttributes = 0
-                    If TerrainTiles(X, Z).Terrain_IsCliff Then
-                        TileAttributes += 128
-                    End If
-                    If TerrainTiles(X, Z).Texture.Orientation.SwitchedAxes Then
-                        TileAttributes += 64
-                    End If
-                    If TerrainTiles(X, Z).Texture.Orientation.ResultXFlip Then
-                        TileAttributes += 32
-                    End If
-                    If TerrainTiles(X, Z).Texture.Orientation.ResultZFlip Then
-                        TileAttributes += 16
-                    End If
-                    '8 is free
-                    If TerrainTiles(X, Z).Tri Then
-                        TileAttributes += 4
-                        If TerrainTiles(X, Z).TriTopLeftIsCliff Then
-                            TileAttributes += 2
-                        End If
-                        If TerrainTiles(X, Z).TriBottomRightIsCliff Then
-                            TileAttributes += 1
-                        End If
-                    Else
-                        If TerrainTiles(X, Z).TriBottomLeftIsCliff Then
-                            TileAttributes += 2
-                        End If
-                        If TerrainTiles(X, Z).TriTopRightIsCliff Then
-                            TileAttributes += 1
-                        End If
-                    End If
-                    ByteFile.U8_Append(TileAttributes)
-                    If IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Top) Then
-                        DownSideData = 1
-                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Left) Then
-                        DownSideData = 2
-                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Right) Then
-                        DownSideData = 3
-                    ElseIf IdenticalTileOrientations(TerrainTiles(X, Z).DownSide, TileDirection_Bottom) Then
-                        DownSideData = 4
-                    Else
-                        DownSideData = 0
-                    End If
-                    ByteFile.U8_Append(DownSideData)
-                Next
-            Next
-            For Z = 0 To TerrainSize.Y
-                For X = 0 To TerrainSize.X - 1
-                    If TerrainSideH(X, Z).Road Is Nothing Then
-                        ByteFile.U8_Append(0)
-                    ElseIf TerrainSideH(X, Z).Road.Num < 0 Then
-                        Write_FME.Problem = "Road number out of range."
-                        Exit Function
-                    Else
-                        ByteFile.U8_Append(TerrainSideH(X, Z).Road.Num + 1)
-                    End If
-                Next
-            Next
-            For Z = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X
-                    If TerrainSideV(X, Z).Road Is Nothing Then
-                        ByteFile.U8_Append(0)
-                    ElseIf TerrainSideV(X, Z).Road.Num < 0 Then
-                        Write_FME.Problem = "Road number out of range."
-                        Exit Function
-                    Else
-                        ByteFile.U8_Append(TerrainSideV(X, Z).Road.Num + 1)
-                    End If
-                Next
-            Next
-
-            Dim A As Integer
-
-            ByteFile.U32_Append(UnitCount)
-
-            For A = 0 To UnitCount - 1
-                ByteFile.Text_Append(Units(A).Type.Code, 40)
-                Select Case Units(A).Type.Type
-                    Case clsUnitType.enumType.Feature
-                        ByteFile.U8_Append(0)
-                    Case clsUnitType.enumType.PlayerStructure
-                        ByteFile.U8_Append(1)
-                    Case clsUnitType.enumType.PlayerDroidTemplate
-                        ByteFile.U8_Append(2)
-                End Select
-                ByteFile.U32_Append(Units(A).ID)
-                ByteFile.S32_Append(Units(A).SavePriority)
-                ByteFile.U32_Append(Units(A).Pos.X)
-                ByteFile.U32_Append(Units(A).Pos.Z)
-                ByteFile.U32_Append(Units(A).Pos.Y)
-                ByteFile.U16_Append(Units(A).Rotation)
-                ByteFile.Text_Append(Units(A).Name, True)
-                ByteFile.U8_Append(Units(A).PlayerNum)
-            Next
-
-            ByteFile.U32_Append(GatewayCount)
-
-            For A = 0 To GatewayCount - 1
-                ByteFile.U16_Append(Gateways(A).PosA.X)
-                ByteFile.U16_Append(Gateways(A).PosA.Y)
-                ByteFile.U16_Append(Gateways(A).PosB.X)
-                ByteFile.U16_Append(Gateways(A).PosB.Y)
-            Next
-
-            If Tileset IsNot Nothing Then
-                For A = 0 To Tileset.TileCount - 1
-                    ByteFile.U8_Append(Map.Tile_TypeNum(A))
-                Next
-            End If
-
-            'scroll limits
-            ByteFile.S32_Append(CInt(Clamp(Val(frmCompileInstance.txtCampMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))))
-            ByteFile.S32_Append(CInt(Clamp(Val(frmCompileInstance.txtCampMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))))
-            ByteFile.U32_Append(CUInt(Clamp(Val(frmCompileInstance.txtCampMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))))
-            ByteFile.U32_Append(CUInt(Clamp(Val(frmCompileInstance.txtCampMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))))
-
-            'other compile info
-            ByteFile.Text_Append(frmCompileInstance.txtName.Text, True)
-            If frmCompileInstance.rdoMulti.Checked Then
-                ByteFile.U8_Append(1)
-            ElseIf frmCompileInstance.rdoCamp.Checked Then
-                ByteFile.U8_Append(2)
-            Else
-                ByteFile.U8_Append(0)
-            End If
-            ByteFile.Text_Append(frmCompileInstance.txtMultiPlayers.Text, True)
-            If frmCompileInstance.chkNewPlayerFormat.Checked Then
-                ByteFile.U8_Append(1)
-            Else
-                ByteFile.U8_Append(0)
-            End If
-            ByteFile.Text_Append(frmCompileInstance.txtAuthor.Text, True)
-            ByteFile.Text_Append(frmCompileInstance.cmbLicense.Text, True)
-            ByteFile.Text_Append(frmCompileInstance.txtCampTime.Text, True)
-            Dim intTemp As Integer = frmCompileInstance.cmbCampType.SelectedIndex
-            ByteFile.S32_Append(intTemp)
-
-            If IO.File.Exists(Path) Then
-                IO.File.Delete(Path)
-            End If
-
-            ByteFile.Trim_Buffer()
-            IO.File.WriteAllBytes(Path, ByteFile.Bytes)
-
-        Catch ex As Exception
-            Write_FME.Problem = ex.Message
-            Exit Function
-        End Try
-
-        Write_FME.Success = True
-    End Function
-
-    Function Write_MinimapFile(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Write_MinimapFile.Problem = ""
-        Write_MinimapFile.Success = False
-
-        Dim X As Integer
-        Dim Z As Integer
-
-        Dim MinimapBitmap As New clsBitmapFile(TerrainSize.X, TerrainSize.Y)
-
-        Dim Texture(TerrainSize.Y - 1, TerrainSize.X - 1, 3) As Byte
-
-        Map.MinimapTextureFill(Texture)
-
-        For Z = 0 To Texture.GetUpperBound(0)
-            For X = 0 To Texture.GetUpperBound(1)
-                MinimapBitmap.CurrentBitmap.SetPixel(X, Z, Drawing.ColorTranslator.FromOle(OSRGB(Texture(Z, X, 0), Texture(Z, X, 1), Texture(Z, X, 2))))
-            Next
-        Next
-
-        Write_MinimapFile = MinimapBitmap.Save(Path, Overwrite)
-    End Function
-
-    Function Write_HeightmapBMP(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Dim HeightmapBitmap As New clsBitmapFile(TerrainSize.X + 1, TerrainSize.Y + 1)
-        Dim X As Integer
-        Dim Y As Integer
-
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                HeightmapBitmap.CurrentBitmap.SetPixel(X, Y, Drawing.ColorTranslator.FromOle(OSRGB(TerrainVertex(X, Y).Height, TerrainVertex(X, Y).Height, TerrainVertex(X, Y).Height)))
-            Next
-        Next
-
-        Write_HeightmapBMP = HeightmapBitmap.Save(Path, Overwrite)
-    End Function
 
     Function Unit_Add_StoreChange(ByVal NewUnit As clsUnit) As Integer
 
@@ -4175,7 +2004,7 @@ LineDone:
         Dim A As Integer
         Dim ID As UInteger
 
-        ID = 0UI
+        ID = 1UI
         For A = 0 To UnitCount - 1
             If Units(A).ID >= ID Then
                 ID = Units(A).ID + 1UI
@@ -4187,25 +2016,29 @@ LineDone:
     Function Unit_Add(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
         Dim A As Integer
 
+        If ID <= 0UI Then
+            ID = 1UI
+        End If
+
         For A = 0 To UnitCount - 1
             If ID = Units(A).ID Then
                 Exit For
             End If
         Next
-        If A <> UnitCount Then
+        If A < UnitCount Then
             Return Unit_Add(NewUnit)
         End If
 
         NewUnit.ID = ID
 
-        NewUnit.Num = UnitCount
+        NewUnit.Map_UnitNum = UnitCount
 
-        NewUnit.Pos.X = Clamp(NewUnit.Pos.X, 0, TerrainSize.X * TerrainGridSpacing - 1)
-        NewUnit.Pos.Z = Clamp(NewUnit.Pos.Z, 0, TerrainSize.Y * TerrainGridSpacing - 1)
-        NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
+        NewUnit.Pos.Horizontal.X = Clamp(NewUnit.Pos.Horizontal.X, 0, TerrainSize.X * TerrainGridSpacing - 1)
+        NewUnit.Pos.Horizontal.Y = Clamp(NewUnit.Pos.Horizontal.Y, 0, TerrainSize.Y * TerrainGridSpacing - 1)
+        NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
 
         If Units.GetUpperBound(0) < UnitCount Then
-            ReDim Preserve Units((UnitCount + 1) * 2 - 1)
+            ReDim Preserve Units(UnitCount * 2 + 1)
         End If
         Units(UnitCount) = NewUnit
         Unit_Add = UnitCount
@@ -4231,14 +2064,10 @@ LineDone:
 
         UnitSectors_GLList(Units(Num))
 
-        A = 0
-        Do While A < frmMainInstance.View.MouseOver_UnitCount
-            If frmMainInstance.View.MouseOver_Units(A) Is Units(Num) Then
-                frmMainInstance.View.MouseOverUnit_Remove(A)
-            Else
-                A += 1
-            End If
-        Loop
+        Dim MouseOverTerrain As ctrlMapView.clsMouseOver.clsOverTerrain = frmMainInstance.View.GetMouseOverTerrain
+        If MouseOverTerrain IsNot Nothing Then
+            MouseOverTerrain.Unit_FindRemove(Units(Num))
+        End If
 
         A = 0
         Do While A < SelectedUnitCount
@@ -4256,28 +2085,36 @@ LineDone:
             Units(Num).Sectors_Remove()
         End If
 
-        Units(Num).Num = -1
+        Units(Num).Map_UnitNum = -1
 
         UnitCount -= 1
-        If Num <> UnitCount Then
-            Units(UnitCount).Num = Num
+        If Num < UnitCount Then
             Units(Num) = Units(UnitCount)
+            Units(Num).Map_UnitNum = Num
         End If
-        ReDim Preserve Units(UnitCount - 1)
+        Units(UnitCount) = Nothing
+        If Units.GetUpperBound(0) + 1 > UnitCount * 3 Then
+            ReDim Preserve Units(UnitCount - 1)
+        End If
     End Sub
 
-    Sub Pos_Get_Sector(ByVal X As Integer, ByVal Z As Integer, ByRef SectorNum As sXY_int)
-        Dim intTemp As Integer
+    Public Function GetTileSectorNum(ByVal Tile As sXY_int) As sXY_int
+        Dim Result As sXY_int
 
-        intTemp = SectorTileSize * TerrainGridSpacing
-        SectorNum.X = Int(X / intTemp)
-        SectorNum.Y = Int(Z / intTemp)
-    End Sub
+        Result.X = Int(Tile.X / SectorTileSize)
+        Result.Y = Int(Tile.Y / SectorTileSize)
 
-    Sub Tile_Get_Sector(ByVal X As Integer, ByVal Z As Integer, ByRef SectorNum As sXY_int)
+        Return Result
+    End Function
 
-        SectorNum.X = Int(X / SectorTileSize)
-        SectorNum.Y = Int(Z / SectorTileSize)
+    Public Sub GetTileSectorRange(ByVal StartTile As sXY_int, ByVal FinishTile As sXY_int, ByRef ResultSectorStart As sXY_int, ByRef ResultSectorFinish As sXY_int)
+
+        ResultSectorStart = GetTileSectorNum(StartTile)
+        ResultSectorFinish = GetTileSectorNum(FinishTile)
+        ResultSectorStart.X = Clamp(ResultSectorStart.X, 0, SectorCount.X - 1)
+        ResultSectorStart.Y = Clamp(ResultSectorStart.Y, 0, SectorCount.Y - 1)
+        ResultSectorFinish.X = Clamp(ResultSectorFinish.X, 0, SectorCount.X - 1)
+        ResultSectorFinish.Y = Clamp(ResultSectorFinish.Y, 0, SectorCount.Y - 1)
     End Sub
 
     Sub UnitHeight_Update_All()
@@ -4291,11 +2128,12 @@ LineDone:
         For A = 0 To OldUnitCount - 1
             NewUnit = New clsUnit(OldUnits(A))
             ID = OldUnits(A).ID
-            NewUnit.Pos.Y = GetTerrainHeight(NewUnit.Pos.X, NewUnit.Pos.Z)
-            Unit_Remove_StoreChange(OldUnits(A).Num)
+            NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
+            Unit_Remove_StoreChange(OldUnits(A).Map_UnitNum)
             Unit_Add_StoreChange(NewUnit, ID)
+            ErrorIDChange(ID, NewUnit, "UnitHeight_Update_All")
         Next
-        frmMainInstance.Selected_Object_Changed()
+        frmMainInstance.SelectedObject_Changed()
     End Sub
 
     Sub SectorAll_GL_Update()
@@ -4333,45 +2171,29 @@ LineDone:
         Next
     End Sub
 
-    Function LNDPos_From_MapPos(ByVal X As Integer, ByVal Z As Integer) As sXYZ_int
+    Function TileAligned_Pos_From_MapPos(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int) As sWorldPos
+        Dim Result As sWorldPos
 
-        LNDPos_From_MapPos.X = X - TerrainSize.X * TerrainGridSpacing / 2.0#
-        LNDPos_From_MapPos.Z = TerrainSize.Y * TerrainGridSpacing / 2.0# - Z
-        LNDPos_From_MapPos.Y = GetTerrainHeight(X, Z)
-    End Function
+        Result.Horizontal.X = (Math.Round((Horizontal.X - Footprint.X * TerrainGridSpacing / 2.0#) / TerrainGridSpacing) + Footprint.X / 2.0#) * TerrainGridSpacing
+        Result.Horizontal.Y = (Math.Round((Horizontal.Y - Footprint.Y * TerrainGridSpacing / 2.0#) / TerrainGridSpacing) + Footprint.Y / 2.0#) * TerrainGridSpacing
+        Result.Altitude = GetTerrainHeight(Result.Horizontal)
 
-    Function MapPos_From_LNDPos(ByVal Pos As sXYZ_int) As sXYZ_int
-
-        MapPos_From_LNDPos.X = Pos.X + TerrainSize.X * TerrainGridSpacing / 2.0#
-        MapPos_From_LNDPos.Z = TerrainSize.Y * TerrainGridSpacing / 2.0# - Pos.Z
-        MapPos_From_LNDPos.Y = GetTerrainHeight(MapPos_From_LNDPos.X, MapPos_From_LNDPos.Z)
-    End Function
-
-    Function TileAligned_Pos_From_MapPos(ByVal X As Integer, ByVal Z As Integer, ByVal Footprint As sXY_int) As sXYZ_int
-
-        TileAligned_Pos_From_MapPos.X = (Math.Round((X - Footprint.X * TerrainGridSpacing / 2.0#) / TerrainGridSpacing) + Footprint.X / 2.0#) * TerrainGridSpacing
-        TileAligned_Pos_From_MapPos.Z = (Math.Round((Z - Footprint.Y * TerrainGridSpacing / 2.0#) / TerrainGridSpacing) + Footprint.Y / 2.0#) * TerrainGridSpacing
-        TileAligned_Pos_From_MapPos.Y = GetTerrainHeight(TileAligned_Pos_From_MapPos.X, TileAligned_Pos_From_MapPos.Z)
+        Return Result
     End Function
 
     Sub Unit_Sectors_Calc(ByVal Num As Integer)
         Dim tmpUnit As clsUnit = Units(Num)
         Dim Start As sXY_int
         Dim Finish As sXY_int
-        Dim Footprint As sXY_int
+        Dim TileStart As sXY_int
+        Dim TileFinish As sXY_int
         Dim X As Integer
         Dim Z As Integer
         Dim A As Integer
 
-        If tmpUnit.Type.LoadedInfo IsNot Nothing Then
-            Footprint = tmpUnit.Type.LoadedInfo.Footprint
-        Else
-            Footprint.X = 1
-            Footprint.Y = 1
-        End If
-
-        Pos_Get_Sector(tmpUnit.Pos.X - Footprint.X * TerrainGridSpacing / 2.0#, tmpUnit.Pos.Z - Footprint.Y * TerrainGridSpacing / 2.0#, Start)
-        Pos_Get_Sector(tmpUnit.Pos.X + Footprint.X * TerrainGridSpacing / 2.0#, tmpUnit.Pos.Z + Footprint.Y * TerrainGridSpacing / 2.0#, Finish)
+        GetFootprintTileRangeClamped(tmpUnit.Pos.Horizontal, tmpUnit.Type.GetFootprint, TileStart, TileFinish)
+        Start = GetTileSectorNum(TileStart)
+        Finish = GetTileSectorNum(TileFinish)
         Start.X = Clamp(Start.X, 0, SectorCount.X - 1)
         Start.Y = Clamp(Start.Y, 0, SectorCount.Y - 1)
         Finish.X = Clamp(Finish.X, 0, SectorCount.X - 1)
@@ -4505,6 +2327,8 @@ LineDone:
         Dim tmpShadow As clsShadowSector
         Dim X As Integer
         Dim Z As Integer
+        Dim tmpUnit As clsUnit
+        Dim ID As UInteger
 
         UndoStepCreate("Incomplete Action") 'make another redo step incase something has changed, such as if user presses undo while still dragging a tool
 
@@ -4536,25 +2360,28 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorChange.TerrainGraphicsChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
+            SectorGraphicsChange.SectorChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = Undos(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
             Select Case Undos(Undo_Pos).UnitChanges(A).Type
                 Case sUnitChange.enumType.Added
                     'remove the unit from the map
-                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Num)
+                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Map_UnitNum)
                 Case sUnitChange.enumType.Deleted
                     'add the unit back on to the map
-                    Unit_Add(Undos(Undo_Pos).UnitChanges(A).Unit, Undos(Undo_Pos).UnitChanges(A).Unit.ID)
+                    tmpUnit = Undos(Undo_Pos).UnitChanges(A).Unit
+                    ID = tmpUnit.ID
+                    Unit_Add(tmpUnit, ID)
+                    ErrorIDChange(ID, tmpUnit, "Undo_Perform")
                 Case Else
                     Stop
             End Select
         Next
 
-        SectorChange.Update_Graphics()
+        SectorGraphicsChange.Update_Graphics()
         MinimapMakeLater()
-        frmMainInstance.Selected_Object_Changed()
+        frmMainInstance.SelectedObject_Changed()
     End Sub
 
     Sub Redo_Perform()
@@ -4562,6 +2389,8 @@ LineDone:
         Dim tmpShadow As clsShadowSector
         Dim X As Integer
         Dim Z As Integer
+        Dim tmpUnit As clsUnit
+        Dim ID As UInteger
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
@@ -4589,17 +2418,20 @@ LineDone:
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorChange.TerrainGraphicsChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
+            SectorGraphicsChange.SectorChanged(Undos(Undo_Pos).ChangedSectors(A).Num)
         Next
 
         For A = 0 To Undos(Undo_Pos).UnitChangeCount - 1
             Select Case Undos(Undo_Pos).UnitChanges(A).Type
                 Case sUnitChange.enumType.Added
                     'add the unit back on to the map
-                    Unit_Add(Undos(Undo_Pos).UnitChanges(A).Unit, Undos(Undo_Pos).UnitChanges(A).Unit.ID)
+                    tmpUnit = Undos(Undo_Pos).UnitChanges(A).Unit
+                    ID = tmpUnit.ID
+                    Unit_Add(tmpUnit, ID)
+                    ErrorIDChange(ID, tmpUnit, "Redo_Perform")
                 Case sUnitChange.enumType.Deleted
                     'remove the unit from the map
-                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Num)
+                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Map_UnitNum)
                 Case Else
                     Stop
             End Select
@@ -4607,9 +2439,9 @@ LineDone:
 
         Undo_Pos += 1
 
-        Map.SectorChange.Update_Graphics()
+        SectorGraphicsChange.Update_Graphics()
         MinimapMakeLater()
-        frmMainInstance.Selected_Object_Changed()
+        frmMainInstance.SelectedObject_Changed()
     End Sub
 
     Sub Undo_Sector_Rejoin(ByVal Shadow_Sector_To_Rejoin As clsShadowSector)
@@ -4688,17 +2520,10 @@ LineDone:
         AreaAdjusted.X = Finish.X - Offset.X
         AreaAdjusted.Y = Finish.Y - Offset.Y
 
-        Tile_Get_Sector(Math.Max(Offset.X - 1, 0), Math.Max(Offset.Y - 1, 0), SectorStart)
-        Tile_Get_Sector(Finish.X, Finish.Y, SectorFinish)
-        If SectorFinish.X >= SectorCount.X Then
-            SectorFinish.X = SectorCount.X - 1
-        End If
-        If SectorFinish.Y >= SectorCount.Y Then
-            SectorFinish.Y = SectorCount.Y - 1
-        End If
+        GetTileSectorRange(New sXY_int(Offset.X - 1, Offset.Y - 1), Finish, SectorStart, SectorFinish)
         For Z = SectorStart.Y To SectorFinish.Y
             For X = SectorStart.X To SectorFinish.X
-                Sectors(X, Z).Changed = True
+                SectorGraphicsChange.SectorChanged(New sXY_int(X, Z))
             Next
         Next
 
@@ -4764,9 +2589,9 @@ LineDone:
                 GateFinish.X = Offset.X + Map_To_Insert.Gateways(A).PosB.X
                 GateFinish.Y = Offset.Y + Map_To_Insert.Gateways(A).PosB.Y
                 If (GateStart.X >= Offset.X And GateStart.Y >= Offset.Y And _
-                 GateStart.X < Offset.X + AreaAdjusted.X And GateStart.Y < Offset.Y + AreaAdjusted.Y) Or _
-                 (GateFinish.X >= Offset.X And GateFinish.Y >= Offset.Y And _
-                 GateFinish.X < Offset.X + AreaAdjusted.X And GateFinish.Y < Offset.Y + AreaAdjusted.Y) Then
+                    GateStart.X < Offset.X + AreaAdjusted.X And GateStart.Y < Offset.Y + AreaAdjusted.Y) Or _
+                    (GateFinish.X >= Offset.X And GateFinish.Y >= Offset.Y And _
+                    GateFinish.X < Offset.X + AreaAdjusted.X And GateFinish.Y < Offset.Y + AreaAdjusted.Y) Then
                     Gateway_Add(GateStart, GateFinish)
                 End If
             Next
@@ -4781,10 +2606,7 @@ LineDone:
                 For X = SectorStart.X To SectorFinish.X
                     For A = 0 To Sectors(X, Z).UnitCount - 1
                         TempUnit = Sectors(X, Z).Units(A)
-                        If TempUnit.Pos.X >= Offset.X * TerrainGridSpacing And _
-                        TempUnit.Pos.X < Finish.X * TerrainGridSpacing And _
-                        TempUnit.Pos.Z >= Offset.Y * TerrainGridSpacing And _
-                        TempUnit.Pos.Z < Finish.Y * TerrainGridSpacing Then
+                        If PosIsWithinTileArea(TempUnit.Pos.Horizontal, Offset, Finish) Then
                             ReDim Preserve UnitsToDelete(UnitToDeleteCount)
                             UnitsToDelete(UnitToDeleteCount) = TempUnit
                             UnitToDeleteCount += 1
@@ -4793,754 +2615,34 @@ LineDone:
                 Next
             Next
             For A = 0 To UnitToDeleteCount - 1
-                If UnitsToDelete(A).Num >= 0 Then 'units may be in the list multiple times and already be deleted
-                    Unit_Remove_StoreChange(UnitsToDelete(A).Num)
+                If UnitsToDelete(A).Map_UnitNum >= 0 Then 'units may be in the list multiple times and already be deleted
+                    Unit_Remove_StoreChange(UnitsToDelete(A).Map_UnitNum)
                 End If
             Next
         End If
         If Insert_Units Then
-            Dim PosDifX As Integer
-            Dim PosDifZ As Integer
+            Dim PosDif As sXY_int
             Dim A As Integer
             Dim NewUnit As clsUnit
             Dim tmpUnit As clsUnit
+            Dim ZeroPos As New sXY_int(0, 0)
 
-            PosDifX = Offset.X * TerrainGridSpacing
-            PosDifZ = Offset.Y * TerrainGridSpacing
+            PosDif.X = Offset.X * TerrainGridSpacing
+            PosDif.Y = Offset.Y * TerrainGridSpacing
             For A = 0 To Map_To_Insert.UnitCount - 1
                 tmpUnit = Map_To_Insert.Units(A)
-                If tmpUnit.Pos.X < AreaAdjusted.X * TerrainGridSpacing And _
-                    tmpUnit.Pos.Z < AreaAdjusted.Y * TerrainGridSpacing Then
+                If PosIsWithinTileArea(tmpUnit.Pos.Horizontal, ZeroPos, AreaAdjusted) Then
                     NewUnit = New clsUnit(Map_To_Insert.Units(A))
-                    NewUnit.Pos.X += PosDifX
-                    NewUnit.Pos.Z += PosDifZ
+                    NewUnit.Pos.Horizontal.X += PosDif.X
+                    NewUnit.Pos.Horizontal.Y += PosDif.Y
                     Unit_Add_StoreChange(NewUnit)
                 End If
             Next
         End If
 
-        For Z = SectorStart.Y To SectorFinish.Y
-            For X = SectorStart.X To SectorFinish.X
-                Sector_GLList_Make(X, Z)
-            Next
-        Next
-
-        Map.SectorChange.Update_Graphics()
+        SectorGraphicsChange.Update_Graphics_And_UnitHeights()
         MinimapMakeLater()
     End Sub
-
-    Sub Rotate_Clockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim X As Integer
-        Dim Z As Integer
-        Dim tmpTerrainVertex(,) As sTerrainVertex
-        Dim tmpTerrainTile(,) As sTerrainTile
-        Dim tmpTerrainSideH(,) As sTerrainSide
-        Dim tmpTerrainSideV(,) As sTerrainSide
-        Dim tmpGateways() As sGateway
-        Dim TileCountX As Integer = TerrainSize.Y
-        Dim TileCountZ As Integer = TerrainSize.X
-        Dim X2 As Integer
-
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
-
-        ReDim tmpTerrainVertex(TileCountX, TileCountZ)
-        ReDim tmpTerrainTile(TileCountX - 1, TileCountZ - 1)
-        ReDim tmpTerrainSideH(TileCountX - 1, TileCountZ)
-        ReDim tmpTerrainSideV(TileCountX, TileCountZ - 1)
-
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX
-                tmpTerrainVertex(X, Z) = TerrainVertex(Z, TerrainSize.Y - X)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            For X = 0 To TileCountX - 1
-                X2 = TerrainSize.Y - X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTiles(Z, X2).Texture
-                tmpTerrainTile(X, Z).Texture.Orientation.RotateClockwise()
-                tmpTerrainTile(X, Z).DownSide = TerrainTiles(Z, X2).DownSide
-                tmpTerrainTile(X, Z).DownSide.RotateClockwise()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(Z, X2).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(Z, X2).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(Z, X2).TriBottomRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(Z, X2).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(Z, X2).TriTopLeftIsCliff
-            Next
-        Next
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX - 1
-                tmpTerrainSideH(X, Z) = TerrainSideV(Z, TerrainSize.Y - X - 1)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            For X = 0 To TileCountX
-                tmpTerrainSideV(X, Z) = TerrainSideH(Z, TerrainSize.Y - X)
-            Next
-        Next
-
-        Dim A As Integer
-        Dim intTemp As Integer
-
-        ReDim tmpGateways(GatewayCount - 1)
-
-        For A = 0 To GatewayCount - 1
-            tmpGateways(A).PosA.X = TerrainSize.Y - Gateways(A).PosA.Y - 1
-            tmpGateways(A).PosA.Y = Gateways(A).PosA.X
-            tmpGateways(A).PosB.X = TerrainSize.Y - Gateways(A).PosB.Y - 1
-            tmpGateways(A).PosB.Y = Gateways(A).PosB.X
-        Next
-
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation -= 90
-                If Units(A).Rotation < 0 Then
-                    Units(A).Rotation += 360
-                End If
-            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.LoadedInfo IsNot Nothing Then
-                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
-                        Units(A).Rotation -= 90
-                        If Units(A).Rotation < 0 Then
-                            Units(A).Rotation += 360
-                        End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
-                        End If
-                    End If
-                End If
-            End If
-            intTemp = Units(A).Pos.X
-            Units(A).Pos.X = TerrainSize.Y * TerrainGridSpacing - Units(A).Pos.Z
-            Units(A).Pos.Z = intTemp
-        Next
-        If Selected_Tile_A_Exists Then
-            Selected_Tile_A_Exists = False
-        End If
-        If Selected_Tile_B_Exists Then
-            Selected_Tile_B_Exists = False
-        End If
-        If Selected_Area_VertexA_Exists Then
-            Selected_Area_VertexA_Exists = False
-        End If
-        If Selected_Area_VertexB_Exists Then
-            Selected_Area_VertexB_Exists = False
-        End If
-
-        Sectors_Deallocate()
-        SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
-        SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
-            Next
-        Next
-
-        A = 0
-        Do While A < UnitCount
-            If Units(A).Pos.X < 0 _
-              Or Units(A).Pos.X >= TileCountX * TerrainGridSpacing _
-              Or Units(A).Pos.Z < 0 _
-              Or Units(A).Pos.Z >= TileCountZ * TerrainGridSpacing Then
-                Unit_Remove(A)
-            Else
-                Unit_Sectors_Calc(A)
-                A += 1
-            End If
-        Loop
-
-        TerrainSize.X = TileCountX
-        TerrainSize.Y = TileCountZ
-        TerrainVertex = tmpTerrainVertex
-        TerrainTiles = tmpTerrainTile
-        TerrainSideH = tmpTerrainSideH
-        TerrainSideV = tmpTerrainSideV
-        Gateways = tmpGateways
-
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange.ParentMap = Nothing
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange.Parent_Map = Nothing
-        SectorChange = New clsSectorChange(Me)
-    End Sub
-
-    Sub Rotate_Anticlockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim X As Integer
-        Dim Z As Integer
-        Dim tmpTerrainVertex(,) As sTerrainVertex
-        Dim tmpTerrainTile(,) As sTerrainTile
-        Dim tmpTerrainSideH(,) As sTerrainSide
-        Dim tmpTerrainSideV(,) As sTerrainSide
-        Dim tmpGateways() As sGateway
-        Dim TileCountX As Integer = TerrainSize.Y
-        Dim TileCountZ As Integer = TerrainSize.X
-        Dim Z2 As Integer
-
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
-
-        ReDim tmpTerrainVertex(TileCountX, TileCountZ)
-        ReDim tmpTerrainTile(TileCountX - 1, TileCountZ - 1)
-        ReDim tmpTerrainSideH(TileCountX - 1, TileCountZ)
-        ReDim tmpTerrainSideV(TileCountX, TileCountZ - 1)
-
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX
-                tmpTerrainVertex(X, Z) = TerrainVertex(TerrainSize.X - Z, X)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            Z2 = TerrainSize.X - Z - 1
-            For X = 0 To TileCountX - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTiles(Z2, X).Texture
-                tmpTerrainTile(X, Z).Texture.Orientation.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).DownSide = TerrainTiles(Z2, X).DownSide
-                tmpTerrainTile(X, Z).DownSide.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(Z2, X).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(Z2, X).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(Z2, X).TriTopLeftIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(Z2, X).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(Z2, X).TriBottomRightIsCliff
-            Next
-        Next
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX - 1
-                tmpTerrainSideH(X, Z) = TerrainSideV(TerrainSize.X - Z, X)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            For X = 0 To TileCountX
-                tmpTerrainSideV(X, Z) = TerrainSideH(TerrainSize.X - Z - 1, X)
-            Next
-        Next
-
-        Dim A As Integer
-        Dim intTemp As Integer
-
-        ReDim tmpGateways(GatewayCount - 1)
-
-        For A = 0 To GatewayCount - 1
-            tmpGateways(A).PosA.Y = TerrainSize.X - Gateways(A).PosA.X - 1
-            tmpGateways(A).PosA.X = Gateways(A).PosA.Y
-            tmpGateways(A).PosB.Y = TerrainSize.X - Gateways(A).PosB.X - 1
-            tmpGateways(A).PosB.X = Gateways(A).PosB.Y
-        Next
-
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation += 90
-                If Units(A).Rotation >= 360 Then
-                    Units(A).Rotation -= 360
-                End If
-            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.LoadedInfo IsNot Nothing Then
-                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
-                        Units(A).Rotation += 90
-                        If Units(A).Rotation >= 360 Then
-                            Units(A).Rotation -= 360
-                        End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
-                        End If
-                    End If
-                End If
-            End If
-            intTemp = Units(A).Pos.Z
-            Units(A).Pos.Z = TerrainSize.X * TerrainGridSpacing - Units(A).Pos.X
-            Units(A).Pos.X = intTemp
-        Next
-        If Selected_Tile_A_Exists Then
-            Selected_Tile_A_Exists = False
-        End If
-        If Selected_Tile_B_Exists Then
-            Selected_Tile_B_Exists = False
-        End If
-        If Selected_Area_VertexA_Exists Then
-            Selected_Area_VertexA_Exists = False
-        End If
-        If Selected_Area_VertexB_Exists Then
-            Selected_Area_VertexB_Exists = False
-        End If
-
-        Sectors_Deallocate()
-        SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
-        SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
-            Next
-        Next
-
-        A = 0
-        Do While A < UnitCount
-            If Units(A).Pos.X < 0 _
-              Or Units(A).Pos.X >= TileCountX * TerrainGridSpacing _
-              Or Units(A).Pos.Z < 0 _
-              Or Units(A).Pos.Z >= TileCountZ * TerrainGridSpacing Then
-                Unit_Remove(A)
-            Else
-                Unit_Sectors_Calc(A)
-                A += 1
-            End If
-        Loop
-
-        TerrainSize.X = TileCountX
-        TerrainSize.Y = TileCountZ
-        TerrainVertex = tmpTerrainVertex
-        TerrainTiles = tmpTerrainTile
-        TerrainSideH = tmpTerrainSideH
-        TerrainSideV = tmpTerrainSideV
-        Gateways = tmpGateways
-
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange.ParentMap = Nothing
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange.Parent_Map = Nothing
-        SectorChange = New clsSectorChange(Me)
-    End Sub
-
-    Sub FlipX(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim Z As Integer
-        Dim X As Integer
-        Dim tmpTerrainVertex(,) As sTerrainVertex
-        Dim tmpTerrainTile(,) As sTerrainTile
-        Dim tmpTerrainSideH(,) As sTerrainSide
-        Dim tmpTerrainSideV(,) As sTerrainSide
-        Dim TileCountX As Integer = TerrainSize.X
-        Dim TileCountZ As Integer = TerrainSize.Y
-        Dim X2 As Integer
-
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
-
-        ReDim tmpTerrainVertex(TileCountX, TileCountZ)
-        ReDim tmpTerrainTile(TileCountX - 1, TileCountZ - 1)
-        ReDim tmpTerrainSideH(TileCountX - 1, TileCountZ)
-        ReDim tmpTerrainSideV(TileCountX, TileCountZ - 1)
-
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX
-                tmpTerrainVertex(X, Z) = TerrainVertex(TerrainSize.X - X, Z)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            For X = 0 To TileCountX - 1
-                X2 = TerrainSize.X - X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTiles(X2, Z).Texture
-                tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip = Not tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip
-                tmpTerrainTile(X, Z).DownSide = TerrainTiles(X2, Z).DownSide
-                tmpTerrainTile(X2, Z).DownSide.FlipX()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(X2, Z).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(X2, Z).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(X2, Z).TriBottomRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(X2, Z).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(X2, Z).TriTopLeftIsCliff
-            Next
-        Next
-        For Z = 0 To TileCountZ
-            For X = 0 To TileCountX - 1
-                tmpTerrainSideH(X, Z) = TerrainSideH(TerrainSize.X - X - 1, Z)
-            Next
-        Next
-        For Z = 0 To TileCountZ - 1
-            For X = 0 To TileCountX
-                tmpTerrainSideV(X, Z) = TerrainSideV(TerrainSize.X - X, Z)
-            Next
-        Next
-
-        Dim A As Integer
-
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation -= 180
-                If Units(A).Rotation < 0 Then
-                    Units(A).Rotation += 360
-                End If
-            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.LoadedInfo IsNot Nothing Then
-                    If Units(A).Type.LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall Then
-                        Units(A).Rotation -= 180
-                        If Units(A).Rotation < 0 Then
-                            Units(A).Rotation += 360
-                        End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
-                        End If
-                    End If
-                End If
-            End If
-            Units(A).Pos.X = TerrainSize.X * TerrainGridSpacing - Units(A).Pos.X
-            Units(A).Pos.Z = Units(A).Pos.Z
-        Next
-        If Selected_Tile_A_Exists Then
-            Selected_Tile_A_Exists = False
-        End If
-        If Selected_Tile_B_Exists Then
-            Selected_Tile_B_Exists = False
-        End If
-        If Selected_Area_VertexA_Exists Then
-            Selected_Area_VertexA_Exists = False
-        End If
-        If Selected_Area_VertexB_Exists Then
-            Selected_Area_VertexB_Exists = False
-        End If
-
-        Sectors_Deallocate()
-        SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
-        SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
-            Next
-        Next
-
-        A = 0
-        Do While A < UnitCount
-            If Units(A).Pos.X < 0 _
-              Or Units(A).Pos.X >= TileCountX * TerrainGridSpacing _
-              Or Units(A).Pos.Z < 0 _
-              Or Units(A).Pos.Z >= TileCountZ * TerrainGridSpacing Then
-                Unit_Remove(A)
-            Else
-                Unit_Sectors_Calc(A)
-                A += 1
-            End If
-        Loop
-
-        TerrainSize.X = TileCountX
-        TerrainSize.Y = TileCountZ
-        TerrainVertex = tmpTerrainVertex
-        TerrainTiles = tmpTerrainTile
-        TerrainSideH = tmpTerrainSideH
-        TerrainSideV = tmpTerrainSideV
-
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange.ParentMap = Nothing
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange.Parent_Map = Nothing
-        SectorChange = New clsSectorChange(Me)
-    End Sub
-
-    Structure sWZUnit
-        Dim Code As String
-        Dim ID As UInteger
-        Dim Pos As sXYZ_int
-        Dim Rotation As UInteger
-        Dim Player As UInteger
-        Dim LNDType As Byte
-    End Structure
-
-    Function Load_WZ(ByVal Path As String) As sResult
-        Load_WZ.Success = False
-        Load_WZ.Problem = ""
-
-        Dim Result As sResult
-        Dim Quote As String = ControlChars.Quote
-        Dim ZipEntry As Zip.ZipEntry
-        Dim Bytes(-1) As Byte
-        Dim LineData(-1) As String
-        Dim GameFound As Boolean
-        Dim DatasetFound As Boolean
-        Dim MapName(-1) As String
-        Dim MapTileset(-1) As clsTileset
-        Dim GameTileset As clsTileset = Nothing
-        Dim MapCount As Integer
-        Dim GameName As String = ""
-        Dim strTemp As String = ""
-        Dim SplitPath As sZipSplitPath
-        Dim GotMapFile As Boolean = False
-        Dim A As Integer
-        Dim B As Integer
-        Dim C As Integer
-        Dim D As Integer
-
-        Dim ZipStream As Zip.ZipInputStream
-
-        'get all usable lev entries
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-
-            If SplitPath.FileExtension = "lev" And SplitPath.PartCount = 1 Then
-                If ZipEntry.Size > 10 * 1024 * 1024 Then
-                    Load_WZ.Problem = "lev file is too large."
-                    ZipStream.Close()
-                    Exit Function
-                End If
-                ReDim Bytes(ZipEntry.Size - 1)
-                ZipStream.Read(Bytes, 0, ZipEntry.Size)
-                BytesToLines(Bytes, LineData)
-                LinesRemoveComments(LineData)
-                'find each level block
-                For A = 0 To LineData.GetUpperBound(0)
-                    If Strings.LCase(Strings.Left(LineData(A), 5)) = "level" Then
-                        'find each levels game file
-                        GameFound = False
-                        B = 1
-                        Do While A + B <= LineData.GetUpperBound(0)
-                            If Strings.LCase(Strings.Left(LineData(A + B), 4)) = "game" Then
-                                C = Strings.InStr(LineData(A + B), Quote)
-                                D = Strings.InStrRev(LineData(A + B), Quote)
-                                If C > 0 And D > 0 And D - C > 1 Then
-                                    GameName = Strings.LCase(Strings.Mid(LineData(A + B), C + 1, D - C - 1))
-                                    'see if map is already counted
-                                    For C = 0 To MapCount - 1
-                                        If GameName = MapName(C) Then Exit For
-                                    Next
-                                    If C = MapCount Then
-                                        GameFound = True
-                                    End If
-                                End If
-                                Exit Do
-                            ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
-                                Exit Do
-                            End If
-                            B += 1
-                        Loop
-                        If GameFound Then
-                            'find the dataset (determines tileset)
-                            DatasetFound = False
-                            B = 1
-                            Do While A + B <= LineData.GetUpperBound(0)
-                                If Strings.LCase(Strings.Left(LineData(A + B), 7)) = "dataset" Then
-                                    strTemp = Strings.LCase(Strings.Right(LineData(A + B), 1))
-                                    If strTemp = "1" Then
-                                        GameTileset = Tileset_Arizona
-                                        DatasetFound = True
-                                    ElseIf strTemp = "2" Then
-                                        GameTileset = Tileset_Urban
-                                        DatasetFound = True
-                                    ElseIf strTemp = "3" Then
-                                        GameTileset = Tileset_Rockies
-                                        DatasetFound = True
-                                    End If
-                                    Exit Do
-                                ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
-                                    Exit Do
-                                End If
-                                B += 1
-                            Loop
-                            If DatasetFound Then
-                                ReDim Preserve MapName(MapCount)
-                                ReDim Preserve MapTileset(MapCount)
-                                MapName(MapCount) = GameName
-                                MapTileset(MapCount) = GameTileset
-                                MapCount += 1
-                            End If
-                        End If
-                    End If
-                Next
-            End If
-        Loop
-        ZipStream.Close()
-
-        Dim MapLoadName As String
-
-        'prompt user for which of the entries to load
-        If MapCount < 1 Then
-            Load_WZ.Problem = "No maps found in file."
-            Exit Function
-        ElseIf MapCount = 1 Then
-            MapLoadName = MapName(0)
-            Tileset = MapTileset(0)
-        Else
-            Dim SelectToLoadResult As New frmWZLoad.clsOutput
-            Dim SelectToLoadForm As New frmWZLoad(MapName, SelectToLoadResult)
-            SelectToLoadForm.ShowDialog()
-            If SelectToLoadResult.Result < 0 Then
-                Load_WZ.Problem = "No map selected."
-                Exit Function
-            End If
-            MapLoadName = MapName(SelectToLoadResult.Result)
-            Tileset = MapTileset(SelectToLoadResult.Result)
-        End If
-
-        TileType_Reset()
-        SetPainterToDefaults()
-
-        Dim GameSplitPath As New sZipSplitPath(MapLoadName)
-        Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & "/"
-
-        Dim File As New clsReadFile
-
-        'load map files
-
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-            If SplitPath.FilePath = GameFilesPath Then
-                If SplitPath.FileTitle = "game.map" Then
-                    File.Begin(ZipStream, ZipEntry.Size)
-
-                    Result = Read_WZ_Game(File)
-                    If Not Result.Success Then
-                        ZipStream.Close()
-                        Load_WZ.Problem = Result.Problem
-                        Exit Function
-                    End If
-
-                    GotMapFile = True
-                    Exit Do
-                End If
-            End If
-        Loop
-        ZipStream.Close()
-
-        If Not GotMapFile Then
-            Load_WZ.Problem = "game.map file not found."
-            Exit Function
-        End If
-
-        Dim WZUnits(-1) As sWZUnit
-        Dim WZUnitCount As Integer = 0
-        Dim NewUnit As clsUnit
-
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-            If SplitPath.FilePath = GameFilesPath Then
-                If SplitPath.FileTitle = "feat.bjo" Then
-                    File.Begin(ZipStream, ZipEntry.Size)
-
-                    Result = Read_WZ_Features(File, WZUnits, WZUnitCount)
-                    If Not Result.Success Then
-                        ZipStream.Close()
-                        Load_WZ.Problem = Result.Problem
-                        Exit Function
-                    End If
-
-                    Exit Do
-                End If
-            End If
-        Loop
-        ZipStream.Close()
-
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-            If SplitPath.FilePath = GameFilesPath Then
-                If SplitPath.FileTitle = "ttypes.ttp" Then
-                    File.Begin(ZipStream, ZipEntry.Size)
-
-                    Result = Read_WZ_TileTypes(File)
-                    If Not Result.Success Then
-                        ZipStream.Close()
-                        Load_WZ.Problem = Result.Problem
-                        Exit Function
-                    End If
-
-                    Exit Do
-                End If
-            End If
-        Loop
-        ZipStream.Close()
-
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-            If SplitPath.FilePath = GameFilesPath Then
-                If SplitPath.FileTitle = "struct.bjo" Then
-                    File.Begin(ZipStream, ZipEntry.Size)
-
-                    Result = Read_WZ_Structures(File, WZUnits, WZUnitCount)
-                    If Not Result.Success Then
-                        ZipStream.Close()
-                        Load_WZ.Problem = Result.Problem
-                        Exit Function
-                    End If
-
-                    Exit Do
-                End If
-            End If
-        Loop
-        ZipStream.Close()
-
-        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
-        Do
-            ZipEntry = ZipStream.GetNextEntry
-            If ZipEntry Is Nothing Then
-                Exit Do
-            End If
-
-            SplitPath = New sZipSplitPath(ZipEntry.Name)
-            If SplitPath.FilePath = GameFilesPath Then
-                If SplitPath.FileTitle = "dinit.bjo" Then
-                    File.Begin(ZipStream, ZipEntry.Size)
-
-                    Result = Read_WZ_Droids(File, WZUnits, WZUnitCount)
-                    If Not Result.Success Then
-                        ZipStream.Close()
-                        Load_WZ.Problem = Result.Problem
-                        Exit Function
-                    End If
-
-                    Exit Do
-                End If
-            End If
-        Loop
-        ZipStream.Close()
-
-        For A = 0 To WZUnitCount - 1
-            NewUnit = New clsUnit
-            NewUnit.ID = WZUnits(A).ID
-            Result = FindUnitType(WZUnits(A).Code, WZUnits(A).LNDType, NewUnit.Type)
-            If Not Result.Success Then
-                Load_WZ.Problem = Result.Problem
-                Exit Function
-            End If
-            NewUnit.PlayerNum = Math.Min(WZUnits(A).Player, FactionCountMax - 1)
-            NewUnit.Pos = WZUnits(A).Pos
-            NewUnit.Rotation = Math.Min(WZUnits(A).Rotation, 359UI)
-            Unit_Add(NewUnit, WZUnits(A).ID)
-        Next
-
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorChange = New clsSectorChange(Me)
-
-        Load_WZ.Success = True
-    End Function
 
     Sub Gateway_Remove(ByVal Num As Integer)
 
@@ -5554,16 +2656,20 @@ LineDone:
     Public Function Gateway_Add(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Boolean
 
         If PosA.X >= 0 And PosA.X < TerrainSize.X And _
-          PosA.Y >= 0 And PosA.Y < TerrainSize.Y And _
-          PosB.X >= 0 And PosB.X < TerrainSize.X And _
-          PosB.Y >= 0 And PosB.Y < TerrainSize.Y Then
+            PosA.Y >= 0 And PosA.Y < TerrainSize.Y And _
+            PosB.X >= 0 And PosB.X < TerrainSize.X And _
+            PosB.Y >= 0 And PosB.Y < TerrainSize.Y Then 'is on map
+            If PosA.X = PosB.X Or PosA.Y = PosB.Y Then 'is straight
 
-            ReDim Preserve Gateways(GatewayCount)
-            Gateways(GatewayCount).PosA = PosA
-            Gateways(GatewayCount).PosB = PosB
-            GatewayCount += 1
+                ReDim Preserve Gateways(GatewayCount)
+                Gateways(GatewayCount).PosA = PosA
+                Gateways(GatewayCount).PosB = PosB
+                GatewayCount += 1
 
-            Return True
+                Return True
+            Else
+                Return False
+            End If
         Else
             Return False
         End If
@@ -5594,78 +2700,6 @@ LineDone:
         End If
     End Sub
 
-    Function Write_TTP(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
-        Write_TTP.Success = False
-        Write_TTP.Problem = ""
-
-        Dim File_TTP As New clsWriteFile
-        Dim A As integer
-
-        File_TTP.Text_Append("ttyp")
-        File_TTP.U32_Append(8UI)
-        If Map.Tileset Is Nothing Then
-            File_TTP.U32_Append(0UI)
-        Else
-            File_TTP.U32_Append(Map.Tileset.TileCount)
-            For A = 0 To Map.Tileset.TileCount - 1
-                File_TTP.U16_Append(Map.Tile_TypeNum(A))
-            Next
-        End If
-
-        If IO.File.Exists(Path) Then
-            If Overwrite Then
-                IO.File.Delete(Path)
-            Else
-                Write_TTP.Problem = "File already exists."
-                Exit Function
-            End If
-        End If
-
-        File_TTP.Trim_Buffer()
-        Try
-            IO.File.WriteAllBytes(Path, File_TTP.Bytes)
-        Catch ex As Exception
-            Write_TTP.Problem = ex.Message
-            Exit Function
-        End Try
-
-        Write_TTP.Success = True
-    End Function
-
-    Function Load_TTP(ByVal Path As String) As sResult
-        Dim File As New clsReadFile
-
-        Load_TTP = File.Begin(Path)
-        If Not Load_TTP.Success Then
-            Exit Function
-        End If
-        Load_TTP = Read_TTP(File)
-        File.Close()
-    End Function
-
-    Private Function Read_TTP(ByVal File As clsReadFile) As sResult
-        Read_TTP.Success = False
-        Read_TTP.Problem = ""
-
-        Dim strTemp As String = ""
-        Dim uintTemp As UInteger
-        Dim ushortTemp As UShort
-        Dim A As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_TTP.Problem = "Unable to read identifier." : Exit Function
-        If strTemp <> "ttyp" Then Read_TTP.Problem = "Incorrect identifier." : Exit Function
-        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read version." : Exit Function
-        If uintTemp <> 8UI Then Read_TTP.Problem = "Unknown version." : Exit Function
-        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read tile count." : Exit Function
-        For A = 0 To Math.Min(uintTemp, CUInt(Tileset.TileCount)) - 1
-            If Not File.Get_U16(ushortTemp) Then Read_TTP.Problem = "Unable to read tile type number." : Exit Function
-            If ushortTemp > 11 Then Read_TTP.Problem = "Unknown tile type number." : Exit Function
-            Tile_TypeNum(A) = ushortTemp
-        Next
-
-        Read_TTP.Success = True
-    End Function
-
     Sub AutoSave_Test()
 
         If Not frmMainInstance.menuAutosaveEnabled.Checked Then
@@ -5695,416 +2729,20 @@ LineDone:
         Dim DateNow As Date = Now
         Dim Path As String
 
-        Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fme"
+        Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
 
-        Dim Result As sResult = Write_FME(Path, False)
+        Dim Result As clsResult = Write_FMap(Path, False)
 
-        If Not Result.Success Then
-            MsgBox("Autosave failed to write file; " & Result.Problem)
-        End If
-    End Sub
-
-    Sub Terrain_Interpret()
-        If Tileset Is Nothing Then Exit Sub
-
-        Dim X As Integer
-        Dim Z As Integer
-        Dim A As Integer
-        Dim B As Integer
-        Dim Vertex_Terrain_Count(TerrainSize.X, TerrainSize.Y, Painter.TerrainCount - 1) As Integer
-        Dim SideH_Road_Count(TerrainSize.X - 1, TerrainSize.Y, Painter.RoadCount - 1) As Integer
-        Dim SideV_Road_Count(TerrainSize.X, TerrainSize.Y - 1, Painter.RoadCount - 1) As Integer
-        Dim Orientation As sTileDirection
-
-        'count the terrains of influencing tiles
-        For Z = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If TerrainTiles(X, Z).Texture.TextureNum >= 0 Then
-                    For A = 0 To Painter.TerrainCount - 1
-                        With Painter.Terrains(A)
-                            For B = 0 To .Tiles.TileCount - 1
-                                If .Tiles.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Num) += 1
-                                End If
-                            Next
-                        End With
-                    Next
-                    For A = 0 To Painter.TransitionBrushCount - 1
-                        With Painter.TransitionBrushes(A)
-                            For B = 0 To .Tiles_Straight.TileCount - 1
-                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    End If
-                                End If
-                            Next
-                            For B = 0 To .Tiles_Corner_In.TileCount - 1
-                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    End If
-                                End If
-                            Next
-                            For B = 0 To .Tiles_Corner_Out.TileCount - 1
-                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    End If
-                                End If
-                            Next
-                        End With
-                    Next
-                    For A = 0 To Painter.CliffBrushCount - 1
-                        With Painter.CliffBrushes(A)
-                            For B = 0 To .Tiles_Straight.TileCount - 1
-                                If .Tiles_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                    End If
-                                    If TerrainTiles(X, Z).Tri Then
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
-                                    Else
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
-                                    End If
-                                    TerrainTiles(X, Z).Terrain_IsCliff = True
-                                    TerrainTiles(X, Z).DownSide = Orientation
-                                End If
-                            Next
-                            For B = 0 To .Tiles_Corner_In.TileCount - 1
-                                If .Tiles_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
-                                    End If
-                                    TerrainTiles(X, Z).Terrain_IsCliff = True
-                                End If
-                            Next
-                            For B = 0 To .Tiles_Corner_Out.TileCount - 1
-                                If .Tiles_Corner_Out.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    OrientationToDirection(.Tiles_Corner_Out.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Inner.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = True
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = True
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
-                                        Vertex_Terrain_Count(X, Z, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z, .Terrain_Inner.Num) += 1
-                                        Vertex_Terrain_Count(X, Z + 1, .Terrain_Outer.Num) += 1
-                                        Vertex_Terrain_Count(X + 1, Z + 1, .Terrain_Outer.Num) += 1
-                                        TerrainTiles(X, Z).TriTopLeftIsCliff = False
-                                        TerrainTiles(X, Z).TriBottomRightIsCliff = False
-                                        TerrainTiles(X, Z).TriTopRightIsCliff = True
-                                        TerrainTiles(X, Z).TriBottomLeftIsCliff = False
-                                    End If
-                                    TerrainTiles(X, Z).Terrain_IsCliff = True
-                                End If
-                            Next
-                        End With
-                    Next
-                    For A = 0 To Painter.RoadBrushCount - 1
-                        With Painter.RoadBrushes(A)
-                            For B = 0 To .Tile_Corner_In.TileCount - 1
-                                If .Tile_Corner_In.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_Corner_In.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                    End If
-                                End If
-                            Next
-                            For B = 0 To .Tile_CrossIntersection.TileCount - 1
-                                If .Tile_CrossIntersection.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    SideH_Road_Count(X, Z, .Road.Num) += 1
-                                    SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    SideV_Road_Count(X, Z, .Road.Num) += 1
-                                    SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                End If
-                            Next
-                            For B = 0 To .Tile_End.TileCount - 1
-                                If .Tile_End.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_End.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                    End If
-                                End If
-                            Next
-                            For B = 0 To .Tile_Straight.TileCount - 1
-                                If .Tile_Straight.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_Straight.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    End If
-                                End If
-                            Next
-                            For B = 0 To .Tile_TIntersection.TileCount - 1
-                                If .Tile_TIntersection.Tiles(B).TextureNum = TerrainTiles(X, Z).Texture.TextureNum Then
-                                    Vertex_Terrain_Count(X, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X, Z + 1, .Terrain.Num) += 1
-                                    Vertex_Terrain_Count(X + 1, Z + 1, .Terrain.Num) += 1
-                                    OrientationToDirection(.Tile_TIntersection.Tiles(B).Direction, TerrainTiles(X, Z).Texture, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                        SideV_Road_Count(X + 1, Z, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
-                                        SideV_Road_Count(X, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z, .Road.Num) += 1
-                                        SideH_Road_Count(X, Z + 1, .Road.Num) += 1
-                                    End If
-                                End If
-                            Next
-                        End With
-                    Next
-                End If
-            Next
-        Next
-        'designate terrains
-        Dim Best_Num As Integer
-        Dim Best_Count As Integer
-        For Z = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                Best_Num = -1
-                Best_Count = 0
-                For A = 0 To Painter.TerrainCount - 1
-                    If Vertex_Terrain_Count(X, Z, A) > Best_Count Then
-                        Best_Num = A
-                        Best_Count = Vertex_Terrain_Count(X, Z, A)
-                    End If
-                Next
-                If Best_Count > 0 Then
-                    TerrainVertex(X, Z).Terrain = Painter.Terrains(Best_Num)
-                End If
-            Next
-        Next
-        'designate h roads
-        For Z = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X - 1
-                Best_Num = -1
-                Best_Count = 0
-                For A = 0 To Painter.RoadCount - 1
-                    If SideH_Road_Count(X, Z, A) > Best_Count Then
-                        Best_Num = A
-                        Best_Count = SideH_Road_Count(X, Z, A)
-                    End If
-                Next
-                If Best_Count > 0 Then
-                    TerrainSideH(X, Z).Road = Painter.Roads(Best_Num)
-                End If
-            Next
-        Next
-        'designate v roads
-        For Z = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X
-                Best_Num = -1
-                Best_Count = 0
-                For A = 0 To Painter.RoadCount - 1
-                    If SideV_Road_Count(X, Z, A) > Best_Count Then
-                        Best_Num = A
-                        Best_Count = SideV_Road_Count(X, Z, A)
-                    End If
-                Next
-                If Best_Count > 0 Then
-                    TerrainSideV(X, Z).Road = Painter.Roads(Best_Num)
-                End If
-            Next
-        Next
+        ShowWarnings(Result, "Autosave")
     End Sub
 
     Public Sub SelectedUnit_Add(ByVal NewSelectedUnit As clsUnit)
 
-        If NewSelectedUnit.SelectedUnitNum >= 0 Then
+        If NewSelectedUnit.Map_SelectedUnitNum >= 0 Then
             Exit Sub
         End If
 
-        NewSelectedUnit.SelectedUnitNum = SelectedUnitCount
+        NewSelectedUnit.Map_SelectedUnitNum = SelectedUnitCount
 
         ReDim Preserve SelectedUnits(SelectedUnitCount)
         SelectedUnits(SelectedUnitCount) = NewSelectedUnit
@@ -6119,8 +2757,8 @@ LineDone:
 
         Count = 0
         For A = 0 To NewSelectedUnits.GetUpperBound(0)
-            If NewSelectedUnits(A).SelectedUnitNum < 0 Then
-                NewSelectedUnits(A).SelectedUnitNum = SelectedUnitCount + Count
+            If NewSelectedUnits(A).Map_SelectedUnitNum < 0 Then
+                NewSelectedUnits(A).Map_SelectedUnitNum = SelectedUnitCount + Count
                 SelectedUnits(SelectedUnitCount + Count) = NewSelectedUnits(A)
                 Count += 1
             End If
@@ -6132,12 +2770,12 @@ LineDone:
 
     Public Sub SelectedUnit_Remove(ByVal Num As Integer)
 
-        SelectedUnits(Num).SelectedUnitNum = -1
+        SelectedUnits(Num).Map_SelectedUnitNum = -1
 
         SelectedUnitCount -= 1
         If Num <> SelectedUnitCount Then
             SelectedUnits(Num) = SelectedUnits(SelectedUnitCount)
-            SelectedUnits(Num).SelectedUnitNum = Num
+            SelectedUnits(Num).Map_SelectedUnitNum = Num
         End If
         ReDim Preserve SelectedUnits(SelectedUnitCount - 1)
     End Sub
@@ -6146,29 +2784,11 @@ LineDone:
         Dim A As Integer
 
         For A = 0 To SelectedUnitCount - 1
-            SelectedUnits(A).SelectedUnitNum = -1
+            SelectedUnits(A).Map_SelectedUnitNum = -1
         Next
 
         ReDim SelectedUnits(-1)
         SelectedUnitCount = 0
-    End Sub
-
-    Public Sub WaterTriCorrection()
-        Dim X As Integer
-        Dim Y As Integer
-
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If TerrainTiles(X, Y).Tri Then
-                    If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                        If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
-                            TerrainTiles(X, Y).Tri = False
-                            SectorChange.Tile_Set_Changed(X, Y)
-                        End If
-                    End If
-                End If
-            Next
-        Next
     End Sub
 
     Public Sub SetPainterToDefaults()
@@ -6184,825 +2804,87 @@ LineDone:
         End If
     End Sub
 
-    Private Function Read_WZ_Droids(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Droids.Success = False
-        Read_WZ_Droids.Problem = ""
-
-        Dim strTemp As String = Nothing
-        Dim Version As UInteger
-        Dim uintTemp As UInteger
-        Dim A As Integer
-        Dim B As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-        If strTemp <> "dint" Then
-            Read_WZ_Droids.Problem = "Unknown dinit.bjo identifier."
-            Exit Function
-        End If
-
-        If Not File.Get_U32(Version) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-        If Version > 19UI Then
-            'Load_WZ.Problem = "Unknown dinit.bjo version."
-            'Exit Function
-            If MsgBox("dinit.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Droids.Problem = "Aborted."
-                Exit Function
-            End If
-        End If
-
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).LNDType = 2
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-            End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            File.Seek(File.Position + 12UL)
-            WZUnitCount += 1
-        Next
-
-        Read_WZ_Droids.Success = True
-    End Function
-
-    Private Function Read_WZ_Game(ByVal File As clsReadFile) As sResult
-        Read_WZ_Game.Success = False
-        Read_WZ_Game.Problem = ""
-
-        Dim strTemp As String = Nothing
-        Dim Version As UInteger
-        Dim MapWidth As UInteger
-        Dim MapHeight As UInteger
-        Dim uintTemp As UInteger
-        Dim Flip As Byte
-        Dim FlipX As Boolean
-        Dim FlipZ As Boolean
-        Dim Rotate As Byte
-        Dim TextureNum As Byte
-        Dim A As Integer
-        Dim X As Integer
-        Dim Z As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If strTemp <> "map " Then
-            Read_WZ_Game.Problem = "Unknown game.map identifier."
-            Exit Function
-        End If
-
-        If Not File.Get_U32(Version) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If Version <> 10UI Then
-            'Load_WZ.Problem = "Unknown game.map version."
-            'Exit Function
-            If MsgBox("game.map version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Game.Problem = "Aborted."
-                Exit Function
-            End If
-        End If
-        If Not File.Get_U32(MapWidth) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If Not File.Get_U32(MapHeight) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If MapWidth < 1UI Or MapWidth > 1024UI Or MapHeight < 1UI Or MapHeight > 1024UI Then Read_WZ_Game.Problem = "Map size out of range." : Exit Function
-
-        Terrain_Blank(CInt(MapWidth), CInt(MapHeight))
-
-        For Z = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If Not File.Get_U8(TextureNum) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                TerrainTiles(X, Z).Texture.TextureNum = TextureNum
-                If Not File.Get_U8(Flip) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                If Not File.Get_U8(TerrainVertex(X, Z).Height) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                'get flipx
-                A = Int(Flip / 128.0#)
-                Flip -= A * 128
-                FlipX = (A = 1)
-                'get flipy
-                A = Int(Flip / 64.0#)
-                Flip -= A * 64
-                FlipZ = (A = 1)
-                'get rotation
-                A = Int(Flip / 16.0#)
-                Flip -= A * 16
-                Rotate = A
-                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTiles(X, Z).Texture.Orientation)
-                'get tri direction
-                A = Int(Flip / 8.0#)
-                Flip -= A * 8
-                TerrainTiles(X, Z).Tri = (A = 1)
-            Next
-        Next
-
-        If Version <> 2UI Then
-            If Not File.Get_U32(uintTemp) Then Read_WZ_Game.Problem = "Gateway version read error." : Exit Function
-            If uintTemp <> 1 Then Read_WZ_Game.Problem = "Bad gateway version number." : Exit Function
-
-            If Not File.Get_U32(GatewayCount) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-            ReDim Gateways(GatewayCount - 1)
-
-            For A = 0 To GatewayCount - 1
-                If Not File.Get_U8(Gateways(A).PosA.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosA.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosB.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosB.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-            Next
-        End If
-
-        Read_WZ_Game.Success = True
-    End Function
-
-    Private Function Read_WZ_Features(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Features.Success = False
-        Read_WZ_Features.Problem = ""
-
-        Dim strTemp As String = Nothing
-        Dim Version As UInteger
-        Dim uintTemp As UInteger
-        Dim A As Integer
-        Dim B As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-        If strTemp <> "feat" Then
-            Read_WZ_Features.Problem = "Unknown feat.bjo identifier."
-            Exit Function
-        End If
-
-        If Not File.Get_U32(Version) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-        If Version <> 8UI Then
-            'Load_WZ.Problem = "Unknown feat.bjo version."
-            'Exit Function
-            If MsgBox("feat.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Features.Problem = "Aborted."
-                Exit Function
-            End If
-        End If
-
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).LNDType = 0
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-            End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            File.Seek(File.Position + 12UL)
-            WZUnitCount += 1
-        Next
-
-        Read_WZ_Features.Success = True
-    End Function
-
-    Private Function Read_WZ_TileTypes(ByVal File As clsReadFile) As sResult
-        Read_WZ_TileTypes.Success = False
-        Read_WZ_TileTypes.Problem = ""
-
-        Dim strTemp As String = Nothing
-        Dim Version As UInteger
-        Dim uintTemp As UInteger
-        Dim ushortTemp As UShort
-        Dim A As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
-        If strTemp <> "ttyp" Then
-            Read_WZ_TileTypes.Problem = "Unknown ttypes.ttp identifier."
-            Exit Function
-        End If
-
-        If Not File.Get_U32(Version) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
-        If Version <> 8UI Then
-            'Load_WZ.Problem = "Unknown ttypes.ttp version."
-            'Exit Function
-            If MsgBox("ttypes.ttp version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_TileTypes.Problem = "Aborted."
-                Exit Function
-            End If
-        End If
-
-        If Not File.Get_U32(uintTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
-
-        If Tileset IsNot Nothing Then
-            For A = 0 To Math.Min(uintTemp, Tileset.TileCount) - 1
-                If Not File.Get_U16(ushortTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
-                If ushortTemp > 11US Then
-                    Read_WZ_TileTypes.Problem = "Unknown tile type."
-                    Exit Function
-                End If
-                Tile_TypeNum(A) = ushortTemp
-            Next
-        End If
-
-        Read_WZ_TileTypes.Success = True
-    End Function
-
-    Private Function Read_WZ_Structures(ByVal File As clsReadFile, ByRef WZUnits() As sWZUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Structures.Success = False
-        Read_WZ_Structures.Problem = ""
-
-        Dim strTemp As String = Nothing
-        Dim Version As UInteger
-        Dim uintTemp As UInteger
-        Dim A As Integer
-        Dim B As Integer
-
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-        If strTemp <> "stru" Then
-            Read_WZ_Structures.Problem = "Unknown struct.bjo identifier."
-            Exit Function
-        End If
-
-        If Not File.Get_U32(Version) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-        If Version <> 8UI Then
-            'Load_WZ.Problem = "Unknown struct.bjo version."
-            'Exit Function
-            If MsgBox("struct.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Structures.Problem = "Aborted."
-                Exit Function
-            End If
-        End If
-
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).LNDType = 1
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
-            End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.X) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Z) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Y) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            File.Seek(File.Position + 56UL)
-            WZUnitCount += 1
-        Next
-
-        Read_WZ_Structures.Success = True
-    End Function
-
-    Public Sub MapTexturer(ByRef LayerList As frmMapTexturer.sLayerList)
-        Dim X As Integer
-        Dim Y As Integer
-        Dim A As Integer
-        Dim Terrain(,) As clsPainter.clsTerrain
-        Dim Slope(,) As Single
-        Dim tmpTerrain As clsPainter.clsTerrain
-        Dim bmA As New clsBooleanMap
-        Dim bmB As New clsBooleanMap
-        Dim LayerNum As Integer
-        Dim LayerResult(LayerList.LayerCount - 1) As clsBooleanMap
-        Dim BestSlope As Double
-        Dim CurrentSlope As Double
-        Dim AllowSlope As Boolean
-
-        ReDim Terrain(TerrainSize.X, TerrainSize.Y)
-        ReDim Slope(TerrainSize.X - 1, TerrainSize.Y - 1)
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                'get slope
-                BestSlope = 0.0#
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                Slope(X, Y) = BestSlope
-            Next
-        Next
-        For LayerNum = 0 To LayerList.LayerCount - 1
-            tmpTerrain = LayerList.Layers(LayerNum).Terrain
-            If tmpTerrain IsNot Nothing Then
-                'do other layer constraints
-                LayerResult(LayerNum) = New clsBooleanMap
-                LayerResult(LayerNum).Copy(LayerList.Layers(LayerNum).Terrainmap)
-                If LayerList.Layers(LayerNum).WithinLayer >= 0 Then
-                    If LayerList.Layers(LayerNum).WithinLayer < LayerNum Then
-                        bmA.Within(LayerResult(LayerNum), LayerResult(LayerList.Layers(LayerNum).WithinLayer))
-                        LayerResult(LayerNum).ValueData = bmA.ValueData
-                        bmA.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                End If
-                For A = 0 To LayerNum - 1
-                    If LayerList.Layers(LayerNum).AvoidLayers(A) Then
-                        bmA.Expand_One_Tile(LayerResult(A))
-                        bmB.Remove(LayerResult(LayerNum), bmA)
-                        LayerResult(LayerNum).ValueData = bmB.ValueData
-                        bmB.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                Next
-                'do height and slope constraints
-                For Y = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X
-                        If LayerResult(LayerNum).ValueData.Value(Y, X) Then
-                            If TerrainVertex(X, Y).Height < LayerList.Layers(LayerNum).HeightMin _
-                            Or TerrainVertex(X, Y).Height > LayerList.Layers(LayerNum).HeightMax Then
-                                LayerResult(LayerNum).ValueData.Value(Y, X) = False
-                            End If
-                            If LayerResult(LayerNum).ValueData.Value(Y, X) Then
-                                AllowSlope = True
-                                If X > 0 Then
-                                    If Y > 0 Then
-                                        If Slope(X - 1, Y - 1) < LayerList.Layers(LayerNum).SlopeMin _
-                                        Or Slope(X - 1, Y - 1) > LayerList.Layers(LayerNum).SlopeMax Then
-                                            AllowSlope = False
-                                        End If
-                                    End If
-                                    If Y < TerrainSize.Y Then
-                                        If Slope(X - 1, Y) < LayerList.Layers(LayerNum).SlopeMin _
-                                        Or Slope(X - 1, Y) > LayerList.Layers(LayerNum).SlopeMax Then
-                                            AllowSlope = False
-                                        End If
-                                    End If
-                                End If
-                                If X < TerrainSize.X Then
-                                    If Y > 0 Then
-                                        If Slope(X, Y - 1) < LayerList.Layers(LayerNum).SlopeMin _
-                                        Or Slope(X, Y - 1) > LayerList.Layers(LayerNum).SlopeMax Then
-                                            AllowSlope = False
-                                        End If
-                                    End If
-                                    If Y < TerrainSize.Y Then
-                                        If Slope(X, Y) < LayerList.Layers(LayerNum).SlopeMin _
-                                        Or Slope(X, Y) > LayerList.Layers(LayerNum).SlopeMax Then
-                                            AllowSlope = False
-                                        End If
-                                    End If
-                                End If
-                                If Not AllowSlope Then
-                                    LayerResult(LayerNum).ValueData.Value(Y, X) = False
-                                End If
-                            End If
-                        End If
-                    Next
-                Next
-
-                LayerResult(LayerNum).Remove_Diagonals()
-
-                For Y = 0 To TerrainSize.Y
-                    For X = 0 To TerrainSize.X
-                        If LayerResult(LayerNum).ValueData.Value(Y, X) Then
-                            Terrain(X, Y) = tmpTerrain
-                        End If
-                    Next
-                Next
-            End If
-        Next
-
-        'set vertex terrain by terrain map
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                If Terrain(X, Y) IsNot Nothing Then
-                    TerrainVertex(X, Y).Terrain = Terrain(X, Y)
-                End If
-            Next
-        Next
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                Tile_AutoTexture_Changed(X, Y, frmMainInstance.chkInvalidTiles.Checked)
-            Next
-        Next
-    End Sub
-
-    Public Function GenerateTerrainMap(ByVal Scale As Single, ByVal Density As Single) As clsBooleanMap
-        Dim hmB As New clsHeightmap
-        Dim hmC As New clsHeightmap
-
-        hmB.GenerateNewOfSize(TerrainSize.Y + 1, TerrainSize.X + 1, Scale, 1.0#)
-        hmC.Rescale(hmB, 0.0#, 1.0#)
-        GenerateTerrainMap = New clsBooleanMap
-        GenerateTerrainMap.Convert_Heightmap(hmC, (1.0# - Density) / hmC.HeightScale)
-    End Function
-
-    Public Sub Apply_Cliff(ByVal Centre As sXY_int, ByVal Tiles As sBrushTiles, ByVal Angle As Double, ByVal SetTris As Boolean)
-        Dim A As Integer
-        Dim difA As Double
-        Dim difB As Double
-        Dim HeightA As Double
-        Dim HeightB As Double
-        Dim TriTopLeftMaxSlope As Double
-        Dim TriTopRightMaxSlope As Double
-        Dim TriBottomLeftMaxSlope As Double
-        Dim TriBottomRightMaxSlope As Double
-        Dim CliffChanged As Boolean
-        Dim TriChanged As Boolean
-        Dim NewVal As Boolean
-        Dim X As Integer
-        Dim Z As Integer
-        Dim X2 As Integer
-        Dim Z2 As Integer
-        Dim XLimit As Integer = TerrainSize.X - 1
-        Dim ZLimit As Integer = TerrainSize.Y - 1
-
-        For Z = Clamp(Tiles.ZMin + Centre.Y, 0, ZLimit) - Centre.Y To Clamp(Tiles.ZMax + Centre.Y, 0, ZLimit) - Centre.Y
-            Z2 = Centre.Y + Z
-            For X = Clamp(Tiles.XMin(Z - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Z - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X
-                X2 = Centre.X + X
-
-                HeightA = (CDbl(TerrainVertex(X2, Z2).Height) + TerrainVertex(X2 + 1, Z2).Height) / 2.0#
-                HeightB = (CDbl(TerrainVertex(X2, Z2 + 1).Height) + TerrainVertex(X2 + 1, Z2 + 1).Height) / 2.0#
-                difA = HeightB - HeightA
-                HeightA = (CDbl(TerrainVertex(X2, Z2).Height) + TerrainVertex(X2, Z2 + 1).Height) / 2.0#
-                HeightB = (CDbl(TerrainVertex(X2 + 1, Z2).Height) + TerrainVertex(X2 + 1, Z2 + 1).Height) / 2.0#
-                difB = HeightB - HeightA
-                If Math.Abs(difA) = Math.Abs(difB) Then
-                    A = Int(Rnd() * 4.0F)
-                    If A = 0 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Top
-                    ElseIf A = 1 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Right
-                    ElseIf A = 2 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Bottom
-                    ElseIf A = 3 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Left
-                    End If
-                ElseIf Math.Abs(difA) > Math.Abs(difB) Then
-                    If difA < 0 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Bottom
-                    ElseIf difA > 0 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Top
-                    End If
-                Else
-                    If difB < 0 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Right
-                    ElseIf difB > 0 Then
-                        TerrainTiles(X2, Z2).DownSide = TileDirection_Left
-                    End If
-                End If
-
-                CliffChanged = False
-                TriChanged = False
-
-                If SetTris Then
-                    difA = Math.Abs(CDbl(TerrainVertex(X2 + 1, Z2 + 1).Height) - TerrainVertex(X2, Z2).Height)
-                    difB = Math.Abs(CDbl(TerrainVertex(X2, Z2 + 1).Height) - TerrainVertex(X2 + 1, Z2).Height)
-                    If difA = difB Then
-                        If Rnd() >= 0.5F Then
-                            NewVal = False
-                        Else
-                            NewVal = True
-                        End If
-                    ElseIf difA < difB Then
-                        NewVal = False
-                    Else
-                        NewVal = True
-                    End If
-                    If TerrainTiles(X2, Z2).Tri <> NewVal Then
-                        TerrainTiles(X2, Z2).Tri = NewVal
-                        TriChanged = True
-                    End If
-                End If
-
-                If TerrainTiles(X2, Z2).Tri Then
-                    TriTopLeftMaxSlope = GetTerrainSlopeAngle((X2 + 0.25#) * TerrainGridSpacing, (Z2 + 0.25#) * TerrainGridSpacing)
-                    TriBottomRightMaxSlope = GetTerrainSlopeAngle((X2 + 0.75#) * TerrainGridSpacing, (Z2 + 0.75#) * TerrainGridSpacing)
-                Else
-                    TriTopRightMaxSlope = GetTerrainSlopeAngle((X2 + 0.75#) * TerrainGridSpacing, (Z2 + 0.25#) * TerrainGridSpacing)
-                    TriBottomLeftMaxSlope = GetTerrainSlopeAngle((X2 + 0.25#) * TerrainGridSpacing, (Z2 + 0.75#) * TerrainGridSpacing)
-                End If
-
-                If TerrainTiles(X2, Z2).Tri Then
-                    If TerrainTiles(X2, Z2).TriTopRightIsCliff Then
-                        TerrainTiles(X2, Z2).TriTopRightIsCliff = False
-                        CliffChanged = True
-                    End If
-                    If TerrainTiles(X2, Z2).TriBottomLeftIsCliff Then
-                        TerrainTiles(X2, Z2).TriBottomLeftIsCliff = False
-                        CliffChanged = True
-                    End If
-
-                    NewVal = (TriTopLeftMaxSlope >= Angle)
-                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriTopLeftIsCliff = NewVal)
-                    TerrainTiles(X2, Z2).TriTopLeftIsCliff = NewVal
-
-                    NewVal = (TriBottomRightMaxSlope >= Angle)
-                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriBottomRightIsCliff = NewVal)
-                    TerrainTiles(X2, Z2).TriBottomRightIsCliff = NewVal
-
-                    If TerrainTiles(X2, Z2).TriTopLeftIsCliff Or TerrainTiles(X2, Z2).TriBottomRightIsCliff Then
-                        TerrainTiles(X2, Z2).Terrain_IsCliff = True
-                    Else
-                        TerrainTiles(X2, Z2).Terrain_IsCliff = False
-                    End If
-                Else
-                    If TerrainTiles(X2, Z2).TriBottomRightIsCliff Then
-                        TerrainTiles(X2, Z2).TriBottomRightIsCliff = False
-                        CliffChanged = True
-                    End If
-                    If TerrainTiles(X2, Z2).TriTopLeftIsCliff Then
-                        TerrainTiles(X2, Z2).TriTopLeftIsCliff = False
-                        CliffChanged = True
-                    End If
-
-                    NewVal = (TriTopRightMaxSlope >= Angle)
-                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriTopRightIsCliff = NewVal)
-                    TerrainTiles(X2, Z2).TriTopRightIsCliff = NewVal
-
-                    NewVal = (TriBottomLeftMaxSlope >= Angle)
-                    CliffChanged = (CliffChanged Or Not TerrainTiles(X2, Z2).TriBottomLeftIsCliff = NewVal)
-                    TerrainTiles(X2, Z2).TriBottomLeftIsCliff = NewVal
-
-                    If TerrainTiles(X2, Z2).TriTopRightIsCliff Or TerrainTiles(X2, Z2).TriBottomLeftIsCliff Then
-                        TerrainTiles(X2, Z2).Terrain_IsCliff = True
-                    Else
-                        TerrainTiles(X2, Z2).Terrain_IsCliff = False
-                    End If
-                End If
-
-                If CliffChanged Then
-                    Tile_AutoTexture_Changed(X2, Z2, frmMainInstance.chkInvalidTiles.Checked)
-                End If
-                If TriChanged Or CliffChanged Then
-                    SectorChange.Tile_Set_Changed(X2, Z2)
-                End If
-            Next
-        Next
-    End Sub
-
     Private Sub UnitSectors_GLList(ByVal UnitToUpdateFor As clsUnit)
         Dim A As Integer
 
-        If SectorChange IsNot Nothing Then
+        If SectorGraphicsChange IsNot Nothing Then
             For A = 0 To UnitToUpdateFor.SectorCount - 1
-                SectorChange.UnitChanged(UnitToUpdateFor.Sectors(A).Pos)
+                SectorGraphicsChange.SectorChanged(UnitToUpdateFor.Sectors(A).Pos)
             Next
         End If
     End Sub
 
-    Public Sub RandomizeHeights(ByVal LevelCount As Integer)
-        Dim hmSource As New clsHeightmap
-        Dim hmA As New clsHeightmap
-        Dim hmB As New clsHeightmap
-        Dim IntervalCount As Integer
-        Dim AlterationLevel() As Double
-        Dim hmAlteration() As clsHeightmap
-        Dim LevelHeight As Double
-        Dim HeightRange As Double
-        Dim Level As Integer
-        Dim IntervalHeight As Double
-        Dim Variation As Double
-        Dim X As Integer
-        Dim Y As Integer
+    Public Function GetTileOffsetRotatedWorldPos(ByVal Tile As sXY_int, ByVal TileOffsetToRotate As sXY_int) As sWorldPos
+        Dim Result As sWorldPos
 
-        IntervalCount = LevelCount - 1
+        Dim RotatedOffset As sXY_int
 
-        ReDim AlterationLevel(IntervalCount)
-        Dim MinMax As New clsHeightmap.sMinMax
-        ReDim hmAlteration(IntervalCount)
-        ReDim hmSource.HeightData.Height(TerrainSize.Y, TerrainSize.X)
-        hmSource.HeightData.SizeX = TerrainSize.X + 1
-        hmSource.HeightData.SizeY = TerrainSize.Y + 1
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                hmSource.HeightData.Height(Y, X) = TerrainVertex(X, Y).Height / hmSource.HeightScale
-            Next
-        Next
-        hmSource.MinMaxGet(MinMax)
-        HeightRange = 255.0#
-        IntervalHeight = HeightRange / IntervalCount
-        Variation = IntervalHeight / 4.0#
-        For Level = 0 To IntervalCount
-            LevelHeight = (MinMax.Min + Level * MinMax.Max / IntervalCount) * hmSource.HeightScale
-            AlterationLevel(Level) = LevelHeight
-            hmB.GenerateNewOfSize(TerrainSize.Y + 1, TerrainSize.X + 1, 2.0F, 10000.0#)
-            hmAlteration(Level) = New clsHeightmap
-            hmAlteration(Level).Rescale(hmB, LevelHeight - Variation, LevelHeight + Variation)
-        Next
-        hmA.FadeMultiple(hmSource, hmAlteration, AlterationLevel)
-        hmB.Rescale(hmA, Math.Max(MinMax.Min * hmSource.HeightScale - Variation, 0.0#), Math.Min(MinMax.Max * hmSource.HeightScale + Variation, 255.9#))
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                TerrainVertex(X, Y).Height = Int(hmB.HeightData.Height(Y, X) * hmB.HeightScale)
-            Next
-        Next
+        RotatedOffset = GetTileRotatedOffset(TerrainTiles(Tile.X, Tile.Y).Texture.Orientation, TileOffsetToRotate)
+        Result.Horizontal.X = Tile.X * TerrainGridSpacing + RotatedOffset.X
+        Result.Horizontal.Y = Tile.Y * TerrainGridSpacing + RotatedOffset.Y
+        Result.Altitude = GetTerrainHeight(Result.Horizontal)
+
+        Return Result
+    End Function
+
+    Public Sub GetFootprintTileRangeClamped(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int, ByRef ResultStart As sXY_int, ByRef ResultFinish As sXY_int)
+
+        ResultStart.X = Clamp(CInt(Math.Floor(Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#)), 0, TerrainSize.X - 1)
+        ResultStart.Y = Clamp(CInt(Math.Floor(Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#)), 0, TerrainSize.Y - 1)
+        ResultFinish.X = Clamp(CInt(Math.Floor((Horizontal.X - 1) / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#)), 0, TerrainSize.X - 1)
+        ResultFinish.Y = Clamp(CInt(Math.Floor((Horizontal.Y - 1) / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#)), 0, TerrainSize.Y - 1)
     End Sub
 
-    Public Sub LevelWater()
-        Dim X As Integer
-        Dim Y As Integer
-        Dim TextureNum As Integer
+    Public Sub GetFootprintTileRange(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int, ByRef ResultStart As sXY_int, ByRef ResultFinish As sXY_int)
 
-        If Tileset Is Nothing Then
-            Exit Sub
-        End If
-
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                TextureNum = TerrainTiles(X, Y).Texture.TextureNum
-                If TextureNum >= 0 And TextureNum < Tileset.TileCount Then
-                    If Tileset.Tiles(TextureNum).Default_Type = TileTypeNum_Water Then
-                        TerrainVertex(X, Y).Height = 0
-                        TerrainVertex(X + 1, Y).Height = 0
-                        TerrainVertex(X, Y + 1).Height = 0
-                        TerrainVertex(X + 1, Y + 1).Height = 0
-                    End If
-                End If
-            Next
-        Next
+        ResultStart.X = CInt(Math.Floor(Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#))
+        ResultStart.Y = CInt(Math.Floor(Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#))
+        ResultFinish.X = CInt(Math.Floor((Horizontal.X - 1) / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#))
+        ResultFinish.Y = CInt(Math.Floor((Horizontal.Y - 1) / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#))
     End Sub
 
-    Public Structure sGenerateMasterTerrainArgs
-        Public Tileset As clsGeneratorTileset
-        Public LevelCount As Integer
-        Class clsLayer
-            Public WithinLayer As Integer
-            Public AvoidLayers() As Boolean
-            Public TileNum As Integer
-            Public Terrainmap As clsBooleanMap
-            Public TerrainmapScale As Single
-            Public TerrainmapDensity As Single
-            Public HeightMin As Single
-            Public HeightMax As Single
-            Public IsCliff As Boolean
-        End Class
-        Public Layers() As clsLayer
-        Public LayerCount As Integer
-        Public Watermap As clsBooleanMap
-    End Structure
+    Public Function GetPosTileNum(ByVal Horizontal As sXY_int) As sXY_int
+        Dim Result As sXY_int
 
-    Public Sub GenerateMasterTerrain(ByRef Args As sGenerateMasterTerrainArgs)
-        Dim X As Integer
-        Dim Y As Integer
-        Dim Z As Integer
-        Dim A As Integer
-        Dim Terrain(,) As Integer
-        Dim Slope(,) As Single
+        Result.X = Math.Floor(Horizontal.X / TerrainGridSpacing)
+        Result.Y = Math.Floor(Horizontal.Y / TerrainGridSpacing)
 
-        Dim TerrainNum As Integer
+        Return Result
+    End Function
 
-        Dim bmA As New clsBooleanMap
-        Dim Layer_Num As Integer
-        Dim LayerResult(Args.LayerCount - 1) As clsBooleanMap
-        Dim bmB As New clsBooleanMap
-        Dim BestSlope As Double
-        Dim CurrentSlope As Double
-        Dim hmB As New clsHeightmap
-        Dim hmC As New clsHeightmap
+    Public Function GetPosSectorNum(ByVal Horizontal As sXY_int) As sXY_int
+        Dim Result As sXY_int
 
-        Dim difA As Double
-        Dim difB As Double
-        Dim NewTri As Boolean
-        Dim CliffSlope As Double = Math.Atan(255.0# * DefaultHeightMultiplier / (2.0# * (Args.LevelCount - 1.0#) * TerrainGridSpacing)) - RadOf1Deg 'divided by 2 due to the terrain height randomization
+        Result = GetTileSectorNum(GetPosTileNum(Horizontal))
 
-        Tileset = Args.Tileset.Tileset
+        Return Result
+    End Function
 
-        For Z = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                difA = Math.Abs(CDbl(TerrainVertex(X + 1, Z + 1).Height) - TerrainVertex(X, Z).Height)
-                difB = Math.Abs(CDbl(TerrainVertex(X, Z + 1).Height) - TerrainVertex(X + 1, Z).Height)
-                If difA = difB Then
-                    If Rnd() >= 0.5F Then
-                        NewTri = False
-                    Else
-                        NewTri = True
-                    End If
-                ElseIf difA < difB Then
-                    NewTri = False
-                Else
-                    NewTri = True
-                End If
-                If Not TerrainTiles(X, Z).Tri = NewTri Then
-                    TerrainTiles(X, Z).Tri = NewTri
-                End If
-            Next X
-        Next Z
+    Public Function GetSectorNumClamped(ByVal SectorNum As sXY_int) As sXY_int
+        Dim Result As sXY_int
 
-        For A = 0 To Args.LayerCount - 1
-            Args.Layers(A).Terrainmap = New clsBooleanMap
-            If Args.Layers(A).TerrainmapDensity = 1.0F Then
-                ReDim Args.Layers(A).Terrainmap.ValueData.Value(TerrainSize.Y - 1, TerrainSize.X - 1)
-                Args.Layers(A).Terrainmap.ValueData.Size = TerrainSize
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        Args.Layers(A).Terrainmap.ValueData.Value(Y, X) = True
-                    Next
-                Next
-            Else
-                hmB.GenerateNewOfSize(TerrainSize.Y, TerrainSize.X, Args.Layers(A).TerrainmapScale, 1.0#)
-                hmC.Rescale(hmB, 0.0#, 1.0#)
-                Args.Layers(A).Terrainmap.Convert_Heightmap(hmC, (1.0F - Args.Layers(A).TerrainmapDensity) / hmC.HeightScale)
-            End If
-        Next
+        Result.X = Clamp(SectorNum.X, 0, SectorCount.X - 1)
+        Result.Y = Clamp(SectorNum.Y, 0, SectorCount.Y - 1)
 
-        ReDim Terrain(TerrainSize.X - 1, TerrainSize.Y - 1)
-        ReDim Slope(TerrainSize.X - 1, TerrainSize.Y - 1)
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                'get slope
-                BestSlope = 0.0#
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.25#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.25#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                CurrentSlope = GetTerrainSlopeAngle((X + 0.75#) * TerrainGridSpacing, (Y + 0.75#) * TerrainGridSpacing)
-                If CurrentSlope > BestSlope Then BestSlope = CurrentSlope
-                Slope(X, Y) = BestSlope
-            Next
-        Next
-        For Layer_Num = 0 To Args.LayerCount - 1
-            TerrainNum = Args.Layers(Layer_Num).TileNum
-            If TerrainNum >= 0 Then
-                'do other layer constraints
-                LayerResult(Layer_Num) = New clsBooleanMap
-                LayerResult(Layer_Num).Copy(Args.Layers(Layer_Num).Terrainmap)
-                If Args.Layers(Layer_Num).WithinLayer >= 0 Then
-                    If Args.Layers(Layer_Num).WithinLayer < Layer_Num Then
-                        bmA.Within(LayerResult(Layer_Num), LayerResult(Args.Layers(Layer_Num).WithinLayer))
-                        LayerResult(Layer_Num).ValueData = bmA.ValueData
-                        bmA.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                End If
-                For A = 0 To Layer_Num - 1
-                    If Args.Layers(Layer_Num).AvoidLayers(A) Then
-                        bmA.Expand_One_Tile(LayerResult(A))
-                        bmB.Remove(LayerResult(Layer_Num), bmA)
-                        LayerResult(Layer_Num).ValueData = bmB.ValueData
-                        bmB.ValueData = New clsBooleanMap.clsValueData
-                    End If
-                Next
-                'do height and slope constraints
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            If TerrainVertex(X, Y).Height < Args.Layers(Layer_Num).HeightMin _
-                            Or TerrainVertex(X, Y).Height > Args.Layers(Layer_Num).HeightMax Then
-                                LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                            End If
-                            If Args.Layers(Layer_Num).IsCliff Then
-                                If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                                    If Slope(X, Y) < CliffSlope Then
-                                        LayerResult(Layer_Num).ValueData.Value(Y, X) = False
-                                    End If
-                                End If
-                            End If
-                        End If
-                    Next
-                Next
+        Return Result
+    End Function
 
-                For Y = 0 To TerrainSize.Y - 1
-                    For X = 0 To TerrainSize.X - 1
-                        If LayerResult(Layer_Num).ValueData.Value(Y, X) Then
-                            Terrain(X, Y) = TerrainNum
-                        End If
-                    Next
-                Next
-            End If
-        Next
+    Public Function GetVertexAltitude(ByVal VertexNum As sXY_int) As Integer
 
-        'set water tiles
+        Return TerrainVertex(VertexNum.X, VertexNum.Y).Height * HeightMultiplier
+    End Function
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If Args.Watermap.ValueData.Value(Y, X) Then
-                    If Slope(X, Y) < CliffSlope Then
-                        Terrain(X, Y) = 17
-                    End If
-                End If
-            Next
-        Next
+    Public Function PosIsOnMap(ByVal Horizontal As sXY_int) As Boolean
 
-        'set border tiles to cliffs
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To 2
-                Terrain(X, Y) = Args.Tileset.BorderTextureNum
-            Next
-            For X = TerrainSize.X - 4 To TerrainSize.X - 1
-                Terrain(X, Y) = Args.Tileset.BorderTextureNum
-            Next
-        Next
-        For X = 3 To TerrainSize.X - 5
-            For Y = 0 To 2
-                Terrain(X, Y) = Args.Tileset.BorderTextureNum
-            Next
-            For Y = TerrainSize.Y - 4 To TerrainSize.Y - 1
-                Terrain(X, Y) = Args.Tileset.BorderTextureNum
-            Next
-        Next
+        Return PosIsWithinTileArea(Horizontal, New sXY_int(0, 0), TerrainSize)
+    End Function
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Y).Texture.TextureNum = Terrain(X, Y)
-            Next
-        Next
-    End Sub
+    Public Function TileNumClampToMap(ByVal TileNum As sXY_int) As sXY_int
+        Dim Result As sXY_int
+
+        Result.X = Clamp(TileNum.X, 0, TerrainSize.X - 1)
+        Result.Y = Clamp(TileNum.Y, 0, TerrainSize.Y - 1)
+
+        Return Result
+    End Function
 End Class

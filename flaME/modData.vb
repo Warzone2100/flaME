@@ -59,6 +59,30 @@
         SubDirStructureWeapons = "stats" & ospathseperator & "structureweapons.txt"
     End Sub
 
+    Public Bodies(-1) As clsBody
+    Public BodyCount As Integer
+
+    Public Propulsions(-1) As clsPropulsion
+    Public PropulsionCount As Integer
+
+    Public Weapons(-1) As clsWeapon
+    Public WeaponCount As Integer
+
+    Public Repairs(-1) As clsRepair
+    Public RepairCount As Integer
+
+    Public Constructs(-1) As clsConstruct
+    Public ConstructCount As Integer
+
+    Public Sensors(-1) As clsSensor
+    Public SensorCount As Integer
+
+    Public Brains(-1) As clsBrain
+    Public BrainCount As Integer
+
+    Public ECMs(-1) As clsECM
+    Public ECMCount As Integer
+
     'structure type
     Structure sStructure
         Dim Code As String
@@ -84,6 +108,8 @@
         Dim Code As String
         Dim Name As String
         Dim PIE As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sBody_List
         Dim Bodies() As sBody
@@ -94,6 +120,8 @@
         Dim Code As String
         Dim Name As String
         Dim PIE As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sPropulsion_List
         Dim Propulsions() As sPropulsion
@@ -104,13 +132,15 @@
         Dim LeftPIE As String
         Dim RightPIE As String
     End Structure
-    Dim BodyPropulsions(,) As BodyProp
+    Dim BodyPropulsionPIEs(,) As BodyProp
 
     Structure sWeapon
         Dim Code As String
         Dim Name As String
         Dim PIE As String
         Dim PIE2 As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sWeapon_List
         Dim Weapons() As sWeapon
@@ -121,6 +151,8 @@
         Dim Code As String
         Dim Name As String
         Dim PIE As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sConstruction_List
         Dim Constructions() As sConstruction
@@ -132,6 +164,8 @@
         Dim Name As String
         Dim PIE As String
         Dim PIE2 As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sSensor_List
         Dim Sensors() As sSensor
@@ -142,6 +176,9 @@
         Dim Code As String
         Dim Name As String
         Dim PIE As String
+        Dim PIE2 As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sRepair_List
         Dim Repairs() As sRepair
@@ -153,6 +190,8 @@
         Dim Name As String
         Dim Weapon_Num As Integer
         'Dim PIE As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sBrain_List
         Dim Brains() As sBrain
@@ -171,18 +210,19 @@
 
     'template type
     Structure sTemplate
-        Dim Code As String
-        Dim Name As String
-        Dim Body As Integer
-        Dim Propulsion As Integer
-        Dim Weapon1 As Integer
-        Dim Weapon2 As Integer
-        Dim Weapon3 As Integer
-        Dim ECM As Integer
-        Dim Sensor As Integer
-        Dim Construction As Integer
-        Dim Repair As Integer
-        Dim Brain As Integer
+        Public Code As String
+        Public Name As String
+        Public DroidType As String
+        Public Body As Integer
+        Public Propulsion As Integer
+        Public Weapon1 As Integer
+        Public Weapon2 As Integer
+        Public Weapon3 As Integer
+        Public ECM As Integer
+        Public Sensor As Integer
+        Public Construction As Integer
+        Public Repair As Integer
+        Public Brain As Integer
     End Structure
     Structure sTemplate_List
         Dim Templates() As sTemplate
@@ -194,6 +234,8 @@
         Dim Code As String
         Dim Name As String
         Dim PIE As String
+        Dim HitPoints As Integer
+        Dim Designable As Boolean
     End Structure
     Structure sECM_List
         Dim ECMs() As sECM
@@ -226,7 +268,6 @@
         Dim ECM_List As sECM_List
         Dim Feature_List As sFeature_List
     End Structure
-    Public Mod_Data_Main As sMod_Data
 
     Structure sFileData_Entry
         Dim FieldValue() As String
@@ -499,7 +540,9 @@
                     Else
                         DataLoad.Warning_Add("No name in names.txt for body component " & .Bodies(Body_Num).Code & ".")
                     End If
+                    .Bodies(Body_Num).HitPoints = CInt(Val(DataBody.Entry(Body_Num).FieldValue(6)))
                     .Bodies(Body_Num).PIE = LCase(DataBody.Entry(Body_Num).FieldValue(7))
+                    .Bodies(Body_Num).Designable = (DataBody.Entry(Body_Num).FieldValue(24) <> "0")
                 Next Body_Num
             End With
             DataBody.EntryCount = 0
@@ -517,7 +560,9 @@
                     Else
                         DataLoad.Warning_Add("No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & ".")
                     End If
+                    .Propulsions(Propulsion_Num).HitPoints = CInt(Val(DataPropulsion.Entry(Propulsion_Num).FieldValue(7)))
                     .Propulsions(Propulsion_Num).PIE = LCase(DataPropulsion.Entry(Propulsion_Num).FieldValue(8))
+                    .Propulsions(Propulsion_Num).Designable = (DataPropulsion.Entry(Propulsion_Num).FieldValue(11) <> "0")
                 Next Propulsion_Num
             End With
             DataPropulsion.EntryCount = 0
@@ -536,6 +581,7 @@
                         DataLoad.Warning_Add("No name in names.txt for construction component " & .Constructions(Construction_Num).Code & ".")
                     End If
                     .Constructions(Construction_Num).PIE = LCase(DataConstruction.Entry(Construction_Num).FieldValue(8))
+                    .Constructions(Construction_Num).Designable = (DataConstruction.Entry(Construction_Num).FieldValue(11) <> "0")
                 Next Construction_Num
             End With
             DataConstruction.EntryCount = 0
@@ -548,8 +594,16 @@
                 ReDim .Weapons(.WeaponCount - 1)
                 For WeaponNum = 0 To .WeaponCount - 1
                     .Weapons(WeaponNum).Code = DataWeapons.Entry(WeaponNum).FieldValue(0)
+                    FileData_Entries_Get_From_Field_Value(DataNames, 0, .Weapons(WeaponNum).Code, Entry_Num_List)
+                    If Entry_Num_List.ResultCount > 0 Then
+                        .Weapons(WeaponNum).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                    Else
+                        DataLoad.Warning_Add("No name in names.txt for weapon component " & .Weapons(WeaponNum).Code & ".")
+                    End If
+                    .Weapons(WeaponNum).HitPoints = CInt(Val(DataWeapons.Entry(WeaponNum).FieldValue(7)))
                     .Weapons(WeaponNum).PIE = LCase(DataWeapons.Entry(WeaponNum).FieldValue(8))
                     .Weapons(WeaponNum).PIE2 = LCase(DataWeapons.Entry(WeaponNum).FieldValue(9))
+                    .Weapons(WeaponNum).Designable = (DataWeapons.Entry(WeaponNum).FieldValue(51) <> "0")
                 Next WeaponNum
             End With
 
@@ -565,8 +619,10 @@
                     Else
                         DataLoad.Warning_Add("No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & ".")
                     End If
+                    .Sensors(Sensor_Num).HitPoints = CInt(Val(DataSensor.Entry(Sensor_Num).FieldValue(7)))
                     .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entry(Sensor_Num).FieldValue(8))
                     .Sensors(Sensor_Num).PIE2 = LCase(DataSensor.Entry(Sensor_Num).FieldValue(9))
+                    .Sensors(Sensor_Num).Designable = (DataSensor.Entry(Sensor_Num).FieldValue(15) <> "0")
                 Next Sensor_Num
             End With
             DataSensor.EntryCount = 0
@@ -585,6 +641,8 @@
                         DataLoad.Warning_Add("No name in names.txt for repair component " & .Repairs(Repair_Num).Code & ".")
                     End If
                     .Repairs(Repair_Num).PIE = LCase(DataRepair.Entry(Repair_Num).FieldValue(9))
+                    .Repairs(Repair_Num).PIE2 = LCase(DataRepair.Entry(Repair_Num).FieldValue(10))
+                    .Repairs(Repair_Num).Designable = (DataRepair.Entry(Repair_Num).FieldValue(13) <> "0")
                 Next Repair_Num
             End With
             DataRepair.EntryCount = 0
@@ -602,6 +660,8 @@
                     Else
                         DataLoad.Warning_Add("No name in names.txt for brain component " & .Brains(Brain_Num).Code & ".")
                     End If
+                    .Brains(Brain_Num).Weapon_Num = GetWeaponNumFromCode(NewModData, DataBrain.Entry(Brain_Num).FieldValue(7))
+                    .Brains(Brain_Num).Designable = True
                 Next Brain_Num
             End With
             'we still need brain data
@@ -618,7 +678,9 @@
                     Else
                         DataLoad.Warning_Add("No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & ".")
                     End If
+                    .ECMs(ECM_Num).HitPoints = CInt(Val(DataECM.Entry(ECM_Num).FieldValue(7)))
                     .ECMs(ECM_Num).PIE = LCase(DataECM.Entry(ECM_Num).FieldValue(8))
+                    .ECMs(ECM_Num).Designable = False
                 Next ECM_Num
             End With
 
@@ -642,11 +704,11 @@
             End With
 
             'interpret body-propulsions
-            ReDim BodyPropulsions(.Body_List.BodyCount - 1, .Propulsion_List.PropulsionCount - 1)
+            ReDim BodyPropulsionPIEs(.Body_List.BodyCount - 1, .Propulsion_List.PropulsionCount - 1)
             For Body_Num = 0 To .Body_List.BodyCount - 1
                 For Propulsion_Num = 0 To .Propulsion_List.PropulsionCount - 1
-                    BodyPropulsions(Body_Num, Propulsion_Num).LeftPIE = "0"
-                    BodyPropulsions(Body_Num, Propulsion_Num).RightPIE = "0"
+                    BodyPropulsionPIEs(Body_Num, Propulsion_Num).LeftPIE = "0"
+                    BodyPropulsionPIEs(Body_Num, Propulsion_Num).RightPIE = "0"
                 Next
             Next
             Dim BodyPropNum As Integer
@@ -656,10 +718,10 @@
                     Propulsion_Num = GetPropulsionNumFromCode(NewModData, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(1))
                     If Body_Num >= 0 And Propulsion_Num >= 0 Then
                         If DataAssignWeapons.Entry(BodyPropNum).FieldValue(2) <> "0" Then
-                            BodyPropulsions(Body_Num, Propulsion_Num).LeftPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(2))
+                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).LeftPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(2))
                         End If
                         If DataAssignWeapons.Entry(BodyPropNum).FieldValue(3) <> "0" Then
-                            BodyPropulsions(Body_Num, Propulsion_Num).RightPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(3))
+                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).RightPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(3))
                         End If
                     End If
                 End With
@@ -681,8 +743,9 @@
                     .Templates(Template_Num).Propulsion = GetPropulsionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(7))
                     .Templates(Template_Num).Brain = GetBrainNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(3))
                     .Templates(Template_Num).Construction = GetConstructionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(4))
-                    .Templates(Template_Num).Repair = GetRepairNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(8))
                     .Templates(Template_Num).ECM = GetECMNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(5))
+                    .Templates(Template_Num).Repair = GetRepairNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(8))
+                    .Templates(Template_Num).DroidType = DataTemplates.Entry(Template_Num).FieldValue(9)
                     .Templates(Template_Num).Sensor = GetSensorNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(10))
                     .Templates(Template_Num).Weapon1 = -1
                     .Templates(Template_Num).Weapon2 = -1
@@ -764,10 +827,6 @@
             Next
         End With
 
-        'set the main variables to the new variables
-
-        Mod_Data_Main = NewModData
-
         'load texpages
 
         Dim TexFiles() As String
@@ -781,7 +840,7 @@
 
         Dim TexFile_Num As Integer
         Dim tmpString As String
-        Dim tmpBitmap As clsBitmapFile
+        Dim tmpBitmap As Bitmap = Nothing
         Dim InstrPos2 As Integer
 
         TexturePageCount = 0
@@ -790,12 +849,11 @@
             If LCase(Right(tmpString, 4)) = ".png" Then
                 If IO.File.Exists(tmpString) Then
                     ReDim Preserve TexturePages(TexturePageCount)
-                    tmpBitmap = New clsBitmapFile()
-                    Result = tmpBitmap.Load(tmpString)
+                    Result = LoadBitmap(tmpString, tmpBitmap)
                     If Not Result.Success Then
-                        DataLoad.Warning_Add("Failed loading " & tmpString & "; " & Result.Problem)
+                        DataLoad.Warning_Add("Unable to load " & tmpString & ": " & Result.Problem)
                     End If
-                    TexturePages(TexturePageCount).GLTexture_Num = tmpBitmap.GLTexture(frmMainInstance.View.OpenGLControl, False)
+                    TexturePages(TexturePageCount).GLTexture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, False, False)
                     InstrPos2 = InStrRev(tmpString, OSPathSeperator)
                     TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
@@ -836,71 +894,192 @@
         Next
         ReDim Preserve PIE_List.PIEs(PIE_List.PIECount - 1)
 
-        Dim tmpAttachment As clsUnitType.clsLoadedInfo.clsAttachment
-        Dim tmpBaseAttachment As clsUnitType.clsLoadedInfo.clsAttachment
+        Dim tmpAttachment As clsUnitType.clsAttachment
+        Dim tmpBaseAttachment As clsUnitType.clsAttachment
         Dim tmpConnector As sXYZ_sng
+        Dim tmpStructure As clsStructureType
+        Dim tmpFeature As clsFeatureType
+        Dim tmpTemplate As clsDroidTemplate
+        Dim tmpBody As clsBody
+        Dim tmpPropulsion As clsPropulsion
+        Dim tmpConstruct As clsConstruct
+        Dim tmpWeapon As clsWeapon
+        Dim tmpRepair As clsRepair
+        Dim tmpSensor As clsSensor
+        Dim tmpBrain As clsBrain
+        Dim tmpECM As clsECM
+        Dim B As Integer
 
-        With Mod_Data_Main
+        With NewModData
+
+            BodyCount = .Body_List.BodyCount
+            ReDim Bodies(BodyCount - 1)
+            For A = 0 To BodyCount - 1
+                tmpBody = New clsBody
+                Bodies(A) = tmpBody
+                tmpBody.Num = A
+                tmpBody.Code = .Body_List.Bodies(A).Code
+                tmpBody.Name = .Body_List.Bodies(A).Name
+                tmpBody.Hitpoints = .Body_List.Bodies(A).HitPoints
+                tmpBody.Designable = .Body_List.Bodies(A).Designable
+                tmpBody.Attachment.AddModel(GetModelForPIE(PIE_List, .Body_List.Bodies(A).PIE, DataLoad))
+            Next
+
+            PropulsionCount = .Propulsion_List.PropulsionCount
+            ReDim Propulsions(PropulsionCount - 1)
+            For A = 0 To PropulsionCount - 1
+                tmpPropulsion = New clsPropulsion(BodyCount)
+                Propulsions(A) = tmpPropulsion
+                tmpPropulsion.Code = .Propulsion_List.Propulsions(A).Code
+                tmpPropulsion.Name = .Propulsion_List.Propulsions(A).Name
+                tmpPropulsion.Hitpoints = .Propulsion_List.Propulsions(A).HitPoints
+                tmpPropulsion.Designable = .Propulsion_List.Propulsions(A).Designable
+                For B = 0 To BodyCount - 1
+                    tmpPropulsion.Bodies(B).LeftAttachment = New clsUnitType.clsAttachment
+                    tmpPropulsion.Bodies(B).LeftAttachment.AddModel(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).LeftPIE, DataLoad))
+                    tmpPropulsion.Bodies(B).RightAttachment = New clsUnitType.clsAttachment
+                    tmpPropulsion.Bodies(B).RightAttachment.AddModel(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).RightPIE, DataLoad))
+                Next
+            Next
+
+            ConstructCount = .Construction_List.ConstructionCount
+            ReDim Constructs(ConstructCount - 1)
+            For A = 0 To ConstructCount - 1
+                tmpConstruct = New clsConstruct
+                Constructs(A) = tmpConstruct
+                tmpConstruct.Code = .Construction_List.Constructions(A).Code
+                tmpConstruct.Name = .Construction_List.Constructions(A).Name
+                tmpConstruct.HitPoints = .Construction_List.Constructions(A).HitPoints
+                tmpConstruct.Designable = .Construction_List.Constructions(A).Designable
+                tmpConstruct.Attachment.AddModel(GetModelForPIE(PIE_List, .Construction_List.Constructions(A).PIE, DataLoad))
+            Next
+
+            WeaponCount = .Weapon_List.WeaponCount
+            ReDim Weapons(WeaponCount - 1)
+            For A = 0 To WeaponCount - 1
+                tmpWeapon = New clsWeapon
+                Weapons(A) = tmpWeapon
+                tmpWeapon.Code = .Weapon_List.Weapons(A).Code
+                tmpWeapon.Name = .Weapon_List.Weapons(A).Name
+                tmpWeapon.HitPoints = .Weapon_List.Weapons(A).HitPoints
+                tmpWeapon.Designable = .Weapon_List.Weapons(A).Designable
+                tmpWeapon.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE, DataLoad))
+                tmpWeapon.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE2, DataLoad))
+            Next
+
+            RepairCount = .Repair_List.RepairCount
+            ReDim Repairs(RepairCount - 1)
+            For A = 0 To RepairCount - 1
+                tmpRepair = New clsRepair
+                Repairs(A) = tmpRepair
+                tmpRepair.Code = .Repair_List.Repairs(A).Code
+                tmpRepair.Name = .Repair_List.Repairs(A).Name
+                tmpRepair.HitPoints = .Repair_List.Repairs(A).HitPoints
+                tmpRepair.Designable = .Repair_List.Repairs(A).Designable
+                tmpRepair.Attachment.AddModel(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE, DataLoad))
+                tmpRepair.Attachment.AddModel(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE2, DataLoad))
+            Next
+
+            SensorCount = .Sensor_List.SensorCount
+            ReDim Sensors(SensorCount - 1)
+            For A = 0 To SensorCount - 1
+                tmpSensor = New clsSensor
+                Sensors(A) = tmpSensor
+                tmpSensor.Code = .Sensor_List.Sensors(A).Code
+                tmpSensor.Name = .Sensor_List.Sensors(A).Name
+                tmpSensor.HitPoints = .Sensor_List.Sensors(A).HitPoints
+                tmpSensor.Designable = .Sensor_List.Sensors(A).Designable
+                tmpSensor.Attachment.AddModel(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE, DataLoad))
+                tmpSensor.Attachment.AddModel(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE2, DataLoad))
+            Next
+
+            ECMCount = .ECM_List.ECMCount
+            ReDim ECMs(ECMCount - 1)
+            For A = 0 To ECMCount - 1
+                tmpECM = New clsECM
+                ECMs(A) = tmpECM
+                tmpECM.Code = .ECM_List.ECMs(A).Code
+                tmpECM.Name = .ECM_List.ECMs(A).Name
+                tmpECM.HitPoints = .ECM_List.ECMs(A).HitPoints
+                tmpECM.Designable = .ECM_List.ECMs(A).Designable
+                tmpECM.Attachment.AddModel(GetModelForPIE(PIE_List, .ECM_List.ECMs(A).PIE, DataLoad))
+            Next
+
+            BrainCount = .Brain_List.BrainCount
+            ReDim Brains(BrainCount - 1)
+            For A = 0 To BrainCount - 1
+                tmpBrain = New clsBrain
+                Brains(A) = tmpBrain
+                tmpBrain.Code = .Brain_List.Brains(A).Code
+                tmpBrain.Name = .Brain_List.Brains(A).Name
+                tmpBrain.HitPoints = .Brain_List.Brains(A).HitPoints
+                tmpBrain.Designable = .Brain_List.Brains(A).Designable
+                B = .Brain_List.Brains(A).Weapon_Num
+                If B >= 0 Then
+                    tmpBrain.Weapon = Weapons(B)
+                    tmpBrain.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE, DataLoad))
+                    tmpBrain.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE2, DataLoad))
+                End If
+            Next
+
             UnitTypeCount = .Structure_List.StructureCount + .Feature_List.FeatureCount + .Template_List.TemplateCount
             ReDim UnitTypes(UnitTypeCount - 1)
             For A = 0 To .Structure_List.StructureCount - 1
-                UnitTypes(C) = New clsUnitType(C)
-                UnitTypes(C).Type = clsUnitType.enumType.PlayerStructure
-                UnitTypes(C).Code = .Structure_List.Structures(A).Code
-                UnitTypes(C).LoadedInfo = New clsUnitType.clsLoadedInfo
-                UnitTypes(C).LoadedInfo.Num = C
-                UnitTypes(C).LoadedInfo.Name = .Structure_List.Structures(A).Name
-                UnitTypes(C).LoadedInfo.Footprint = .Structure_List.Structures(A).Footprint
+                tmpStructure = New clsStructureType
+                UnitTypes(C) = tmpStructure
+                tmpStructure.StructureNum = A
+                tmpStructure.Code = .Structure_List.Structures(A).Code
+                tmpStructure.Name = .Structure_List.Structures(A).Name
+                tmpStructure.Footprint = .Structure_List.Structures(A).Footprint
                 If .Structure_List.Structures(A).Type = "DEMOLISH" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Demolish
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Demolish
                 ElseIf .Structure_List.Structures(A).Type = "WALL" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Wall
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Wall
                 ElseIf .Structure_List.Structures(A).Type = "CORNER WALL" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.CornerWall
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.CornerWall
                 ElseIf .Structure_List.Structures(A).Type = "FACTORY" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Factory
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Factory
                 ElseIf .Structure_List.Structures(A).Type = "CYBORG FACTORY" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.CyborgFactory
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.CyborgFactory
                 ElseIf .Structure_List.Structures(A).Type = "VTOL FACTORY" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.VTOLFactory
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.VTOLFactory
                 ElseIf .Structure_List.Structures(A).Type = "COMMAND" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Command
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Command
                 ElseIf .Structure_List.Structures(A).Type = "HQ" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.HQ
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.HQ
                 ElseIf .Structure_List.Structures(A).Type = "DEFENSE" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Defense
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Defense
                 ElseIf .Structure_List.Structures(A).Type = "POWER GENERATOR" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerGenerator
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.PowerGenerator
                 ElseIf .Structure_List.Structures(A).Type = "POWER MODULE" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.PowerModule
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.PowerModule
                 ElseIf .Structure_List.Structures(A).Type = "RESEARCH" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Research
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Research
                 ElseIf .Structure_List.Structures(A).Type = "RESEARCH MODULE" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResearchModule
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.ResearchModule
                 ElseIf .Structure_List.Structures(A).Type = "FACTORY MODULE" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.FactoryModule
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.FactoryModule
                 ElseIf .Structure_List.Structures(A).Type = "DOOR" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.DOOR
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
                 ElseIf .Structure_List.Structures(A).Type = "REPAIR FACILITY" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.RepairFacility
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.RepairFacility
                 ElseIf .Structure_List.Structures(A).Type = "SAT UPLINK" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.DOOR
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
                 ElseIf .Structure_List.Structures(A).Type = "REARM PAD" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.RearmPad
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.RearmPad
                 ElseIf .Structure_List.Structures(A).Type = "MISSILE SILO" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.MissileSilo
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.MissileSilo
                 ElseIf .Structure_List.Structures(A).Type = "RESOURCE EXTRACTOR" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.ResourceExtractor
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.ResourceExtractor
                 Else
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.Unknown
+                    tmpStructure.StructureType = clsStructureType.enumStructureType.Unknown
                 End If
 
-                UnitTypes(C).LoadedInfo.BaseAttachment = New clsUnitType.clsLoadedInfo.clsAttachment
-                tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
+                tmpBaseAttachment = tmpStructure.BaseAttachment
                 tmpString = .Structure_List.Structures(A).PIE
                 tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                 tmpString = .Structure_List.Structures(A).BasePIE
-                UnitTypes(C).LoadedInfo.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, DataLoad)
+                tmpStructure.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, DataLoad)
                 If tmpBaseAttachment.ModelCount = 1 Then
                     If tmpBaseAttachment.Models(0).ConnectorCount >= 1 Then
                         tmpConnector = tmpBaseAttachment.Models(0).Connectors(0)
@@ -943,112 +1122,113 @@
                 C += 1
             Next
             For A = 0 To .Feature_List.FeatureCount - 1
-                UnitTypes(C) = New clsUnitType(C)
-                UnitTypes(C).Type = clsUnitType.enumType.Feature
-                UnitTypes(C).Code = .Feature_List.Features(A).Code
-                UnitTypes(C).LoadedInfo = New clsUnitType.clsLoadedInfo
-                UnitTypes(C).LoadedInfo.Num = C
+                tmpFeature = New clsFeatureType
+                'tmpFeature.num = C
+                UnitTypes(C) = tmpFeature
+                tmpFeature.Code = .Feature_List.Features(A).Code
                 If .Feature_List.Features(A).Type = "OIL RESOURCE" Then
-                    UnitTypes(C).LoadedInfo.StructureType = clsUnitType.clsLoadedInfo.enumStructureType.OilResource
+                    tmpFeature.FeatureType = clsFeatureType.enumFeatureType.OilResource
                 End If
-                UnitTypes(C).LoadedInfo.Name = .Feature_List.Features(A).Name
-                UnitTypes(C).LoadedInfo.Footprint = .Feature_List.Features(A).Footprint
-                UnitTypes(C).LoadedInfo.BaseAttachment = New clsUnitType.clsLoadedInfo.clsAttachment
-                tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
+                tmpFeature.Name = .Feature_List.Features(A).Name
+                tmpFeature.Footprint = .Feature_List.Features(A).Footprint
+                tmpFeature.BaseAttachment = New clsUnitType.clsAttachment
+                tmpBaseAttachment = tmpFeature.BaseAttachment
                 tmpString = .Feature_List.Features(A).PIE
                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
                 tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
                 C += 1
             Next
+            Dim TurretConflictCount As Integer = 0
+            Dim LoadPartsArgs As clsDroidDesign.sLoadPartsArgs
             For A = 0 To .Template_List.TemplateCount - 1
-                UnitTypes(C) = New clsUnitType(C)
-                UnitTypes(C).Type = clsUnitType.enumType.PlayerDroidTemplate
-                UnitTypes(C).Code = .Template_List.Templates(A).Code
-                UnitTypes(C).LoadedInfo = New clsUnitType.clsLoadedInfo
-                UnitTypes(C).LoadedInfo.Num = C
-                UnitTypes(C).LoadedInfo.Name = .Template_List.Templates(A).Name
-                UnitTypes(C).LoadedInfo.Footprint.X = 1
-                UnitTypes(C).LoadedInfo.Footprint.Y = 1
+                tmpTemplate = New clsDroidTemplate
+                'tmpTemplate.num = C
+                UnitTypes(C) = tmpTemplate
+                tmpTemplate.Code = .Template_List.Templates(A).Code
+                tmpTemplate.Name = .Template_List.Templates(A).Name
+                Select Case .Template_List.Templates(A).DroidType
+                    Case "ZNULLDROID"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_Null
+                    Case "DROID"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_Droid
+                    Case "CYBORG"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_Cyborg
+                    Case "CYBORG_CONSTRUCT"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_CyborgConstruct
+                    Case "CYBORG_REPAIR"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_CyborgRepair
+                    Case "CYBORG_SUPER"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_CyborgSuper
+                    Case "TRANSPORTER"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_Transporter
+                    Case "PERSON"
+                        tmpTemplate.TemplateDroidType = TemplateDroidType_Person
+                    Case Else
+                        tmpTemplate.TemplateDroidType = Nothing
+                        DataLoad.Warning_Add("Template " & tmpTemplate.GetDisplayText & " had an unrecognised type.")
+                End Select
                 If .Template_List.Templates(A).Body >= 0 Then
-                    UnitTypes(C).LoadedInfo.BaseAttachment = New clsUnitType.clsLoadedInfo.clsAttachment
-                    tmpBaseAttachment = UnitTypes(C).LoadedInfo.BaseAttachment
-                    tmpString = .Body_List.Bodies(.Template_List.Templates(A).Body).PIE
-                    tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                    If .Template_List.Templates(A).Propulsion >= 0 Then
-                        tmpString = BodyPropulsions(.Template_List.Templates(A).Body, .Template_List.Templates(A).Propulsion).LeftPIE
-                        tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-
-                        tmpString = BodyPropulsions(.Template_List.Templates(A).Body, .Template_List.Templates(A).Propulsion).RightPIE
-                        tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                    End If
-                    If tmpBaseAttachment.ModelCount = 1 Then
-                        If tmpBaseAttachment.Models(0).ConnectorCount >= 1 Then
-                            tmpConnector = tmpBaseAttachment.Models(0).Connectors(0)
-                            'If .Template_List.Templates(A).Brain >= 0 Then
-                            '    If .Brain_List.Brains(.Template_List.Templates(A).Brain).Code <> "ZNULLBRAIN" Then
-                            '        tmpString = .Brain_List.Brains(.Template_List.Templates(A).Brain).PIE
-                            '        tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                            '        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                            '        tmpAttachment.Pos_Offset = tmpConnector
-                            '    End If
-                            'End If
-                            If .Template_List.Templates(A).Construction >= 0 Then
-                                If .Construction_List.Constructions(.Template_List.Templates(A).Construction).Code <> "ZNULLCONSTRUCT" Then
-                                    tmpString = .Construction_List.Constructions(.Template_List.Templates(A).Construction).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
-                            'If .Template_List.Templates(A).ECM >= 0 Then
-                            '    If .ECM_List.ECMs(.Template_List.Templates(A).ECM).Code <> "ZNULLECM" Then
-                            '        tmpString = .ECM_List.ECMs(.Template_List.Templates(A).ECM).PIE
-                            '        tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                            '        tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                            '        tmpAttachment.Pos_Offset = tmpConnector
-                            '    End If
-                            'End If
-                            If .Template_List.Templates(A).Repair >= 0 Then
-                                If .Repair_List.Repairs(.Template_List.Templates(A).Repair).Code <> "ZNULLREPAIR" Then
-                                    tmpString = .Repair_List.Repairs(.Template_List.Templates(A).Repair).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
-                            If .Template_List.Templates(A).Sensor >= 0 Then
-                                If .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).Code <> "ZNULLSENSOR" Then
-                                    tmpString = .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-
-                                    tmpString = .Sensor_List.Sensors(.Template_List.Templates(A).Sensor).PIE2
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
-                            If .Template_List.Templates(A).Weapon1 >= 0 Then
-                                If .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).Code <> "ZNULLWEAPON" Then
-                                    tmpString = .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).PIE
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-
-                                    tmpString = .Weapon_List.Weapons(.Template_List.Templates(A).Weapon1).PIE2
-                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                    tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, DataLoad))
-                                    tmpAttachment.Pos_Offset = tmpConnector
-                                End If
-                            End If
-                        End If
-                    End If
+                    LoadPartsArgs.Body = Bodies(.Template_List.Templates(A).Body)
+                Else
+                    LoadPartsArgs.Body = Nothing
                 End If
+                If .Template_List.Templates(A).Propulsion >= 0 Then
+                    LoadPartsArgs.Propulsion = Propulsions(.Template_List.Templates(A).Propulsion)
+                Else
+                    LoadPartsArgs.Propulsion = Nothing
+                End If
+                If .Template_List.Templates(A).Construction >= 0 Then
+                    LoadPartsArgs.Construct = Constructs(.Template_List.Templates(A).Construction)
+                Else
+                    LoadPartsArgs.Construct = Nothing
+                End If
+                If .Template_List.Templates(A).Repair >= 0 Then
+                    LoadPartsArgs.Repair = Repairs(.Template_List.Templates(A).Repair)
+                Else
+                    LoadPartsArgs.Repair = Nothing
+                End If
+                If .Template_List.Templates(A).Sensor >= 0 Then
+                    LoadPartsArgs.Sensor = Sensors(.Template_List.Templates(A).Sensor)
+                Else
+                    LoadPartsArgs.Sensor = Nothing
+                End If
+                If .Template_List.Templates(A).Brain >= 0 Then
+                    LoadPartsArgs.Brain = Brains(.Template_List.Templates(A).Brain)
+                Else
+                    LoadPartsArgs.Brain = Nothing
+                End If
+                If .Template_List.Templates(A).ECM >= 0 Then
+                    LoadPartsArgs.ECM = ECMs(.Template_List.Templates(A).ECM)
+                Else
+                    LoadPartsArgs.ECM = Nothing
+                End If
+                If .Template_List.Templates(A).Weapon1 >= 0 Then
+                    LoadPartsArgs.Weapon1 = Weapons(.Template_List.Templates(A).Weapon1)
+                Else
+                    LoadPartsArgs.Weapon1 = Nothing
+                End If
+                If .Template_List.Templates(A).Weapon2 >= 0 Then
+                    LoadPartsArgs.Weapon2 = Weapons(.Template_List.Templates(A).Weapon2)
+                Else
+                    LoadPartsArgs.Weapon2 = Nothing
+                End If
+                If .Template_List.Templates(A).Weapon3 >= 0 Then
+                    LoadPartsArgs.Weapon3 = Weapons(.Template_List.Templates(A).Weapon3)
+                Else
+                    LoadPartsArgs.Weapon3 = Nothing
+                End If
+                If Not tmpTemplate.LoadParts(LoadPartsArgs) Then
+                    If TurretConflictCount < 16 Then
+                        DataLoad.Warning_Add("Template " & tmpTemplate.GetDisplayText & " had multiple conflicting turrets.")
+                    End If
+                    TurretConflictCount += 1
+                End If
+
                 C += 1
             Next
+            If TurretConflictCount > 0 Then
+                DataLoad.Warning_Add(TurretConflictCount & " templates had multiple conflicting turrets.")
+            End If
         End With
     End Function
 
@@ -1521,13 +1701,17 @@
 
         Dim A As Integer
         Dim Result As sResult
+        Dim PIEFile As clsReadFile
 
         For A = 0 To PIE_List.PIECount - 1
             If PIE_List.PIEs(A).LCaseFileTitle = PIE_LCaseFileTitle Then
                 If PIE_List.PIEs(A).Model Is Nothing Then
                     PIE_List.PIEs(A).Model = New clsModel
                     Try
-                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIE_List.PIEs(A).Path)
+                        PIEFile = New clsReadFile
+                        PIEFile.Begin(PIE_List.PIEs(A).Path)
+                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIEFile)
+                        PIEFile.Close()
                     Catch ex As Exception
                         ResultOutput.Warning_Add("Error loading PIE " & PIE_List.PIEs(A).Path)
                         Return Nothing
@@ -1542,5 +1726,113 @@
         Next
         ResultOutput.Warning_Add("Unable to find PIE file " & PIE_LCaseFileTitle)
         Return Nothing
+    End Function
+
+    Public Function FindBodyCode(ByVal Code As String) As clsBody
+        Dim A As Integer
+
+        For A = 0 To BodyCount - 1
+            If Bodies(A).Code = Code Then
+                Return Bodies(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindPropulsionCode(ByVal Code As String) As clsPropulsion
+        Dim A As Integer
+
+        For A = 0 To PropulsionCount - 1
+            If Propulsions(A).Code = Code Then
+                Return Propulsions(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindRepairCode(ByVal Code As String) As clsRepair
+        Dim A As Integer
+
+        For A = 0 To RepairCount - 1
+            If Repairs(A).Code = Code Then
+                Return Repairs(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindConstructCode(ByVal Code As String) As clsConstruct
+        Dim A As Integer
+
+        For A = 0 To ConstructCount - 1
+            If Constructs(A).Code = Code Then
+                Return Constructs(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindSensorCode(ByVal Code As String) As clsSensor
+        Dim A As Integer
+
+        For A = 0 To SensorCount - 1
+            If Sensors(A).Code = Code Then
+                Return Sensors(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindWeaponCode(ByVal Code As String) As clsWeapon
+        Dim A As Integer
+
+        For A = 0 To WeaponCount - 1
+            If Weapons(A).Code = Code Then
+                Return Weapons(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindBrainCode(ByVal Code As String) As clsBrain
+        Dim A As Integer
+
+        For A = 0 To BrainCount - 1
+            If Brains(A).Code = Code Then
+                Return Brains(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindECMCode(ByVal Code As String) As clsECM
+        Dim A As Integer
+
+        For A = 0 To ECMCount - 1
+            If ECMs(A).Code = Code Then
+                Return ECMs(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function FindTurretCode(ByVal SaveType As Byte, ByVal Code As String) As clsTurret
+
+        Select Case SaveType
+            Case 0
+                FindTurretCode = FindWeaponCode(Code)
+            Case 1
+                FindTurretCode = FindConstructCode(Code)
+            Case 2
+                FindTurretCode = FindRepairCode(Code)
+            Case 3
+                FindTurretCode = FindSensorCode(Code)
+            Case 4
+                FindTurretCode = FindBrainCode(Code)
+            Case 5
+                FindTurretCode = FindECMCode(Code)
+            Case Else
+                Return Nothing
+        End Select
     End Function
 End Module

@@ -11,9 +11,9 @@
     <RootNamespace>flaME</RootNamespace>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <ReleaseVersion>1.19</ReleaseVersion>
+    <ReleaseVersion>1.20</ReleaseVersion>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
-    <AssemblyName>flaME</AssemblyName>
+    <AssemblyName>FlaME</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1|AnyCPU' ">
     <OutputPath>bin\MonoDevelop Mono 2.10.1</OutputPath>
@@ -60,7 +60,6 @@
     <Compile Include="modProgram.vb" />
     <Compile Include="TileOrientation.vb" />
     <Compile Include="Application.vb" />
-    <Compile Include="clsBitmapFile.vb" />
     <Compile Include="clsReadFile.vb" />
     <Compile Include="clsWriteFile.vb" />
     <Compile Include="clsGeneratorMap.vb" />
@@ -74,6 +73,14 @@
     <Compile Include="clsPainter.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="frmWarnings.vb" />
+    <Compile Include="modBitmap.vb" />
+    <Compile Include="clsComponent.vb" />
+    <Compile Include="modINI.vb" />
+    <Compile Include="clsMapFMap.vb" />
+    <Compile Include="clsMapOtherIO.vb" />
+    <Compile Include="clsMapTools.vb" />
+    <Compile Include="clsMapWZ.vb" />
+    <Compile Include="ctrlBrush.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

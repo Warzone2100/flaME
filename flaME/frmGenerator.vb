@@ -27,7 +27,7 @@
         Dim UnitsArgs As clsGeneratorMap.sGenerateUnitsArgs
         Dim LoopCount As Integer
         Dim LayoutArgs As New clsGeneratorMap.sGenerateLayoutArgs
-        Dim NewMap As clsGeneratorMap
+        Dim NewMap As clsGeneratorMap = Nothing
         Dim Result As sResult
 
         LayoutArgs.PlayerCount = PlayerCount
@@ -237,22 +237,22 @@
         Application.DoEvents()
         LoopCount = 0
 MakeNewMap:
-        Do
-            NewMap = New clsGeneratorMap(LayoutArgs.Size)
-            Result = NewMap.GenerateLayout(LayoutArgs)
-            If Result.Success Then
-                Exit Do
-            End If
+        NewMap = New clsGeneratorMap(LayoutArgs.Size)
+        Result = NewMap.GenerateLayout(LayoutArgs)
+        If Not Result.Success Then
             LoopCount += 1
-            lblProgress.Text = "Attempt " & LoopCount & " failed; " & Result.Problem & " Retrying..."
+            lblProgress.Text = "Attempt " & LoopCount & " failed: " & Result.Problem & " Retrying..."
             Application.DoEvents()
+            NewMap.ClearGenerator(LayoutArgs.SymmetryBlockCount)
             NewMap.Deallocate()
             If StopTrying Then
                 lblProgress.Text = "Aborted."
                 btnGenerate.Enabled = True
                 Exit Sub
             End If
-        Loop
+            GoTo MakeNewMap
+        End If
+            
 
         'pbxMap.Image = NewMap.GetConnectionsBitmap
         'Application.DoEvents()
@@ -311,6 +311,7 @@ MakeNewMap:
             Dim tmpTiles As New sBrushTiles
             SquareTiles_Create(Math.Ceiling(Math.Max(NewMap.TerrainSize.X, NewMap.TerrainSize.Y)), tmpTiles, 1.0#)
             NewMap.Apply_Cliff(New sXY_int(CInt(Int(NewMap.TerrainSize.X / 2.0#)), CInt(Int(NewMap.TerrainSize.Y / 2.0#))), tmpTiles, CliffAngle, True)
+            NewMap.AutoTextureChange.Update_AutoTexture()
             Dim RevertSlope() As Boolean
             Dim RevertHeight() As Boolean
             Dim WaterMap As New clsBooleanMap
@@ -360,8 +361,9 @@ MakeNewMap:
         Result = NewMap.GenerateUnits(UnitsArgs)
         If Not Result.Success Then
             LoopCount += 1
-            lblProgress.Text = "Attempt " & LoopCount & " failed; " & Result.Problem & " Retrying..."
+            lblProgress.Text = "Attempt " & LoopCount & " failed: " & Result.Problem & " Retrying..."
             Application.DoEvents()
+            NewMap.ClearGenerator(LayoutArgs.SymmetryBlockCount)
             NewMap.Deallocate()
             If StopTrying Then
                 lblProgress.Text = "Aborted."
@@ -373,40 +375,21 @@ MakeNewMap:
 
         NewMap.WaterTriCorrection()
 
-        Map.Deallocate()
-        Map = NewMap
+        NewMap.ClearGenerator(LayoutArgs.SymmetryBlockCount)
 
-        Map.Undo_Clear()
-        Map.ShadowSector_CreateAll()
+        Main_Map.Deallocate()
+        Main_Map = NewMap
+
+        Main_Map.Undo_Clear()
+        Main_Map.ShadowSector_CreateAll()
 
         lblProgress.Text = "Done."
         btnGenerate.Enabled = True
 
-        frmMainInstance.SetBackgroundColour()
+        Dim InterfaceInfo As New clsMap.clsInterfaceOptions
+        InterfaceInfo.CompileMultiPlayers = NewMap.PlayerCount
 
-        Map.SectorAll_GL_Update()
-
-        frmMainInstance.View.LookAtTile(CInt(Int(Map.TerrainSize.X / 2.0#)), CInt(Int(Map.TerrainSize.Y / 2.0#)))
-
-        frmMainInstance.Resize_Update()
-        frmMainInstance.HeightMultiplier_Update()
-        frmMainInstance.cmbTileset_Refresh()
-        frmMainInstance.PainterTerrains_Refresh(-1, -1)
-        frmMainInstance.Selected_Object_Changed()
-
-        frmMainInstance.TextureView.ScrollUpdate()
-        frmMainInstance.TextureView.DrawViewLater()
-        frmMainInstance.DrawView()
-        frmMainInstance.Title_Text_Update()
-
-        frmCompileInstance.txtCampMinX.Text = "0"
-        frmCompileInstance.txtCampMinY.Text = "0"
-        frmCompileInstance.txtCampMaxX.Text = Map.TerrainSize.X
-        frmCompileInstance.txtCampMaxY.Text = Map.TerrainSize.Y
-
-        frmCompileInstance.txtMultiPlayers.Text = NewMap.PlayerCount
-        frmCompileInstance.txtName.Text = ""
-        frmCompileInstance.cmbLicense.Text = ""
+        frmMainInstance.Map_Changed(InterfaceInfo)
     End Sub
 
     Private Sub frmGenerator_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
@@ -420,7 +403,7 @@ MakeNewMap:
         cboTileset.SelectedIndex = 0
         cboSymmetry.SelectedIndex = 0
 
-        SaveFileDialog.InitialDirectory = MyDocumentsPath
+        SaveFileDialog.InitialDirectory = MyDocumentsProgramPath
     End Sub
 
     Private Sub rdoPlayer2_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer2.CheckedChanged

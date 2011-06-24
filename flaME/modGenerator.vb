@@ -58,10 +58,13 @@
 
     Public Function GetUnitTypeFromCode(ByVal Code As String) As clsUnitType
         Dim A As Integer
+        Dim UnitCode As String = Nothing
 
         For A = 0 To UnitTypeCount - 1
-            If UnitTypes(A).Code = Code Then
-                Return UnitTypes(A)
+            If UnitTypes(A).GetCode(UnitCode) Then
+                If UnitCode = Code Then
+                    Return UnitTypes(A)
+                End If
             End If
         Next
         Return Nothing

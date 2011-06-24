@@ -40,14 +40,14 @@ Partial Class frmMapTexturer
         Me.txtLayer_HeightMin = New System.Windows.Forms.TextBox()
         Me.btnhmImport = New System.Windows.Forms.Button()
         Me.picHeightmap = New System.Windows.Forms.PictureBox()
-        Me.cmbLayer_Terrain = New System.Windows.Forms.ComboBox()
+        Me.cboLayer_Terrain = New System.Windows.Forms.ComboBox()
         Me.Label10 = New System.Windows.Forms.Label()
         Me.Label9 = New System.Windows.Forms.Label()
         Me.Label8 = New System.Windows.Forms.Label()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.Label1 = New System.Windows.Forms.Label()
         Me.clstAvoid = New System.Windows.Forms.CheckedListBox()
-        Me.cmbWithin = New System.Windows.Forms.ComboBox()
+        Me.cboWithin = New System.Windows.Forms.ComboBox()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.btnWithinClear = New System.Windows.Forms.Button()
         Me.OpenFileDialog = New System.Windows.Forms.OpenFileDialog()
@@ -328,19 +328,19 @@ Partial Class frmMapTexturer
         Me.picHeightmap.TabStop = False
         Me.picHeightmap.Visible = False
         '
-        'cmbLayer_Terrain
+        'cboLayer_Terrain
         '
-        Me.cmbLayer_Terrain.BackColor = System.Drawing.SystemColors.Window
-        Me.cmbLayer_Terrain.Cursor = System.Windows.Forms.Cursors.Default
-        Me.cmbLayer_Terrain.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cmbLayer_Terrain.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.cmbLayer_Terrain.ForeColor = System.Drawing.SystemColors.WindowText
-        Me.cmbLayer_Terrain.Location = New System.Drawing.Point(416, 31)
-        Me.cmbLayer_Terrain.Margin = New System.Windows.Forms.Padding(4)
-        Me.cmbLayer_Terrain.Name = "cmbLayer_Terrain"
-        Me.cmbLayer_Terrain.RightToLeft = System.Windows.Forms.RightToLeft.No
-        Me.cmbLayer_Terrain.Size = New System.Drawing.Size(149, 25)
-        Me.cmbLayer_Terrain.TabIndex = 44
+        Me.cboLayer_Terrain.BackColor = System.Drawing.SystemColors.Window
+        Me.cboLayer_Terrain.Cursor = System.Windows.Forms.Cursors.Default
+        Me.cboLayer_Terrain.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cboLayer_Terrain.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.cboLayer_Terrain.ForeColor = System.Drawing.SystemColors.WindowText
+        Me.cboLayer_Terrain.Location = New System.Drawing.Point(416, 31)
+        Me.cboLayer_Terrain.Margin = New System.Windows.Forms.Padding(4)
+        Me.cboLayer_Terrain.Name = "cboLayer_Terrain"
+        Me.cboLayer_Terrain.RightToLeft = System.Windows.Forms.RightToLeft.No
+        Me.cboLayer_Terrain.Size = New System.Drawing.Size(149, 25)
+        Me.cboLayer_Terrain.TabIndex = 44
         '
         'Label10
         '
@@ -428,19 +428,19 @@ Partial Class frmMapTexturer
         Me.clstAvoid.Size = New System.Drawing.Size(169, 123)
         Me.clstAvoid.TabIndex = 68
         '
-        'cmbWithin
+        'cboWithin
         '
-        Me.cmbWithin.BackColor = System.Drawing.SystemColors.Window
-        Me.cmbWithin.Cursor = System.Windows.Forms.Cursors.Default
-        Me.cmbWithin.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cmbWithin.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.cmbWithin.ForeColor = System.Drawing.SystemColors.WindowText
-        Me.cmbWithin.Location = New System.Drawing.Point(135, 300)
-        Me.cmbWithin.Margin = New System.Windows.Forms.Padding(4)
-        Me.cmbWithin.Name = "cmbWithin"
-        Me.cmbWithin.RightToLeft = System.Windows.Forms.RightToLeft.No
-        Me.cmbWithin.Size = New System.Drawing.Size(149, 25)
-        Me.cmbWithin.TabIndex = 69
+        Me.cboWithin.BackColor = System.Drawing.SystemColors.Window
+        Me.cboWithin.Cursor = System.Windows.Forms.Cursors.Default
+        Me.cboWithin.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cboWithin.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.cboWithin.ForeColor = System.Drawing.SystemColors.WindowText
+        Me.cboWithin.Location = New System.Drawing.Point(135, 300)
+        Me.cboWithin.Margin = New System.Windows.Forms.Padding(4)
+        Me.cboWithin.Name = "cboWithin"
+        Me.cboWithin.RightToLeft = System.Windows.Forms.RightToLeft.No
+        Me.cboWithin.Size = New System.Drawing.Size(149, 25)
+        Me.cboWithin.TabIndex = 69
         '
         'Label3
         '
@@ -472,7 +472,7 @@ Partial Class frmMapTexturer
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.ClientSize = New System.Drawing.Size(839, 560)
         Me.Controls.Add(Me.btnWithinClear)
-        Me.Controls.Add(Me.cmbWithin)
+        Me.Controls.Add(Me.cboWithin)
         Me.Controls.Add(Me.Label3)
         Me.Controls.Add(Me.clstAvoid)
         Me.Controls.Add(Me.Label1)
@@ -491,7 +491,7 @@ Partial Class frmMapTexturer
         Me.Controls.Add(Me.txtLayer_HeightMin)
         Me.Controls.Add(Me.btnhmImport)
         Me.Controls.Add(Me.picHeightmap)
-        Me.Controls.Add(Me.cmbLayer_Terrain)
+        Me.Controls.Add(Me.cboLayer_Terrain)
         Me.Controls.Add(Me.Label10)
         Me.Controls.Add(Me.Label9)
         Me.Controls.Add(Me.Label8)
@@ -526,14 +526,14 @@ Partial Class frmMapTexturer
     Public WithEvents txtLayer_HeightMin As System.Windows.Forms.TextBox
     Public WithEvents btnhmImport As System.Windows.Forms.Button
     Public WithEvents picHeightmap As System.Windows.Forms.PictureBox
-    Public WithEvents cmbLayer_Terrain As System.Windows.Forms.ComboBox
+    Public WithEvents cboLayer_Terrain As System.Windows.Forms.ComboBox
     Public WithEvents Label10 As System.Windows.Forms.Label
     Public WithEvents Label9 As System.Windows.Forms.Label
     Public WithEvents Label8 As System.Windows.Forms.Label
     Public WithEvents Label4 As System.Windows.Forms.Label
     Public WithEvents Label1 As System.Windows.Forms.Label
     Friend WithEvents clstAvoid As System.Windows.Forms.CheckedListBox
-    Public WithEvents cmbWithin As System.Windows.Forms.ComboBox
+    Public WithEvents cboWithin As System.Windows.Forms.ComboBox
     Public WithEvents Label3 As System.Windows.Forms.Label
     Friend WithEvents btnWithinClear As System.Windows.Forms.Button
     Friend WithEvents OpenFileDialog As System.Windows.Forms.OpenFileDialog

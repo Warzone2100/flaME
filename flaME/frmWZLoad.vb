@@ -11,7 +11,7 @@
 
     Public Output As clsOutput
 
-    Sub New(ByRef MapNames() As String, ByVal NewOutput As clsOutput)
+    Sub New(ByRef MapNames() As String, ByVal NewOutput As clsOutput, ByVal FormTitle As String)
         InitializeComponent()
 
         Output = NewOutput
@@ -24,6 +24,8 @@
         For A = 0 To MapNames.GetUpperBound(0)
             lstMap.Items.Add(MapNames(A))
         Next
+
+        Text = FormTitle
     End Sub
 
     Private Sub lstMaps_DoubleClick(ByVal sender As Object, ByVal e As System.EventArgs) Handles lstMap.DoubleClick

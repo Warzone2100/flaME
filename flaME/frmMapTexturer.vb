@@ -128,32 +128,32 @@
         Dim A As Integer
 
         For A = 0 To LayerList.LayerCount - 1
-            LayerList.Layers(A).Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
+            LayerList.Layers(A).Terrainmap.Blank(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1)
         Next
     End Sub
 
     Sub cmbLayer_Terrain_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
-        cmbLayer_Terrain.Items.Clear()
-        For A = 0 To Map.Painter.TerrainCount - 1
-            cmbLayer_Terrain.Items.Add(Map.Painter.Terrains(A).Name)
+        cboLayer_Terrain.Items.Clear()
+        For A = 0 To Main_Map.Painter.TerrainCount - 1
+            cboLayer_Terrain.Items.Add(Main_Map.Painter.Terrains(A).Name)
         Next A
-        cmbLayer_Terrain.SelectedIndex = NewSelectedIndex
+        cboLayer_Terrain.SelectedIndex = NewSelectedIndex
     End Sub
 
     Sub cmbWithin_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
-        cmbWithin.Items.Clear()
+        cboWithin.Items.Clear()
         For A = 0 To LayerList.LayerCount - 1
             If LayerList.Layers(A).Terrain IsNot Nothing Then
-                cmbWithin.Items.Add(LayerList.Layers(A).Terrain.Name)
+                cboWithin.Items.Add(LayerList.Layers(A).Terrain.Name)
             Else
-                cmbWithin.Items.Add("Nothing")
+                cboWithin.Items.Add("Nothing")
             End If
         Next A
-        cmbWithin.SelectedIndex = NewSelectedIndex
+        cboWithin.SelectedIndex = NewSelectedIndex
     End Sub
 
     Sub lstLayer_Refresh(ByVal NewSelectedIndex As Integer)
@@ -190,8 +190,8 @@
     Sub Layer_Items_Refresh()
 
         If lstLayer.SelectedIndex = -1 Then
-            cmbLayer_Terrain.Enabled = False
-            cmbLayer_Terrain.SelectedIndex = -1
+            cboLayer_Terrain.Enabled = False
+            cboLayer_Terrain.SelectedIndex = -1
             txtLayer_HeightMin.Enabled = False
             txtLayer_HeightMin.Text = ""
             txtLayer_HeightMax.Enabled = False
@@ -208,20 +208,20 @@
             btnGen.Enabled = False
             clstAvoid.Enabled = False
             clstAvoid.Items.Clear()
-            cmbWithin.Enabled = False
+            cboWithin.Enabled = False
             btnWithinClear.Enabled = False
         Else
-            cmbLayer_Terrain.Enabled = False
+            cboLayer_Terrain.Enabled = False
             If LayerList.Layers(lstLayer.SelectedIndex).Terrain IsNot Nothing Then
                 If LayerList.Layers(lstLayer.SelectedIndex).Terrain.Num >= 0 Then
-                    cmbLayer_Terrain.SelectedIndex = LayerList.Layers(lstLayer.SelectedIndex).Terrain.Num
+                    cboLayer_Terrain.SelectedIndex = LayerList.Layers(lstLayer.SelectedIndex).Terrain.Num
                 Else
-                    cmbLayer_Terrain.SelectedIndex = -1
+                    cboLayer_Terrain.SelectedIndex = -1
                 End If
             Else
-                cmbLayer_Terrain.SelectedIndex = -1
+                cboLayer_Terrain.SelectedIndex = -1
             End If
-            cmbLayer_Terrain.Enabled = True
+            cboLayer_Terrain.Enabled = True
             txtLayer_HeightMin.Enabled = False
             txtLayer_HeightMin.Text = CStr(LayerList.Layers(lstLayer.SelectedIndex).HeightMin)
             txtLayer_HeightMin.Enabled = True
@@ -242,35 +242,35 @@
             clstAvoid.Enabled = False
             clstAvoid_Refresh(-1)
             clstAvoid.Enabled = True
-            cmbWithin.Enabled = False
+            cboWithin.Enabled = False
             cmbWithin_Refresh(LayerList.Layers(lstLayer.SelectedIndex).WithinLayer)
-            cmbWithin.Enabled = True
+            cboWithin.Enabled = True
             btnWithinClear.Enabled = True
             bmDisplay()
         End If
     End Sub
 
-    Private Sub cmbLayer_Terrain_SelectedIndexChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles cmbLayer_Terrain.SelectedIndexChanged
-        If Not cmbLayer_Terrain.Enabled Then
+    Private Sub cmbLayer_Terrain_SelectedIndexChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles cboLayer_Terrain.SelectedIndexChanged
+        If Not cboLayer_Terrain.Enabled Then
             Exit Sub
         End If
 
-        If cmbLayer_Terrain.SelectedIndex >= 0 Then
-            LayerList.Layers(lstLayer.SelectedIndex).Terrain = Map.Painter.Terrains(cmbLayer_Terrain.SelectedIndex)
+        If cboLayer_Terrain.SelectedIndex >= 0 Then
+            LayerList.Layers(lstLayer.SelectedIndex).Terrain = Main_Map.Painter.Terrains(cboLayer_Terrain.SelectedIndex)
             lstLayer_Refresh(lstLayer.SelectedIndex)
         End If
     End Sub
 
     Private Sub btnDo_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnDo.Click
 
-        Map.MapTexturer(LayerList)
+        Main_Map.MapTexturer(LayerList)
 
-        Map.SectorAll_Set_Changed()
-        Map.SectorAll_GL_Update()
+        Main_Map.SectorAll_Set_Changed()
+        Main_Map.SectorAll_GL_Update()
 
-        Map.UndoStepCreate("Entire Map Painter")
+        Main_Map.UndoStepCreate("Entire Map Painter")
 
-        frmMainInstance.DrawView()
+        frmMainInstance.View_DrawViewLater()
     End Sub
 
     Private Sub btnhmImport_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnhmImport.Click
@@ -286,11 +286,11 @@
 
         Result = hmA.Load_Image(OpenFileDialog.FileName)
         If Not Result.Success Then
-            MsgBox("There was a problem loading the selected file; " & Result.Problem(0))
+            MsgBox("There was a problem loading the selected file: " & Result.Problem(0))
             Exit Sub
         End If
 
-        If Not (hmA.HeightData.SizeX = Map.TerrainSize.X + 1 And hmA.HeightData.SizeY = Map.TerrainSize.Y + 1) Then
+        If Not (hmA.HeightData.SizeX = Main_Map.TerrainSize.X + 1 And hmA.HeightData.SizeY = Main_Map.TerrainSize.Y + 1) Then
             MsgBox("Heightmap sizes do not equal map size + 1.", MsgBoxStyle.OkOnly, "Error")
             Exit Sub
         End If
@@ -333,7 +333,7 @@
             NewLayer.SlopeMin = 0
             NewLayer.SlopeMax = RadOf90Deg
             NewLayer.Terrainmap = New clsBooleanMap
-            NewLayer.Terrainmap.Blank(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1)
+            NewLayer.Terrainmap.Blank(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1)
             LayerList.Layer_Insert(Position_Num, NewLayer)
             lstLayer_Refresh(Position_Num)
         ElseIf eventArgs.KeyCode = System.Windows.Forms.Keys.Delete And eventArgs.Shift Then
@@ -371,10 +371,10 @@
     Sub bmDisplay()
         Dim X As Integer
         Dim Y As Integer
-        Dim tmpBitmap As Bitmap = New Bitmap(Map.TerrainSize.X + 1, Map.TerrainSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
+        Dim tmpBitmap As Bitmap = New Bitmap(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
 
-        For Y = 0 To Map.TerrainSize.Y
-            For X = 0 To Map.TerrainSize.X
+        For Y = 0 To Main_Map.TerrainSize.Y
+            For X = 0 To Main_Map.TerrainSize.X
                 If LayerList.Layers(lstLayer.SelectedIndex).Terrainmap.ValueData.Value(Y, X) Then
                     tmpBitmap.SetPixel(X, Y, Color.White)
                 Else
@@ -388,7 +388,7 @@
 
     Private Sub btnTerrain_Rem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnTerrain_Rem.Click
 
-        cmbLayer_Terrain.SelectedIndex = -1
+        cboLayer_Terrain.SelectedIndex = -1
     End Sub
 
     Private Sub btnGen_Click(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles btnGen.Click
@@ -399,19 +399,19 @@
         txtScale.Text = CStr(Scale)
         Density = Clamp(Val(txtDensity.Text) / 100.0#, 0.0#, 1.0#)
         txtDensity.Text = CStr(Density * 100.0#)
-        LayerList.Layers(lstLayer.SelectedIndex).Terrainmap = Map.GenerateTerrainMap(Scale, Density)
+        LayerList.Layers(lstLayer.SelectedIndex).Terrainmap = Main_Map.GenerateTerrainMap(Scale, Density)
 
         bmDisplay()
     End Sub
 
     Private Sub btnTerrain_Rem_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnTerrain_Rem.Click
 
-        cmbLayer_Terrain.SelectedIndex = -1
+        cboLayer_Terrain.SelectedIndex = -1
     End Sub
 
     Private Sub btnWithinClear_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnWithinClear.Click
 
-        cmbWithin.SelectedIndex = -1
+        cboWithin.SelectedIndex = -1
     End Sub
 
     Private Sub clstAvoid_ItemCheck(ByVal sender As Object, ByVal e As System.Windows.Forms.ItemCheckEventArgs) Handles clstAvoid.ItemCheck
@@ -419,9 +419,9 @@
         LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(e.Index) = e.NewValue
     End Sub
 
-    Private Sub cmbWithin_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmbWithin.SelectedIndexChanged
+    Private Sub cmbWithin_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboWithin.SelectedIndexChanged
 
-        LayerList.Layers(lstLayer.SelectedIndex).WithinLayer = cmbWithin.SelectedIndex
+        LayerList.Layers(lstLayer.SelectedIndex).WithinLayer = cboWithin.SelectedIndex
     End Sub
 
     Private Sub frmMapTexturer_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing

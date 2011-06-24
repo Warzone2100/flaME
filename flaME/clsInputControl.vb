@@ -7,8 +7,8 @@
         Public UnlessKeyCount As Integer
 
         Function IsPressed(ByRef IsKeyDown() As Boolean) As Boolean
-            Static A As Integer
-            Static B As Integer
+            Dim A As Integer
+            Dim B As Integer
 
             For A = 0 To KeyCount - 1
                 If Not IsKeyDown(Keys(A)) Then

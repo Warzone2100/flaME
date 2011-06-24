@@ -77,7 +77,9 @@
         Dim LayerFactor As Double
 
         'make a larger copy of heightmap
-        If Source.HeightData.SizeY = 0 Or Source.HeightData.SizeX = 0 Then Exit Sub
+        If Source.HeightData.SizeY = 0 Or Source.HeightData.SizeX = 0 Then
+            Exit Sub
+        End If
         Blank((Source.HeightData.SizeY - 1) * 2 + 1, (Source.HeightData.SizeX - 1) * 2 + 1)
         For Y = 0 To Source.HeightData.SizeY - 1
             For X = 0 To Source.HeightData.SizeX - 1
@@ -638,27 +640,25 @@
         Load_Image.Success = False
         Load_Image.Problem = ""
 
-        Try
+        Dim HeightmapBitmap As Bitmap = Nothing
+        Dim Result As sResult
 
-            Dim HeightmapBitmap As New clsBitmapFile()
-
-            HeightmapBitmap.Load(Path)
-
-            Blank(HeightmapBitmap.CurrentBitmap.Height, HeightmapBitmap.CurrentBitmap.Width)
-            Dim Y As Integer
-            Dim X As Integer
-            For Y = 0 To HeightmapBitmap.CurrentBitmap.Height - 1
-                For X = 0 To HeightmapBitmap.CurrentBitmap.Width - 1
-                    With HeightmapBitmap.CurrentBitmap.GetPixel(X, Y)
-                        HeightData.Height(Y, X) = (CShort(.R) + .G + .B) / (3.0# * HeightScale)
-                    End With
-                Next
-            Next
-
-        Catch ex As Exception
-            Load_Image.Problem = ex.Message
+        Result = LoadBitmap(Path, HeightmapBitmap)
+        If Not Result.Success Then
+            Load_Image.Problem = Result.Problem
             Exit Function
-        End Try
+        End If
+
+        Blank(HeightmapBitmap.Height, HeightmapBitmap.Width)
+        Dim X As Integer
+        Dim Y As Integer
+        For Y = 0 To HeightmapBitmap.Height - 1
+            For X = 0 To HeightmapBitmap.Width - 1
+                With HeightmapBitmap.GetPixel(X, Y)
+                    HeightData.Height(Y, X) = (CShort(.R) + .G + .B) / (3.0# * HeightScale)
+                End With
+            Next
+        Next
 
         Load_Image.Success = True
     End Function

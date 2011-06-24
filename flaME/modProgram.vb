@@ -1,20 +1,22 @@
-﻿Public Module modProgram
+﻿Imports ICSharpCode.SharpZipLib
 
-    Public Const ProgramVersionNumber As String = "1.19"
+Public Module modProgram
+
+    Public Const ProgramName As String = "FlaME"
+
+    Public Const ProgramVersionNumber As String = "1.20"
 
 #If MonoDevelop = 0.0# Then
     Public Const ProgramVersion As String = ProgramVersionNumber & " Visual Basic 2010"
 #Else
-    #If Mono = 0.0# Then
+    #If Mono <> 0.0# Then
         Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Mono 2.10.1"
     #Else
         Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Microsoft .NET"
     #End If 
 #End If
 
-    Public Const SaveVersion As UInteger = 6UI
-
-    Public Const FactionCountMax As Integer = 11
+    Public Const PlayerCountMax As Integer = 11
 
     Public Const DefaultHeightMultiplier As Integer = 2
 
@@ -28,32 +30,41 @@
 
     Public Const FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
 
+    Public Const MaxDroidWeapons As Integer = 3
+
+    Public Const MaxMapTileSize As Integer = 512
+
+    Public Const MaxMinimapSize As Integer = 512
+
     Public OSPathSeperator As Char
 
-    Public MyDocumentsPath As String
+    Public MyDocumentsProgramPath As String
 
     Public SettingsPath As String
+    Public OldSettingsPath As String
     Public AutoSavePath As String
     Public TilesetsPath As String
     Public ObjectDataPath As String
-
 #If MonoDevelop <> 0.0# Then
     Public InterfaceImagesPath As String
 #End If
 
     Public Sub SetProgramSubDirs()
 
-        MyDocumentsPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
-        SettingsPath = MyDocumentsPath & OSPathSeperator & "settings"
-        AutoSavePath = MyDocumentsPath & OSPathSeperator & "autosave" & OSPathSeperator
-        TilesetsPath = MyDocumentsPath & OSPathSeperator & "tilesets" & OSPathSeperator
-        ObjectDataPath = MyDocumentsPath & OSPathSeperator & "objectdata" & OSPathSeperator
+        MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
+        SettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings.ini"
+        OldSettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings"
+        AutoSavePath = MyDocumentsProgramPath & OSPathSeperator & "autosave" & OSPathSeperator
+        TilesetsPath = MyDocumentsProgramPath & OSPathSeperator & "tilesets" & OSPathSeperator
+        ObjectDataPath = MyDocumentsProgramPath & OSPathSeperator & "objectdata" & OSPathSeperator
 #If MonoDevelop <> 0.0# Then
         InterfaceImagesPath = My.Application.Info.DirectoryPath & OSPathSeperator & "interface" & OSPathSeperator
 #End If
     End Sub
 
-    Public flaMEIcon As Icon
+    Public ProgramIcon As Icon
+
+    Public MinimapSize As Integer = 160
 
     Public Undo_Limit As UInteger = 256UI
 
@@ -124,12 +135,12 @@
     Public Control_Undo As clsInputControl
     Public Control_Redo As clsInputControl
 
-    Public TextureBrushRadius As sBrushTiles
-    Public AutoTextureBrushRadius As sBrushTiles
-    Public HeightBrushRadius As sBrushTiles
+    Public TextureBrush As New clsBrush(0.0#, clsBrush.enumShape.Circle)
+    Public TerrainBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
+    Public HeightBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
+    Public CliffBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
 
-    Public SmoothRadius As sBrushTiles
-    Public AutoCliffBrushRadius As sBrushTiles
+    Public SmoothRadius As New clsBrush(1.5#, clsBrush.enumShape.Circle)
 
     Public InputControls() As clsInputControl
     Public InputControlCount As Integer
@@ -143,13 +154,12 @@
         AutoTexture_Fill
         AutoRoad_Place
         AutoRoad_Line
+        AutoRoad_Remove
         AutoCliff
         Height_Set_Brush
         Height_Change_Brush
         Height_Smooth_Brush
-        Object_Feature
-        Object_Structure
-        Object_Unit
+        ObjectPlace
         Terrain_Select
         Gateways
     End Enum
@@ -171,6 +181,9 @@
     Public Const TileTypeNum_Water As Integer = 7
     Public Const TileTypeNum_Cliff As Integer = 8
 
+    Public TemplateDroidTypes(-1) As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidTypeCount As Integer
+
     Public Enum enumObjectRotateMode As Byte
         None
         Walls
@@ -188,6 +201,22 @@
         Dim SizeY As Single
         Dim Colour As sRGBA_sng
         Dim Pos As sXY_int
+
+        Public Function GetSizeX() As Single
+            Dim SizeX As Single
+            Dim CharWidth As Single
+            Dim CharSpacing As Single = SizeY / 10.0F
+            Dim CharSize As Single = SizeY / Font.Height
+            Dim A As Integer
+
+            For A = 0 To Text.Length - 1
+                CharWidth = Font.Character(Asc(Text.Chars(A))).Width * CharSize
+                SizeX += CharWidth
+            Next
+            SizeX += CharSpacing * (Text.Length - 1)
+
+            Return SizeX
+        End Function
     End Structure
 
     Public Structure sRGB_sng
@@ -201,7 +230,75 @@
         Dim Green As Single
         Dim Blue As Single
         Dim Alpha As Single
+
+        Public Sub New(ByVal Red As Single, ByVal Green As Single, ByVal Blue As Single, ByVal Alpha As Single)
+
+            Me.Red = Red
+            Me.Green = Green
+            Me.Blue = Blue
+            Me.Alpha = Alpha
+        End Sub
     End Structure
+
+    Public Class clsBrush
+
+        Private _Radius As Double
+        Public Enum enumShape As Byte
+            Circle
+            Square
+        End Enum
+        Private _Shape As enumShape = enumShape.Circle
+
+        Public Tiles As sBrushTiles
+
+        Public Event RadiusChanged()
+        Public Event ShapeChanged()
+
+        Public Property Radius As Double
+            Get
+                Return _Radius
+            End Get
+            Set(ByVal value As Double)
+                If _Radius = value Then
+                    Exit Property
+                End If
+                _Radius = value
+                CreateTiles()
+                RaiseEvent RadiusChanged()
+            End Set
+        End Property
+
+        Public Property Shape As enumShape
+            Get
+                Return _Shape
+            End Get
+            Set(ByVal value As enumShape)
+                If _Shape = value Then
+                    Exit Property
+                End If
+                _Shape = value
+                CreateTiles()
+                RaiseEvent ShapeChanged()
+            End Set
+        End Property
+
+        Private Sub CreateTiles()
+
+            Select Case _Shape
+                Case enumShape.Circle
+                    CircleTiles_Create(_Radius, Tiles, 1.0#)
+                Case enumShape.Square
+                    SquareTiles_Create(_Radius, Tiles, 1.0#)
+            End Select
+        End Sub
+
+        Public Sub New(ByVal InitialRadius As Double, ByVal InitialShape As enumShape)
+
+            _Radius = InitialRadius
+            _Shape = InitialShape
+            CreateTiles()
+        End Sub
+    End Class
 
     Public Structure sBrushTiles
         Dim XMin() As Integer
@@ -215,7 +312,7 @@
     Public VisionRadius_2E As Integer
     Public VisionRadius As Double
 
-    Public Map As clsMap
+    Public Main_Map As clsMap
 
     Public Copied_Map As clsMap
 
@@ -427,6 +524,7 @@
     End Sub
 
     Public Function OSRGB(ByVal Red As Integer, ByVal Green As Integer, ByVal Blue As Integer) As Integer
+
 #If Mono = 0.0# And Mono267 = 0.0# Then
         OSRGB = RGB(Red, Green, Blue)
 #Else
@@ -1398,4 +1496,402 @@
             .Density = 0.3F
         End With
     End Sub
+
+    Public Class clsZipStreamEntry
+        Public Stream As Zip.ZipInputStream
+        Public Entry As Zip.ZipEntry
+
+        Public Function BeginNewReadFile() As clsReadFile
+            Dim File As New clsReadFile
+
+            File.Begin(Stream, Entry.Size)
+            Return File
+        End Function
+    End Class
+
+    Public Function FindZipEntryFromPath(ByVal Path As String, ByVal ZipPathToFind As String) As clsZipStreamEntry
+        Dim ZipStream As Zip.ZipInputStream
+        Dim ZipEntry As Zip.ZipEntry
+        Dim FindPath As String = ZipPathToFind.ToLower.Replace("\"c, "/"c)
+        Dim tmpPath As String
+
+        ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
+        Do
+            ZipEntry = ZipStream.GetNextEntry
+            If ZipEntry Is Nothing Then
+                Exit Do
+            End If
+
+            tmpPath = ZipEntry.Name.ToLower.Replace("\"c, "/"c)
+            If tmpPath = FindPath Then
+                Dim Result As New clsZipStreamEntry
+                Result.Stream = ZipStream
+                Result.Entry = ZipEntry
+                Return Result
+            End If
+        Loop
+        ZipStream.Close()
+
+        Return Nothing
+    End Function
+
+    Public TemplateDroidType_Droid As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_Cyborg As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_CyborgConstruct As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_CyborgRepair As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_CyborgSuper As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_Transporter As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_Person As clsDroidDesign.clsTemplateDroidType
+    Public TemplateDroidType_Null As clsDroidDesign.clsTemplateDroidType
+
+    Public Sub CreateTemplateDroidTypes()
+
+        TemplateDroidType_Droid = New clsDroidDesign.clsTemplateDroidType("Droid", "DROID")
+        TemplateDroidType_Droid.Num = TemplateDroidType_Add(TemplateDroidType_Droid)
+
+        TemplateDroidType_Cyborg = New clsDroidDesign.clsTemplateDroidType("Cyborg", "CYBORG")
+        TemplateDroidType_Cyborg.Num = TemplateDroidType_Add(TemplateDroidType_Cyborg)
+
+        TemplateDroidType_CyborgConstruct = New clsDroidDesign.clsTemplateDroidType("Cyborg Construct", "CYBORG_CONSTRUCT")
+        TemplateDroidType_CyborgConstruct.Num = TemplateDroidType_Add(TemplateDroidType_CyborgConstruct)
+
+        TemplateDroidType_CyborgRepair = New clsDroidDesign.clsTemplateDroidType("Cyborg Repair", "CYBORG_REPAIR")
+        TemplateDroidType_CyborgRepair.Num = TemplateDroidType_Add(TemplateDroidType_CyborgRepair)
+
+        TemplateDroidType_CyborgSuper = New clsDroidDesign.clsTemplateDroidType("Cyborg Super", "CYBORG_SUPER")
+        TemplateDroidType_CyborgSuper.Num = TemplateDroidType_Add(TemplateDroidType_CyborgSuper)
+
+        TemplateDroidType_Transporter = New clsDroidDesign.clsTemplateDroidType("Transporter", "TRANSPORTER")
+        TemplateDroidType_Transporter.Num = TemplateDroidType_Add(TemplateDroidType_Transporter)
+
+        TemplateDroidType_Person = New clsDroidDesign.clsTemplateDroidType("Person", "PERSON")
+        TemplateDroidType_Person.Num = TemplateDroidType_Add(TemplateDroidType_Person)
+
+        TemplateDroidType_Null = New clsDroidDesign.clsTemplateDroidType("Null Droid", "ZNULLDROID")
+        TemplateDroidType_Null.Num = TemplateDroidType_Add(TemplateDroidType_Null)
+    End Sub
+
+    Public Function GetTemplateDroidTypeFromTemplateCode(ByVal Code As String) As clsDroidDesign.clsTemplateDroidType
+        Dim LCaseCode As String = Code.ToLower
+        Dim A As Integer
+
+        For A = 0 To TemplateDroidTypeCount - 1
+            If TemplateDroidTypes(A).TemplateCode.ToLower = LCaseCode Then
+                Return TemplateDroidTypes(A)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Public Function TemplateDroidType_Add(ByVal NewDroidType As clsDroidDesign.clsTemplateDroidType) As Integer
+
+        ReDim Preserve TemplateDroidTypes(TemplateDroidTypeCount)
+        TemplateDroidTypes(TemplateDroidTypeCount) = NewDroidType
+        TemplateDroidType_Add = TemplateDroidTypeCount
+        TemplateDroidTypeCount += 1
+    End Function
+
+    Public Enum enumDroidType As Byte
+        Weapon = 0
+        Sensor = 1
+        ECM = 2
+        Construct = 3
+        Person = 4
+        Cyborg = 5
+        Transporter = 6
+        Command = 7
+        Repair = 8
+        Default_ = 9
+        Cyborg_Construct = 10
+        Cyborg_Repair = 11
+        Cyborg_Super = 12
+    End Enum
+
+    Public Sub ShowWarnings(ByVal Result As clsResult, ByVal Title As String)
+
+        If Not Result.HasWarnings Then
+            Exit Sub
+        End If
+
+        Dim WarningsForm As New frmWarnings(Result, Title, ProgramIcon)
+        WarningsForm.Show()
+        WarningsForm.Activate()
+    End Sub
+
+    Public Function GetTurretFromTypeAndCode(ByVal TurretTypeName As String, ByVal TurretCode As String) As clsTurret
+        Dim LCaseTypeName As String = TurretTypeName.ToLower
+
+        Select Case LCaseTypeName
+            Case "weapon"
+                Return FindWeaponCode(TurretCode)
+            Case "construct"
+                Return FindConstructCode(TurretCode)
+            Case "repair"
+                Return FindRepairCode(TurretCode)
+            Case "sensor"
+                Return FindSensorCode(TurretCode)
+            Case "brain"
+                Return FindBrainCode(TurretCode)
+            Case "ecm"
+                Return FindECMCode(TurretCode)
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    Public Function GetTurretTypeFromName(ByVal TurretTypeName As String) As clsTurret.enumTurretType
+
+        Select Case TurretTypeName.ToLower
+            Case "weapon"
+                Return clsTurret.enumTurretType.Weapon
+            Case "construct"
+                Return clsTurret.enumTurretType.Construct
+            Case "repair"
+                Return clsTurret.enumTurretType.Repair
+            Case "sensor"
+                Return clsTurret.enumTurretType.Sensor
+            Case "brain"
+                Return clsTurret.enumTurretType.Brain
+            Case "ecm"
+                Return clsTurret.enumTurretType.ECM
+            Case Else
+                Return clsTurret.enumTurretType.Unknown
+        End Select
+    End Function
+
+    Public Function FindOrCreateWeapon(ByVal Code As String) As clsWeapon
+        Dim Result As clsWeapon
+
+        Result = FindWeaponCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsWeapon
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateConstruct(ByVal Code As String) As clsConstruct
+        Dim Result As clsConstruct
+
+        Result = FindConstructCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsConstruct
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateRepair(ByVal Code As String) As clsRepair
+        Dim Result As clsRepair
+
+        Result = FindRepairCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsRepair
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateSensor(ByVal Code As String) As clsSensor
+        Dim Result As clsSensor
+
+        Result = FindSensorCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsSensor
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateBrain(ByVal Code As String) As clsBrain
+        Dim Result As clsBrain
+
+        Result = FindBrainCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsBrain
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateECM(ByVal Code As String) As clsECM
+        Dim Result As clsECM
+
+        Result = FindECMCode(Code)
+        If Result IsNot Nothing Then
+            Return Result
+        End If
+        Result = New clsECM
+        Result.IsUnknown = True
+        Result.Code = Code
+        Return Result
+    End Function
+
+    Public Function FindOrCreateTurret(ByVal TurretType As clsTurret.enumTurretType, ByVal TurretCode As String) As clsTurret
+
+        Select Case TurretType
+            Case clsTurret.enumTurretType.Weapon
+                Return FindOrCreateWeapon(TurretCode)
+            Case clsTurret.enumTurretType.Construct
+                Return FindOrCreateConstruct(TurretCode)
+            Case clsTurret.enumTurretType.Repair
+                Return FindOrCreateRepair(TurretCode)
+            Case clsTurret.enumTurretType.Sensor
+                Return FindOrCreateSensor(TurretCode)
+            Case clsTurret.enumTurretType.Brain
+                Return FindOrCreateBrain(TurretCode)
+            Case clsTurret.enumTurretType.ECM
+                Return FindOrCreateECM(TurretCode)
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    Public Function FindOrCreateBody(ByVal Code As String) As clsBody
+        Dim tmpBody As clsBody
+
+        tmpBody = FindBodyCode(Code)
+        If tmpBody IsNot Nothing Then
+            Return tmpBody
+        End If
+        tmpBody = New clsBody
+        tmpBody.IsUnknown = True
+        tmpBody.Code = Code
+        Return tmpBody
+    End Function
+
+    Public Function FindOrCreatePropulsion(ByVal Code As String) As clsPropulsion
+        Dim tmpPropulsion As clsPropulsion
+
+        tmpPropulsion = FindPropulsionCode(Code)
+        If tmpPropulsion IsNot Nothing Then
+            Return tmpPropulsion
+        End If
+        tmpPropulsion = New clsPropulsion(BodyCount)
+        tmpPropulsion.IsUnknown = True
+        tmpPropulsion.Code = Code
+        Return tmpPropulsion
+    End Function
+
+    Public Function FindOrCreateUnitType(ByVal Code As String, ByVal Type As clsUnitType.enumType) As clsUnitType
+        Dim A As Integer
+
+        Select Case Type
+            Case clsUnitType.enumType.Feature
+                For A = 0 To UnitTypeCount - 1
+                    If UnitTypes(A).Type = clsUnitType.enumType.Feature Then
+                        If CType(UnitTypes(A), clsFeatureType).Code = Code Then
+                            Return UnitTypes(A)
+                        End If
+                    End If
+                Next
+                Dim tmpFeatureType As New clsFeatureType
+                tmpFeatureType.IsUnknown = True
+                tmpFeatureType.Code = Code
+                tmpFeatureType.Footprint.X = 1
+                tmpFeatureType.Footprint.Y = 1
+                Return tmpFeatureType
+            Case clsUnitType.enumType.PlayerStructure
+                For A = 0 To UnitTypeCount - 1
+                    If UnitTypes(A).Type = clsUnitType.enumType.PlayerStructure Then
+                        If CType(UnitTypes(A), clsStructureType).Code = Code Then
+                            Return UnitTypes(A)
+                        End If
+                    End If
+                Next
+                Dim tmpStructureType As New clsStructureType
+                tmpStructureType.IsUnknown = True
+                tmpStructureType.Code = Code
+                tmpStructureType.Footprint.X = 1
+                tmpStructureType.Footprint.Y = 1
+                Return tmpStructureType
+            Case clsUnitType.enumType.PlayerDroid
+                Dim tmpDroidType As clsDroidDesign
+                For A = 0 To UnitTypeCount - 1
+                    If UnitTypes(A).Type = clsUnitType.enumType.PlayerDroid Then
+                        tmpDroidType = CType(UnitTypes(A), clsDroidDesign)
+                        If tmpDroidType.IsTemplate Then
+                            If CType(tmpDroidType, clsDroidTemplate).Code = Code Then
+                                Return UnitTypes(A)
+                            End If
+                        End If
+                    End If
+                Next
+                Dim tmpDroidTemplate As New clsDroidTemplate
+                tmpDroidTemplate.IsUnknown = True
+                tmpDroidTemplate.Code = Code
+                Return tmpDroidTemplate
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    Public ShowIDErrorMessage As Boolean = True
+
+    Public Sub ErrorIDChange(ByVal IntendedID As UInteger, ByVal IDUnit As clsMap.clsUnit, ByVal NameOfErrorSource As String)
+
+        If Not ShowIDErrorMessage Then
+            Exit Sub
+        End If
+
+        If IDUnit.ID = IntendedID Then
+            Exit Sub
+        End If
+
+        Dim MessageText As String
+
+        MessageText = "An object's ID has been changed unexpectedly. The error was in " & ControlChars.Quote & NameOfErrorSource & ControlChars.Quote & "." & vbCrLf & vbCrLf & "The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & ". It's ID was " & IntendedID & ", but is now " & IDUnit.ID & "." & vbCrLf & vbCrLf & "Click Cancel to stop seeing this message. Otherwise, click OK."
+
+        If MsgBox(MessageText, vbOKCancel) = MsgBoxResult.Cancel Then
+            ShowIDErrorMessage = False
+        End If
+    End Sub
+
+    Public Const ZeroResetID As UInteger = 1000000UI
+
+    Public Sub ZeroIDWarning(ByVal IDUnit As clsMap.clsUnit)
+        Dim MessageText As String
+
+        MessageText = "An object's ID has been changed from 0 to " & ZeroResetID & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
+
+        MsgBox(MessageText, vbOKOnly)
+    End Sub
+
+    Public Structure sWorldPos
+        Public Horizontal As sXY_int
+        Public Altitude As Integer
+
+        Public Sub New(ByVal NewHorizontal As sXY_int, ByVal NewAltitude As Integer)
+
+            Horizontal = NewHorizontal
+            Altitude = NewAltitude
+        End Sub
+    End Structure
+
+    Public Class clsWorldPos
+        Public WorldPos As sWorldPos
+
+        Public Sub New(ByVal NewWorldPos As sWorldPos)
+
+            WorldPos = NewWorldPos
+        End Sub
+    End Class
+
+    Public Function PosIsWithinTileArea(ByVal WorldHorizontal As sXY_int, ByVal StartTile As sXY_int, ByVal FinishTile As sXY_int) As Boolean
+
+        Return (WorldHorizontal.X >= StartTile.X * TerrainGridSpacing And _
+            WorldHorizontal.Y >= StartTile.Y * TerrainGridSpacing And _
+            WorldHorizontal.X < FinishTile.X * TerrainGridSpacing And _
+            WorldHorizontal.Y < FinishTile.Y * TerrainGridSpacing)
+    End Function
 End Module
