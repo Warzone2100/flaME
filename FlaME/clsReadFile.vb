@@ -217,7 +217,7 @@ Public Class clsReadFile
         Dim Chars(0) As Char
         Dim CurrentChar As Char
         Dim A As Integer
-        Dim TerminatorCount As Integer = Terminators.GetUpperBound(0)
+        Dim TerminatorCount As Integer = Terminators.GetUpperBound(0) + 1
 
         Do
             If Not FindLength(1) Then

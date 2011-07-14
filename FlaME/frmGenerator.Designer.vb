@@ -427,7 +427,7 @@ Partial Class frmGenerator
         Me.txtLevelFrequency.Name = "txtLevelFrequency"
         Me.txtLevelFrequency.Size = New System.Drawing.Size(46, 22)
         Me.txtLevelFrequency.TabIndex = 31
-        Me.txtLevelFrequency.Text = "3"
+        Me.txtLevelFrequency.Text = "5"
         '
         'Label8
         '

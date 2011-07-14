@@ -704,38 +704,38 @@
     End Sub
 
     Friend Sub Stretch(ByVal hmSource As clsHeightmap, ByVal SizeX As Integer, ByVal SizeY As Integer)
-        Dim OldSizeY As Integer
         Dim OldSizeX As Integer
-        Dim New_Per_OldY As Single
+        Dim OldSizeY As Integer
         Dim New_Per_OldX As Single
-        Dim OldPixStartY As Single
+        Dim New_Per_OldY As Single
         Dim OldPixStartX As Single
-        Dim OldPixEndY As Single
+        Dim OldPixStartY As Single
         Dim OldPixEndX As Single
+        Dim OldPixEndY As Single
         Dim Ratio As Single
-        Dim NewPixelY As Integer
         Dim NewPixelX As Integer
-        Dim OldPixelY As Integer
+        Dim NewPixelY As Integer
         Dim OldPixelX As Integer
-        Dim YTemp As Single
+        Dim OldPixelY As Integer
         Dim XTemp As Single
+        Dim YTemp As Single
         Dim Temp As Single = hmSource.HeightScale / HeightScale
 
-        OldSizeY = hmSource.HeightData.SizeY
         OldSizeX = hmSource.HeightData.SizeX
+        OldSizeY = hmSource.HeightData.SizeY
 
         Blank(SizeY, SizeX)
         'new ratios convert original image positions into new image positions
-        New_Per_OldY = SizeY / OldSizeY
         New_Per_OldX = SizeX / OldSizeX
+        New_Per_OldY = SizeY / OldSizeY
         'cycles through each pixel in the new image
         For OldPixelY = 0 To OldSizeY - 1
             For OldPixelX = 0 To OldSizeX - 1
                 'find where the old pixel goes on the new image
-                OldPixStartY = OldPixelY * New_Per_OldY
                 OldPixStartX = OldPixelX * New_Per_OldX
-                OldPixEndY = (OldPixelY + 1) * New_Per_OldY
+                OldPixStartY = OldPixelY * New_Per_OldY
                 OldPixEndX = (OldPixelX + 1) * New_Per_OldX
+                OldPixEndY = (OldPixelY + 1) * New_Per_OldY
                 'cycles through each new image pixel that is to be influenced
                 For NewPixelY = Int(OldPixStartY) To -Int(-OldPixEndY)
                     If NewPixelY >= SizeY Then Exit For
@@ -746,12 +746,13 @@
                             'Stop
                         Else
                             'measure the amount of original pixel in the new pixel
-                            YTemp = 1.0# : XTemp = 1.0#
-                            If OldPixStartY > NewPixelY Then YTemp = YTemp - (OldPixStartY - NewPixelY)
-                            If OldPixStartX > NewPixelX Then XTemp = XTemp - (OldPixStartX - NewPixelX)
-                            If OldPixEndY < NewPixelY + 1 Then YTemp = YTemp - ((NewPixelY + 1) - OldPixEndY)
-                            If OldPixEndX < NewPixelX + 1 Then XTemp = XTemp - ((NewPixelX + 1) - OldPixEndX)
-                            Ratio = YTemp * XTemp
+                            XTemp = 1.0#
+                            YTemp = 1.0#
+                            If OldPixStartY > NewPixelY Then YTemp -= OldPixStartY - NewPixelY
+                            If OldPixStartX > NewPixelX Then XTemp -= OldPixStartX - NewPixelX
+                            If OldPixEndY < NewPixelY + 1 Then YTemp -= (NewPixelY + 1) - OldPixEndY
+                            If OldPixEndX < NewPixelX + 1 Then XTemp -= (NewPixelX + 1) - OldPixEndX
+                            Ratio = XTemp * YTemp
                             'add the neccessary fraction of the original pixel's color into the new pixel
                             HeightData.Height(NewPixelY, NewPixelX) = HeightData.Height(NewPixelY, NewPixelX) + hmSource.HeightData.Height(OldPixelY, OldPixelX) * Ratio * Temp
                         End If

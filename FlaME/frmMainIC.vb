@@ -1,31 +1,8 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class frmMain
-    Inherits System.Windows.Forms.Form
+﻿Partial Public Class frmMain
 
-    'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
-        Try
-            If disposing AndAlso components IsNot Nothing Then
-                components.Dispose()
-            End If
-        Finally
-            MyBase.Dispose(disposing)
-        End Try
-    End Sub
-
-    'Required by the Windows Form Designer
-    Private components As System.ComponentModel.IContainer
-
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
-
-    <System.Diagnostics.DebuggerStepThrough()> _
+#If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
-        Me.components = New System.ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
-        Me.tmrKey = New System.Windows.Forms.Timer(Me.components)
+        Me.tmrKey = New System.Windows.Forms.Timer
         Me.SplitContainer1 = New System.Windows.Forms.SplitContainer()
         Me.TabControl = New System.Windows.Forms.TabControl()
         Me.tpTextures = New System.Windows.Forms.TabPage()
@@ -261,7 +238,7 @@ Partial Class frmMain
         Me.menuPointerDirect = New System.Windows.Forms.ToolStripMenuItem()
         Me.DisplayToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuFont = New System.Windows.Forms.ToolStripMenuItem()
-        Me.tmrTool = New System.Windows.Forms.Timer(Me.components)
+        Me.tmrTool = New System.Windows.Forms.Timer
         Me.TableLayoutPanel5 = New System.Windows.Forms.TableLayoutPanel()
         Me.TabPage13 = New System.Windows.Forms.TabPage()
         Me.TabPage14 = New System.Windows.Forms.TabPage()
@@ -274,7 +251,7 @@ Partial Class frmMain
         Me.FontDialog = New System.Windows.Forms.FontDialog()
         Me.menuSaveFME = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
-        CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
+        'CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
         Me.SplitContainer1.SuspendLayout()
@@ -474,7 +451,7 @@ Partial Class frmMain
         'btnTextureFlipX
         '
         Me.btnTextureFlipX.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureFlipX.Image = CType(resources.GetObject("btnTextureFlipX.Image"), System.Drawing.Image)
+        Me.btnTextureFlipX.Image = InterfaceImage_SelectionFlipX
         Me.btnTextureFlipX.Location = New System.Drawing.Point(237, 103)
         Me.btnTextureFlipX.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureFlipX.Name = "btnTextureFlipX"
@@ -486,7 +463,7 @@ Partial Class frmMain
         'btnTextureClockwise
         '
         Me.btnTextureClockwise.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureClockwise.Image = CType(resources.GetObject("btnTextureClockwise.Image"), System.Drawing.Image)
+        Me.btnTextureClockwise.Image = InterfaceImage_SelectionRotateClockwise
         Me.btnTextureClockwise.Location = New System.Drawing.Point(197, 103)
         Me.btnTextureClockwise.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureClockwise.Name = "btnTextureClockwise"
@@ -498,7 +475,7 @@ Partial Class frmMain
         'btnTextureAnticlockwise
         '
         Me.btnTextureAnticlockwise.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureAnticlockwise.Image = CType(resources.GetObject("btnTextureAnticlockwise.Image"), System.Drawing.Image)
+        Me.btnTextureAnticlockwise.Image = InterfaceImage_SelectionRotateCounterClockwise
         Me.btnTextureAnticlockwise.Location = New System.Drawing.Point(157, 103)
         Me.btnTextureAnticlockwise.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureAnticlockwise.Name = "btnTextureAnticlockwise"
@@ -2257,7 +2234,7 @@ Partial Class frmMain
         'tsbGateways
         '
         Me.tsbGateways.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbGateways.Image = CType(resources.GetObject("tsbGateways.Image"), System.Drawing.Image)
+        Me.tsbGateways.Image = InterfaceImage_Gateways
         Me.tsbGateways.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbGateways.Name = "tsbGateways"
         Me.tsbGateways.Size = New System.Drawing.Size(23, 22)
@@ -2267,7 +2244,7 @@ Partial Class frmMain
         '
         Me.tsbDrawAutotexture.CheckOnClick = True
         Me.tsbDrawAutotexture.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbDrawAutotexture.Image = CType(resources.GetObject("tsbDrawAutotexture.Image"), System.Drawing.Image)
+        Me.tsbDrawAutotexture.Image = InterfaceImage_DisplayAutoTexture
         Me.tsbDrawAutotexture.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbDrawAutotexture.Name = "tsbDrawAutotexture"
         Me.tsbDrawAutotexture.Size = New System.Drawing.Size(23, 22)
@@ -2277,7 +2254,7 @@ Partial Class frmMain
         '
         Me.tsbDrawTileOrientation.CheckOnClick = True
         Me.tsbDrawTileOrientation.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbDrawTileOrientation.Image = CType(resources.GetObject("tsbDrawTileOrientation.Image"), System.Drawing.Image)
+        Me.tsbDrawTileOrientation.Image = InterfaceImage_DrawTileOrientation
         Me.tsbDrawTileOrientation.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbDrawTileOrientation.Name = "tsbDrawTileOrientation"
         Me.tsbDrawTileOrientation.Size = New System.Drawing.Size(23, 22)
@@ -2297,7 +2274,7 @@ Partial Class frmMain
         '
         Me.tsbSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
         Me.tsbSave.Enabled = False
-        Me.tsbSave.Image = CType(resources.GetObject("tsbSave.Image"), System.Drawing.Image)
+        Me.tsbSave.Image = InterfaceImage_QuickSave
         Me.tsbSave.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSave.Name = "tsbSave"
         Me.tsbSave.Size = New System.Drawing.Size(23, 22)
@@ -2322,7 +2299,7 @@ Partial Class frmMain
         'tsbSelection
         '
         Me.tsbSelection.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelection.Image = CType(resources.GetObject("tsbSelection.Image"), System.Drawing.Image)
+        Me.tsbSelection.Image = InterfaceImage_Selection
         Me.tsbSelection.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelection.Name = "tsbSelection"
         Me.tsbSelection.Size = New System.Drawing.Size(23, 22)
@@ -2331,7 +2308,7 @@ Partial Class frmMain
         'tsbSelectionCopy
         '
         Me.tsbSelectionCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionCopy.Image = CType(resources.GetObject("tsbSelectionCopy.Image"), System.Drawing.Image)
+        Me.tsbSelectionCopy.Image = InterfaceImage_SelectionCopy
         Me.tsbSelectionCopy.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionCopy.Name = "tsbSelectionCopy"
         Me.tsbSelectionCopy.Size = New System.Drawing.Size(23, 22)
@@ -2341,7 +2318,7 @@ Partial Class frmMain
         '
         Me.tsbSelectionPasteOptions.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
         Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.menuRotateWalls, Me.menuRotateNothing, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
-        Me.tsbSelectionPasteOptions.Image = CType(resources.GetObject("tsbSelectionPasteOptions.Image"), System.Drawing.Image)
+        Me.tsbSelectionPasteOptions.Image = InterfaceImage_SelectionPasteOptions
         Me.tsbSelectionPasteOptions.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPasteOptions.Name = "tsbSelectionPasteOptions"
         Me.tsbSelectionPasteOptions.Size = New System.Drawing.Size(29, 22)
@@ -2421,7 +2398,7 @@ Partial Class frmMain
         'tsbSelectionPaste
         '
         Me.tsbSelectionPaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionPaste.Image = CType(resources.GetObject("tsbSelectionPaste.Image"), System.Drawing.Image)
+        Me.tsbSelectionPaste.Image = InterfaceImage_SelectionPaste
         Me.tsbSelectionPaste.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPaste.Name = "tsbSelectionPaste"
         Me.tsbSelectionPaste.Size = New System.Drawing.Size(23, 22)
@@ -2430,7 +2407,7 @@ Partial Class frmMain
         'tsbSelectionRotateAnticlockwise
         '
         Me.tsbSelectionRotateAnticlockwise.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionRotateAnticlockwise.Image = CType(resources.GetObject("tsbSelectionRotateAnticlockwise.Image"), System.Drawing.Image)
+        Me.tsbSelectionRotateAnticlockwise.Image = InterfaceImage_SelectionRotateCounterClockwise
         Me.tsbSelectionRotateAnticlockwise.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionRotateAnticlockwise.Name = "tsbSelectionRotateAnticlockwise"
         Me.tsbSelectionRotateAnticlockwise.Size = New System.Drawing.Size(23, 22)
@@ -2439,7 +2416,7 @@ Partial Class frmMain
         'tsbSelectionRotateClockwise
         '
         Me.tsbSelectionRotateClockwise.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionRotateClockwise.Image = CType(resources.GetObject("tsbSelectionRotateClockwise.Image"), System.Drawing.Image)
+        Me.tsbSelectionRotateClockwise.Image = InterfaceImage_SelectionRotateClockwise
         Me.tsbSelectionRotateClockwise.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionRotateClockwise.Name = "tsbSelectionRotateClockwise"
         Me.tsbSelectionRotateClockwise.Size = New System.Drawing.Size(23, 22)
@@ -2448,7 +2425,7 @@ Partial Class frmMain
         'tsbSelectionFlipX
         '
         Me.tsbSelectionFlipX.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionFlipX.Image = CType(resources.GetObject("tsbSelectionFlipX.Image"), System.Drawing.Image)
+        Me.tsbSelectionFlipX.Image = InterfaceImage_SelectionFlipX
         Me.tsbSelectionFlipX.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionFlipX.Name = "tsbSelectionFlipX"
         Me.tsbSelectionFlipX.Size = New System.Drawing.Size(23, 22)
@@ -2457,7 +2434,7 @@ Partial Class frmMain
         'tsbSelectionObjects
         '
         Me.tsbSelectionObjects.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionObjects.Image = CType(resources.GetObject("tsbSelectionObjects.Image"), System.Drawing.Image)
+        Me.tsbSelectionObjects.Image = InterfaceImage_ObjectSelect
         Me.tsbSelectionObjects.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionObjects.Name = "tsbSelectionObjects"
         Me.tsbSelectionObjects.Size = New System.Drawing.Size(23, 22)
@@ -2594,40 +2571,40 @@ Partial Class frmMain
         'ToolStripSeparator5
         '
         Me.ToolStripSeparator5.Name = "ToolStripSeparator5"
-        Me.ToolStripSeparator5.Size = New System.Drawing.Size(281, 6)
+        Me.ToolStripSeparator5.Size = New System.Drawing.Size(211, 6)
         '
         'MapLNDToolStripMenuItem
         '
         Me.MapLNDToolStripMenuItem.Name = "MapLNDToolStripMenuItem"
-        Me.MapLNDToolStripMenuItem.Size = New System.Drawing.Size(284, 24)
+        Me.MapLNDToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.MapLNDToolStripMenuItem.Text = "Export Map LND..."
         '
         'ToolStripSeparator6
         '
         Me.ToolStripSeparator6.Name = "ToolStripSeparator6"
-        Me.ToolStripSeparator6.Size = New System.Drawing.Size(281, 6)
+        Me.ToolStripSeparator6.Size = New System.Drawing.Size(211, 6)
         '
         'menuExportMapTileTypes
         '
         Me.menuExportMapTileTypes.Name = "menuExportMapTileTypes"
-        Me.menuExportMapTileTypes.Size = New System.Drawing.Size(284, 24)
+        Me.menuExportMapTileTypes.Size = New System.Drawing.Size(214, 24)
         Me.menuExportMapTileTypes.Text = "Export Tile Types..."
         '
         'ToolStripMenuItem1
         '
         Me.ToolStripMenuItem1.Name = "ToolStripMenuItem1"
-        Me.ToolStripMenuItem1.Size = New System.Drawing.Size(281, 6)
+        Me.ToolStripMenuItem1.Size = New System.Drawing.Size(211, 6)
         '
         'MinimapBMPToolStripMenuItem
         '
         Me.MinimapBMPToolStripMenuItem.Name = "MinimapBMPToolStripMenuItem"
-        Me.MinimapBMPToolStripMenuItem.Size = New System.Drawing.Size(284, 24)
+        Me.MinimapBMPToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.MinimapBMPToolStripMenuItem.Text = "Minimap Bitmap..."
         '
         'ToolStripMenuItem3
         '
         Me.ToolStripMenuItem3.Name = "ToolStripMenuItem3"
-        Me.ToolStripMenuItem3.Size = New System.Drawing.Size(284, 24)
+        Me.ToolStripMenuItem3.Size = New System.Drawing.Size(214, 24)
         Me.ToolStripMenuItem3.Text = "Heightmap Bitmap..."
         '
         'ToolStripSeparator1
@@ -2891,7 +2868,6 @@ Partial Class frmMain
         '
         Me.ToolStripSeparator11.Name = "ToolStripSeparator11"
         Me.ToolStripSeparator11.Size = New System.Drawing.Size(281, 6)
-        '
         'frmMain
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -2903,7 +2879,7 @@ Partial Class frmMain
         Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
         Me.SplitContainer1.Panel1.ResumeLayout(False)
         Me.SplitContainer1.Panel2.ResumeLayout(False)
-        CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).EndInit()
+        'CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.SplitContainer1.ResumeLayout(False)
         Me.TabControl.ResumeLayout(False)
         Me.tpTextures.ResumeLayout(False)
@@ -3212,4 +3188,5 @@ Partial Class frmMain
     Friend WithEvents cbxObjectRandomRotation As System.Windows.Forms.CheckBox
     Friend WithEvents menuSaveFME As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
+#End If
 End Class

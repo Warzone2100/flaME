@@ -407,24 +407,24 @@
         PassageNodeCount = 0
         For Y = 1 To EdgeSections.Y
             If Not MakePassageNodes(New sXY_int(EdgeOffset, EdgeOffset + Y * EdgeSectionSize.Y), True, Args) Then
-                GenerateLayout.Problem = "Error; Bad border node."
+                GenerateLayout.Problem = "Error: Bad border node."
                 Exit Function
             End If
             If Args.SymmetryBlockCountXY.X = 1 Then
                 If Not MakePassageNodes(New sXY_int(Args.Size.X * TerrainGridSpacing - EdgeOffset, EdgeOffset + Y * EdgeSectionSize.Y), True, Args) Then
-                    GenerateLayout.Problem = "Error; Bad border node."
+                    GenerateLayout.Problem = "Error: Bad border node."
                     Exit Function
                 End If
             End If
         Next
         For X = 1 To EdgeSections.X
             If Not MakePassageNodes(New sXY_int(EdgeOffset + X * EdgeSectionSize.X, EdgeOffset), True, Args) Then
-                GenerateLayout.Problem = "Error; Bad border node."
+                GenerateLayout.Problem = "Error: Bad border node."
                 Exit Function
             End If
             If Args.SymmetryBlockCountXY.Y = 1 Then
                 If Not MakePassageNodes(New sXY_int(EdgeOffset + X * EdgeSectionSize.X, Args.Size.Y * TerrainGridSpacing - EdgeOffset), True, Args) Then
-                    GenerateLayout.Problem = "Error; Bad border node."
+                    GenerateLayout.Problem = "Error: Bad border node."
                     Exit Function
                 End If
             End If
@@ -962,7 +962,7 @@ PointMakingFinished:
                                 Next
                                 BestNum = Eligables(Int(Rnd() * EligableCount))
                             Else
-                                GenerateLayout.Problem = "Error; Random number out of range."
+                                GenerateLayout.Problem = "Error: Random number out of range."
                                 Exit Function
                             End If
                         End If
@@ -984,11 +984,11 @@ PointMakingFinished:
             tmpPassageNodeA = PassageNodes(0, A)
             If tmpPassageNodeA.IsOnBorder Then
                 If tmpPassageNodeA.Level >= 0 Then
-                    GenerateLayout.Problem = "Error; Border has had its height set."
+                    GenerateLayout.Problem = "Error: Border has had its height set."
                     Exit Function
                 End If
                 'If tmpPassageNodeA.ConnectionCount <> 1 Then
-                '    GenerateLayout.Problem = "Error; Border has incorrect connections."
+                '    GenerateLayout.Problem = "Error: Border has incorrect connections."
                 '    Exit Function
                 'End If
                 tmpPassageNodeC = Nothing
@@ -1003,7 +1003,7 @@ PointMakingFinished:
                     End If
                 Next
                 If tmpPassageNodeC Is Nothing Then
-                    GenerateLayout.Problem = "Error; No connection for border node"
+                    GenerateLayout.Problem = "Error: No connection for border node"
                     Exit Function
                 End If
                 PassageNodesMinLevelSet(tmpPassageNodeC, PassageNodesMinLevel, tmpPassageNodeC.Level, Args.MaxLevelTransition)
@@ -1069,7 +1069,7 @@ PointMakingFinished:
                 NodeLevel(A) = BestConnection.PassageNodeA.Level
             End If
             If NodeLevel(A) < 0 Then
-                GenerateLayout.Problem = "Error; Node height is not set."
+                GenerateLayout.Problem = "Error: Node height is not set."
                 Exit Function
             End If
         Next
@@ -1224,7 +1224,7 @@ PointMakingFinished:
                                     End If
                                 End If
                             ElseIf ResultPaths(0).PathCount <> 1 Then
-                                GenerateLayout.Problem = "Error; Invalid number of routes returned."
+                                GenerateLayout.Problem = "Error: Invalid number of routes returned."
                                 Exit Function
                             ElseIf ResultPaths(0).Paths(0).Value / RampDist > BestDist Then
                                 BestDist = ResultPaths(0).Paths(0).Value / RampDist
@@ -1271,7 +1271,7 @@ PointMakingFinished:
                 ElseIf PossibleRamps(BestNum).PassageNodeB.MirrorNum = 0 Then
                     UpdateNetworkConnectedness(PossibleRamps(BestNum).PassageNodeB, NodeConnectedness, PassageNodeUpdated, PassageNodeVisited, Args.SymmetryBlockCount, PassageNodePathMap, PassageNodePathNodes)
                 Else
-                    GenerateLayout.Problem = "Error; Initial ramp not in area 0."
+                    GenerateLayout.Problem = "Error: Initial ramp not in area 0."
                     Exit Function
                 End If
             Else
@@ -1931,7 +1931,7 @@ PointMakingFinished:
 
                 Dim NewUnit As New clsMap.clsUnit
                 NewUnit.Type = Type
-                NewUnit.PlayerNum = PlayerNum
+                NewUnit.UnitGroup = UnitGroups(PlayerNum)
 
                 FinalTilePos.X = Int(NodeTag.Pos.X / TerrainGridSpacing)
                 FinalTilePos.Y = Int(NodeTag.Pos.Y / TerrainGridSpacing)
@@ -1992,7 +1992,7 @@ PointMakingFinished:
 
         Dim NewUnit As New clsMap.clsUnit
         NewUnit.Type = Type
-        NewUnit.PlayerNum = PlayerNum
+        NewUnit.UnitGroup = UnitGroups(PlayerNum)
 
         FinalTilePos.X = Int(Pos.Horizontal.X / TerrainGridSpacing)
         FinalTilePos.Y = Int(Pos.Horizontal.Y / TerrainGridSpacing)
@@ -2245,7 +2245,7 @@ PointMakingFinished:
         End If
 
         If TilePathMap.GetNodeLayer(TilePathMap.GetNodeLayerCount - 1).GetNodeCount <> 1 Then
-            GenerateUnits.Problem = "Error; bad node count on top layer!"
+            GenerateUnits.Problem = "Error: bad node count on top layer!"
             Exit Function
         End If
 

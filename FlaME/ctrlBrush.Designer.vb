@@ -64,7 +64,7 @@ Partial Class ctrlBrush
         Me.TabPage38.Margin = New System.Windows.Forms.Padding(4)
         Me.TabPage38.Name = "TabPage38"
         Me.TabPage38.Padding = New System.Windows.Forms.Padding(4)
-        Me.TabPage38.Size = New System.Drawing.Size(152, 0)
+        Me.TabPage38.Size = New System.Drawing.Size(153, 0)
         Me.TabPage38.TabIndex = 1
         Me.TabPage38.Text = "Square"
         Me.TabPage38.UseVisualStyleBackColor = True
@@ -100,7 +100,7 @@ Partial Class ctrlBrush
         Me.Controls.Add(Me.Label1)
         Me.Controls.Add(Me.nudRadius)
         Me.Name = "ctrlBrush"
-        Me.Size = New System.Drawing.Size(356, 35)
+        Me.Size = New System.Drawing.Size(334, 35)
         Me.tabShape.ResumeLayout(False)
         CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)

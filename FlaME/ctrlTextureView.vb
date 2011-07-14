@@ -444,8 +444,8 @@ EndOfTextures4:
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
-        Me.tmrDraw = New System.Windows.Forms.Timer()
-        Me.tmrDraw_Delay = New System.Windows.Forms.Timer()
+        Me.tmrDraw = New System.Windows.Forms.Timer
+        Me.tmrDraw_Delay = New System.Windows.Forms.Timer
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
         Me.TextureScroll = New System.Windows.Forms.VScrollBar()
         Me.pnlDraw = New System.Windows.Forms.Panel()

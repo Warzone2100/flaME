@@ -12,32 +12,29 @@
         Dim ReturnResult As New clsResult
         Dim A As Integer
 
+        Dim MapName As String
+        Dim License As String = cboLicense.Text
+        Dim B As Integer
+        Dim PlayerCount As Integer = CInt(Clamp(Val(txtMultiPlayers.Text), 0, CDbl(Integer.MaxValue)))
+        Dim IsXPlayerFormat As Boolean = cbxNewPlayerFormat.Checked
+        If PlayerCount < 2 Or PlayerCount > 10 Then
+            ReturnResult.Problem_Add("The number of players must be from 2 to " & PlayerCountMax)
+        End If
+        If Not IsXPlayerFormat Then
+            If PlayerCount <> 2 And PlayerCount <> 4 And PlayerCount <> 8 Then
+                ReturnResult.Problem_Add("You must enable support for this number of players.")
+            End If
+        End If
+
         A = ValidateMap_WaterTris()
         If A > 0 Then
             ReturnResult.Warning_Add(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
         End If
         ReturnResult.Append(ValidateMap, "")
 
-        Dim PlayerCount As Integer
-        Dim MapName As String
-        Dim IsBetaPlayerFormat As Boolean = cbxNewPlayerFormat.Checked
-        Dim License As String = cboLicense.Text
-        Dim B As Integer
-
         ReturnResult.Append(ValidateMap_UnitPositions, "")
 
-        PlayerCount = CInt(Clamp(Val(txtMultiPlayers.Text), 0, CDbl(Integer.MaxValue)))
-
-        If PlayerCount < 2 Or PlayerCount > 10 Then
-            ReturnResult.Problem_Add("The number of players must be from 2 to 10.")
-        End If
-        If Not IsBetaPlayerFormat Then
-            If Not (PlayerCount = 2 Or PlayerCount = 4 Or PlayerCount = 8) Then
-                ReturnResult.Problem_Add("You must enable support for this number of players.")
-            End If
-        End If
-
-        ReturnResult.Append(ValidateMap_Multiplayer(PlayerCount), "")
+        ReturnResult.Append(ValidateMap_Multiplayer(PlayerCount, IsXPlayerFormat), "")
 
         MapName = txtName.Text
         For A = 0 To MapName.Length - 1
@@ -72,7 +69,7 @@
         WriteWZArgs.Multiplayer = New clsMap.sWrite_WZ_Args.clsMultiplayer
         WriteWZArgs.Multiplayer.AuthorName = txtAuthor.Text
         WriteWZArgs.Multiplayer.PlayerCount = PlayerCount
-        WriteWZArgs.Multiplayer.IsBetaPlayerFormat = IsBetaPlayerFormat
+        WriteWZArgs.Multiplayer.IsBetaPlayerFormat = IsXPlayerFormat
         WriteWZArgs.Multiplayer.License = License
         WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Multiplayer
         ReturnResult.Append(Main_Map.Write_WZ(WriteWZArgs), "")
@@ -97,8 +94,9 @@
         Dim TileHasUnit(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As Boolean
         Dim TileStructureType(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsStructureType
         Dim TileFeatureType(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsFeatureType
+        Dim TileObjectGroup(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsMap.clsUnitGroup
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim StartPos As sXY_int
         Dim FinishPos As sXY_int
         Dim CentrePos As sXY_int
@@ -106,6 +104,7 @@
         Dim tmpStructure As clsStructureType
         Dim Footprint As sXY_int
         Dim UnitIsStructureModule(Main_Map.UnitCount - 1) As Boolean
+        Dim IsValid As Boolean
         For A = 0 To Main_Map.UnitCount - 1
             If Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
                 tmpStructure = CType(Main_Map.Units(A).Type, clsStructureType)
@@ -125,17 +124,18 @@
                   Or StartPos.Y < 0 Or FinishPos.Y >= Main_Map.TerrainSize.Y Then
                     Result.Problem_Add("Unit off map at position " & Main_Map.Units(A).GetPosText & ".")
                 Else
-                    For Z = StartPos.Y To FinishPos.Y
+                    For Y = StartPos.Y To FinishPos.Y
                         For X = StartPos.X To FinishPos.X
-                            If TileHasUnit(X, Z) Then
-                                Result.Problem_Add("Bad unit overlap on tile " & X & ", " & Z & ".")
+                            If TileHasUnit(X, Y) Then
+                                Result.Problem_Add("Bad unit overlap on tile " & X & ", " & Y & ".")
                             Else
-                                TileHasUnit(X, Z) = True
+                                TileHasUnit(X, Y) = True
                                 If Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                                    TileStructureType(X, Z) = CType(Main_Map.Units(A).Type, clsStructureType)
+                                    TileStructureType(X, Y) = CType(Main_Map.Units(A).Type, clsStructureType)
                                 ElseIf Main_Map.Units(A).Type.Type = clsUnitType.enumType.Feature Then
-                                    TileFeatureType(X, Z) = CType(Main_Map.Units(A).Type, clsFeatureType)
+                                    TileFeatureType(X, Y) = CType(Main_Map.Units(A).Type, clsFeatureType)
                                 End If
+                                TileObjectGroup(X, Y) = Main_Map.Units(A).UnitGroup
                             End If
                         Next
                     Next
@@ -153,36 +153,48 @@
                     Result.Problem_Add("Module off map at position " & Main_Map.Units(A).GetPosText & ".")
                 Else
                     If TileStructureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
-                        If StructureType = clsStructureType.enumStructureType.FactoryModule Then
-                            If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Factory _
+                        If TileObjectGroup(CentrePos.X, CentrePos.Y) Is Main_Map.Units(A).UnitGroup Then
+                            If StructureType = clsStructureType.enumStructureType.FactoryModule Then
+                                If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Factory _
                                   Or TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.VTOLFactory Then
-
+                                    IsValid = True
+                                Else
+                                    IsValid = False
+                                End If
+                            ElseIf StructureType = clsStructureType.enumStructureType.PowerModule Then
+                                If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.PowerGenerator Then
+                                    IsValid = True
+                                Else
+                                    IsValid = False
+                                End If
+                            ElseIf StructureType = clsStructureType.enumStructureType.ResearchModule Then
+                                If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Research Then
+                                    IsValid = True
+                                Else
+                                    IsValid = False
+                                End If
                             Else
-                                Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                IsValid = False
                             End If
-                        ElseIf StructureType = clsStructureType.enumStructureType.PowerModule Then
-                            If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.PowerGenerator Then
-
-                            Else
-                                Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
-                            End If
-                        ElseIf StructureType = clsStructureType.enumStructureType.ResearchModule Then
-                            If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Research Then
-
-                            Else
-                                Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
-                            End If
+                        Else
+                            IsValid = False
                         End If
                     ElseIf TileFeatureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
                         If StructureType = clsStructureType.enumStructureType.ResourceExtractor Then
                             If TileFeatureType(CentrePos.X, CentrePos.Y).FeatureType = clsFeatureType.enumFeatureType.OilResource Then
-
+                                IsValid = True
                             Else
-                                'allow derrick without resource
-                                'Result.Problem_Add("Bad extractor on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                                IsValid = False
                             End If
+                        Else
+                            IsValid = False
                         End If
+                    ElseIf StructureType = clsStructureType.enumStructureType.ResourceExtractor Then
+                        IsValid = True
                     Else
+                        IsValid = False
+                    End If
+                    If Not IsValid Then
                         Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
                     End If
                 End If
@@ -192,10 +204,10 @@
         Return Result
     End Function
 
-    Private Function ValidateMap_Multiplayer(ByVal PlayerCount As Integer) As clsResult
+    Private Function ValidateMap_Multiplayer(ByVal PlayerCount As Integer, ByVal IsXPlayerFormat As Boolean) As clsResult
         Dim Result As New clsResult
 
-        If PlayerCount < 2 Or PlayerCount > 10 Then
+        If PlayerCount < 2 Or PlayerCount > PlayerCountMax Then
             Result.Problem_Add("Unable to evaluate for multiplayer due to bad number of players.")
             Return Result
         End If
@@ -206,6 +218,7 @@
         Dim Player23TruckCount(PlayerCountMax - 1) As Integer
         Dim PlayerMasterTruckCount(PlayerCountMax - 1) As Integer
         Dim ScavPlayerNum As Integer
+        Dim ScavObjectCount As Integer = 0
         Dim tmpDroid As clsDroidDesign
         Dim tmpStructure As clsStructureType
         Dim UnusedPlayerUnitWarningCount As Integer = 0
@@ -214,31 +227,43 @@
         ScavPlayerNum = Math.Max(PlayerCount, 7)
 
         For A = 0 To Main_Map.UnitCount - 1
-            If Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
-                tmpDroid = CType(Main_Map.Units(A).Type, clsDroidDesign)
-                If tmpDroid.Body IsNot Nothing And tmpDroid.Propulsion IsNot Nothing And tmpDroid.Turret1 IsNot Nothing And tmpDroid.TurretCount = 1 Then
-                    If tmpDroid.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
-                        PlayerMasterTruckCount(Main_Map.Units(A).PlayerNum) += 1
-                        If tmpDroid.IsTemplate Then
-                            Player23TruckCount(Main_Map.Units(A).PlayerNum) += 1
+            If Main_Map.Units(A).UnitGroup Is Main_Map.ScavengerUnitGroup Then
+
+            Else
+                If Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    tmpDroid = CType(Main_Map.Units(A).Type, clsDroidDesign)
+                    If tmpDroid.Body IsNot Nothing And tmpDroid.Propulsion IsNot Nothing And tmpDroid.Turret1 IsNot Nothing And tmpDroid.TurretCount = 1 Then
+                        If tmpDroid.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
+                            PlayerMasterTruckCount(Main_Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                            If tmpDroid.IsTemplate Then
+                                Player23TruckCount(Main_Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                            End If
                         End If
                     End If
-                End If
-            ElseIf Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(Main_Map.Units(A).Type, clsStructureType)
-                If tmpStructure.Code = "A0CommandCentre" Then
-                    PlayerHQCount(Main_Map.Units(A).PlayerNum) += 1
+                ElseIf Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    tmpStructure = CType(Main_Map.Units(A).Type, clsStructureType)
+                    If tmpStructure.Code = "A0CommandCentre" Then
+                        PlayerHQCount(Main_Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                    End If
                 End If
             End If
             If Main_Map.Units(A).Type.Type <> clsUnitType.enumType.Feature Then
-                If Main_Map.Units(A).PlayerNum >= PlayerCount And Main_Map.Units(A).PlayerNum <> ScavPlayerNum Then
+                If Main_Map.Units(A).UnitGroup.WZ_StartPos = ScavPlayerNum Or Main_Map.Units(A).UnitGroup Is Main_Map.ScavengerUnitGroup Then
+                    ScavObjectCount += 1
+                ElseIf Main_Map.Units(A).UnitGroup.WZ_StartPos >= PlayerCount Then
                     If UnusedPlayerUnitWarningCount < 32 Then
                         UnusedPlayerUnitWarningCount += 1
-                        Result.Problem_Add("An unused player (" & Main_Map.Units(A).PlayerNum & ") has a unit at " & Main_Map.Units(A).GetPosText & ".")
+                        Result.Problem_Add("An unused player (" & Main_Map.Units(A).UnitGroup.WZ_StartPos & ") has a unit at " & Main_Map.Units(A).GetPosText & ".")
                     End If
                 End If
             End If
         Next
+
+        If ScavPlayerNum <= 7 Or IsXPlayerFormat Then
+
+        ElseIf ScavObjectCount > 0 Then 'only counts non-features
+            Result.Problem_Add("Scavengers are not supported on a map with this number of players without enabling X player support.")
+        End If
 
         For A = 0 To PlayerCount - 1
             If PlayerHQCount(A) = 0 Then
@@ -257,6 +282,13 @@
     Private Function ValidateMap() As clsResult
         ValidateMap = New clsResult
 
+        If Main_Map.TerrainSize.X > WZMapMaxSize Then
+            ValidateMap.Warning_Add("Map width is too large. The maximum is " & WZMapMaxSize & ".")
+        End If
+        If Main_Map.TerrainSize.Y > WZMapMaxSize Then
+            ValidateMap.Warning_Add("Map height is too large. The maximum is " & WZMapMaxSize & ".")
+        End If
+
         If Main_Map.Tileset Is Nothing Then
             ValidateMap.Problem_Add("No tileset selected.")
         End If
@@ -265,23 +297,31 @@
         Dim B As Integer
         'Dim PlayerFactoryCount(FactionCountMax - 1) As Integer
         Dim PlayerStructureTypeCount(PlayerCountMax - 1, UnitTypeCount - 1) As Integer
+        Dim ScavStructureTypeCount(UnitTypeCount - 1) As Integer
         Dim tmpStructure As clsStructureType
 
         For A = 0 To Main_Map.UnitCount - 1
             If Main_Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
                 tmpStructure = CType(Main_Map.Units(A).Type, clsStructureType)
-                PlayerStructureTypeCount(Main_Map.Units(A).PlayerNum, tmpStructure.StructureNum) += 1
+                If Main_Map.Units(A).UnitGroup Is Main_Map.ScavengerUnitGroup Then
+                    ScavStructureTypeCount(tmpStructure.StructureNum) += 1
+                Else
+                    PlayerStructureTypeCount(Main_Map.Units(A).UnitGroup.WZ_StartPos, tmpStructure.StructureNum) += 1
+                End If
             End If
         Next
 
-        For A = 0 To PlayerCountMax - 1
-            For B = 0 To UnitTypeCount - 1
-                If UnitTypes(B).Type = clsUnitType.enumType.PlayerStructure Then
+        For B = 0 To UnitTypeCount - 1
+            If UnitTypes(B).Type = clsUnitType.enumType.PlayerStructure Then
+                For A = 0 To PlayerCountMax - 1
                     If PlayerStructureTypeCount(A, B) > 255 Then
                         ValidateMap.Problem_Add("Player " & A & " has too many (" & PlayerStructureTypeCount(A, B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                     End If
+                Next
+                If ScavStructureTypeCount(B) > 255 Then
+                    ValidateMap.Problem_Add("Scavengers have too many (" & ScavStructureTypeCount(B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                 End If
-            Next
+            End If
         Next
 ExitLoop:
     End Function
@@ -309,362 +349,6 @@ ExitLoop:
         Return Count
     End Function
 
-#If MonoDevelop <> 0.0# Then
-    Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmCompile))
-        Me.txtName = New System.Windows.Forms.TextBox()
-        Me.Label1 = New System.Windows.Forms.Label()
-        Me.Label2 = New System.Windows.Forms.Label()
-        Me.rdoMulti = New System.Windows.Forms.RadioButton()
-        Me.rdoCamp = New System.Windows.Forms.RadioButton()
-        Me.txtMultiPlayers = New System.Windows.Forms.TextBox()
-        Me.btnCompile = New System.Windows.Forms.Button()
-        Me.Label3 = New System.Windows.Forms.Label()
-        Me.txtCampTime = New System.Windows.Forms.TextBox()
-        Me.Label5 = New System.Windows.Forms.Label()
-        Me.Label6 = New System.Windows.Forms.Label()
-        Me.txtCampMaxX = New System.Windows.Forms.TextBox()
-        Me.txtCampMaxY = New System.Windows.Forms.TextBox()
-        Me.txtCampMinY = New System.Windows.Forms.TextBox()
-        Me.Label10 = New System.Windows.Forms.Label()
-        Me.txtCampMinX = New System.Windows.Forms.TextBox()
-        Me.Label11 = New System.Windows.Forms.Label()
-        Me.Label12 = New System.Windows.Forms.Label()
-        Me.SaveFileDialog = New System.Windows.Forms.SaveFileDialog()
-        Me.FolderBrowserDialog = New System.Windows.Forms.FolderBrowserDialog()
-        Me.txtAuthor = New System.Windows.Forms.TextBox()
-        Me.Label4 = New System.Windows.Forms.Label()
-        Me.Label13 = New System.Windows.Forms.Label()
-        Me.cmbLicense = New System.Windows.Forms.ComboBox()
-        Me.chkNewPlayerFormat = New System.Windows.Forms.CheckBox()
-        Me.Label7 = New System.Windows.Forms.Label()
-        Me.Label8 = New System.Windows.Forms.Label()
-        Me.cmbCampType = New System.Windows.Forms.ComboBox()
-        Me.SuspendLayout()
-        '
-        'txtName
-        '
-        Me.txtName.Location = New System.Drawing.Point(84, 15)
-        Me.txtName.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtName.Name = "txtName"
-        Me.txtName.Size = New System.Drawing.Size(140, 22)
-        Me.txtName.TabIndex = 0
-        '
-        'Label1
-        '
-        Me.Label1.AutoSize = True
-        Me.Label1.Location = New System.Drawing.Point(25, 18)
-        Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(49, 17)
-        Me.Label1.TabIndex = 1
-        Me.Label1.Text = "Name:"
-        '
-        'Label2
-        '
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(21, 95)
-        Me.Label2.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(59, 17)
-        Me.Label2.TabIndex = 2
-        Me.Label2.Text = "Players:"
-        '
-        'rdoMulti
-        '
-        Me.rdoMulti.AutoSize = True
-        Me.rdoMulti.Location = New System.Drawing.Point(16, 63)
-        Me.rdoMulti.Margin = New System.Windows.Forms.Padding(4)
-        Me.rdoMulti.Name = "rdoMulti"
-        Me.rdoMulti.Size = New System.Drawing.Size(97, 21)
-        Me.rdoMulti.TabIndex = 3
-        Me.rdoMulti.TabStop = True
-        Me.rdoMulti.Text = "Multiplayer"
-        Me.rdoMulti.UseVisualStyleBackColor = True
-        '
-        'rdoCamp
-        '
-        Me.rdoCamp.AutoSize = True
-        Me.rdoCamp.Location = New System.Drawing.Point(16, 191)
-        Me.rdoCamp.Margin = New System.Windows.Forms.Padding(4)
-        Me.rdoCamp.Name = "rdoCamp"
-        Me.rdoCamp.Size = New System.Drawing.Size(92, 21)
-        Me.rdoCamp.TabIndex = 4
-        Me.rdoCamp.TabStop = True
-        Me.rdoCamp.Text = "Campaign"
-        Me.rdoCamp.UseVisualStyleBackColor = True
-        '
-        'txtMultiPlayers
-        '
-        Me.txtMultiPlayers.Location = New System.Drawing.Point(84, 91)
-        Me.txtMultiPlayers.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtMultiPlayers.Name = "txtMultiPlayers"
-        Me.txtMultiPlayers.Size = New System.Drawing.Size(68, 22)
-        Me.txtMultiPlayers.TabIndex = 5
-        '
-        'btnCompile
-        '
-        Me.btnCompile.Enabled = False
-        Me.btnCompile.Location = New System.Drawing.Point(255, 366)
-        Me.btnCompile.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnCompile.Name = "btnCompile"
-        Me.btnCompile.Size = New System.Drawing.Size(128, 30)
-        Me.btnCompile.TabIndex = 10
-        Me.btnCompile.Text = "Compile"
-        Me.btnCompile.UseVisualStyleBackColor = True
-        '
-        'Label3
-        '
-        Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(32, 226)
-        Me.Label3.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(43, 17)
-        Me.Label3.TabIndex = 12
-        Me.Label3.Text = "Time:"
-        '
-        'txtCampTime
-        '
-        Me.txtCampTime.Location = New System.Drawing.Point(84, 223)
-        Me.txtCampTime.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampTime.Name = "txtCampTime"
-        Me.txtCampTime.Size = New System.Drawing.Size(68, 22)
-        Me.txtCampTime.TabIndex = 11
-        Me.txtCampTime.Text = "2"
-        '
-        'Label5
-        '
-        Me.Label5.AutoSize = True
-        Me.Label5.Location = New System.Drawing.Point(168, 226)
-        Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(44, 17)
-        Me.Label5.TabIndex = 14
-        Me.Label5.Text = "Type:"
-        '
-        'Label6
-        '
-        Me.Label6.AutoSize = True
-        Me.Label6.Location = New System.Drawing.Point(13, 270)
-        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label6.Name = "Label6"
-        Me.Label6.Size = New System.Drawing.Size(87, 17)
-        Me.Label6.TabIndex = 16
-        Me.Label6.Text = "Scroll Limits:"
-        '
-        'txtCampMaxX
-        '
-        Me.txtCampMaxX.Location = New System.Drawing.Point(217, 298)
-        Me.txtCampMaxX.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampMaxX.Name = "txtCampMaxX"
-        Me.txtCampMaxX.Size = New System.Drawing.Size(61, 22)
-        Me.txtCampMaxX.TabIndex = 15
-        Me.txtCampMaxX.Text = "maxX"
-        '
-        'txtCampMaxY
-        '
-        Me.txtCampMaxY.Location = New System.Drawing.Point(217, 329)
-        Me.txtCampMaxY.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampMaxY.Name = "txtCampMaxY"
-        Me.txtCampMaxY.Size = New System.Drawing.Size(61, 22)
-        Me.txtCampMaxY.TabIndex = 18
-        Me.txtCampMaxY.Text = "maxY"
-        '
-        'txtCampMinY
-        '
-        Me.txtCampMinY.Location = New System.Drawing.Point(136, 329)
-        Me.txtCampMinY.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampMinY.Name = "txtCampMinY"
-        Me.txtCampMinY.Size = New System.Drawing.Size(61, 22)
-        Me.txtCampMinY.TabIndex = 22
-        Me.txtCampMinY.Text = "minY"
-        '
-        'Label10
-        '
-        Me.Label10.AutoSize = True
-        Me.Label10.Location = New System.Drawing.Point(108, 298)
-        Me.Label10.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label10.Name = "Label10"
-        Me.Label10.Size = New System.Drawing.Size(18, 17)
-        Me.Label10.TabIndex = 21
-        Me.Label10.Text = "x:"
-        '
-        'txtCampMinX
-        '
-        Me.txtCampMinX.Location = New System.Drawing.Point(136, 298)
-        Me.txtCampMinX.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampMinX.Name = "txtCampMinX"
-        Me.txtCampMinX.Size = New System.Drawing.Size(61, 22)
-        Me.txtCampMinX.TabIndex = 20
-        Me.txtCampMinX.Text = "minX"
-        '
-        'Label11
-        '
-        Me.Label11.AutoSize = True
-        Me.Label11.Location = New System.Drawing.Point(108, 270)
-        Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label11.Name = "Label11"
-        Me.Label11.Size = New System.Drawing.Size(67, 17)
-        Me.Label11.TabIndex = 24
-        Me.Label11.Text = "Minimum:"
-        '
-        'Label12
-        '
-        Me.Label12.AutoSize = True
-        Me.Label12.Location = New System.Drawing.Point(193, 270)
-        Me.Label12.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label12.Name = "Label12"
-        Me.Label12.Size = New System.Drawing.Size(70, 17)
-        Me.Label12.TabIndex = 25
-        Me.Label12.Text = "Maximum:"
-        '
-        'txtAuthor
-        '
-        Me.txtAuthor.Location = New System.Drawing.Point(84, 123)
-        Me.txtAuthor.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtAuthor.Name = "txtAuthor"
-        Me.txtAuthor.Size = New System.Drawing.Size(123, 22)
-        Me.txtAuthor.TabIndex = 27
-        '
-        'Label4
-        '
-        Me.Label4.AutoSize = True
-        Me.Label4.Location = New System.Drawing.Point(25, 127)
-        Me.Label4.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label4.Name = "Label4"
-        Me.Label4.Size = New System.Drawing.Size(54, 17)
-        Me.Label4.TabIndex = 26
-        Me.Label4.Text = "Author:"
-        '
-        'Label13
-        '
-        Me.Label13.AutoSize = True
-        Me.Label13.Location = New System.Drawing.Point(17, 159)
-        Me.Label13.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label13.Name = "Label13"
-        Me.Label13.Size = New System.Drawing.Size(61, 17)
-        Me.Label13.TabIndex = 28
-        Me.Label13.Text = "License:"
-        '
-        'cmbLicense
-        '
-        Me.cmbLicense.FormattingEnabled = True
-        Me.cmbLicense.Items.AddRange(New Object() {"GPL 2+", "CC BY 3.0 + GPL v2+", "CC BY-SA 3.0 + GPL v2+", "CC0"})
-        Me.cmbLicense.Location = New System.Drawing.Point(84, 155)
-        Me.cmbLicense.Margin = New System.Windows.Forms.Padding(4)
-        Me.cmbLicense.Name = "cmbLicense"
-        Me.cmbLicense.Size = New System.Drawing.Size(172, 24)
-        Me.cmbLicense.TabIndex = 29
-        '
-        'chkNewPlayerFormat
-        '
-        Me.chkNewPlayerFormat.Location = New System.Drawing.Point(161, 90)
-        Me.chkNewPlayerFormat.Margin = New System.Windows.Forms.Padding(4)
-        Me.chkNewPlayerFormat.Name = "chkNewPlayerFormat"
-        Me.chkNewPlayerFormat.Size = New System.Drawing.Size(221, 25)
-        Me.chkNewPlayerFormat.TabIndex = 30
-        Me.chkNewPlayerFormat.Text = "X Player Support (Beta)"
-        Me.chkNewPlayerFormat.UseVisualStyleBackColor = True
-        '
-        'Label7
-        '
-        Me.Label7.AutoSize = True
-        Me.Label7.Location = New System.Drawing.Point(108, 333)
-        Me.Label7.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label7.Name = "Label7"
-        Me.Label7.Size = New System.Drawing.Size(19, 17)
-        Me.Label7.TabIndex = 31
-        Me.Label7.Text = "y:"
-        '
-        'Label8
-        '
-        Me.Label8.Location = New System.Drawing.Point(265, 155)
-        Me.Label8.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label8.Name = "Label8"
-        Me.Label8.Size = New System.Drawing.Size(132, 41)
-        Me.Label8.TabIndex = 32
-        Me.Label8.Text = "Select from the list or type another."
-        '
-        'cmbCampType
-        '
-        Me.cmbCampType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cmbCampType.FormattingEnabled = True
-        Me.cmbCampType.Items.AddRange(New Object() {"Initial scenario state", "Scenario scroll area expansion", "Stand alone mission"})
-        Me.cmbCampType.Location = New System.Drawing.Point(221, 223)
-        Me.cmbCampType.Margin = New System.Windows.Forms.Padding(4)
-        Me.cmbCampType.Name = "cmbCampType"
-        Me.cmbCampType.Size = New System.Drawing.Size(160, 24)
-        Me.cmbCampType.TabIndex = 33
-        '
-        'frmCompile
-        '
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.ClientSize = New System.Drawing.Size(399, 402)
-        Me.Controls.Add(Me.cmbCampType)
-        Me.Controls.Add(Me.Label8)
-        Me.Controls.Add(Me.Label7)
-        Me.Controls.Add(Me.chkNewPlayerFormat)
-        Me.Controls.Add(Me.cmbLicense)
-        Me.Controls.Add(Me.Label13)
-        Me.Controls.Add(Me.txtAuthor)
-        Me.Controls.Add(Me.Label4)
-        Me.Controls.Add(Me.Label12)
-        Me.Controls.Add(Me.Label11)
-        Me.Controls.Add(Me.txtCampMinY)
-        Me.Controls.Add(Me.Label10)
-        Me.Controls.Add(Me.txtCampMinX)
-        Me.Controls.Add(Me.txtCampMaxY)
-        Me.Controls.Add(Me.Label6)
-        Me.Controls.Add(Me.txtCampMaxX)
-        Me.Controls.Add(Me.Label5)
-        Me.Controls.Add(Me.Label3)
-        Me.Controls.Add(Me.txtCampTime)
-        Me.Controls.Add(Me.btnCompile)
-        Me.Controls.Add(Me.txtMultiPlayers)
-        Me.Controls.Add(Me.rdoCamp)
-        Me.Controls.Add(Me.rdoMulti)
-        Me.Controls.Add(Me.Label2)
-        Me.Controls.Add(Me.Label1)
-        Me.Controls.Add(Me.txtName)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
-        'Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
-        Me.Margin = New System.Windows.Forms.Padding(4)
-        Me.Name = "frmCompile"
-        Me.Text = "Compile Map"
-        Me.ResumeLayout(False)
-        Me.PerformLayout()
-
-    End Sub
-    Friend WithEvents txtName As System.Windows.Forms.TextBox
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents Label2 As System.Windows.Forms.Label
-    Friend WithEvents rdoMulti As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoCamp As System.Windows.Forms.RadioButton
-    Friend WithEvents txtMultiPlayers As System.Windows.Forms.TextBox
-    Friend WithEvents btnCompile As System.Windows.Forms.Button
-    Friend WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents txtCampTime As System.Windows.Forms.TextBox
-    Friend WithEvents Label5 As System.Windows.Forms.Label
-    Friend WithEvents Label6 As System.Windows.Forms.Label
-    Friend WithEvents txtCampMaxX As System.Windows.Forms.TextBox
-    Friend WithEvents txtCampMaxY As System.Windows.Forms.TextBox
-    Friend WithEvents txtCampMinY As System.Windows.Forms.TextBox
-    Friend WithEvents Label10 As System.Windows.Forms.Label
-    Friend WithEvents txtCampMinX As System.Windows.Forms.TextBox
-    Friend WithEvents Label11 As System.Windows.Forms.Label
-    Friend WithEvents Label12 As System.Windows.Forms.Label
-    Friend WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
-    Friend WithEvents FolderBrowserDialog As System.Windows.Forms.FolderBrowserDialog
-    Friend WithEvents txtAuthor As System.Windows.Forms.TextBox
-    Friend WithEvents Label4 As System.Windows.Forms.Label
-    Friend WithEvents Label13 As System.Windows.Forms.Label
-    Friend WithEvents cmbLicense As System.Windows.Forms.ComboBox
-    Friend WithEvents chkNewPlayerFormat As System.Windows.Forms.CheckBox
-    Friend WithEvents Label7 As System.Windows.Forms.Label
-    Friend WithEvents Label8 As System.Windows.Forms.Label
-    Friend WithEvents cmbCampType As System.Windows.Forms.ComboBox
-#End If
-
     Private Sub btnCompileCampaign_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnCompileCampaign.Click
         Dim ReturnResult As New clsResult
         Dim A As Integer
@@ -674,6 +358,8 @@ ExitLoop:
             ReturnResult.Warning_Add(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
         End If
         ReturnResult.Append(ValidateMap, "")
+
+        ReturnResult.AppendAsWarning(ValidateMap_UnitPositions, "")
 
         Dim MapName As String
         Dim TypeNum As Integer
@@ -746,4 +432,396 @@ ExitLoop:
             Max.Y = Clamp(Val(txtScrollMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
         End If
     End Sub
+
+#If MonoDevelop <> 0.0# Then
+    Private Sub InitializeComponent()
+        Me.txtName = New System.Windows.Forms.TextBox()
+        Me.Label1 = New System.Windows.Forms.Label()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.txtMultiPlayers = New System.Windows.Forms.TextBox()
+        Me.btnCompileMultiplayer = New System.Windows.Forms.Button()
+        Me.Label3 = New System.Windows.Forms.Label()
+        Me.txtCampTime = New System.Windows.Forms.TextBox()
+        Me.Label5 = New System.Windows.Forms.Label()
+        Me.txtScrollMaxX = New System.Windows.Forms.TextBox()
+        Me.txtScrollMaxY = New System.Windows.Forms.TextBox()
+        Me.txtScrollMinY = New System.Windows.Forms.TextBox()
+        Me.Label10 = New System.Windows.Forms.Label()
+        Me.txtScrollMinX = New System.Windows.Forms.TextBox()
+        Me.Label11 = New System.Windows.Forms.Label()
+        Me.Label12 = New System.Windows.Forms.Label()
+        Me.SaveFileDialog = New System.Windows.Forms.SaveFileDialog()
+        Me.FolderBrowserDialog = New System.Windows.Forms.FolderBrowserDialog()
+        Me.txtAuthor = New System.Windows.Forms.TextBox()
+        Me.Label4 = New System.Windows.Forms.Label()
+        Me.Label13 = New System.Windows.Forms.Label()
+        Me.cboLicense = New System.Windows.Forms.ComboBox()
+        Me.cbxNewPlayerFormat = New System.Windows.Forms.CheckBox()
+        Me.Label7 = New System.Windows.Forms.Label()
+        Me.Label8 = New System.Windows.Forms.Label()
+        Me.cboCampType = New System.Windows.Forms.ComboBox()
+        Me.TabControl1 = New System.Windows.Forms.TabControl()
+        Me.TabPage1 = New System.Windows.Forms.TabPage()
+        Me.TabPage2 = New System.Windows.Forms.TabPage()
+        Me.btnCompileCampaign = New System.Windows.Forms.Button()
+        Me.GroupBox1 = New System.Windows.Forms.GroupBox()
+        Me.cbxAutoScrollLimits = New System.Windows.Forms.CheckBox()
+        Me.TabControl1.SuspendLayout()
+        Me.TabPage1.SuspendLayout()
+        Me.TabPage2.SuspendLayout()
+        Me.GroupBox1.SuspendLayout()
+        Me.SuspendLayout()
+        '
+        'txtName
+        '
+        Me.txtName.Location = New System.Drawing.Point(84, 15)
+        Me.txtName.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtName.Name = "txtName"
+        Me.txtName.Size = New System.Drawing.Size(140, 22)
+        Me.txtName.TabIndex = 0
+        '
+        'Label1
+        '
+        Me.Label1.AutoSize = True
+        Me.Label1.Location = New System.Drawing.Point(25, 18)
+        Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label1.Name = "Label1"
+        Me.Label1.Size = New System.Drawing.Size(49, 17)
+        Me.Label1.TabIndex = 1
+        Me.Label1.Text = "Name:"
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(18, 20)
+        Me.Label2.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(59, 17)
+        Me.Label2.TabIndex = 2
+        Me.Label2.Text = "Players:"
+        '
+        'txtMultiPlayers
+        '
+        Me.txtMultiPlayers.Location = New System.Drawing.Point(81, 16)
+        Me.txtMultiPlayers.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtMultiPlayers.Name = "txtMultiPlayers"
+        Me.txtMultiPlayers.Size = New System.Drawing.Size(68, 22)
+        Me.txtMultiPlayers.TabIndex = 5
+        '
+        'btnCompileMultiplayer
+        '
+        Me.btnCompileMultiplayer.Location = New System.Drawing.Point(251, 128)
+        Me.btnCompileMultiplayer.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnCompileMultiplayer.Name = "btnCompileMultiplayer"
+        Me.btnCompileMultiplayer.Size = New System.Drawing.Size(128, 30)
+        Me.btnCompileMultiplayer.TabIndex = 10
+        Me.btnCompileMultiplayer.Text = "Compile"
+        Me.btnCompileMultiplayer.UseVisualStyleBackColor = True
+        '
+        'Label3
+        '
+        Me.Label3.AutoSize = True
+        Me.Label3.Location = New System.Drawing.Point(18, 22)
+        Me.Label3.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label3.Name = "Label3"
+        Me.Label3.Size = New System.Drawing.Size(43, 17)
+        Me.Label3.TabIndex = 12
+        Me.Label3.Text = "Time:"
+        '
+        'txtCampTime
+        '
+        Me.txtCampTime.Location = New System.Drawing.Point(70, 19)
+        Me.txtCampTime.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtCampTime.Name = "txtCampTime"
+        Me.txtCampTime.Size = New System.Drawing.Size(68, 22)
+        Me.txtCampTime.TabIndex = 11
+        '
+        'Label5
+        '
+        Me.Label5.AutoSize = True
+        Me.Label5.Location = New System.Drawing.Point(154, 22)
+        Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label5.Name = "Label5"
+        Me.Label5.Size = New System.Drawing.Size(44, 17)
+        Me.Label5.TabIndex = 14
+        Me.Label5.Text = "Type:"
+        '
+        'txtScrollMaxX
+        '
+        Me.txtScrollMaxX.Location = New System.Drawing.Point(82, 88)
+        Me.txtScrollMaxX.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScrollMaxX.Name = "txtScrollMaxX"
+        Me.txtScrollMaxX.Size = New System.Drawing.Size(61, 22)
+        Me.txtScrollMaxX.TabIndex = 15
+        '
+        'txtScrollMaxY
+        '
+        Me.txtScrollMaxY.Location = New System.Drawing.Point(151, 88)
+        Me.txtScrollMaxY.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScrollMaxY.Name = "txtScrollMaxY"
+        Me.txtScrollMaxY.Size = New System.Drawing.Size(61, 22)
+        Me.txtScrollMaxY.TabIndex = 18
+        '
+        'txtScrollMinY
+        '
+        Me.txtScrollMinY.Location = New System.Drawing.Point(151, 48)
+        Me.txtScrollMinY.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScrollMinY.Name = "txtScrollMinY"
+        Me.txtScrollMinY.Size = New System.Drawing.Size(61, 22)
+        Me.txtScrollMinY.TabIndex = 22
+        '
+        'Label10
+        '
+        Me.Label10.AutoSize = True
+        Me.Label10.Location = New System.Drawing.Point(82, 27)
+        Me.Label10.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label10.Name = "Label10"
+        Me.Label10.Size = New System.Drawing.Size(18, 17)
+        Me.Label10.TabIndex = 21
+        Me.Label10.Text = "x:"
+        '
+        'txtScrollMinX
+        '
+        Me.txtScrollMinX.Location = New System.Drawing.Point(82, 48)
+        Me.txtScrollMinX.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScrollMinX.Name = "txtScrollMinX"
+        Me.txtScrollMinX.Size = New System.Drawing.Size(61, 22)
+        Me.txtScrollMinX.TabIndex = 20
+        '
+        'Label11
+        '
+        Me.Label11.AutoSize = True
+        Me.Label11.Location = New System.Drawing.Point(10, 51)
+        Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label11.Name = "Label11"
+        Me.Label11.Size = New System.Drawing.Size(67, 17)
+        Me.Label11.TabIndex = 24
+        Me.Label11.Text = "Minimum:"
+        '
+        'Label12
+        '
+        Me.Label12.AutoSize = True
+        Me.Label12.Location = New System.Drawing.Point(7, 88)
+        Me.Label12.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label12.Name = "Label12"
+        Me.Label12.Size = New System.Drawing.Size(70, 17)
+        Me.Label12.TabIndex = 25
+        Me.Label12.Text = "Maximum:"
+        '
+        'txtAuthor
+        '
+        Me.txtAuthor.Location = New System.Drawing.Point(81, 48)
+        Me.txtAuthor.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtAuthor.Name = "txtAuthor"
+        Me.txtAuthor.Size = New System.Drawing.Size(123, 22)
+        Me.txtAuthor.TabIndex = 27
+        '
+        'Label4
+        '
+        Me.Label4.AutoSize = True
+        Me.Label4.Location = New System.Drawing.Point(22, 52)
+        Me.Label4.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label4.Name = "Label4"
+        Me.Label4.Size = New System.Drawing.Size(54, 17)
+        Me.Label4.TabIndex = 26
+        Me.Label4.Text = "Author:"
+        '
+        'Label13
+        '
+        Me.Label13.AutoSize = True
+        Me.Label13.Location = New System.Drawing.Point(14, 84)
+        Me.Label13.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label13.Name = "Label13"
+        Me.Label13.Size = New System.Drawing.Size(61, 17)
+        Me.Label13.TabIndex = 28
+        Me.Label13.Text = "License:"
+        '
+        'cboLicense
+        '
+        Me.cboLicense.FormattingEnabled = True
+        Me.cboLicense.Items.AddRange(New Object() {"GPL 2+", "CC BY 3.0 + GPL v2+", "CC BY-SA 3.0 + GPL v2+", "CC0"})
+        Me.cboLicense.Location = New System.Drawing.Point(81, 80)
+        Me.cboLicense.Margin = New System.Windows.Forms.Padding(4)
+        Me.cboLicense.Name = "cboLicense"
+        Me.cboLicense.Size = New System.Drawing.Size(172, 24)
+        Me.cboLicense.TabIndex = 29
+        '
+        'cbxNewPlayerFormat
+        '
+        Me.cbxNewPlayerFormat.Location = New System.Drawing.Point(158, 15)
+        Me.cbxNewPlayerFormat.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxNewPlayerFormat.Name = "cbxNewPlayerFormat"
+        Me.cbxNewPlayerFormat.Size = New System.Drawing.Size(221, 25)
+        Me.cbxNewPlayerFormat.TabIndex = 30
+        Me.cbxNewPlayerFormat.Text = "X Player Support"
+        Me.cbxNewPlayerFormat.UseVisualStyleBackColor = True
+        '
+        'Label7
+        '
+        Me.Label7.AutoSize = True
+        Me.Label7.Location = New System.Drawing.Point(148, 27)
+        Me.Label7.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label7.Name = "Label7"
+        Me.Label7.Size = New System.Drawing.Size(19, 17)
+        Me.Label7.TabIndex = 31
+        Me.Label7.Text = "y:"
+        '
+        'Label8
+        '
+        Me.Label8.Location = New System.Drawing.Point(262, 80)
+        Me.Label8.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label8.Name = "Label8"
+        Me.Label8.Size = New System.Drawing.Size(132, 41)
+        Me.Label8.TabIndex = 32
+        Me.Label8.Text = "Select from the list or type another."
+        '
+        'cboCampType
+        '
+        Me.cboCampType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cboCampType.FormattingEnabled = True
+        Me.cboCampType.Items.AddRange(New Object() {"Initial scenario state", "Scenario scroll area expansion", "Stand alone mission"})
+        Me.cboCampType.Location = New System.Drawing.Point(207, 19)
+        Me.cboCampType.Margin = New System.Windows.Forms.Padding(4)
+        Me.cboCampType.Name = "cboCampType"
+        Me.cboCampType.Size = New System.Drawing.Size(160, 24)
+        Me.cboCampType.TabIndex = 33
+        '
+        'TabControl1
+        '
+        Me.TabControl1.Controls.Add(Me.TabPage1)
+        Me.TabControl1.Controls.Add(Me.TabPage2)
+        Me.TabControl1.Location = New System.Drawing.Point(12, 53)
+        Me.TabControl1.Name = "TabControl1"
+        Me.TabControl1.SelectedIndex = 0
+        Me.TabControl1.Size = New System.Drawing.Size(415, 194)
+        Me.TabControl1.TabIndex = 34
+        '
+        'TabPage1
+        '
+        Me.TabPage1.Controls.Add(Me.Label2)
+        Me.TabPage1.Controls.Add(Me.txtMultiPlayers)
+        Me.TabPage1.Controls.Add(Me.Label8)
+        Me.TabPage1.Controls.Add(Me.Label4)
+        Me.TabPage1.Controls.Add(Me.txtAuthor)
+        Me.TabPage1.Controls.Add(Me.cbxNewPlayerFormat)
+        Me.TabPage1.Controls.Add(Me.Label13)
+        Me.TabPage1.Controls.Add(Me.cboLicense)
+        Me.TabPage1.Controls.Add(Me.btnCompileMultiplayer)
+        Me.TabPage1.Location = New System.Drawing.Point(4, 25)
+        Me.TabPage1.Name = "TabPage1"
+        Me.TabPage1.Padding = New System.Windows.Forms.Padding(3)
+        Me.TabPage1.Size = New System.Drawing.Size(407, 165)
+        Me.TabPage1.TabIndex = 0
+        Me.TabPage1.Text = "Multiplayer"
+        Me.TabPage1.UseVisualStyleBackColor = True
+        '
+        'TabPage2
+        '
+        Me.TabPage2.Controls.Add(Me.btnCompileCampaign)
+        Me.TabPage2.Controls.Add(Me.cboCampType)
+        Me.TabPage2.Controls.Add(Me.txtCampTime)
+        Me.TabPage2.Controls.Add(Me.Label3)
+        Me.TabPage2.Controls.Add(Me.Label5)
+        Me.TabPage2.Location = New System.Drawing.Point(4, 25)
+        Me.TabPage2.Name = "TabPage2"
+        Me.TabPage2.Padding = New System.Windows.Forms.Padding(3)
+        Me.TabPage2.Size = New System.Drawing.Size(407, 165)
+        Me.TabPage2.TabIndex = 1
+        Me.TabPage2.Text = "Campaign"
+        Me.TabPage2.UseVisualStyleBackColor = True
+        '
+        'btnCompileCampaign
+        '
+        Me.btnCompileCampaign.Location = New System.Drawing.Point(253, 128)
+        Me.btnCompileCampaign.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnCompileCampaign.Name = "btnCompileCampaign"
+        Me.btnCompileCampaign.Size = New System.Drawing.Size(128, 30)
+        Me.btnCompileCampaign.TabIndex = 11
+        Me.btnCompileCampaign.Text = "Compile"
+        Me.btnCompileCampaign.UseVisualStyleBackColor = True
+        '
+        'GroupBox1
+        '
+        Me.GroupBox1.Controls.Add(Me.Label12)
+        Me.GroupBox1.Controls.Add(Me.txtScrollMaxX)
+        Me.GroupBox1.Controls.Add(Me.Label7)
+        Me.GroupBox1.Controls.Add(Me.txtScrollMaxY)
+        Me.GroupBox1.Controls.Add(Me.txtScrollMinX)
+        Me.GroupBox1.Controls.Add(Me.Label11)
+        Me.GroupBox1.Controls.Add(Me.Label10)
+        Me.GroupBox1.Controls.Add(Me.txtScrollMinY)
+        Me.GroupBox1.Location = New System.Drawing.Point(12, 280)
+        Me.GroupBox1.Name = "GroupBox1"
+        Me.GroupBox1.Size = New System.Drawing.Size(257, 132)
+        Me.GroupBox1.TabIndex = 35
+        Me.GroupBox1.TabStop = False
+        Me.GroupBox1.Text = "Scroll Limits"
+        '
+        'cbxAutoScrollLimits
+        '
+        Me.cbxAutoScrollLimits.AutoSize = True
+        Me.cbxAutoScrollLimits.Location = New System.Drawing.Point(12, 253)
+        Me.cbxAutoScrollLimits.Name = "cbxAutoScrollLimits"
+        Me.cbxAutoScrollLimits.Size = New System.Drawing.Size(162, 21)
+        Me.cbxAutoScrollLimits.TabIndex = 32
+        Me.cbxAutoScrollLimits.Text = "Automatic Scroll Limits"
+        Me.cbxAutoScrollLimits.UseCompatibleTextRendering = True
+        Me.cbxAutoScrollLimits.UseVisualStyleBackColor = True
+        '
+        'frmCompile
+        '
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
+        Me.ClientSize = New System.Drawing.Size(436, 429)
+        Me.Controls.Add(Me.cbxAutoScrollLimits)
+        Me.Controls.Add(Me.GroupBox1)
+        Me.Controls.Add(Me.TabControl1)
+        Me.Controls.Add(Me.Label1)
+        Me.Controls.Add(Me.txtName)
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
+        Me.Margin = New System.Windows.Forms.Padding(4)
+        Me.Name = "frmCompile"
+        Me.Text = "Compile Map"
+        Me.TabControl1.ResumeLayout(False)
+        Me.TabPage1.ResumeLayout(False)
+        Me.TabPage1.PerformLayout()
+        Me.TabPage2.ResumeLayout(False)
+        Me.TabPage2.PerformLayout()
+        Me.GroupBox1.ResumeLayout(False)
+        Me.GroupBox1.PerformLayout()
+        Me.ResumeLayout(False)
+        Me.PerformLayout()
+
+    End Sub
+    Friend WithEvents txtName As System.Windows.Forms.TextBox
+    Friend WithEvents Label1 As System.Windows.Forms.Label
+    Friend WithEvents Label2 As System.Windows.Forms.Label
+    Friend WithEvents txtMultiPlayers As System.Windows.Forms.TextBox
+    Friend WithEvents btnCompileMultiplayer As System.Windows.Forms.Button
+    Friend WithEvents Label3 As System.Windows.Forms.Label
+    Friend WithEvents txtCampTime As System.Windows.Forms.TextBox
+    Friend WithEvents Label5 As System.Windows.Forms.Label
+    Friend WithEvents txtScrollMaxX As System.Windows.Forms.TextBox
+    Friend WithEvents txtScrollMaxY As System.Windows.Forms.TextBox
+    Friend WithEvents txtScrollMinY As System.Windows.Forms.TextBox
+    Friend WithEvents Label10 As System.Windows.Forms.Label
+    Friend WithEvents txtScrollMinX As System.Windows.Forms.TextBox
+    Friend WithEvents Label11 As System.Windows.Forms.Label
+    Friend WithEvents Label12 As System.Windows.Forms.Label
+    Friend WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
+    Friend WithEvents FolderBrowserDialog As System.Windows.Forms.FolderBrowserDialog
+    Friend WithEvents txtAuthor As System.Windows.Forms.TextBox
+    Friend WithEvents Label4 As System.Windows.Forms.Label
+    Friend WithEvents Label13 As System.Windows.Forms.Label
+    Friend WithEvents cboLicense As System.Windows.Forms.ComboBox
+    Friend WithEvents cbxNewPlayerFormat As System.Windows.Forms.CheckBox
+    Friend WithEvents Label7 As System.Windows.Forms.Label
+    Friend WithEvents Label8 As System.Windows.Forms.Label
+    Friend WithEvents cboCampType As System.Windows.Forms.ComboBox
+    Friend WithEvents TabControl1 As System.Windows.Forms.TabControl
+    Friend WithEvents TabPage1 As System.Windows.Forms.TabPage
+    Friend WithEvents TabPage2 As System.Windows.Forms.TabPage
+    Friend WithEvents btnCompileCampaign As System.Windows.Forms.Button
+    Friend WithEvents GroupBox1 As System.Windows.Forms.GroupBox
+    Friend WithEvents cbxAutoScrollLimits As System.Windows.Forms.CheckBox
+#End If
 End Class

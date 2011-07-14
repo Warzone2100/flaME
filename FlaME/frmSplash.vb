@@ -13,21 +13,22 @@
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmSplash))
         Me.SuspendLayout()
         '
         'frmSplash
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.BackColor = System.Drawing.Color.White
+        Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None
-        'Me.BackgroundImage = New Bitmap("interface/splash.png") 'needs to be changed to interface path variable
-        Me.ClientSize = New System.Drawing.Size(616, 316)
+        Me.ClientSize = New System.Drawing.Size(396, 197)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Name = "frmSplash"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-        Me.Text = ""
         Me.TransparencyKey = System.Drawing.Color.White
         Me.ResumeLayout(False)
+
     End Sub
 #End If
 End Class

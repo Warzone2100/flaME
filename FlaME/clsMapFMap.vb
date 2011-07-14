@@ -2,26 +2,13 @@
 
 Partial Public Class clsMap
 
-    Structure sFMEUnit
-        Dim Code As String
-        Dim ID As UInteger
-        Dim SavePriority As Integer
-        Dim LNDType As Byte
-        Dim X As UInteger
-        Dim Y As UInteger
-        Dim Z As UInteger
-        Dim Rotation As UShort
-        Dim Name As String
-        Dim Player As Byte
-    End Structure
-
     Public Class clsFMap_INIObjects
         Public Structure sObject
             Public ID As UInteger
             Public Type As clsUnitType.enumType
             Public IsTemplate As Boolean
             Public Code As String
-            Public Player As Integer
+            Public UnitGroup As String
             Public GotAltitude As Boolean
             Public Pos As clsXY_int
             Public Heading As Double
@@ -46,7 +33,6 @@ Partial Public Class clsMap
             For A = 0 To ObjectCount - 1
                 Objects(A).Type = clsUnitType.enumType.Unspecified
                 Objects(A).Health = 1.0#
-                Objects(A).Player = -1
                 ReDim Objects(A).TurretCodes(MaxDroidWeapons - 1)
                 ReDim Objects(A).TurretTypes(MaxDroidWeapons - 1)
                 For B = 0 To MaxDroidWeapons - 1
@@ -201,17 +187,8 @@ Partial Public Class clsMap
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     Objects(INISectionNum).Heading = dblTemp
-                Case "player"
-                    Dim NewPlayer As Integer
-                    Try
-                        NewPlayer = CInt(INIProperty.Value)
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    If NewPlayer < 0 Or NewPlayer >= PlayerCountMax Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    Objects(INISectionNum).Player = NewPlayer
+                Case "unitgroup"
+                    Objects(INISectionNum).UnitGroup = INIProperty.Value
                 Case "health"
                     Dim NewHealth As Double
                     Try
@@ -230,7 +207,7 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Function Write_FMap(ByVal Path As String, ByVal Overwrite As Boolean) As clsResult
+    Function Write_FMap(ByVal Path As String, ByVal Overwrite As Boolean, ByVal Compress As Boolean) As clsResult
         Dim ReturnResult As New clsResult
 
         If Not Overwrite Then
@@ -286,7 +263,11 @@ Partial Public Class clsMap
         Dim WZStream As Zip.ZipOutputStream = New Zip.ZipOutputStream(FileStream)
         Dim ZipPath As String
 
-        WZStream.SetLevel(9)
+        If Compress Then
+            WZStream.SetLevel(9)
+        Else
+            WZStream.SetLevel(0)
+        End If
 
         ZipPath = "Info.ini"
         ReturnResult.Append(INI_Info.File.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
@@ -362,11 +343,11 @@ Partial Public Class clsMap
 
     Public Sub Data_FMap_VertexHeight(ByVal File As clsWriteFile)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To TerrainSize.Y
+        For Y = 0 To TerrainSize.Y
             For X = 0 To TerrainSize.X
-                File.U8_Append(TerrainVertex(X, Z).Height)
+                File.U8_Append(TerrainVertex(X, Y).Height)
             Next
         Next
     End Sub
@@ -408,13 +389,13 @@ Partial Public Class clsMap
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim ErrorCount As Integer
         Dim Value As Integer
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                Value = TerrainTiles(X, Z).Texture.TextureNum + 1
+                Value = TerrainTiles(X, Y).Texture.TextureNum + 1
                 If Value < 0 Or Value > 255 Then
                     ErrorCount += 1
                     Value = 0
@@ -432,22 +413,22 @@ Partial Public Class clsMap
 
     Public Sub Data_FMap_TileOrientation(ByVal File As clsWriteFile)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim Value As Integer
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
                 Value = 0
-                If TerrainTiles(X, Z).Texture.Orientation.SwitchedAxes Then
+                If TerrainTiles(X, Y).Texture.Orientation.SwitchedAxes Then
                     Value += 8
                 End If
-                If TerrainTiles(X, Z).Texture.Orientation.ResultXFlip Then
+                If TerrainTiles(X, Y).Texture.Orientation.ResultXFlip Then
                     Value += 4
                 End If
-                If TerrainTiles(X, Z).Texture.Orientation.ResultZFlip Then
+                If TerrainTiles(X, Y).Texture.Orientation.ResultZFlip Then
                     Value += 2
                 End If
-                If TerrainTiles(X, Z).Tri Then
+                If TerrainTiles(X, Y).Tri Then
                     Value += 1
                 End If
                 File.U8_Append(Value)
@@ -515,19 +496,19 @@ Partial Public Class clsMap
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim Value As Integer
         Dim ErrorCount As Integer
 
-        For Z = 0 To TerrainSize.Y
+        For Y = 0 To TerrainSize.Y
             For X = 0 To TerrainSize.X - 1
-                If TerrainSideH(X, Z).Road Is Nothing Then
+                If TerrainSideH(X, Y).Road Is Nothing Then
                     Value = 0
-                ElseIf TerrainSideH(X, Z).Road.Num < 0 Then
+                ElseIf TerrainSideH(X, Y).Road.Num < 0 Then
                     ErrorCount += 1
                     Value = 0
                 Else
-                    Value = TerrainSideH(X, Z).Road.Num + 1
+                    Value = TerrainSideH(X, Y).Road.Num + 1
                     If Value > 255 Then
                         ErrorCount += 1
                         Value = 0
@@ -536,15 +517,15 @@ Partial Public Class clsMap
                 File.U8_Append(Value)
             Next
         Next
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X
-                If TerrainSideV(X, Z).Road Is Nothing Then
+                If TerrainSideV(X, Y).Road Is Nothing Then
                     Value = 0
-                ElseIf TerrainSideV(X, Z).Road.Num < 0 Then
+                ElseIf TerrainSideV(X, Y).Road.Num < 0 Then
                     ErrorCount += 1
                     Value = 0
                 Else
-                    Value = TerrainSideV(X, Z).Road.Num + 1
+                    Value = TerrainSideV(X, Y).Road.Num + 1
                     If Value > 255 Then
                         ErrorCount += 1
                         Value = 0
@@ -617,7 +598,12 @@ Partial Public Class clsMap
             File.Property_Append("Priority", tmpUnit.SavePriority)
             File.Property_Append("Pos", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y)
             File.Property_Append("Heading", tmpUnit.Rotation)
-            File.Property_Append("Player", tmpUnit.PlayerNum)
+            If tmpUnit.UnitGroup.Map_UnitGroupNum < 0 Then
+                strTemp = "scavenger"
+            Else
+                strTemp = tmpUnit.UnitGroup.Map_UnitGroupNum
+            End If
+            File.Property_Append("UnitGroup", strTemp)
             If tmpUnit.Health < 1.0# Then
                 File.Property_Append("Health", tmpUnit.Health)
             End If
@@ -681,10 +667,10 @@ Partial Public Class clsMap
         Dim NewTerrainSize As sXY_int = ResultInfo.TerrainSize
         Tileset = ResultInfo.Tileset
 
-        If NewTerrainSize.X <= 0 Or NewTerrainSize.X > MaxMapTileSize Then
+        If NewTerrainSize.X <= 0 Or NewTerrainSize.X > MapMaxSize Then
             ReturnResult.Problem_Add("Map width of " & NewTerrainSize.X & " is not valid.")
         End If
-        If NewTerrainSize.Y <= 0 Or NewTerrainSize.Y > MaxMapTileSize Then
+        If NewTerrainSize.Y <= 0 Or NewTerrainSize.Y > MapMaxSize Then
             ReturnResult.Problem_Add("Map height of " & NewTerrainSize.Y & " is not valid.")
         End If
         If ReturnResult.HasProblems Then
@@ -778,10 +764,7 @@ Partial Public Class clsMap
 
         InterfaceOptions = ResultInfo.InterfaceOptions
 
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
+        AfterInitialized()
 
         Return ReturnResult
     End Function
@@ -825,7 +808,7 @@ Partial Public Class clsMap
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
-                    If NewSize.X < 1 Or NewSize.Y < 1 Or NewSize.X > MaxMapTileSize Or NewSize.Y > MaxMapTileSize Then
+                    If NewSize.X < 1 Or NewSize.Y < 1 Or NewSize.X > MapMaxSize Or NewSize.Y > MapMaxSize Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     TerrainSize = NewSize
@@ -1212,6 +1195,7 @@ Partial Public Class clsMap
         Dim NewObject As clsUnit
         Dim tmpUnitType As clsUnitType
         Dim IsDesign As Boolean
+        Dim tmpUnitGroup As clsUnitGroup
         Dim ZeroPos As New sXY_int(0, 0)
 
         For A = 0 To INIObjects.ObjectCount - 1
@@ -1281,12 +1265,6 @@ Partial Public Class clsMap
                 If tmpUnitType Is Nothing Then
                     ObjectTypeMissingCount += 1
                 Else
-                    If INIObjects.Objects(A).Player < 0 Or INIObjects.Objects(A).Player >= PlayerCountMax Then
-                        If INIObjects.Objects(A).Type <> clsUnitType.enumType.Feature Then
-                            ObjectPlayerNumInvalidCount += 1
-                        End If
-                        INIObjects.Objects(A).Player = 0
-                    End If
                     NewObject = New clsUnit
                     NewObject.Type = tmpUnitType
                     NewObject.Pos.Horizontal.X = INIObjects.Objects(A).Pos.X
@@ -1298,7 +1276,31 @@ Partial Public Class clsMap
                     If NewObject.Rotation >= 360 Then
                         NewObject.Rotation -= 360
                     End If
-                    NewObject.PlayerNum = INIObjects.Objects(A).Player
+                    If INIObjects.Objects(A).UnitGroup = Nothing Or INIObjects.Objects(A).UnitGroup = "" Then
+                        If INIObjects.Objects(A).Type <> clsUnitType.enumType.Feature Then
+                            ObjectPlayerNumInvalidCount += 1
+                        End If
+                        NewObject.UnitGroup = UnitGroups(0)
+                    Else
+                        If INIObjects.Objects(A).UnitGroup.ToLower = "scavenger" Then
+                            NewObject.UnitGroup = ScavengerUnitGroup
+                        Else
+                            Dim PlayerNum As UInteger
+                            Try
+                                PlayerNum = CUInt(INIObjects.Objects(A).UnitGroup)
+                                If PlayerNum < PlayerCountMax Then
+                                    tmpUnitGroup = UnitGroups(PlayerNum)
+                                Else
+                                    tmpUnitGroup = ScavengerUnitGroup
+                                    ObjectPlayerNumInvalidCount += 1
+                                End If
+                            Catch ex As Exception
+                                ObjectPlayerNumInvalidCount += 1
+                                tmpUnitGroup = ScavengerUnitGroup
+                            End Try
+                            NewObject.UnitGroup = tmpUnitGroup
+                        End If
+                    End If
                     If INIObjects.Objects(A).ID = 0UI Then
                         INIObjects.Objects(A).ID = ZeroResetID
                         ZeroIDWarning(NewObject)
@@ -1426,6 +1428,8 @@ Partial Public Class clsMap
                 End If
                 If byteTemp >= TileTypeCount Then
                     InvalidTypeCount += 1
+                Else
+                    Tile_TypeNum(A) = byteTemp
                 End If
             Next
         End If

@@ -20,22 +20,22 @@
     Public Sub Append(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
         Dim A As Integer
 
-        For A = 0 To ResultToAdd.WarningCount - 1
-            Warning_Add(Prefix & ResultToAdd.Warnings(A))
-        Next
         For A = 0 To ResultToAdd.ProblemCount - 1
             Problem_Add(Prefix & ResultToAdd.Problems(A))
+        Next
+        For A = 0 To ResultToAdd.WarningCount - 1
+            Warning_Add(Prefix & ResultToAdd.Warnings(A))
         Next
     End Sub
 
     Public Sub AppendAsWarning(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
         Dim A As Integer
 
-        For A = 0 To ResultToAdd.WarningCount - 1
-            Warning_Add(Prefix & ResultToAdd.Warnings(A))
-        Next
         For A = 0 To ResultToAdd.ProblemCount - 1
             Warning_Add(Prefix & ResultToAdd.Problems(A))
+        Next
+        For A = 0 To ResultToAdd.WarningCount - 1
+            Warning_Add(Prefix & ResultToAdd.Warnings(A))
         Next
     End Sub
 

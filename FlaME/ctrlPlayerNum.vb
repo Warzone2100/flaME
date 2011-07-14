@@ -5,24 +5,22 @@
 
     Public tsbNumber(10) As ToolStripButton
 
-    Private _SelectedPlayerNum As Integer = -1
-    Public Property SelectedPlayerNum As Integer
+    Private _SelectedUnitGroup As clsMap.clsUnitGroup
+    Public Property SelectedUnitGroup As clsMap.clsUnitGroup
         Get
-            Return _SelectedPlayerNum
+            Return _SelectedUnitGroup
         End Get
-        Set(ByVal value As Integer)
-            If value > 10 Then
-                Stop
-                Exit Property
-            End If
-            If value = _SelectedPlayerNum Then
+        Set(ByVal value As clsMap.clsUnitGroup)
+            If value Is _SelectedUnitGroup Then
                 Exit Property
             End If
             ChangeSelected(value)
         End Set
     End Property
 
-    Public Event SelectedPlayerNumChanged()
+    Public Event SelectedUnitGroupChanged()
+
+    Public Const ScavButtonNum As Integer = 10
 
     Public Sub New()
         ' This call is required by the designer.
@@ -38,7 +36,6 @@
             tsbNumber(A).DisplayStyle = ToolStripItemDisplayStyle.Text
             tsbNumber(A).Text = A
             tsbNumber(A).AutoToolTip = False
-            tsbNumber(A).Tag = A
             AddHandler tsbNumber(A).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum1.Items.Add(tsbNumber(A))
 
@@ -47,7 +44,6 @@
             tsbNumber(B).DisplayStyle = ToolStripItemDisplayStyle.Text
             tsbNumber(B).Text = B
             tsbNumber(B).AutoToolTip = False
-            tsbNumber(B).Tag = B
             AddHandler tsbNumber(B).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum2.Items.Add(tsbNumber(B))
         Next
@@ -56,8 +52,7 @@
 
         tsbNumber(A) = New ToolStripButton
         tsbNumber(A).DisplayStyle = ToolStripItemDisplayStyle.Text
-        tsbNumber(A).Text = A
-        tsbNumber(A).Tag = A
+        tsbNumber(A).Text = "S"
         tsbNumber(A).AutoToolTip = False
         AddHandler tsbNumber(A).Click, AddressOf tsbNumber_Clicked
         tsPlayerNum2.Items.Add(tsbNumber(A))
@@ -68,26 +63,34 @@
 
     Private Sub tsbNumber_Clicked(ByVal sender As Object, ByVal e As EventArgs)
         Dim tsb As ToolStripButton = sender
-        Dim Num As Integer = tsb.Tag
+        Dim tmpUnitGroup As clsMap.clsUnitGroup = CType(tsb.Tag, clsMap.clsUnitGroup)
 
-        If Num = _SelectedPlayerNum Then
+        If tmpUnitGroup Is _SelectedUnitGroup Then
             Exit Sub
         End If
-
-        ChangeSelected(Num)
+        ChangeSelected(tmpUnitGroup)
     End Sub
 
-    Private Sub ChangeSelected(ByVal Num As Integer)
+    Private Sub ChangeSelected(ByVal NewSelectedUnitGroup As clsMap.clsUnitGroup)
+        Dim A As Integer
 
-        If _SelectedPlayerNum >= 0 Then
-            tsbNumber(_SelectedPlayerNum).Checked = False
-        End If
-        _SelectedPlayerNum = Num
-        If _SelectedPlayerNum >= 0 Then
-            tsbNumber(_SelectedPlayerNum).Checked = True
-        End If
+        _SelectedUnitGroup = NewSelectedUnitGroup
+        For A = 0 To 10
+            tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is NewSelectedUnitGroup)
+        Next
 
-        RaiseEvent SelectedPlayerNumChanged()
+        RaiseEvent SelectedUnitGroupChanged()
+    End Sub
+
+    Public Sub SetButtonUnitGroups(ByVal NewMap As clsMap)
+        Dim A As Integer
+
+        For A = 0 To PlayerCountMax - 1
+            tsbNumber(A).Tag = NewMap.UnitGroups(A)
+        Next
+        tsbNumber(ScavButtonNum).Tag = NewMap.ScavengerUnitGroup
+
+        SelectedUnitGroup = NewMap.ScavengerUnitGroup
     End Sub
 
 #If MonoDevelop <> 0.0# Then

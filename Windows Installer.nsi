@@ -9,6 +9,8 @@
 	!include "MUI2.nsh"
 	!include "FileFunc.nsh"
 	!include "LogicLib.nsh"
+	
+	!include "FileAssociation.nsh"
 
 ;--------------------------------
 ;Defines
@@ -133,6 +135,7 @@ Section "Install FlaME" Main
 	File "${EXESOURCELOC}\ICSharpCode.SharpZipLib.dll"
 	File "${EXESOURCELOC}\FlaME.exe"
 	File "${EXESOURCELOC}\flaME.ico"
+	File "${INSTALLERDATA}\map.ico"
 	
 	;Startmenu shortcuts
 	!insertmacro MUI_STARTMENU_WRITE_BEGIN "FlaME"
@@ -140,10 +143,6 @@ Section "Install FlaME" Main
 		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\FlaME.lnk" "$INSTDIR\FlaME.exe"
 		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Uninstall FlaME.lnk" "$INSTDIR\Uninstall.exe"
 	!insertmacro MUI_STARTMENU_WRITE_END
-	
-	;Desktop Shortcut
-	SetOutPath "$INSTDIR"	
-	CreateShortCut "$DESKTOP\FlaME.lnk" "$INSTDIR\FlaME.exe"
 	
 	;Store installation folder
 	WriteRegStr HKCU "Software\flaME\1.x" "" $INSTDIR
@@ -160,46 +159,29 @@ Section "Install FlaME" Main
 	
 SectionEnd
 
-;Register .fmap, .fme, .lnd and .wz files
+SubSection "File Associations"
 
-Section "Register FlaME .fmap Files" RegFMAP
-	;Register file types
-	WriteRegStr HKLM "SOFTWARE\Classes\.fmap" "" "WZ2100.FMAP"
-	
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FMAP" "" "flaME Save File"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FMAP\DefaultIcon" "" '"$INSTDIR\flaME.ico",0'
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FMAP\shell\Open" "" "Open"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FMAP\shell\Open\command" "" '"$INSTDIR\FlaME.exe" "%1"'
+Section "FlaME .fmap" RegFMAP
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fmap" "FlaME Map File" "$INSTDIR\map.ico"
 SectionEnd
 
-Section "Register FlaME .fme Files" RegFME
-	;Register file types
-	WriteRegStr HKLM "SOFTWARE\Classes\.fme" "" "WZ2100.FME"
-	
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FME" "" "flaME Save File"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FME\DefaultIcon" "" '"$INSTDIR\flaME.ico",0'
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FME\shell\Open" "" "Open"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.FME\shell\Open\command" "" '"$INSTDIR\FlaME.exe" "%1"'
+Section "FlaME .fme" RegFME
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fme" "FlaME Map File" "$INSTDIR\map.ico"
 SectionEnd
 
-Section "Register Editworld .lnd Files" RegLND
-	;Register file types
-	WriteRegStr HKLM "SOFTWARE\Classes\.lnd" "" "WZ2100.LND"
-	
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.LND" "" "Editworld Save File"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.LND\DefaultIcon" "" '"$INSTDIR\flaME.ico",0'
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.LND\shell\Open" "" "Open"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.LND\shell\Open\command" "" '"$INSTDIR\FlaME.exe" "%1"'
+Section "Editworld .lnd" RegLND
+	${registerExtension} "$INSTDIR\FlaME.exe" ".lnd" "EditWorld Map File" "$INSTDIR\map.ico"
 SectionEnd
 
-Section "Register Warzone .wz Files" RegWZ
-	;Register file types
-	WriteRegStr HKLM "SOFTWARE\Classes\.wz" "" "WZ2100.WZ"
-	
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.WZ" "" "Warzone 2100 File"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.WZ\DefaultIcon" "" '"$INSTDIR\flaME.ico",0'
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.WZ\shell\Open" "" "Open"
-	WriteRegStr HKLM "SOFTWARE\Classes\WZ2100.WZ\shell\Open\command" "" '"$INSTDIR\FlaME.exe" "%1"'
+Section "Warzone .wz" RegWZ
+	${registerExtension} "$INSTDIR\FlaME.exe" ".wz" "Warzone 2100 Archive" "$INSTDIR\map.ico"
+SectionEnd
+
+SubSectionEnd
+
+Section "Desktop Shortcut" ShortcutDT
+	SetOutPath "$INSTDIR"	
+	CreateShortCut "$DESKTOP\FlaME.lnk" "$INSTDIR\FlaME.exe"
 SectionEnd
 
 ;--------------------------------
@@ -234,7 +216,7 @@ Section "un.Uninstall FlaME" unMain
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME"
 	
 	Delete "$INSTDIR\Uninstall.exe"
-	;Delete "$INSTDIR\fRMG.exe"
+	Delete "$INSTDIR\map.ico"
 	Delete "$INSTDIR\flame.ico"
 	Delete "$INSTDIR\FlaME.exe"
 	Delete "$INSTDIR\ICSharpCode.SharpZipLib.dll"
@@ -258,13 +240,10 @@ Section "un.Uninstall FlaME" unMain
 SectionEnd
 
 Section "un.Delete File Registration" unReg
-	DeleteRegKey HKLM "SOFTWARE\Classes\.fme"
-	DeleteRegKey HKLM "SOFTWARE\Classes\.lnd"
-	DeleteRegKey HKLM "SOFTWARE\Classes\.wz"
-	DeleteRegKey HKLM "SOFTWARE\Classes\WZ2100.FMAP"
-	DeleteRegKey HKLM "SOFTWARE\Classes\WZ2100.FME"
-	DeleteRegKey HKLM "SOFTWARE\Classes\WZ2100.LND"
-	DeleteRegKey HKLM "SOFTWARE\Classes\WZ2100.WZ"
+	${unregisterExtension} ".fmap" "FlaME Map File"
+	${unregisterExtension} ".fme" "FlaME Map File"
+	${unregisterExtension} ".wz" "Warzone 2100 Archive"
+	${unregisterExtension} ".lnd" "EditWorld Map File"
 SectionEnd
 
 ;--------------------------------

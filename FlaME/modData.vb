@@ -834,7 +834,7 @@
         Try
             TexFiles = IO.Directory.GetFiles(Path & SubDirTexpages)
         Catch ex As Exception
-            DataLoad.Warning_Add(ex.Message)
+            DataLoad.Warning_Add("Unable to access texture pages.")
             ReDim TexFiles(-1)
         End Try
 
@@ -846,14 +846,16 @@
         TexturePageCount = 0
         For TexFile_Num = 0 To TexFiles.GetUpperBound(0)
             tmpString = TexFiles(TexFile_Num)
-            If LCase(Right(tmpString, 4)) = ".png" Then
+            If Right(tmpString, 4).ToLower = ".png" Then
                 If IO.File.Exists(tmpString) Then
                     ReDim Preserve TexturePages(TexturePageCount)
                     Result = LoadBitmap(tmpString, tmpBitmap)
-                    If Not Result.Success Then
+                    If Result.Success Then
+                        DataLoad.AppendAsWarning(BitmapIsGLCompatible(tmpBitmap), "Texture " & ControlChars.Quote & tmpString & ControlChars.Quote & " compatability: ")
+                        TexturePages(TexturePageCount).GLTexture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, False, False)
+                    Else
                         DataLoad.Warning_Add("Unable to load " & tmpString & ": " & Result.Problem)
                     End If
-                    TexturePages(TexturePageCount).GLTexture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, False, False)
                     InstrPos2 = InStrRev(tmpString, OSPathSeperator)
                     TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
@@ -1700,26 +1702,22 @@
         End If
 
         Dim A As Integer
-        Dim Result As sResult
         Dim PIEFile As clsReadFile
 
         For A = 0 To PIE_List.PIECount - 1
             If PIE_List.PIEs(A).LCaseFileTitle = PIE_LCaseFileTitle Then
                 If PIE_List.PIEs(A).Model Is Nothing Then
                     PIE_List.PIEs(A).Model = New clsModel
+                    PIEFile = New clsReadFile
+                    PIEFile.Begin(PIE_List.PIEs(A).Path)
                     Try
-                        PIEFile = New clsReadFile
-                        PIEFile.Begin(PIE_List.PIEs(A).Path)
-                        Result = PIE_List.PIEs(A).Model.LoadPIE(PIEFile)
-                        PIEFile.Close()
+                        ResultOutput.AppendAsWarning(PIE_List.PIEs(A).Model.LoadPIE(PIEFile), "Loading PIE " & ControlChars.Quote & PIE_LCaseFileTitle & ControlChars.Quote & ": ")
                     Catch ex As Exception
-                        ResultOutput.Warning_Add("Error loading PIE " & PIE_List.PIEs(A).Path)
-                        Return Nothing
+                        PIEFile.Close()
+                        ResultOutput.Warning_Add(PIE_LCaseFileTitle & " produced error " & ex.Message)
+                        Return PIE_List.PIEs(A).Model
                     End Try
-                    If Not Result.Success Then
-                        ResultOutput.Warning_Add("Unable to load PIE file " & Result.Problem)
-                        Return Nothing
-                    End If
+                    PIEFile.Close()
                 End If
                 Return PIE_List.PIEs(A).Model
             End If

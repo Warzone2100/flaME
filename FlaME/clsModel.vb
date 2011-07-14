@@ -83,7 +83,7 @@ Public Class clsModel
     Structure sPIELevel
         Structure sPolygon
             Dim PointNum() As Integer
-            Dim TexCoord() As sXY_int
+            Dim TexCoord() As sXY_sng
             Dim PointCount As Integer
         End Structure
         Dim Polygon() As sPolygon
@@ -92,9 +92,8 @@ Public Class clsModel
         Dim PointCount As Integer
     End Structure
 
-    Function LoadPIE(ByVal File As clsReadFile) As sResult
-        LoadPIE.Success = False
-        LoadPIE.Problem = ""
+    Function LoadPIE(ByVal File As clsReadFile) As clsResult
+        Dim ReturnResult As New clsResult
 
         Dim TerminatorChars(1) As Char
         TerminatorChars(0) = Chr(10)
@@ -109,19 +108,17 @@ Public Class clsModel
         Dim NewTriCount As Integer
         Dim C As Integer
         Dim TextureName As String = ""
-        Dim LineNum As Integer
-        Dim Level() As sPIELevel
+        Dim Levels() As sPIELevel
         Dim LevelNum As Integer
         Dim GotText As Boolean
         Dim strTemp2 As String
         Dim D As Integer
         Dim PIEVersion As Integer
+        Dim Count As Integer
 
-        ReDim Level(-1)
-        LineNum = -1
+        ReDim Levels(-1)
         LevelNum = -1
         Do
-            LineNum += 1
             strTemp = Nothing
             If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
                 GoTo FileFinished
@@ -130,8 +127,8 @@ Reeval:
             If Left(strTemp, 3) = "PIE" Then
                 PIEVersion = Val(Right(strTemp, strTemp.Length - 4))
                 If PIEVersion <> 2 And PIEVersion <> 3 Then
-                    LoadPIE.Problem = "Version is unknown."
-                    Exit Function
+                    ReturnResult.Problem_Add("Version is unknown.")
+                    Return ReturnResult
                 End If
             ElseIf Left(strTemp, 4) = "TYPE" Then
             ElseIf Left(strTemp, 7) = "TEXTURE" Then
@@ -140,23 +137,27 @@ Reeval:
                 If A > 0 Then
                     A = InStrRev(TextureName, " ", A - 1)
                 Else
-                    LoadPIE.Problem = "Bad texture name."
-                    Exit Function
+                    ReturnResult.Problem_Add("Bad texture name.")
+                    Return ReturnResult
                 End If
                 If A > 0 Then
                     TextureName = Left(TextureName, A - 1)
                 Else
-                    LoadPIE.Problem = "Bad texture name."
-                    Exit Function
+                    ReturnResult.Problem_Add("Bad texture name.")
+                    Return ReturnResult
                 End If
             ElseIf Left(strTemp, 6) = "LEVELS" Then
                 LevelCount = Right(strTemp, strTemp.Length - 7)
-                ReDim Level(LevelCount - 1)
+                ReDim Levels(LevelCount - 1)
             ElseIf Left(strTemp, 6) = "LEVEL " Then
                 LevelNum = Right(strTemp, strTemp.Length - 6) - 1
+                If LevelNum >= LevelCount Then
+                    ReturnResult.Problem_Add("Level number >= number of levels.")
+                    Return ReturnResult
+                End If
             ElseIf Left(strTemp, 6) = "POINTS" Then
-                Level(LevelNum).PointCount = Right(strTemp, strTemp.Length - 7)
-                ReDim Level(LevelNum).Point(Level(LevelNum).PointCount - 1)
+                Levels(LevelNum).PointCount = Right(strTemp, strTemp.Length - 7)
+                ReDim Levels(LevelNum).Point(Levels(LevelNum).PointCount - 1)
                 A = 0
                 Do
                     strTemp = Nothing
@@ -187,17 +188,24 @@ Reeval:
                             End If
                         Next
 
-                        Level(LevelNum).Point(A).X = Val(SplitText(0))
-                        Level(LevelNum).Point(A).Y = Val(SplitText(1))
-                        Level(LevelNum).Point(A).Z = Val(SplitText(2))
+                        Try
+                            Levels(LevelNum).Point(A).X = SplitText(0)
+                            Levels(LevelNum).Point(A).Y = SplitText(1)
+                            Levels(LevelNum).Point(A).Z = SplitText(2)
+                        Catch ex As Exception
+                            ReturnResult.Problem_Add("Bad point " & A)
+                            Return ReturnResult
+                        End Try
                         A += 1
+                    ElseIf strTemp2 = "" Then
+
                     Else
                         GoTo Reeval
                     End If
                 Loop
             ElseIf Left(strTemp, 8) = "POLYGONS" Then
-                Level(LevelNum).PolygonCount = Right(strTemp, strTemp.Length - 9)
-                ReDim Level(LevelNum).Polygon(Level(LevelNum).PolygonCount - 1)
+                Levels(LevelNum).PolygonCount = Right(strTemp, strTemp.Length - 9)
+                ReDim Levels(LevelNum).Polygon(Levels(LevelNum).PolygonCount - 1)
                 A = 0
                 Do
                     strTemp = Nothing
@@ -209,49 +217,104 @@ Reeval:
                     If strTemp2 = Chr(9) Or strTemp2 = " " Then
 
                         C = 0
-                        ReDim SplitText(0)
-                        SplitText(0) = ""
-                        GotText = False
+                        ReDim SplitText(C)
+                        SplitText(C) = ""
                         For B = 0 To strTemp.Length - 1
-                            If strTemp.Chars(B) <> " "c And strTemp.Chars(B) <> ControlChars.Tab Then
-                                GotText = True
-                                SplitText(C) &= strTemp.Chars(B)
-                            Else
-                                If GotText Then
+                            If strTemp.Chars(B) = " "c Or strTemp.Chars(B) = ControlChars.Tab Then
+                                If SplitText(C).Length > 0 Then
                                     C += 1
                                     ReDim Preserve SplitText(C)
                                     SplitText(C) = ""
-                                    GotText = False
                                 End If
+                            Else
+                                SplitText(C) &= strTemp.Chars(B)
                             End If
                         Next
+                        If SplitText(C).Length = 0 Then
+                            ReDim Preserve SplitText(C - 1)
+                        Else
+                            C += 1
+                        End If
 
-                        D = 0
-                        Do
-                            'flag, numpoints, points[], x4 ignore if animated, texcoord[]xy
-                            Level(LevelNum).Polygon(A).PointCount = Val(SplitText(D + 1))
-                            ReDim Level(LevelNum).Polygon(A).PointNum(Level(LevelNum).Polygon(A).PointCount - 1)
-                            ReDim Level(LevelNum).Polygon(A).TexCoord(Level(LevelNum).Polygon(A).PointCount - 1)
-                            If Level(LevelNum).Polygon(A).PointCount = 3 Then
+                        If PIEVersion = 3 Then
+                            '200, pointcount, points, texcoords
+                            If C < 2 Then
+                                ReturnResult.Problem_Add("Too few fields for polygon " & A)
+                                Return ReturnResult
+                            End If
+                            Try
+                                Count = SplitText(1)
+                            Catch ex As Exception
+                                ReturnResult.Problem_Add("Bad polygon point count: " & ex.Message)
+                                Return ReturnResult
+                            End Try
+                            Levels(LevelNum).Polygon(A).PointCount = Count
+                            ReDim Levels(LevelNum).Polygon(A).PointNum(Count - 1)
+                            ReDim Levels(LevelNum).Polygon(A).TexCoord(Count - 1)
+                            If Count = 3 Then
                                 NewTriCount += 1
-                            ElseIf Level(LevelNum).Polygon(A).PointCount = 4 Then
+                            ElseIf Count = 4 Then
                                 NewQuadCount += 1
                             End If
-                            For B = 0 To Level(LevelNum).Polygon(A).PointCount - 1
-                                Level(LevelNum).Polygon(A).PointNum(B) = Val(SplitText(D + 2 + B))
+                            Select Case SplitText.GetUpperBound(0) + 1
+                                Case 0
+                                    GoTo Reeval
+                                Case Is <> 2 + Count * 3
+                                    ReturnResult.Problem_Add("Wrong number of fields (" & SplitText.GetUpperBound(0) + 1 & ") for polygon " & A)
+                                    Return ReturnResult
+                            End Select
+                            For B = 0 To Count - 1
+                                Try
+                                    Levels(LevelNum).Polygon(A).PointNum(B) = SplitText(2 + B)
+                                Catch ex As Exception
+                                    ReturnResult.Problem_Add("Bad polygon point: " & ex.Message)
+                                    Return ReturnResult
+                                End Try
+
+                                Try
+                                    Levels(LevelNum).Polygon(A).TexCoord(B).X = SplitText(2 + Count + 2 * B)
+                                Catch ex As Exception
+                                    ReturnResult.Problem_Add("Bad polygon x tex coord: " & ex.Message)
+                                    Return ReturnResult
+                                End Try
+                                Try
+                                    Levels(LevelNum).Polygon(A).TexCoord(B).Y = SplitText(2 + Count + 2 * B + 1)
+                                Catch ex As Exception
+                                    ReturnResult.Problem_Add("Bad polygon y tex coord: " & ex.Message)
+                                    Return ReturnResult
+                                End Try
                             Next
-                            C = D + 2 + Level(LevelNum).Polygon(A).PointCount
-                            If SplitText(D) = "4200" Or SplitText(D) = "4000" Or SplitText(D) = "6a00" Or SplitText(D) = "4a00" Or SplitText(D) = "6200" Or SplitText(D) = "14200" Or SplitText(D) = "14a00" Or SplitText(D) = "16a00" Then
-                                C += 4
-                            End If
-                            For B = 0 To Level(LevelNum).Polygon(A).PointCount - 1
-                                Level(LevelNum).Polygon(A).TexCoord(B).X = Val(SplitText(C))
-                                Level(LevelNum).Polygon(A).TexCoord(B).Y = Val(SplitText(C + 1))
-                                C += 2
-                            Next
-                            D = C
                             A += 1
-                        Loop While D < SplitText.GetUpperBound(0)
+                        ElseIf PIEVersion = 2 Then
+                            D = 0
+                            Do
+                                'flag, numpoints, points[], x4 ignore if animated, texcoord[]xy
+                                Levels(LevelNum).Polygon(A).PointCount = Val(SplitText(D + 1))
+                                ReDim Levels(LevelNum).Polygon(A).PointNum(Levels(LevelNum).Polygon(A).PointCount - 1)
+                                ReDim Levels(LevelNum).Polygon(A).TexCoord(Levels(LevelNum).Polygon(A).PointCount - 1)
+                                If Levels(LevelNum).Polygon(A).PointCount = 3 Then
+                                    NewTriCount += 1
+                                ElseIf Levels(LevelNum).Polygon(A).PointCount = 4 Then
+                                    NewQuadCount += 1
+                                End If
+                                For B = 0 To Levels(LevelNum).Polygon(A).PointCount - 1
+                                    Levels(LevelNum).Polygon(A).PointNum(B) = Val(SplitText(D + 2 + B))
+                                Next
+                                C = D + 2 + Levels(LevelNum).Polygon(A).PointCount
+                                If SplitText(D) = "4200" Or SplitText(D) = "4000" Or SplitText(D) = "6a00" Or SplitText(D) = "4a00" Or SplitText(D) = "6200" Or SplitText(D) = "14200" Or SplitText(D) = "14a00" Or SplitText(D) = "16a00" Then
+                                    C += 4
+                                End If
+                                For B = 0 To Levels(LevelNum).Polygon(A).PointCount - 1
+                                    Levels(LevelNum).Polygon(A).TexCoord(B).X = Val(SplitText(C))
+                                    Levels(LevelNum).Polygon(A).TexCoord(B).Y = Val(SplitText(C + 1))
+                                    C += 2
+                                Next
+                                D = C
+                                A += 1
+                            Loop While D < SplitText.GetUpperBound(0)
+                        End If
+                    ElseIf strTemp2 = "" Then
+
                     Else
                         GoTo Reeval
                     End If
@@ -289,20 +352,31 @@ Reeval:
                             End If
                         Next
 
-                        Connectors(A).X = Val(SplitText(0))
-                        Connectors(A).Y = Val(SplitText(2))
-                        Connectors(A).Z = Val(SplitText(1))
+                        Try
+                            Connectors(A).X = SplitText(0)
+                            Connectors(A).Y = SplitText(2)
+                            Connectors(A).Z = SplitText(1)
+                        Catch ex As Exception
+                            ReturnResult.Problem_Add("Bad connector " & A)
+                            Return ReturnResult
+                        End Try
                         A += 1
+                    ElseIf strTemp2 = "" Then
+
                     Else
                         GoTo Reeval
                     End If
                 Loop
             Else
+
             End If
         Loop
 FileFinished:
 
         GLTextureNum = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
+        If GLTextureNum = 0 Then
+            ReturnResult.Warning_Add("PIE texture " & ControlChars.Quote & TextureName & ControlChars.Quote & " was not loaded.")
+        End If
 
         TriangleCount = NewTriCount
         QuadCount = NewQuadCount
@@ -311,36 +385,49 @@ FileFinished:
         NewTriCount = 0
         NewQuadCount = 0
         For LevelNum = 0 To LevelCount - 1
-            For A = 0 To Level(LevelNum).PolygonCount - 1
-                If Level(LevelNum).Polygon(A).PointCount = 3 Then
-                    Triangles(NewTriCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
-                    Triangles(NewTriCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
-                    Triangles(NewTriCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
-                    Triangles(NewTriCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
-                    Triangles(NewTriCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
-                    Triangles(NewTriCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
-                    Triangles(NewTriCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
-                    Triangles(NewTriCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
-                    Triangles(NewTriCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
+            For A = 0 To Levels(LevelNum).PolygonCount - 1
+                If Levels(LevelNum).Polygon(A).PointCount = 3 Then
+                    Triangles(NewTriCount).PosA = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(0))
+                    Triangles(NewTriCount).PosB = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(1))
+                    Triangles(NewTriCount).PosC = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(2))
+                    If PIEVersion = 2 Then
+                        Triangles(NewTriCount).TexCoordA.X = Levels(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
+                        Triangles(NewTriCount).TexCoordA.Y = Levels(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
+                        Triangles(NewTriCount).TexCoordB.X = Levels(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
+                        Triangles(NewTriCount).TexCoordB.Y = Levels(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
+                        Triangles(NewTriCount).TexCoordC.X = Levels(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
+                        Triangles(NewTriCount).TexCoordC.Y = Levels(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
+                    ElseIf PIEVersion = 3 Then
+                        Triangles(NewTriCount).TexCoordA = Levels(LevelNum).Polygon(A).TexCoord(0)
+                        Triangles(NewTriCount).TexCoordB = Levels(LevelNum).Polygon(A).TexCoord(1)
+                        Triangles(NewTriCount).TexCoordC = Levels(LevelNum).Polygon(A).TexCoord(2)
+                    End If
                     NewTriCount += 1
-                ElseIf Level(LevelNum).Polygon(A).PointCount = 4 Then
-                    Quads(NewQuadCount).PosA = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(0))
-                    Quads(NewQuadCount).PosB = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(1))
-                    Quads(NewQuadCount).PosC = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(2))
-                    Quads(NewQuadCount).PosD = Level(LevelNum).Point(Level(LevelNum).Polygon(A).PointNum(3))
-                    Quads(NewQuadCount).TexCoordA.X = Level(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
-                    Quads(NewQuadCount).TexCoordA.Y = Level(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
-                    Quads(NewQuadCount).TexCoordB.X = Level(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
-                    Quads(NewQuadCount).TexCoordB.Y = Level(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
-                    Quads(NewQuadCount).TexCoordC.X = Level(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
-                    Quads(NewQuadCount).TexCoordC.Y = Level(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
-                    Quads(NewQuadCount).TexCoordD.X = Level(LevelNum).Polygon(A).TexCoord(3).X / 255.0#
-                    Quads(NewQuadCount).TexCoordD.Y = Level(LevelNum).Polygon(A).TexCoord(3).Y / 255.0#
+                ElseIf Levels(LevelNum).Polygon(A).PointCount = 4 Then
+                    Quads(NewQuadCount).PosA = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(0))
+                    Quads(NewQuadCount).PosB = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(1))
+                    Quads(NewQuadCount).PosC = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(2))
+                    Quads(NewQuadCount).PosD = Levels(LevelNum).Point(Levels(LevelNum).Polygon(A).PointNum(3))
+                    If PIEVersion = 2 Then
+                        Quads(NewQuadCount).TexCoordA.X = Levels(LevelNum).Polygon(A).TexCoord(0).X / 255.0#
+                        Quads(NewQuadCount).TexCoordA.Y = Levels(LevelNum).Polygon(A).TexCoord(0).Y / 255.0#
+                        Quads(NewQuadCount).TexCoordB.X = Levels(LevelNum).Polygon(A).TexCoord(1).X / 255.0#
+                        Quads(NewQuadCount).TexCoordB.Y = Levels(LevelNum).Polygon(A).TexCoord(1).Y / 255.0#
+                        Quads(NewQuadCount).TexCoordC.X = Levels(LevelNum).Polygon(A).TexCoord(2).X / 255.0#
+                        Quads(NewQuadCount).TexCoordC.Y = Levels(LevelNum).Polygon(A).TexCoord(2).Y / 255.0#
+                        Quads(NewQuadCount).TexCoordD.X = Levels(LevelNum).Polygon(A).TexCoord(3).X / 255.0#
+                        Quads(NewQuadCount).TexCoordD.Y = Levels(LevelNum).Polygon(A).TexCoord(3).Y / 255.0#
+                    ElseIf PIEVersion = 3 Then
+                        Quads(NewQuadCount).TexCoordA = Levels(LevelNum).Polygon(A).TexCoord(0)
+                        Quads(NewQuadCount).TexCoordB = Levels(LevelNum).Polygon(A).TexCoord(1)
+                        Quads(NewQuadCount).TexCoordC = Levels(LevelNum).Polygon(A).TexCoord(2)
+                        Quads(NewQuadCount).TexCoordD = Levels(LevelNum).Polygon(A).TexCoord(3)
+                    End If
                     NewQuadCount += 1
                 End If
             Next
         Next
 
-        LoadPIE.Success = True
+        Return ReturnResult
     End Function
 End Class

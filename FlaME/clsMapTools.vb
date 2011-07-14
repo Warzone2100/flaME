@@ -131,14 +131,14 @@
 
     Sub Rotate_CounterClockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
         Dim tmpTerrainTile(,) As sTerrainTile
         Dim tmpTerrainSideH(,) As sTerrainSide
         Dim tmpTerrainSideV(,) As sTerrainSide
         Dim tmpGateways() As sGateway
         Dim TileCount As New sXY_int(TerrainSize.Y, TerrainSize.X)
-        Dim Z2 As Integer
+        Dim Y2 As Integer
 
         Undo_Clear()
         SectorAll_GLLists_Delete()
@@ -148,33 +148,33 @@
         ReDim tmpTerrainSideH(TileCount.X - 1, TileCount.Y)
         ReDim tmpTerrainSideV(TileCount.X, TileCount.Y - 1)
 
-        For Z = 0 To TileCount.Y
+        For Y = 0 To TileCount.Y
             For X = 0 To TileCount.X
-                tmpTerrainVertex(X, Z) = TerrainVertex(TerrainSize.X - Z, X)
+                tmpTerrainVertex(X, Y) = TerrainVertex(TerrainSize.X - Y, X)
             Next
         Next
-        For Z = 0 To TileCount.Y - 1
-            Z2 = TerrainSize.X - Z - 1
+        For Y = 0 To TileCount.Y - 1
+            Y2 = TerrainSize.X - Y - 1
             For X = 0 To TileCount.X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTiles(Z2, X).Texture
-                tmpTerrainTile(X, Z).Texture.Orientation.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).DownSide = TerrainTiles(Z2, X).DownSide
-                tmpTerrainTile(X, Z).DownSide.RotateAnticlockwise()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(Z2, X).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(Z2, X).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(Z2, X).TriTopLeftIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(Z2, X).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(Z2, X).TriBottomRightIsCliff
+                tmpTerrainTile(X, Y).Texture = TerrainTiles(Y2, X).Texture
+                tmpTerrainTile(X, Y).Texture.Orientation.RotateAnticlockwise()
+                tmpTerrainTile(X, Y).DownSide = TerrainTiles(Y2, X).DownSide
+                tmpTerrainTile(X, Y).DownSide.RotateAnticlockwise()
+                tmpTerrainTile(X, Y).Tri = Not TerrainTiles(Y2, X).Tri
+                tmpTerrainTile(X, Y).TriTopLeftIsCliff = TerrainTiles(Y2, X).TriTopRightIsCliff
+                tmpTerrainTile(X, Y).TriBottomLeftIsCliff = TerrainTiles(Y2, X).TriTopLeftIsCliff
+                tmpTerrainTile(X, Y).TriBottomRightIsCliff = TerrainTiles(Y2, X).TriBottomLeftIsCliff
+                tmpTerrainTile(X, Y).TriTopRightIsCliff = TerrainTiles(Y2, X).TriBottomRightIsCliff
             Next
         Next
-        For Z = 0 To TileCount.Y
+        For Y = 0 To TileCount.Y
             For X = 0 To TileCount.X - 1
-                tmpTerrainSideH(X, Z) = TerrainSideV(TerrainSize.X - Z, X)
+                tmpTerrainSideH(X, Y) = TerrainSideV(TerrainSize.X - Y, X)
             Next
         Next
-        For Z = 0 To TileCount.Y - 1
+        For Y = 0 To TileCount.Y - 1
             For X = 0 To TileCount.X
-                tmpTerrainSideV(X, Z) = TerrainSideH(TerrainSize.X - Z - 1, X)
+                tmpTerrainSideV(X, Y) = TerrainSideH(TerrainSize.X - Y - 1, X)
             Next
         Next
 
@@ -225,9 +225,9 @@
         SectorCount.X = Math.Ceiling(TileCount.X / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCount.Y / SectorTileSize)
         ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
             Next
         Next
 
@@ -259,8 +259,8 @@
     End Sub
 
     Sub Rotate_FlipX(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim Z As Integer
         Dim X As Integer
+        Dim Y As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
         Dim tmpTerrainTile(,) As sTerrainTile
         Dim tmpTerrainSideH(,) As sTerrainSide
@@ -277,33 +277,33 @@
         ReDim tmpTerrainSideH(TileCount.X - 1, TileCount.Y)
         ReDim tmpTerrainSideV(TileCount.X, TileCount.Y - 1)
 
-        For Z = 0 To TileCount.Y
+        For Y = 0 To TileCount.Y
             For X = 0 To TileCount.X
-                tmpTerrainVertex(X, Z) = TerrainVertex(TerrainSize.X - X, Z)
+                tmpTerrainVertex(X, Y) = TerrainVertex(TerrainSize.X - X, Y)
             Next
         Next
-        For Z = 0 To TileCount.Y - 1
+        For Y = 0 To TileCount.Y - 1
             For X = 0 To TileCount.X - 1
                 X2 = TerrainSize.X - X - 1
-                tmpTerrainTile(X, Z).Texture = TerrainTiles(X2, Z).Texture
-                tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip = Not tmpTerrainTile(X, Z).Texture.Orientation.ResultXFlip
-                tmpTerrainTile(X, Z).DownSide = TerrainTiles(X2, Z).DownSide
-                tmpTerrainTile(X2, Z).DownSide.FlipX()
-                tmpTerrainTile(X, Z).Tri = Not TerrainTiles(X2, Z).Tri
-                tmpTerrainTile(X, Z).TriTopLeftIsCliff = TerrainTiles(X2, Z).TriTopRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomLeftIsCliff = TerrainTiles(X2, Z).TriBottomRightIsCliff
-                tmpTerrainTile(X, Z).TriBottomRightIsCliff = TerrainTiles(X2, Z).TriBottomLeftIsCliff
-                tmpTerrainTile(X, Z).TriTopRightIsCliff = TerrainTiles(X2, Z).TriTopLeftIsCliff
+                tmpTerrainTile(X, Y).Texture = TerrainTiles(X2, Y).Texture
+                tmpTerrainTile(X, Y).Texture.Orientation.ResultXFlip = Not tmpTerrainTile(X, Y).Texture.Orientation.ResultXFlip
+                tmpTerrainTile(X, Y).DownSide = TerrainTiles(X2, Y).DownSide
+                tmpTerrainTile(X2, Y).DownSide.FlipX()
+                tmpTerrainTile(X, Y).Tri = Not TerrainTiles(X2, Y).Tri
+                tmpTerrainTile(X, Y).TriTopLeftIsCliff = TerrainTiles(X2, Y).TriTopRightIsCliff
+                tmpTerrainTile(X, Y).TriBottomLeftIsCliff = TerrainTiles(X2, Y).TriBottomRightIsCliff
+                tmpTerrainTile(X, Y).TriBottomRightIsCliff = TerrainTiles(X2, Y).TriBottomLeftIsCliff
+                tmpTerrainTile(X, Y).TriTopRightIsCliff = TerrainTiles(X2, Y).TriTopLeftIsCliff
             Next
         Next
-        For Z = 0 To TileCount.Y
+        For Y = 0 To TileCount.Y
             For X = 0 To TileCount.X - 1
-                tmpTerrainSideH(X, Z) = TerrainSideH(TerrainSize.X - X - 1, Z)
+                tmpTerrainSideH(X, Y) = TerrainSideH(TerrainSize.X - X - 1, Y)
             Next
         Next
-        For Z = 0 To TileCount.Y - 1
+        For Y = 0 To TileCount.Y - 1
             For X = 0 To TileCount.X
-                tmpTerrainSideV(X, Z) = TerrainSideV(TerrainSize.X - X, Z)
+                tmpTerrainSideV(X, Y) = TerrainSideV(TerrainSize.X - X, Y)
             Next
         Next
 
@@ -351,9 +351,9 @@
         SectorCount.X = Math.Ceiling(TileCount.X / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCount.Y / SectorTileSize)
         ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
             Next
         Next
 
@@ -407,9 +407,9 @@
         Dim TilePos As sXY_int
         Dim Pos As sXY_int
 
-        For Y = Clamp(Tiles.ZMin + Centre.Y, 0, YLimit) - Centre.Y To Clamp(Tiles.ZMax + Centre.Y, 0, YLimit) - Centre.Y
+        For Y = Clamp(Tiles.YMin + Centre.Y, 0, YLimit) - Centre.Y To Clamp(Tiles.YMax + Centre.Y, 0, YLimit) - Centre.Y
             Y2 = Centre.Y + Y
-            For X = Clamp(Tiles.XMin(Y - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Y - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X
+            For X = Clamp(Tiles.XMin(Y - Tiles.YMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Y - Tiles.YMin) + Centre.X, 0, XLimit) - Centre.X
                 X2 = Centre.X + X
 
                 HeightA = (CDbl(TerrainVertex(X2, Y2).Height) + TerrainVertex(X2 + 1, Y2).Height) / 2.0#
@@ -550,9 +550,9 @@
         Dim YLimit As Integer = TerrainSize.Y - 1
         Dim TilePos As sXY_int
 
-        For Y = Clamp(Tiles.ZMin + Centre.Y, 0, YLimit) - Centre.Y To Clamp(Tiles.ZMax + Centre.Y, 0, YLimit) - Centre.Y
+        For Y = Clamp(Tiles.YMin + Centre.Y, 0, YLimit) - Centre.Y To Clamp(Tiles.YMax + Centre.Y, 0, YLimit) - Centre.Y
             Y2 = Centre.Y + Y
-            For X = Clamp(Tiles.XMin(Y - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Y - Tiles.ZMin) + Centre.X, 0, XLimit) - Centre.X
+            For X = Clamp(Tiles.XMin(Y - Tiles.YMin) + Centre.X, 0, XLimit) - Centre.X To Clamp(Tiles.XMax(Y - Tiles.YMin) + Centre.X, 0, XLimit) - Centre.X
                 X2 = Centre.X + X
 
                 If TerrainTiles(X2, Y2).Terrain_IsCliff Or TerrainTiles(X2, Y2).TriBottomLeftIsCliff Or TerrainTiles(X2, Y2).TriBottomRightIsCliff Or TerrainTiles(X2, Y2).TriTopLeftIsCliff Or TerrainTiles(X2, Y2).TriTopRightIsCliff Then
@@ -668,7 +668,6 @@
     Public Sub GenerateMasterTerrain(ByRef Args As sGenerateMasterTerrainArgs)
         Dim X As Integer
         Dim Y As Integer
-        Dim Z As Integer
         Dim A As Integer
         Dim Terrain(,) As Integer
         Dim Slope(,) As Single
@@ -691,10 +690,10 @@
 
         Tileset = Args.Tileset.Tileset
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                difA = Math.Abs(CDbl(TerrainVertex(X + 1, Z + 1).Height) - TerrainVertex(X, Z).Height)
-                difB = Math.Abs(CDbl(TerrainVertex(X, Z + 1).Height) - TerrainVertex(X + 1, Z).Height)
+                difA = Math.Abs(CDbl(TerrainVertex(X + 1, Y + 1).Height) - TerrainVertex(X, Y).Height)
+                difB = Math.Abs(CDbl(TerrainVertex(X, Y + 1).Height) - TerrainVertex(X + 1, Y).Height)
                 If difA = difB Then
                     If Rnd() >= 0.5F Then
                         NewTri = False
@@ -706,11 +705,11 @@
                 Else
                     NewTri = True
                 End If
-                If Not TerrainTiles(X, Z).Tri = NewTri Then
-                    TerrainTiles(X, Z).Tri = NewTri
+                If Not TerrainTiles(X, Y).Tri = NewTri Then
+                    TerrainTiles(X, Y).Tri = NewTri
                 End If
-            Next X
-        Next Z
+            Next
+        Next
 
         For A = 0 To Args.LayerCount - 1
             Args.Layers(A).Terrainmap = New clsBooleanMap
@@ -858,16 +857,16 @@
 
     Public Sub RandomizeTileOrientations()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Z).Texture.Orientation = New sTileOrientation(Rnd() >= 0.5F, Rnd() >= 0.5F, Rnd() >= 0.5F)
+                TerrainTiles(X, Y).Texture.Orientation = New sTileOrientation(Rnd() >= 0.5F, Rnd() >= 0.5F, Rnd() >= 0.5F)
             Next
         Next
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                SectorGraphicsChange.SectorChanged(New sXY_int(X, Z))
+                SectorGraphicsChange.SectorChanged(New sXY_int(X, Y))
             Next
         Next
     End Sub

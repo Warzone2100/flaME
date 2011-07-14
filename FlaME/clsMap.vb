@@ -133,7 +133,7 @@ Partial Public Class clsMap
         Public Pos As sWorldPos
         Public Rotation As Integer
         'Public Name As String = "NONAME"
-        Public PlayerNum As Byte
+        Public UnitGroup As clsMap.clsUnitGroup
         Public Health As Double = 1.0#
         Public PreferPartsOutput As Boolean = False
 
@@ -159,7 +159,7 @@ Partial Public Class clsMap
             End If
             Pos = Unit_To_Copy.Pos
             Rotation = Unit_To_Copy.Rotation
-            PlayerNum = Unit_To_Copy.PlayerNum
+            UnitGroup = Unit_To_Copy.UnitGroup
             SavePriority = Unit_To_Copy.SavePriority
             Health = Unit_To_Copy.Health
             PreferPartsOutput = Unit_To_Copy.PreferPartsOutput
@@ -191,7 +191,27 @@ Partial Public Class clsMap
     Public Units(-1) As clsUnit
     Public UnitCount As Integer
 
-    Public Minimap_Texture As Integer
+    Public Class clsUnitGroup
+
+        Public ParentMap As clsMap
+        Public Map_UnitGroupNum As Integer = -1
+
+        Public WZ_StartPos As Integer = -1
+
+        Public Function GetLNDPlayerText() As String
+
+            If WZ_StartPos < 0 Or WZ_StartPos >= PlayerCountMax Then
+                Return "7"
+            Else
+                Return WZ_StartPos
+            End If
+        End Function
+    End Class
+    Public UnitGroups(-1) As clsUnitGroup
+    Public ScavengerUnitGroup As clsUnitGroup
+    Public FeatureUnitGroup As clsUnitGroup
+
+    Public Minimap_GLTexture As Integer
     Public Minimap_Texture_Size As Integer
 
     Public Tileset As clsTileset
@@ -356,13 +376,13 @@ Partial Public Class clsMap
 
             Dim A As Integer
             Dim X As Integer
-            Dim Z As Integer
+            Dim Y As Integer
 
             For A = 0 To ChangedSectorCount - 1
                 X = ChangedSectors(A).X
-                Z = ChangedSectors(A).Y
-                Parent_Map.Sector_GLList_Make(X, Z)
-                SectorIsChanged(X, Z) = False
+                Y = ChangedSectors(A).Y
+                Parent_Map.Sector_GLList_Make(X, Y)
+                SectorIsChanged(X, Y) = False
             Next
             ChangedSectorCount = 0
             Parent_Map.MinimapMakeLater()
@@ -377,7 +397,7 @@ Partial Public Class clsMap
             Dim A As Integer
             Dim B As Integer
             Dim X As Integer
-            Dim Z As Integer
+            Dim Y As Integer
             Dim NewUnit As clsUnit
             Dim ID As UInteger
             Dim tmpUnit As clsUnit
@@ -387,9 +407,9 @@ Partial Public Class clsMap
 
             For A = 0 To ChangedSectorCount - 1
                 X = ChangedSectors(A).X
-                Z = ChangedSectors(A).Y
-                For B = 0 To Parent_Map.Sectors(X, Z).UnitCount - 1
-                    tmpUnit = Parent_Map.Sectors(X, Z).Units(B)
+                Y = ChangedSectors(A).Y
+                For B = 0 To Parent_Map.Sectors(X, Y).UnitCount - 1
+                    tmpUnit = Parent_Map.Sectors(X, Y).Units(B)
                     'units can be in multiple sectors, so dont include multiple times
                     For C = 0 To OldUnitCount - 1
                         If OldUnits(C) Is tmpUnit Then
@@ -479,13 +499,13 @@ Partial Public Class clsMap
         Sub Update_AutoTexture()
             Dim A As Integer
             Dim X As Integer
-            Dim Z As Integer
+            Dim Y As Integer
 
             For A = 0 To ChangedTileCount - 1
                 X = ChangedTiles(A).X
-                Z = ChangedTiles(A).Y
-                ParentMap.Tile_AutoTexture_Changed(X, Z, frmMainInstance.cbxInvalidTiles.Checked)
-                TileIsChanged(X, Z) = False
+                Y = ChangedTiles(A).Y
+                ParentMap.Tile_AutoTexture_Changed(X, Y, frmMainInstance.cbxInvalidTiles.Checked)
+                TileIsChanged(X, Y) = False
             Next
             ChangedTileCount = 0
         End Sub
@@ -496,6 +516,8 @@ Partial Public Class clsMap
 
         MakeMinimapTimer = New Timer
         MakeMinimapTimer.Interval = MinimapDelay
+
+        MakeDefaultUnitGroups()
     End Sub
 
     Sub New(ByVal TileSizeX As Integer, ByVal TileSizeZ As Integer)
@@ -503,12 +525,11 @@ Partial Public Class clsMap
         MakeMinimapTimer = New Timer
         MakeMinimapTimer.Interval = MinimapDelay
 
+        MakeDefaultUnitGroups()
+
         Terrain_Blank(TileSizeX, TileSizeZ)
-        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSector_CreateAll()
-        AutoTextureChange = New clsAutoTextureChange(Me)
-        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
         TileType_Reset()
+        AfterInitialized()
     End Sub
 
     Sub New(ByVal Map_To_Copy As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int)
@@ -517,7 +538,9 @@ Partial Public Class clsMap
         Dim EndX As Integer
         Dim EndZ As Integer
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
+
+        MakeDefaultUnitGroups()
 
         'make some map data for selection
 
@@ -533,39 +556,39 @@ Partial Public Class clsMap
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
         ReDim TerrainSideV(TerrainSize.X, TerrainSize.Y - 1)
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Z).Texture.TextureNum = -1
+                TerrainTiles(X, Y).Texture.TextureNum = -1
             Next
         Next
 
-        For Z = StartZ To EndZ
+        For Y = StartZ To EndZ
             For X = StartX To EndX
-                TerrainVertex(X, Z) = Map_To_Copy.TerrainVertex(Offset.X + X, Offset.Y + Z)
+                TerrainVertex(X, Y) = Map_To_Copy.TerrainVertex(Offset.X + X, Offset.Y + Y)
             Next
         Next
-        For Z = StartZ To EndZ - 1
+        For Y = StartZ To EndZ - 1
             For X = StartX To EndX - 1
-                TerrainTiles(X, Z) = Map_To_Copy.TerrainTiles(Offset.X + X, Offset.Y + Z)
+                TerrainTiles(X, Y) = Map_To_Copy.TerrainTiles(Offset.X + X, Offset.Y + Y)
             Next
         Next
-        For Z = StartZ To EndZ
+        For Y = StartZ To EndZ
             For X = StartX To EndX - 1
-                TerrainSideH(X, Z) = Map_To_Copy.TerrainSideH(Offset.X + X, Offset.Y + Z)
+                TerrainSideH(X, Y) = Map_To_Copy.TerrainSideH(Offset.X + X, Offset.Y + Y)
             Next
         Next
-        For Z = StartZ To EndZ - 1
+        For Y = StartZ To EndZ - 1
             For X = StartX To EndX
-                TerrainSideV(X, Z) = Map_To_Copy.TerrainSideV(Offset.X + X, Offset.Y + Z)
+                TerrainSideV(X, Y) = Map_To_Copy.TerrainSideV(Offset.X + X, Offset.Y + Y)
             Next
         Next
 
         SectorCount.X = Math.Ceiling(Area.X / SectorTileSize)
         SectorCount.Y = Math.Ceiling(Area.Y / SectorTileSize)
         ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
             Next
         Next
 
@@ -576,9 +599,9 @@ Partial Public Class clsMap
 
         For A = 0 To Map_To_Copy.GatewayCount - 1
             If (Map_To_Copy.Gateways(A).PosA.X >= Offset.X And Map_To_Copy.Gateways(A).PosA.Y >= Offset.Y And _
-                    Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
-                    (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
-                    Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
+              Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
+              (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
+              Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
                 Gateway_Add(New sXY_int(Map_To_Copy.Gateways(A).PosA.X - Offset.X, Map_To_Copy.Gateways(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways(A).PosB.X - Offset.X, Map_To_Copy.Gateways(A).PosB.Y - Offset.Y))
             End If
         Next
@@ -587,12 +610,17 @@ Partial Public Class clsMap
         PosDifZ = -Offset.Y * TerrainGridSpacing
         For A = 0 To Map_To_Copy.UnitCount - 1
             NewUnit = New clsUnit(Map_To_Copy.Units(A))
+            If NewUnit.UnitGroup.WZ_StartPos < 0 Then
+                NewUnit.UnitGroup = ScavengerUnitGroup
+            Else
+                NewUnit.UnitGroup = UnitGroups(NewUnit.UnitGroup.WZ_StartPos)
+            End If
             NewUnit.Pos.Horizontal.X += PosDifX
             NewUnit.Pos.Horizontal.Y += PosDifZ
             If Not (NewUnit.Pos.Horizontal.X < 0 _
-                    Or NewUnit.Pos.Horizontal.X >= TerrainSize.X * TerrainGridSpacing _
-                    Or NewUnit.Pos.Horizontal.Y < 0 _
-                    Or NewUnit.Pos.Horizontal.Y >= TerrainSize.Y * TerrainGridSpacing) Then
+              Or NewUnit.Pos.Horizontal.X >= TerrainSize.X * TerrainGridSpacing _
+              Or NewUnit.Pos.Horizontal.Y < 0 _
+              Or NewUnit.Pos.Horizontal.Y >= TerrainSize.Y * TerrainGridSpacing) Then
                 Unit_Add(NewUnit)
             End If
         Next
@@ -603,25 +631,26 @@ Partial Public Class clsMap
         SectorGraphicsChange = New clsSectorGraphicsChange(Me)
     End Sub
 
-    Sub Terrain_Blank(ByVal TileSizeX As Integer, ByVal TileSizeZ As Integer)
+    Private Sub Terrain_Blank(ByVal TileSizeX As Integer, ByVal TileSizeY As Integer)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
         TerrainSize.X = TileSizeX
-        TerrainSize.Y = TileSizeZ
+        TerrainSize.Y = TileSizeY
         SectorCount.X = Math.Ceiling(TileSizeX / SectorTileSize)
-        SectorCount.Y = Math.Ceiling(TileSizeZ / SectorTileSize)
+        SectorCount.Y = Math.Ceiling(TileSizeY / SectorTileSize)
         ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
             Next
         Next
         ReDim TerrainVertex(TerrainSize.X, TerrainSize.Y)
         ReDim TerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Z).DownSide = TileDirection_None
+                TerrainTiles(X, Y).DownSide = TileDirection_None
             Next
         Next
         ReDim TerrainSideH(TerrainSize.X - 1, TerrainSize.Y)
@@ -786,21 +815,21 @@ Partial Public Class clsMap
 
     Sub SectorAll_GLLists_Delete()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                If Sectors(X, Z).GLList_Textured > 0 Then
-                    GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
-                    Sectors(X, Z).GLList_Textured = 0
+                If Sectors(X, Y).GLList_Textured > 0 Then
+                    GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
+                    Sectors(X, Y).GLList_Textured = 0
                 End If
-                If Sectors(X, Z).GLList_Wireframe > 0 Then
-                    GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
-                    Sectors(X, Z).GLList_Wireframe = 0
+                If Sectors(X, Y).GLList_Wireframe > 0 Then
+                    GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
+                    Sectors(X, Y).GLList_Wireframe = 0
                 End If
             Next
         Next
@@ -816,8 +845,8 @@ Partial Public Class clsMap
             Unit_Remove(UnitCount - 1)
         Loop
         SectorAll_GLLists_Delete()
-        If Minimap_Texture > 0 Then
-            GL.DeleteTextures(1, Minimap_Texture)
+        If Minimap_GLTexture > 0 Then
+            GL.DeleteTextures(1, Minimap_GLTexture)
         End If
         If AutoTextureChange IsNot Nothing Then
             AutoTextureChange.ParentMap = Nothing
@@ -831,12 +860,12 @@ Partial Public Class clsMap
     End Sub
 
     Sub Terrain_Resize(ByVal TileOffsetX As Integer, ByVal TileOffsetZ As Integer, ByVal TileCountX As Integer, ByVal TileCountZ As Integer)
-        Dim StartZ As Integer
         Dim StartX As Integer
-        Dim EndZ As Integer
+        Dim StartY As Integer
         Dim EndX As Integer
-        Dim Z As Integer
+        Dim EndY As Integer
         Dim X As Integer
+        Dim Y As Integer
         Dim tmpTerrainVertex(,) As sTerrainVertex
         Dim tmpTerrainTile(,) As sTerrainTile
         Dim tmpTerrainSideH(,) As sTerrainSide
@@ -846,39 +875,40 @@ Partial Public Class clsMap
         SectorAll_GLLists_Delete()
 
         StartX = Math.Max(0 - TileOffsetX, 0)
-        StartZ = Math.Max(0 - TileOffsetZ, 0)
+        StartY = Math.Max(0 - TileOffsetZ, 0)
         EndX = Math.Min(TerrainSize.X - TileOffsetX, TileCountX)
-        EndZ = Math.Min(TerrainSize.Y - TileOffsetZ, TileCountZ)
+        EndY = Math.Min(TerrainSize.Y - TileOffsetZ, TileCountZ)
 
         ReDim tmpTerrainVertex(TileCountX, TileCountZ)
         ReDim tmpTerrainTile(TileCountX - 1, TileCountZ - 1)
         ReDim tmpTerrainSideH(TileCountX - 1, TileCountZ)
         ReDim tmpTerrainSideV(TileCountX, TileCountZ - 1)
 
-        For Z = 0 To TileCountZ - 1
+        For Y = 0 To TileCountZ - 1
             For X = 0 To TileCountX - 1
-                tmpTerrainTile(X, Z).Texture.TextureNum = -1
+                tmpTerrainTile(X, Y).Texture.TextureNum = -1
+                tmpTerrainTile(X, Y).DownSide = TileDirection_None
             Next
         Next
 
-        For Z = StartZ To EndZ
+        For Y = StartY To EndY
             For X = StartX To EndX
-                tmpTerrainVertex(X, Z) = TerrainVertex(TileOffsetX + X, TileOffsetZ + Z)
+                tmpTerrainVertex(X, Y) = TerrainVertex(TileOffsetX + X, TileOffsetZ + Y)
             Next
         Next
-        For Z = StartZ To EndZ - 1
+        For Y = StartY To EndY - 1
             For X = StartX To EndX - 1
-                tmpTerrainTile(X, Z) = TerrainTiles(TileOffsetX + X, TileOffsetZ + Z)
+                tmpTerrainTile(X, Y) = TerrainTiles(TileOffsetX + X, TileOffsetZ + Y)
             Next
         Next
-        For Z = StartZ To EndZ
+        For Y = StartY To EndY
             For X = StartX To EndX - 1
-                tmpTerrainSideH(X, Z) = TerrainSideH(TileOffsetX + X, TileOffsetZ + Z)
+                tmpTerrainSideH(X, Y) = TerrainSideH(TileOffsetX + X, TileOffsetZ + Y)
             Next
         Next
-        For Z = StartZ To EndZ - 1
+        For Y = StartY To EndY - 1
             For X = StartX To EndX
-                tmpTerrainSideV(X, Z) = TerrainSideV(TileOffsetX + X, TileOffsetZ + Z)
+                tmpTerrainSideV(X, Y) = TerrainSideV(TileOffsetX + X, TileOffsetZ + Y)
             Next
         Next
 
@@ -958,9 +988,9 @@ Partial Public Class clsMap
         SectorCount.X = Math.Ceiling(TileCountX / SectorTileSize)
         SectorCount.Y = Math.Ceiling(TileCountZ / SectorTileSize)
         ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z) = New clsSector(New sXY_int(X, Z))
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
             Next
         Next
 
@@ -1007,35 +1037,35 @@ Partial Public Class clsMap
         SectorGraphicsChange = New clsSectorGraphicsChange(Me)
     End Sub
 
-    Sub Sector_GLList_Make(ByVal X As Integer, ByVal Z As Integer)
+    Sub Sector_GLList_Make(ByVal X As Integer, ByVal Y As Integer)
         Dim TileX As Integer
-        Dim TileZ As Integer
+        Dim TileY As Integer
         Dim StartX As Integer
-        Dim StartZ As Integer
+        Dim StartY As Integer
         Dim FinishX As Integer
-        Dim FinishZ As Integer
+        Dim FinishY As Integer
         Dim UnitNum As Integer
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        If Sectors(X, Z).GLList_Textured > 0 Then
-            GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
-            Sectors(X, Z).GLList_Textured = 0
+        If Sectors(X, Y).GLList_Textured > 0 Then
+            GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
+            Sectors(X, Y).GLList_Textured = 0
         End If
-        If Sectors(X, Z).GLList_Wireframe > 0 Then
-            GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
-            Sectors(X, Z).GLList_Wireframe = 0
+        If Sectors(X, Y).GLList_Wireframe > 0 Then
+            GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
+            Sectors(X, Y).GLList_Wireframe = 0
         End If
 
         StartX = X * SectorTileSize
-        StartZ = Z * SectorTileSize
+        StartY = Y * SectorTileSize
         FinishX = Math.Min(StartX + SectorTileSize, TerrainSize.X) - 1
-        FinishZ = Math.Min(StartZ + SectorTileSize, TerrainSize.Y) - 1
+        FinishY = Math.Min(StartY + SectorTileSize, TerrainSize.Y) - 1
 
-        Sectors(X, Z).GLList_Textured = GL.GenLists(1)
-        GL.NewList(Sectors(X, Z).GLList_Textured, ListMode.Compile)
+        Sectors(X, Y).GLList_Textured = GL.GenLists(1)
+        GL.NewList(Sectors(X, Y).GLList_Textured, ListMode.Compile)
 
         If frmMainInstance.View.Draw_Units Then
             Dim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1) As Boolean
@@ -1043,78 +1073,78 @@ Partial Public Class clsMap
             Dim BaseOffset As sXY_int
             Dim tmpStructure As clsStructureType
             Dim Footprint As sXY_int
-            For UnitNum = 0 To Sectors(X, Z).UnitCount - 1
-                tmpUnit = Sectors(X, Z).Units(UnitNum)
+            For UnitNum = 0 To Sectors(X, Y).UnitCount - 1
+                tmpUnit = Sectors(X, Y).Units(UnitNum)
                 If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
                     tmpStructure = CType(tmpUnit.Type, clsStructureType)
                     Footprint = tmpStructure.Footprint
                     If tmpStructure.StructureBasePlate IsNot Nothing And (tmpUnit.Rotation = 0 Or tmpUnit.Rotation = 180 Or (Footprint.X = Footprint.Y And (tmpUnit.Rotation = 90 Or tmpUnit.Rotation = 180 Or tmpUnit.Rotation = 270))) Then
                         BaseOffset.X = CInt((Footprint.X - 1) * TerrainGridSpacing / 2.0#) '1 is subtracted because centre of the edge-tiles are needed, not the edge of the base plate
                         BaseOffset.Y = CInt((Footprint.Y - 1) * TerrainGridSpacing / 2.0#)
-                        For TileZ = Math.Max(CInt(Int((tmpUnit.Pos.Horizontal.Y - BaseOffset.Y) / TerrainGridSpacing)), StartZ) To Math.Min(CInt(Int((tmpUnit.Pos.Horizontal.Y + BaseOffset.Y) / TerrainGridSpacing)), FinishZ)
+                        For TileY = Math.Max(CInt(Int((tmpUnit.Pos.Horizontal.Y - BaseOffset.Y) / TerrainGridSpacing)), StartY) To Math.Min(CInt(Int((tmpUnit.Pos.Horizontal.Y + BaseOffset.Y) / TerrainGridSpacing)), FinishY)
                             For TileX = Math.Max(CInt(Int((tmpUnit.Pos.Horizontal.X - BaseOffset.X) / TerrainGridSpacing)), StartX) To Math.Min(CInt(Int((tmpUnit.Pos.Horizontal.X + BaseOffset.X) / TerrainGridSpacing)), FinishX)
-                                IsBasePlate(TileX - StartX, TileZ - StartZ) = True
+                                IsBasePlate(TileX - StartX, TileY - StartY) = True
                             Next
                         Next
                     End If
                 End If
             Next
-            For TileZ = StartZ To FinishZ
+            For TileY = StartY To FinishY
                 For TileX = StartX To FinishX
-                    If Not IsBasePlate(TileX - StartX, TileZ - StartZ) Then
-                        DrawTile(TileX, TileZ)
+                    If Not IsBasePlate(TileX - StartX, TileY - StartY) Then
+                        DrawTile(TileX, TileY)
                     End If
                 Next
             Next
         Else
-            For TileZ = StartZ To FinishZ
+            For TileY = StartY To FinishY
                 For TileX = StartX To FinishX
-                    DrawTile(TileX, TileZ)
+                    DrawTile(TileX, TileY)
                 Next
             Next
         End If
 
         GL.EndList()
 
-        Sectors(X, Z).GLList_Wireframe = GL.GenLists(1)
-        GL.NewList(Sectors(X, Z).GLList_Wireframe, ListMode.Compile)
+        Sectors(X, Y).GLList_Wireframe = GL.GenLists(1)
+        GL.NewList(Sectors(X, Y).GLList_Wireframe, ListMode.Compile)
 
-        For TileZ = StartZ To FinishZ
+        For TileY = StartY To FinishY
             For TileX = StartX To FinishX
-                DrawTileWireframe(TileX, TileZ)
+                DrawTileWireframe(TileX, TileY)
             Next
         Next
 
         GL.EndList()
     End Sub
 
-    Sub DrawTileWireframe(ByVal TileX As Integer, ByVal TileZ As Integer)
+    Sub DrawTileWireframe(ByVal TileX As Integer, ByVal TileY As Integer)
         Dim TileTerrainHeight(3) As Double
         Dim Vertex0 As sXYZ_sng
         Dim Vertex1 As sXYZ_sng
         Dim Vertex2 As sXYZ_sng
         Dim Vertex3 As sXYZ_sng
 
-        TileTerrainHeight(0) = TerrainVertex(TileX, TileZ).Height
-        TileTerrainHeight(1) = TerrainVertex(TileX + 1, TileZ).Height
-        TileTerrainHeight(2) = TerrainVertex(TileX, TileZ + 1).Height
-        TileTerrainHeight(3) = TerrainVertex(TileX + 1, TileZ + 1).Height
+        TileTerrainHeight(0) = TerrainVertex(TileX, TileY).Height
+        TileTerrainHeight(1) = TerrainVertex(TileX + 1, TileY).Height
+        TileTerrainHeight(2) = TerrainVertex(TileX, TileY + 1).Height
+        TileTerrainHeight(3) = TerrainVertex(TileX + 1, TileY + 1).Height
 
         Vertex0.X = TileX * TerrainGridSpacing
         Vertex0.Y = TileTerrainHeight(0) * HeightMultiplier
-        Vertex0.Z = -TileZ * TerrainGridSpacing
+        Vertex0.Z = -TileY * TerrainGridSpacing
         Vertex1.X = (TileX + 1) * TerrainGridSpacing
         Vertex1.Y = TileTerrainHeight(1) * HeightMultiplier
-        Vertex1.Z = -TileZ * TerrainGridSpacing
+        Vertex1.Z = -TileY * TerrainGridSpacing
         Vertex2.X = TileX * TerrainGridSpacing
         Vertex2.Y = TileTerrainHeight(2) * HeightMultiplier
-        Vertex2.Z = -(TileZ + 1) * TerrainGridSpacing
+        Vertex2.Z = -(TileY + 1) * TerrainGridSpacing
         Vertex3.X = (TileX + 1) * TerrainGridSpacing
         Vertex3.Y = TileTerrainHeight(3) * HeightMultiplier
-        Vertex3.Z = -(TileZ + 1) * TerrainGridSpacing
+        Vertex3.Z = -(TileY + 1) * TerrainGridSpacing
 
         GL.Begin(BeginMode.Lines)
-        If TerrainTiles(TileX, TileZ).Tri Then
+        If TerrainTiles(TileX, TileY).Tri Then
             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
             GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
             GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
@@ -1172,7 +1202,7 @@ Partial Public Class clsMap
         GL.Vertex3(Vertex2.Horizontal.X, Vertex2.Altitude, Vertex2.Horizontal.Y)
     End Sub
 
-    Sub DrawTile(ByVal TileX As Integer, ByVal TileZ As Integer)
+    Sub DrawTile(ByVal TileX As Integer, ByVal TileY As Integer)
         Dim TileTerrainHeight(3) As Double
         Dim Vertex0 As sXYZ_sng
         Dim Vertex1 As sXYZ_sng
@@ -1188,12 +1218,12 @@ Partial Public Class clsMap
         Dim TexCoord3 As sXY_sng
         Dim A As Integer
 
-        If TerrainTiles(TileX, TileZ).Texture.TextureNum < 0 Then
+        If TerrainTiles(TileX, TileY).Texture.TextureNum < 0 Then
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_NoTile)
         ElseIf Tileset Is Nothing Then
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
-        ElseIf TerrainTiles(TileX, TileZ).Texture.TextureNum < Tileset.TileCount Then
-            A = Tileset.Tiles(TerrainTiles(TileX, TileZ).Texture.TextureNum).MapView_GL_Texture_Num
+        ElseIf TerrainTiles(TileX, TileY).Texture.TextureNum < Tileset.TileCount Then
+            A = Tileset.Tiles(TerrainTiles(TileX, TileY).Texture.TextureNum).MapView_GL_Texture_Num
             If A = 0 Then
                 GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
             Else
@@ -1203,33 +1233,33 @@ Partial Public Class clsMap
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
         End If
 
-        TileTerrainHeight(0) = TerrainVertex(TileX, TileZ).Height
-        TileTerrainHeight(1) = TerrainVertex(TileX + 1, TileZ).Height
-        TileTerrainHeight(2) = TerrainVertex(TileX, TileZ + 1).Height
-        TileTerrainHeight(3) = TerrainVertex(TileX + 1, TileZ + 1).Height
+        TileTerrainHeight(0) = TerrainVertex(TileX, TileY).Height
+        TileTerrainHeight(1) = TerrainVertex(TileX + 1, TileY).Height
+        TileTerrainHeight(2) = TerrainVertex(TileX, TileY + 1).Height
+        TileTerrainHeight(3) = TerrainVertex(TileX + 1, TileY + 1).Height
 
-        GetTileRotatedTexCoords(TerrainTiles(TileX, TileZ).Texture.Orientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
+        GetTileRotatedTexCoords(TerrainTiles(TileX, TileY).Texture.Orientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
         Vertex0.X = TileX * TerrainGridSpacing
         Vertex0.Y = TileTerrainHeight(0) * HeightMultiplier
-        Vertex0.Z = -TileZ * TerrainGridSpacing
+        Vertex0.Z = -TileY * TerrainGridSpacing
         Vertex1.X = (TileX + 1) * TerrainGridSpacing
         Vertex1.Y = TileTerrainHeight(1) * HeightMultiplier
-        Vertex1.Z = -TileZ * TerrainGridSpacing
+        Vertex1.Z = -TileY * TerrainGridSpacing
         Vertex2.X = TileX * TerrainGridSpacing
         Vertex2.Y = TileTerrainHeight(2) * HeightMultiplier
-        Vertex2.Z = -(TileZ + 1) * TerrainGridSpacing
+        Vertex2.Z = -(TileY + 1) * TerrainGridSpacing
         Vertex3.X = (TileX + 1) * TerrainGridSpacing
         Vertex3.Y = TileTerrainHeight(3) * HeightMultiplier
-        Vertex3.Z = -(TileZ + 1) * TerrainGridSpacing
+        Vertex3.Z = -(TileY + 1) * TerrainGridSpacing
 
-        Normal0 = TerrainVertexNormalCalc(TileX, TileZ)
-        Normal1 = TerrainVertexNormalCalc(TileX + 1, TileZ)
-        Normal2 = TerrainVertexNormalCalc(TileX, TileZ + 1)
-        Normal3 = TerrainVertexNormalCalc(TileX + 1, TileZ + 1)
+        Normal0 = TerrainVertexNormalCalc(TileX, TileY)
+        Normal1 = TerrainVertexNormalCalc(TileX + 1, TileY)
+        Normal2 = TerrainVertexNormalCalc(TileX, TileY + 1)
+        Normal3 = TerrainVertexNormalCalc(TileX + 1, TileY + 1)
 
         GL.Begin(BeginMode.Triangles)
-        If TerrainTiles(TileX, TileZ).Tri Then
+        If TerrainTiles(TileX, TileY).Tri Then
             GL.Normal3(Normal0.X, Normal0.Y, -Normal0.Z)
             GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1305,7 +1335,7 @@ Partial Public Class clsMap
 
     Private Sub MinimapTextureFill(ByRef Texture(,,) As Byte)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim A As Integer
         Dim Low As sXY_int
         Dim High As sXY_int
@@ -1314,53 +1344,53 @@ Partial Public Class clsMap
         Dim RGB_sng As sRGB_sng
         Dim UnitMap(Texture.GetUpperBound(0), Texture.GetUpperBound(1)) As Boolean
 
-        For Z = 0 To Texture.GetUpperBound(0)
+        For Y = 0 To Texture.GetUpperBound(0)
             For X = 0 To Texture.GetUpperBound(1)
-                Texture(Z, X, 3) = 255
+                Texture(Y, X, 3) = 255
             Next
         Next
         If frmMainInstance.menuMiniShowTex.Checked Then
             If Tileset IsNot Nothing Then
-                For Z = 0 To TerrainSize.Y - 1
+                For Y = 0 To TerrainSize.Y - 1
                     For X = 0 To TerrainSize.X - 1
-                        If TerrainTiles(X, Z).Texture.TextureNum >= 0 And TerrainTiles(X, Z).Texture.TextureNum < Tileset.TileCount Then
-                            RGB_sng = Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Average_Color
-                            Texture(Z, X, 0) = Math.Min(CInt(RGB_sng.Red * 255.0F), 255)
-                            Texture(Z, X, 1) = Math.Min(CInt(RGB_sng.Green * 255.0F), 255)
-                            Texture(Z, X, 2) = Math.Min(CInt(RGB_sng.Blue * 255.0F), 255)
+                        If TerrainTiles(X, Y).Texture.TextureNum >= 0 And TerrainTiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
+                            RGB_sng = Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Average_Color
+                            Texture(Y, X, 0) = Math.Min(CInt(RGB_sng.Red * 255.0F), 255)
+                            Texture(Y, X, 1) = Math.Min(CInt(RGB_sng.Green * 255.0F), 255)
+                            Texture(Y, X, 2) = Math.Min(CInt(RGB_sng.Blue * 255.0F), 255)
                         End If
                     Next
                 Next
             End If
             If frmMainInstance.menuMiniShowHeight.Checked Then
                 Dim Height As Short
-                For Z = 0 To TerrainSize.Y - 1
+                For Y = 0 To TerrainSize.Y - 1
                     For X = 0 To TerrainSize.X - 1
-                        Height = (CShort(TerrainVertex(X, Z).Height) + TerrainVertex(X + 1, Z).Height + TerrainVertex(X, Z + 1).Height + TerrainVertex(X + 1, Z + 1).Height) / 4.0#
-                        Texture(Z, X, 0) = (Texture(Z, X, 0) * 2S + Height) / 3.0#
-                        Texture(Z, X, 1) = (Texture(Z, X, 1) * 2S + Height) / 3.0#
-                        Texture(Z, X, 2) = (Texture(Z, X, 2) * 2S + Height) / 3.0#
+                        Height = (CShort(TerrainVertex(X, Y).Height) + TerrainVertex(X + 1, Y).Height + TerrainVertex(X, Y + 1).Height + TerrainVertex(X + 1, Y + 1).Height) / 4.0#
+                        Texture(Y, X, 0) = (Texture(Y, X, 0) * 2S + Height) / 3.0#
+                        Texture(Y, X, 1) = (Texture(Y, X, 1) * 2S + Height) / 3.0#
+                        Texture(Y, X, 2) = (Texture(Y, X, 2) * 2S + Height) / 3.0#
                     Next
                 Next
             End If
         ElseIf frmMainInstance.menuMiniShowHeight.Checked Then
             Dim Height As Short
-            For Z = 0 To TerrainSize.Y - 1
+            For Y = 0 To TerrainSize.Y - 1
                 For X = 0 To TerrainSize.X - 1
-                    Height = (CShort(TerrainVertex(X, Z).Height) + TerrainVertex(X + 1, Z).Height + TerrainVertex(X, Z + 1).Height + TerrainVertex(X + 1, Z + 1).Height) / 4.0#
-                    Texture(Z, X, 0) = Height
-                    Texture(Z, X, 1) = Height
-                    Texture(Z, X, 2) = Height
+                    Height = (CShort(TerrainVertex(X, Y).Height) + TerrainVertex(X + 1, Y).Height + TerrainVertex(X, Y + 1).Height + TerrainVertex(X + 1, Y + 1).Height) / 4.0#
+                    Texture(Y, X, 0) = Height
+                    Texture(Y, X, 1) = Height
+                    Texture(Y, X, 2) = Height
                 Next
             Next
         End If
         If frmMainInstance.menuMiniShowCliffs.Checked Then
             If Tileset IsNot Nothing Then
-                For Z = 0 To TerrainSize.Y - 1
+                For Y = 0 To TerrainSize.Y - 1
                     For X = 0 To TerrainSize.X - 1
-                        If TerrainTiles(X, Z).Texture.TextureNum >= 0 And TerrainTiles(X, Z).Texture.TextureNum < Tileset.TileCount Then
-                            If Tileset.Tiles(TerrainTiles(X, Z).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Then
-                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 255S) / 2.0#
+                        If TerrainTiles(X, Y).Texture.TextureNum >= 0 And TerrainTiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
+                            If Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Then
+                                Texture(Y, X, 0) = (CShort(Texture(Y, X, 0)) + 255S) / 2.0#
                             End If
                         End If
                     Next
@@ -1370,11 +1400,11 @@ Partial Public Class clsMap
         If frmMainInstance.menuMiniShowGateways.Checked Then
             For A = 0 To GatewayCount - 1
                 XY_Reorder(Gateways(A).PosA, Gateways(A).PosB, Low, High)
-                For Z = Low.Y To High.Y
+                For Y = Low.Y To High.Y
                     For X = Low.X To High.X
-                        Texture(Z, X, 0) = 255
-                        Texture(Z, X, 1) = 255
-                        Texture(Z, X, 2) = 0
+                        Texture(Y, X, 0) = 255
+                        Texture(Y, X, 1) = 255
+                        Texture(Y, X, 2) = 0
                     Next
                 Next
             Next
@@ -1390,22 +1420,22 @@ Partial Public Class clsMap
                 End If
                 If Flag Then
                     GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
-                    For Z = Low.Y To High.Y
+                    For Y = Low.Y To High.Y
                         For X = Low.X To High.X
-                            If Not UnitMap(Z, X) Then
-                                UnitMap(Z, X) = True
-                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
-                                Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 0S) / 3.0#
-                                Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 0S) / 3.0#
+                            If Not UnitMap(Y, X) Then
+                                UnitMap(Y, X) = True
+                                Texture(Y, X, 0) = (CShort(Texture(Y, X, 0)) + 510S) / 3.0#
+                                Texture(Y, X, 1) = (CShort(Texture(Y, X, 1)) + 0S) / 3.0#
+                                Texture(Y, X, 2) = (CShort(Texture(Y, X, 2)) + 0S) / 3.0#
                             End If
                         Next
                     Next
                 End If
             Next
             'reset unit map
-            For Z = 0 To Texture.GetUpperBound(0)
+            For Y = 0 To Texture.GetUpperBound(0)
                 For X = 0 To Texture.GetUpperBound(1)
-                    UnitMap(Z, X) = False
+                    UnitMap(Y, X) = False
                 Next
             Next
             'units that are selected and highlighted
@@ -1419,13 +1449,13 @@ Partial Public Class clsMap
                 End If
                 If Flag Then
                     GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
-                    For Z = Low.Y To High.Y
+                    For Y = Low.Y To High.Y
                         For X = Low.X To High.X
-                            If Not UnitMap(Z, X) Then
-                                UnitMap(Z, X) = True
-                                Texture(Z, X, 0) = (CShort(Texture(Z, X, 0)) + 510S) / 3.0#
-                                Texture(Z, X, 1) = (CShort(Texture(Z, X, 1)) + 510S) / 3.0#
-                                Texture(Z, X, 2) = (CShort(Texture(Z, X, 2)) + 510S) / 3.0#
+                            If Not UnitMap(Y, X) Then
+                                UnitMap(Y, X) = True
+                                Texture(Y, X, 0) = (CShort(Texture(Y, X, 0)) + 510S) / 3.0#
+                                Texture(Y, X, 1) = (CShort(Texture(Y, X, 1)) + 510S) / 3.0#
+                                Texture(Y, X, 2) = (CShort(Texture(Y, X, 2)) + 510S) / 3.0#
                             End If
                         Next
                     Next
@@ -1505,22 +1535,22 @@ Partial Public Class clsMap
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        If Minimap_Texture > 0 Then
-            GL.DeleteTextures(1, Minimap_Texture)
-            Minimap_Texture = 0
+        If Minimap_GLTexture > 0 Then
+            GL.DeleteTextures(1, Minimap_GLTexture)
+            Minimap_GLTexture = 0
         End If
 
 #If Mono = 0.0# Then
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        GL.GenTextures(1, Minimap_Texture)
-        GL.BindTexture(TextureTarget.Texture2D, Minimap_Texture)
+        GL.GenTextures(1, Minimap_GLTexture)
+        GL.BindTexture(TextureTarget.Texture2D, Minimap_GLTexture)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Minimap_Texture_Size, Minimap_Texture_Size, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Pixels)
 #Else
-        Minimap_Texture = BitmapGLTexture(Texture, frmMainInstance.View.OpenGLControl, False, False)
+        Minimap_GLTexture = BitmapGLTexture(Texture, frmMainInstance.View.OpenGLControl, False, False)
 #End If
 
         frmMainInstance.View_DrawViewLater()
@@ -1950,31 +1980,31 @@ Partial Public Class clsMap
 
     Sub Clear_Textures()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                TerrainTiles(X, Z).Texture.TextureNum = -1
+                TerrainTiles(X, Y).Texture.TextureNum = -1
             Next
         Next
-        For Z = 0 To TerrainSize.Y
+        For Y = 0 To TerrainSize.Y
             For X = 0 To TerrainSize.X
-                TerrainVertex(X, Z).Terrain = Nothing
+                TerrainVertex(X, Y).Terrain = Nothing
             Next
         Next
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X - 1
-                Tile_AutoTexture_Changed(X, Z, frmMainInstance.cbxInvalidTiles.Checked)
+                Tile_AutoTexture_Changed(X, Y, frmMainInstance.cbxInvalidTiles.Checked)
             Next
         Next
-        For Z = 0 To TerrainSize.Y
+        For Y = 0 To TerrainSize.Y
             For X = 0 To TerrainSize.X - 1
-                TerrainSideH(X, Z).Road = Nothing
+                TerrainSideH(X, Y).Road = Nothing
             Next
         Next
-        For Z = 0 To TerrainSize.Y - 1
+        For Y = 0 To TerrainSize.Y - 1
             For X = 0 To TerrainSize.X
-                TerrainSideV(X, Z).Road = Nothing
+                TerrainSideV(X, Y).Road = Nothing
             Next
         Next
     End Sub
@@ -2016,6 +2046,14 @@ Partial Public Class clsMap
     Function Unit_Add(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
         Dim A As Integer
 
+        If NewUnit.UnitGroup Is Nothing Then
+            Stop
+            NewUnit.UnitGroup = ScavengerUnitGroup
+        End If
+        If NewUnit.UnitGroup.ParentMap IsNot Me Then
+            Stop
+        End If
+
         If ID <= 0UI Then
             ID = 1UI
         End If
@@ -2036,6 +2074,10 @@ Partial Public Class clsMap
         NewUnit.Pos.Horizontal.X = Clamp(NewUnit.Pos.Horizontal.X, 0, TerrainSize.X * TerrainGridSpacing - 1)
         NewUnit.Pos.Horizontal.Y = Clamp(NewUnit.Pos.Horizontal.Y, 0, TerrainSize.Y * TerrainGridSpacing - 1)
         NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
+
+        If NewUnit.UnitGroup Is Nothing Then
+            NewUnit.UnitGroup = ScavengerUnitGroup
+        End If
 
         If Units.GetUpperBound(0) < UnitCount Then
             ReDim Preserve Units(UnitCount * 2 + 1)
@@ -2138,11 +2180,11 @@ Partial Public Class clsMap
 
     Sub SectorAll_GL_Update()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
         For X = 0 To SectorCount.X - 1
-            For Z = 0 To SectorCount.Y - 1
-                Sector_GLList_Make(X, Z)
+            For Y = 0 To SectorCount.Y - 1
+                Sector_GLList_Make(X, Y)
             Next
         Next
 
@@ -2151,22 +2193,22 @@ Partial Public Class clsMap
 
     Sub SectorAll_Set_Changed()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
         For X = 0 To SectorCount.X - 1
-            For Z = 0 To SectorCount.Y - 1
-                Sectors(X, Z).Changed = True
+            For Y = 0 To SectorCount.Y - 1
+                Sectors(X, Y).Changed = True
             Next
         Next
     End Sub
 
     Sub SectorAll_Set_NotChanged()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
         For X = 0 To SectorCount.X - 1
-            For Z = 0 To SectorCount.Y - 1
-                Sectors(X, Z).Changed = False
+            For Y = 0 To SectorCount.Y - 1
+                Sectors(X, Y).Changed = False
             Next
         Next
     End Sub
@@ -2188,7 +2230,7 @@ Partial Public Class clsMap
         Dim TileStart As sXY_int
         Dim TileFinish As sXY_int
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim A As Integer
 
         GetFootprintTileRangeClamped(tmpUnit.Pos.Horizontal, tmpUnit.Type.GetFootprint, TileStart, TileFinish)
@@ -2202,10 +2244,10 @@ Partial Public Class clsMap
         ReDim tmpUnit.Sectors(tmpUnit.SectorCount - 1)
         ReDim tmpUnit.Sectors_UnitNum(tmpUnit.SectorCount - 1)
         A = 0
-        For Z = Start.Y To Finish.Y
+        For Y = Start.Y To Finish.Y
             For X = Start.X To Finish.X
-                tmpUnit.Sectors(A) = Sectors(X, Z)
-                tmpUnit.Sectors_UnitNum(A) = Sectors(X, Z).Unit_Add(tmpUnit, A)
+                tmpUnit.Sectors(A) = Sectors(X, Y)
+                tmpUnit.Sectors_UnitNum(A) = Sectors(X, Y).Unit_Add(tmpUnit, A)
                 A += 1
             Next
         Next
@@ -2213,7 +2255,7 @@ Partial Public Class clsMap
 
     Sub UndoStepCreate(ByVal StepName As String)
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim NewUndo As New clsUndo
 
         NewUndo.Name = StepName
@@ -2223,13 +2265,13 @@ Partial Public Class clsMap
         frmMainInstance.tsbSave.Enabled = True
 
         ReDim NewUndo.ChangedSectors(SectorCount.X * SectorCount.Y - 1)
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                If Sectors(X, Z).Changed Then
-                    Sectors(X, Z).Changed = False
-                    NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSectors(X, Z)
+                If Sectors(X, Y).Changed Then
+                    Sectors(X, Y).Changed = False
+                    NewUndo.ChangedSectors(NewUndo.ChangedSectorCount) = ShadowSectors(X, Y)
                     NewUndo.ChangedSectorCount += 1
-                    ShadowSector_Create(X, Z)
+                    ShadowSector_Create(X, Y)
                 End If
             Next
         Next
@@ -2256,7 +2298,7 @@ Partial Public Class clsMap
         Dim StartX As Integer
         Dim StartZ As Integer
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim tmpShadowSector As clsShadowSector
         Dim LastTileX As Integer
         Dim LastTileZ As Integer
@@ -2273,43 +2315,43 @@ Partial Public Class clsMap
         StartZ = SectorZ * SectorTileSize
         LastTileX = Math.Min(SectorTileSize, TerrainSize.X - StartX)
         LastTileZ = Math.Min(SectorTileSize, TerrainSize.Y - StartZ)
-        For Z = 0 To LastTileZ
+        For Y = 0 To LastTileZ
             For X = 0 To LastTileX
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                tmpShadowSector.TerrainVertex(X, Z) = TerrainVertex(TileX, TileZ)
+                TileZ = StartZ + Y
+                tmpShadowSector.TerrainVertex(X, Y) = TerrainVertex(TileX, TileZ)
             Next
         Next
-        For Z = 0 To LastTileZ - 1
+        For Y = 0 To LastTileZ - 1
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                tmpShadowSector.TerrainTile(X, Z) = TerrainTiles(TileX, TileZ)
+                TileZ = StartZ + Y
+                tmpShadowSector.TerrainTile(X, Y) = TerrainTiles(TileX, TileZ)
             Next
         Next
-        For Z = 0 To LastTileZ
+        For Y = 0 To LastTileZ
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                tmpShadowSector.TerrainSideH(X, Z) = TerrainSideH(TileX, TileZ)
+                TileZ = StartZ + Y
+                tmpShadowSector.TerrainSideH(X, Y) = TerrainSideH(TileX, TileZ)
             Next
         Next
-        For Z = 0 To LastTileZ - 1
+        For Y = 0 To LastTileZ - 1
             For X = 0 To LastTileX
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                tmpShadowSector.TerrainSideV(X, Z) = TerrainSideV(TileX, TileZ)
+                TileZ = StartZ + Y
+                tmpShadowSector.TerrainSideV(X, Y) = TerrainSideV(TileX, TileZ)
             Next
         Next
     End Sub
 
     Sub ShadowSector_CreateAll()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                ShadowSector_Create(X, Z)
+                ShadowSector_Create(X, Y)
             Next
         Next
     End Sub
@@ -2326,7 +2368,7 @@ Partial Public Class clsMap
         Dim A As Integer
         Dim tmpShadow As clsShadowSector
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim tmpUnit As clsUnit
         Dim ID As UInteger
 
@@ -2340,22 +2382,22 @@ Partial Public Class clsMap
 
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
             X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
+            Y = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'store existing state for redo
-            tmpShadow = ShadowSectors(X, Z)
+            tmpShadow = ShadowSectors(X, Y)
             'remove graphics from sector
-            If Sectors(X, Z).GLList_Textured > 0 Then
-                GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
-                Sectors(X, Z).GLList_Textured = 0
+            If Sectors(X, Y).GLList_Textured > 0 Then
+                GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
+                Sectors(X, Y).GLList_Textured = 0
             End If
-            If Sectors(X, Z).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
-                Sectors(X, Z).GLList_Wireframe = 0
+            If Sectors(X, Y).GLList_Wireframe > 0 Then
+                GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
+                Sectors(X, Y).GLList_Wireframe = 0
             End If
             'perform the undo
             Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
             'update the backup
-            ShadowSector_Create(X, Z)
+            ShadowSector_Create(X, Y)
             'add old state to the redo step (that was this undo step)
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
@@ -2388,7 +2430,7 @@ Partial Public Class clsMap
         Dim A As Integer
         Dim tmpShadow As clsShadowSector
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim tmpUnit As clsUnit
         Dim ID As UInteger
 
@@ -2398,22 +2440,22 @@ Partial Public Class clsMap
 
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
             X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Z = Undos(Undo_Pos).ChangedSectors(A).Num.Y
+            Y = Undos(Undo_Pos).ChangedSectors(A).Num.Y
             'store existing state for undo
-            tmpShadow = ShadowSectors(X, Z)
+            tmpShadow = ShadowSectors(X, Y)
             'remove graphics from sector
-            If Sectors(X, Z).GLList_Textured > 0 Then
-                GL.DeleteLists(Sectors(X, Z).GLList_Textured, 1)
-                Sectors(X, Z).GLList_Textured = 0
+            If Sectors(X, Y).GLList_Textured > 0 Then
+                GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
+                Sectors(X, Y).GLList_Textured = 0
             End If
-            If Sectors(X, Z).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sectors(X, Z).GLList_Wireframe, 1)
-                Sectors(X, Z).GLList_Wireframe = 0
+            If Sectors(X, Y).GLList_Wireframe > 0 Then
+                GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
+                Sectors(X, Y).GLList_Wireframe = 0
             End If
             'perform the redo
             Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
             'update the backup
-            ShadowSector_Create(X, Z)
+            ShadowSector_Create(X, Y)
             'add old state to the undo step (that was this redo step)
             Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
         Next
@@ -2450,7 +2492,7 @@ Partial Public Class clsMap
         Dim StartX As Integer
         Dim StartZ As Integer
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim LastTileX As Integer
         Dim LastTileZ As Integer
 
@@ -2458,32 +2500,32 @@ Partial Public Class clsMap
         StartZ = Shadow_Sector_To_Rejoin.Num.Y * SectorTileSize
         LastTileX = Math.Min(SectorTileSize, TerrainSize.X - StartX)
         LastTileZ = Math.Min(SectorTileSize, TerrainSize.Y - StartZ)
-        For Z = 0 To LastTileZ
+        For Y = 0 To LastTileZ
             For X = 0 To LastTileX
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                TerrainVertex(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainVertex(X, Z)
+                TileZ = StartZ + Y
+                TerrainVertex(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainVertex(X, Y)
             Next
         Next
-        For Z = 0 To LastTileZ - 1
+        For Y = 0 To LastTileZ - 1
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                TerrainTiles(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainTile(X, Z)
+                TileZ = StartZ + Y
+                TerrainTiles(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainTile(X, Y)
             Next
         Next
-        For Z = 0 To LastTileZ
+        For Y = 0 To LastTileZ
             For X = 0 To LastTileX - 1
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                TerrainSideH(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainSideH(X, Z)
+                TileZ = StartZ + Y
+                TerrainSideH(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainSideH(X, Y)
             Next
         Next
-        For Z = 0 To LastTileZ - 1
+        For Y = 0 To LastTileZ - 1
             For X = 0 To LastTileX
                 TileX = StartX + X
-                TileZ = StartZ + Z
-                TerrainSideV(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainSideV(X, Z)
+                TileZ = StartZ + Y
+                TerrainSideV(TileX, TileZ) = Shadow_Sector_To_Rejoin.TerrainSideV(X, Y)
             Next
         Next
     End Sub
@@ -2510,7 +2552,7 @@ Partial Public Class clsMap
     Sub Map_Insert(ByVal Map_To_Insert As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int, ByVal Insert_Heights As Boolean, ByVal Insert_Textures As Boolean, ByVal Insert_Units As Boolean, ByVal Delete_Units As Boolean, ByVal Insert_Gateways As Boolean, ByVal Delete_Gateways As Boolean)
         Dim Finish As sXY_int
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim SectorStart As sXY_int
         Dim SectorFinish As sXY_int
         Dim AreaAdjusted As sXY_int
@@ -2521,46 +2563,46 @@ Partial Public Class clsMap
         AreaAdjusted.Y = Finish.Y - Offset.Y
 
         GetTileSectorRange(New sXY_int(Offset.X - 1, Offset.Y - 1), Finish, SectorStart, SectorFinish)
-        For Z = SectorStart.Y To SectorFinish.Y
+        For Y = SectorStart.Y To SectorFinish.Y
             For X = SectorStart.X To SectorFinish.X
-                SectorGraphicsChange.SectorChanged(New sXY_int(X, Z))
+                SectorGraphicsChange.SectorChanged(New sXY_int(X, Y))
             Next
         Next
 
         If Insert_Heights Then
-            For Z = 0 To AreaAdjusted.Y
+            For Y = 0 To AreaAdjusted.Y
                 For X = 0 To AreaAdjusted.X
-                    TerrainVertex(Offset.X + X, Offset.Y + Z).Height = Map_To_Insert.TerrainVertex(X, Z).Height
+                    TerrainVertex(Offset.X + X, Offset.Y + Y).Height = Map_To_Insert.TerrainVertex(X, Y).Height
                 Next
             Next
-            For Z = 0 To AreaAdjusted.Y - 1
+            For Y = 0 To AreaAdjusted.Y - 1
                 For X = 0 To AreaAdjusted.X - 1
-                    TerrainTiles(Offset.X + X, Offset.Y + Z).Tri = Map_To_Insert.TerrainTiles(X, Z).Tri
+                    TerrainTiles(Offset.X + X, Offset.Y + Y).Tri = Map_To_Insert.TerrainTiles(X, Y).Tri
                 Next
             Next
         End If
         If Insert_Textures Then
-            For Z = 0 To AreaAdjusted.Y
+            For Y = 0 To AreaAdjusted.Y
                 For X = 0 To AreaAdjusted.X
-                    TerrainVertex(Offset.X + X, Offset.Y + Z).Terrain = Map_To_Insert.TerrainVertex(X, Z).Terrain
+                    TerrainVertex(Offset.X + X, Offset.Y + Y).Terrain = Map_To_Insert.TerrainVertex(X, Y).Terrain
                 Next
             Next
             Dim tmpTri As Boolean
-            For Z = 0 To AreaAdjusted.Y - 1
+            For Y = 0 To AreaAdjusted.Y - 1
                 For X = 0 To AreaAdjusted.X - 1
-                    tmpTri = TerrainTiles(Offset.X + X, Offset.Y + Z).Tri
-                    TerrainTiles(Offset.X + X, Offset.Y + Z) = Map_To_Insert.TerrainTiles(X, Z)
-                    TerrainTiles(Offset.X + X, Offset.Y + Z).Tri = tmpTri
+                    tmpTri = TerrainTiles(Offset.X + X, Offset.Y + Y).Tri
+                    TerrainTiles(Offset.X + X, Offset.Y + Y) = Map_To_Insert.TerrainTiles(X, Y)
+                    TerrainTiles(Offset.X + X, Offset.Y + Y).Tri = tmpTri
                 Next
             Next
-            For Z = 0 To AreaAdjusted.Y
+            For Y = 0 To AreaAdjusted.Y
                 For X = 0 To AreaAdjusted.X - 1
-                    TerrainSideH(Offset.X + X, Offset.Y + Z) = Map_To_Insert.TerrainSideH(X, Z)
+                    TerrainSideH(Offset.X + X, Offset.Y + Y) = Map_To_Insert.TerrainSideH(X, Y)
                 Next
             Next
-            For Z = 0 To AreaAdjusted.Y - 1
+            For Y = 0 To AreaAdjusted.Y - 1
                 For X = 0 To AreaAdjusted.X
-                    TerrainSideV(Offset.X + X, Offset.Y + Z) = Map_To_Insert.TerrainSideV(X, Z)
+                    TerrainSideV(Offset.X + X, Offset.Y + Y) = Map_To_Insert.TerrainSideV(X, Y)
                 Next
             Next
         End If
@@ -2602,10 +2644,10 @@ Partial Public Class clsMap
             Dim TempUnit As clsUnit
             Dim UnitsToDelete(-1) As clsUnit
             Dim UnitToDeleteCount As Integer = 0
-            For Z = SectorStart.Y To SectorFinish.Y
+            For Y = SectorStart.Y To SectorFinish.Y
                 For X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Sectors(X, Z).UnitCount - 1
-                        TempUnit = Sectors(X, Z).Units(A)
+                    For A = 0 To Sectors(X, Y).UnitCount - 1
+                        TempUnit = Sectors(X, Y).Units(A)
                         If PosIsWithinTileArea(TempUnit.Pos.Horizontal, Offset, Finish) Then
                             ReDim Preserve UnitsToDelete(UnitToDeleteCount)
                             UnitsToDelete(UnitToDeleteCount) = TempUnit
@@ -2633,6 +2675,11 @@ Partial Public Class clsMap
                 tmpUnit = Map_To_Insert.Units(A)
                 If PosIsWithinTileArea(tmpUnit.Pos.Horizontal, ZeroPos, AreaAdjusted) Then
                     NewUnit = New clsUnit(Map_To_Insert.Units(A))
+                    If NewUnit.UnitGroup.WZ_StartPos < 0 Then
+                        NewUnit.UnitGroup = ScavengerUnitGroup
+                    Else
+                        NewUnit.UnitGroup = UnitGroups(NewUnit.UnitGroup.WZ_StartPos)
+                    End If
                     NewUnit.Pos.Horizontal.X += PosDif.X
                     NewUnit.Pos.Horizontal.Y += PosDif.Y
                     Unit_Add_StoreChange(NewUnit)
@@ -2677,11 +2724,11 @@ Partial Public Class clsMap
 
     Sub Sectors_Deallocate()
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
 
-        For Z = 0 To SectorCount.Y - 1
+        For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Z).Deallocate()
+                Sectors(X, Y).Deallocate()
             Next
         Next
     End Sub
@@ -2731,7 +2778,7 @@ Partial Public Class clsMap
 
         Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
 
-        Dim Result As clsResult = Write_FMap(Path, False)
+        Dim Result As clsResult = Write_FMap(Path, False, frmMainInstance.menuAutosaveCompress.Checked)
 
         ShowWarnings(Result, "Autosave")
     End Sub
@@ -2887,4 +2934,39 @@ Partial Public Class clsMap
 
         Return Result
     End Function
+
+    Public Sub MakeDefaultUnitGroups()
+        Dim A As Integer
+
+        ReDim UnitGroups(PlayerCountMax - 1)
+        For A = 0 To PlayerCountMax - 1
+            UnitGroups(A) = New clsUnitGroup
+            UnitGroups(A).ParentMap = Me
+            UnitGroups(A).Map_UnitGroupNum = A
+            UnitGroups(A).WZ_StartPos = A
+        Next
+        ScavengerUnitGroup = New clsUnitGroup
+        ScavengerUnitGroup.ParentMap = Me
+        FeatureUnitGroup = New clsUnitGroup
+        FeatureUnitGroup.ParentMap = Me
+        FeatureUnitGroup.WZ_StartPos = 0
+    End Sub
+
+    Public Function GetUnitGroupColour(ByVal ColourUnitGroup As clsUnitGroup) As sRGB_sng
+
+        If ColourUnitGroup Is ScavengerUnitGroup Then
+            Return New sRGB_sng(1.0F, 1.0F, 1.0F)
+        ElseIf ColourUnitGroup Is FeatureUnitGroup Then
+            Return New sRGB_sng(1.0F, 1.0F, 1.0F)
+        Else
+            Return PlayerColour(ColourUnitGroup.WZ_StartPos)
+        End If
+    End Function
+
+    Public Sub AfterInitialized()
+
+        ShadowSector_CreateAll()
+        AutoTextureChange = New clsAutoTextureChange(Me)
+        SectorGraphicsChange = New clsSectorGraphicsChange(Me)
+    End Sub
 End Class

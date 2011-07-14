@@ -81,6 +81,7 @@
     <Compile Include="clsMapTools.vb" />
     <Compile Include="clsMapWZ.vb" />
     <Compile Include="ctrlBrush.vb" />
+    <Compile Include="frmMainIC.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

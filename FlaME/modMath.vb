@@ -238,14 +238,14 @@
 
         m = adifx * adifx + adify * adify
         If m = 0.0# Then
-            PointGetClosestPosOnLine = LinePointA
+            Return LinePointA
         Else
             Dim ar As Double
             ar = (x1dif * adifx - y1dif * adify) / m
             If ar <= 0.0# Then
-                PointGetClosestPosOnLine = LinePointA
+                Return LinePointA
             ElseIf ar >= 1.0# Then
-                PointGetClosestPosOnLine = LinePointB
+                Return LinePointB
             Else
                 PointGetClosestPosOnLine.X = LinePointA.X + CInt(adifx * ar)
                 PointGetClosestPosOnLine.Y = LinePointA.Y + CInt(adify * ar)

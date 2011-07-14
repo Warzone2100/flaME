@@ -7,16 +7,16 @@ Public Module modProgram
     Public Const ProgramVersionNumber As String = "1.20"
 
 #If MonoDevelop = 0.0# Then
-    Public Const ProgramVersion As String = ProgramVersionNumber & " Visual Basic 2010"
+    Public Const ProgramPlatform As String = "Windows"
 #Else
     #If Mono <> 0.0# Then
-        Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Mono 2.10.1"
+        Public Const ProgramPlatform As String = "Mono 2.10.1"
     #Else
-        Public Const ProgramVersion As String = ProgramVersionNumber & " MonoDevelop Microsoft .NET"
+        Public Const ProgramPlatform As String = "MonoDevelop Microsoft .NET"
     #End If 
 #End If
 
-    Public Const PlayerCountMax As Integer = 11
+    Public Const PlayerCountMax As Integer = 10
 
     Public Const DefaultHeightMultiplier As Integer = 2
 
@@ -32,9 +32,10 @@ Public Module modProgram
 
     Public Const MaxDroidWeapons As Integer = 3
 
-    Public Const MaxMapTileSize As Integer = 512
+    Public Const WZMapMaxSize As Integer = 250
+    Public Const MapMaxSize As Integer = 512
 
-    Public Const MaxMinimapSize As Integer = 512
+    Public Const MinimapMaxSize As Integer = 512
 
     Public OSPathSeperator As Char
 
@@ -75,9 +76,6 @@ Public Module modProgram
 
     Public GLTexture_NoTile As Integer
     Public GLTexture_OverflowTile As Integer
-
-    Public SunHeading As Double = 157.5# * RadOf1Deg
-    Public SunPitch As Double = 22.5# * RadOf1Deg
 
     Public frmMainInstance As New frmMain
 #If MonoDevelop = 0.0# Then
@@ -219,10 +217,23 @@ Public Module modProgram
         End Function
     End Structure
 
+    Public Structure sWZAngle
+        Public Direction As UShort
+        Public Pitch As UShort
+        Public Roll As UShort
+    End Structure
+
     Public Structure sRGB_sng
         Dim Red As Single
         Dim Green As Single
         Dim Blue As Single
+
+        Public Sub New(ByVal Red As Single, ByVal Green As Single, ByVal Blue As Single)
+
+            Me.Red = Red
+            Me.Green = Green
+            Me.Blue = Blue
+        End Sub
     End Structure
 
     Public Structure sRGBA_sng
@@ -251,9 +262,6 @@ Public Module modProgram
 
         Public Tiles As sBrushTiles
 
-        Public Event RadiusChanged()
-        Public Event ShapeChanged()
-
         Public Property Radius As Double
             Get
                 Return _Radius
@@ -264,7 +272,6 @@ Public Module modProgram
                 End If
                 _Radius = value
                 CreateTiles()
-                RaiseEvent RadiusChanged()
             End Set
         End Property
 
@@ -278,7 +285,6 @@ Public Module modProgram
                 End If
                 _Shape = value
                 CreateTiles()
-                RaiseEvent ShapeChanged()
             End Set
         End Property
 
@@ -303,8 +309,8 @@ Public Module modProgram
     Public Structure sBrushTiles
         Dim XMin() As Integer
         Dim XMax() As Integer
-        Dim ZMin As Integer
-        Dim ZMax As Integer
+        Dim YMin As Integer
+        Dim YMax As Integer
     End Structure
 
     Public TerrainGridSpacing As Integer = 128
@@ -353,10 +359,9 @@ Public Module modProgram
         Public FileExtension As String
 
         Sub New(ByVal Path As String)
-            Dim tmpPath As String = Path
             Dim A As Integer
 
-            Parts = Strings.Split(tmpPath, OSPathSeperator)
+            Parts = Path.Split(OSPathSeperator)
             PartCount = Parts.GetUpperBound(0) + 1
             FilePath = ""
             For A = 0 To PartCount - 2
@@ -384,12 +389,10 @@ Public Module modProgram
         Public FileExtension As String
 
         Sub New(ByVal Path As String)
-            Dim tmpPath As String = Strings.LCase(Path)
+            Dim tmpPath As String = Path.ToLower.Replace("\"c, "/"c)
             Dim A As Integer
 
-            tmpPath = tmpPath.Replace("\"c, "/"c)
-
-            Parts = Strings.Split(tmpPath, "/")
+            Parts = tmpPath.Split("/"c)
             PartCount = Parts.GetUpperBound(0) + 1
             FilePath = ""
             For A = 0 To PartCount - 2
@@ -418,39 +421,39 @@ Public Module modProgram
 
     Public Sub CircleTiles_Create(ByVal Radius As Double, ByRef Output As sBrushTiles, ByVal TileSize As Double)
         Dim X As Double
-        Dim Z As Integer
+        Dim Y As Integer
         Dim Radius2 As Double
         Dim Radius3 As Double
         Dim A As Integer
 
         Radius2 = Radius / TileSize
-        Output.ZMax = Math.Floor(Radius2)
-        Output.ZMin = -Output.ZMax
-        ReDim Output.XMin(Output.ZMax - Output.ZMin)
-        ReDim Output.XMax(Output.ZMax - Output.ZMin)
+        Output.YMax = Math.Floor(Radius2)
+        Output.YMin = -Output.YMax
+        ReDim Output.XMin(Output.YMax - Output.YMin)
+        ReDim Output.XMax(Output.YMax - Output.YMin)
         Radius3 = Radius2 * Radius2
-        For Z = Output.ZMin To Output.ZMax
-            X = Math.Sqrt(Radius3 - Z * Z)
-            A = Z - Output.ZMin
+        For Y = Output.YMin To Output.YMax
+            X = Math.Sqrt(Radius3 - Y * Y)
+            A = Y - Output.YMin
             Output.XMax(A) = Math.Floor(X)
             Output.XMin(A) = -Output.XMax(A)
         Next
     End Sub
 
     Public Sub SquareTiles_Create(ByVal Radius As Double, ByRef Output As sBrushTiles, ByVal TileSize As Double)
-        Dim Z As Integer
+        Dim Y As Integer
         Dim A As Integer
         Dim B As Integer
 
         A = Math.Floor(Radius / TileSize)
-        Output.ZMin = -A
-        Output.ZMax = A
+        Output.YMin = -A
+        Output.YMax = A
         B = A * 2
         ReDim Output.XMin(B)
         ReDim Output.XMax(B)
-        For Z = 0 To B
-            Output.XMin(Z) = -A
-            Output.XMax(Z) = A
+        For Y = 0 To B
+            Output.XMin(Y) = -A
+            Output.XMax(Y) = A
         Next
     End Sub
 
@@ -1517,7 +1520,11 @@ Public Module modProgram
 
         ZipStream = New Zip.ZipInputStream(IO.File.OpenRead(Path))
         Do
-            ZipEntry = ZipStream.GetNextEntry
+            Try
+                ZipEntry = ZipStream.GetNextEntry
+            Catch ex As Exception
+                Exit Do
+            End Try
             If ZipEntry Is Nothing Then
                 Exit Do
             End If
@@ -1858,6 +1865,7 @@ Public Module modProgram
     End Sub
 
     Public Const ZeroResetID As UInteger = 1000000UI
+    Public Const LoadModulesID As UInteger = ZeroResetID
 
     Public Sub ZeroIDWarning(ByVal IDUnit As clsMap.clsUnit)
         Dim MessageText As String
@@ -1893,5 +1901,29 @@ Public Module modProgram
             WorldHorizontal.Y >= StartTile.Y * TerrainGridSpacing And _
             WorldHorizontal.X < FinishTile.X * TerrainGridSpacing And _
             WorldHorizontal.Y < FinishTile.Y * TerrainGridSpacing)
+    End Function
+
+    Public Function SizeIsPowerOf2(ByVal Size As Integer) As Boolean
+
+        Dim Power As Double = Math.Log(Size) / Math.Log(2.0#)
+        Return (Power = CInt(Power))
+    End Function
+
+    Public Function FindFirstStructureType(ByVal FindType As clsStructureType.enumStructureType) As clsStructureType
+        Dim A As Integer
+        Dim tmpObjectType As clsUnitType
+        Dim tmpStructureType As clsStructureType
+
+        For A = 0 To UnitTypeCount - 1
+            tmpObjectType = UnitTypes(A)
+            If tmpObjectType.Type = clsUnitType.enumType.PlayerStructure Then
+                tmpStructureType = CType(tmpObjectType, clsStructureType)
+                If tmpStructureType.StructureType = FindType Then
+                    Return tmpStructureType
+                End If
+            End If
+        Next
+
+        Return Nothing
     End Function
 End Module

@@ -218,16 +218,13 @@
         ReDim TerrainStyle_Arizona.Layers(Num).AvoidLayers(TerrainStyle_Arizona.LayerCount - 1)
         TerrainStyle_Arizona.Layers(Num).WithinLayer = -1
 
-        Num += 1
-        ReDim Preserve TerrainStyle_Arizona.Layers(Num)
-
         TerrainStyle_Arizona.Tileset = Generator_TilesetArizona
 
         Generator_TilesetArizona.BorderTextureNum = 18
 
         'terrain urban
 
-        TerrainStyle_Urban.LayerCount = 7
+        TerrainStyle_Urban.LayerCount = 6
 
         Num = 0
 
@@ -273,23 +270,23 @@
         ReDim TerrainStyle_Urban.Layers(Num).AvoidLayers(TerrainStyle_Urban.LayerCount - 1)
         TerrainStyle_Urban.Layers(Num).WithinLayer = -1
 
-        Num += 1
-        ReDim Preserve TerrainStyle_Urban.Layers(Num)
+        'Num += 1
+        'ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
-        TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
-        TerrainStyle_Urban.Layers(Num).TileNum = 19
-        TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.25F
-        TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
-        TerrainStyle_Urban.Layers(Num).HeightMax = 256.0F
-        ReDim TerrainStyle_Urban.Layers(Num).AvoidLayers(TerrainStyle_Urban.LayerCount - 1)
-        TerrainStyle_Urban.Layers(Num).WithinLayer = -1
+        'TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
+        'TerrainStyle_Urban.Layers(Num).TileNum = 19
+        'TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.25F
+        'TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
+        'TerrainStyle_Urban.Layers(Num).HeightMax = 256.0F
+        'ReDim TerrainStyle_Urban.Layers(Num).AvoidLayers(TerrainStyle_Urban.LayerCount - 1)
+        'TerrainStyle_Urban.Layers(Num).WithinLayer = -1
 
         Num += 1
         ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
         TerrainStyle_Urban.Layers(Num) = New clsMap.sGenerateMasterTerrainArgs.clsLayer
         TerrainStyle_Urban.Layers(Num).TileNum = 51
-        TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.25F
+        TerrainStyle_Urban.Layers(Num).TerrainmapDensity = 0.4F
         TerrainStyle_Urban.Layers(Num).TerrainmapScale = 1.5F
         TerrainStyle_Urban.Layers(Num).HeightMax = 256.0F
         ReDim TerrainStyle_Urban.Layers(Num).AvoidLayers(TerrainStyle_Urban.LayerCount - 1)
@@ -306,9 +303,6 @@
         TerrainStyle_Urban.Layers(Num).IsCliff = True
         ReDim TerrainStyle_Urban.Layers(Num).AvoidLayers(TerrainStyle_Urban.LayerCount - 1)
         TerrainStyle_Urban.Layers(Num).WithinLayer = -1
-
-        Num += 1
-        ReDim Preserve TerrainStyle_Urban.Layers(Num)
 
         TerrainStyle_Urban.Tileset = Generator_TilesetUrban
 

@@ -280,7 +280,7 @@ MakeNewMap:
                     NewMap.GenerateMasterTerrain(TerrainStyle_Rockies)
                     TerrainStyle_Rockies.Watermap = Nothing
                 Case Else
-                    MsgBox("Error; bad tileset selection.")
+                    MsgBox("Error: bad tileset selection.")
                     lblProgress.Text = "Failed."
                     btnGenerate.Enabled = True
                     Exit Sub
@@ -299,7 +299,7 @@ MakeNewMap:
                     NewMap.Tileset = Tileset_Rockies
                     NewMap.GenerateTileset = Generator_TilesetRockies
                 Case Else
-                    MsgBox("Error; bad tileset selection.")
+                    MsgBox("Error: bad tileset selection.")
                     lblProgress.Text = "Failed."
                     btnGenerate.Enabled = True
                     Exit Sub
@@ -985,7 +985,7 @@ MakeNewMap:
         Me.txtLevelFrequency.Name = "txtLevelFrequency"
         Me.txtLevelFrequency.Size = New System.Drawing.Size(46, 22)
         Me.txtLevelFrequency.TabIndex = 31
-        Me.txtLevelFrequency.Text = "3"
+        Me.txtLevelFrequency.Text = "5"
         '
         'Label8
         '

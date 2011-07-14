@@ -28,15 +28,6 @@ Public Module modBitmap
 
         Try
 
-            Dim SaveFormat As Drawing.Imaging.ImageFormat
-            Select Case Strings.LCase(Strings.Right(Path, 4))
-                Case ".bmp"
-                    SaveFormat = Drawing.Imaging.ImageFormat.Bmp
-                Case Else
-                    SaveBitmap.Problem = "Unrecognised file extension."
-                    Exit Function
-            End Select
-
             If IO.File.Exists(Path) Then
                 If Overwrite Then
                     IO.File.Delete(Path)
@@ -45,7 +36,7 @@ Public Module modBitmap
                     Exit Function
                 End If
             End If
-            BitmapToSave.Save(Path, SaveFormat)
+            BitmapToSave.Save(Path)
 
         Catch ex As Exception
             SaveBitmap.Problem = ex.Message
@@ -102,4 +93,20 @@ Public Module modBitmap
 
         Texture.UnlockBits(tmpData)
     End Sub
+
+    Function BitmapIsGLCompatible(ByVal BitmapToCheck As Bitmap) As clsResult
+        Dim ReturnResult As New clsResult
+
+        If Not SizeIsPowerOf2(BitmapToCheck.Width) Then
+            ReturnResult.Warning_Add("Image width is not a power of 2.")
+        End If
+        If Not SizeIsPowerOf2(BitmapToCheck.Height) Then
+            ReturnResult.Warning_Add("Image height is not a power of 2.")
+        End If
+        If BitmapToCheck.Width <> BitmapToCheck.Height Then
+            ReturnResult.Warning_Add("Image is not square.")
+        End If
+
+        Return ReturnResult
+    End Function
 End Module

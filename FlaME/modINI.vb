@@ -43,7 +43,7 @@
                     If LineText.Length >= 3 Then
                         A = LineText.IndexOf("="c)
                         If A >= 0 Then
-                            CreateProperty(LineText.Substring(0, A).ToLower, LineText.Substring(A + 1, LineText.Length - A - 1))
+                            CreateProperty(LineText.Substring(0, A).ToLower.Trim, LineText.Substring(A + 1, LineText.Length - A - 1).Trim)
                         Else
                             InvalidLineCount += 1
                         End If
@@ -175,7 +175,7 @@
                     ElseIf CurrentEntryNum >= 0 Then
                         A = LineText.IndexOf("="c)
                         If A >= 0 Then
-                            Sections(CurrentEntryNum).CreateProperty(LineText.Substring(0, A).ToLower, LineText.Substring(A + 1, LineText.Length - A - 1))
+                            Sections(CurrentEntryNum).CreateProperty(LineText.Substring(0, A).ToLower.Trim, LineText.Substring(A + 1, LineText.Length - A - 1).Trim)
                         Else
                             InvalidLineCount += 1
                         End If

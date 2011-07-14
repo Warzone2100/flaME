@@ -96,6 +96,8 @@ Public Class ctrlMapView
     Public ViewAngleRPY As sAngleRPY
     Public FieldOfViewY As Double
 
+    Public SunAngleMatrix(8) As Double
+
     Public FOVMultiplierExponent As Double
     Public FOVMultiplier As Double
 
@@ -116,6 +118,8 @@ Public Class ctrlMapView
         OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 24, 0))
         OpenGLControl.MakeCurrent() 'mono version fails without this
         pnlDraw.Controls.Add(OpenGLControl)
+
+        MatrixSetToPY(SunAngleMatrix, New sAnglePY(-22.5# * RadOf1Deg, 157.5# * RadOf1Deg))
 
         GLInitializeDelayTimer = New Timer
         GLInitializeDelayTimer.Interval = 1
@@ -371,9 +375,9 @@ Public Class ctrlMapView
         Dim XYZ_dbl As sXYZ_dbl
         Dim Footprint As sXY_int
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
+        Dim Y2 As Integer
         Dim A As Integer
         Dim B As Integer
         Dim C As Integer
@@ -413,7 +417,7 @@ Public Class ctrlMapView
         Dim matrixA(8) As Double
         Dim matrixB(8) As Double
         Dim X3 As Integer
-        Dim Z3 As Integer
+        Dim Y3 As Integer
 
         If Not (DrawView_Enabled And IsGLInitialized) Then
             Exit Sub
@@ -431,8 +435,7 @@ Public Class ctrlMapView
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        MatrixSetToPY(matrixA, New sAnglePY(-SunPitch, SunHeading))
-        MatrixRotationByMatrix(ViewAngleMatrix_Inverted, matrixA, matrixB)
+        MatrixRotationByMatrix(ViewAngleMatrix_Inverted, SunAngleMatrix, matrixB)
         VectorForwardRotationByMatrix(matrixB, XYZ_dbl)
         light_position(0) = XYZ_dbl.X
         light_position(1) = XYZ_dbl.Y
@@ -488,7 +491,7 @@ Public Class ctrlMapView
         GL.Translate(-ViewPos.X, -ViewPos.Y, ViewPos.Z)
 
         X2 = DrawCentreSector.X
-        Z2 = DrawCentreSector.Y
+        Y2 = DrawCentreSector.Y
 
         GL.Enable(EnableCap.CullFace)
 
@@ -496,9 +499,9 @@ Public Class ctrlMapView
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
-                    GL.CallList(Main_Map.Sectors(X, Z).GLList_Textured)
+            For Y = Clamp(Y2 + VisionSectors.YMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Y2 + VisionSectors.YMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1)
+                    GL.CallList(Main_Map.Sectors(X, Y).GLList_Textured)
                 Next
             Next
             GL.Disable(EnableCap.Texture2D)
@@ -510,9 +513,9 @@ Public Class ctrlMapView
         If Draw_TileWireframe Then
             GL.Color3(0.0F, 1.0F, 0.0F)
             GL.LineWidth(1.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
-                    GL.CallList(Main_Map.Sectors(X, Z).GLList_Wireframe)
+            For Y = Clamp(Y2 + VisionSectors.YMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Y2 + VisionSectors.YMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1)
+                    GL.CallList(Main_Map.Sectors(X, Y).GLList_Wireframe)
                 Next
             Next
         End If
@@ -525,11 +528,11 @@ Public Class ctrlMapView
 
             GL.Begin(BeginMode.Triangles)
             GL.Color3(1.0F, 1.0F, 0.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X)
-                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y - 1)
+            For Y = Clamp(Y2 + VisionSectors.YMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Y2 + VisionSectors.YMax, 0, Main_Map.SectorCount.Y)
+                For X = Clamp(X2 + VisionSectors.XMin(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X)
+                    For Y3 = Y * SectorTileSize To Math.Min((Y + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y - 1)
                         For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Main_Map.TerrainSize.X - 1)
-                            Main_Map.DrawTileOrientation(New sXY_int(X3, Z3))
+                            Main_Map.DrawTileOrientation(New sXY_int(X3, Y3))
                         Next
                     Next
                 Next
@@ -549,12 +552,12 @@ Public Class ctrlMapView
 
         If Draw_VertexTerrain Then
             GL.LineWidth(1.0F)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X)
-                    For Z3 = Z * SectorTileSize To Math.Min((Z + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y)
+            For Y = Clamp(Y2 + VisionSectors.YMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Y2 + VisionSectors.YMax, 0, Main_Map.SectorCount.Y)
+                For X = Clamp(X2 + VisionSectors.XMin(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X)
+                    For Y3 = Y * SectorTileSize To Math.Min((Y + 1) * SectorTileSize - 1, Main_Map.TerrainSize.Y)
                         For X3 = X * SectorTileSize To Math.Min((X + 1) * SectorTileSize - 1, Main_Map.TerrainSize.X)
-                            If Main_Map.TerrainVertex(X3, Z3).Terrain IsNot Nothing And Main_Map.Tileset IsNot Nothing Then
-                                A = Main_Map.TerrainVertex(X3, Z3).Terrain.Num
+                            If Main_Map.TerrainVertex(X3, Y3).Terrain IsNot Nothing And Main_Map.Tileset IsNot Nothing Then
+                                A = Main_Map.TerrainVertex(X3, Y3).Terrain.Num
                                 If A < Main_Map.Painter.TerrainCount Then
                                     If Main_Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
                                         RGB_sng = Main_Map.Tileset.Tiles(Main_Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
@@ -568,8 +571,8 @@ Public Class ctrlMapView
                                             RGB_sng2.Blue = RGB_sng.Blue / 2.0F
                                         End If
                                         XYZ_dbl.X = X3 * TerrainGridSpacing
-                                        XYZ_dbl.Y = Main_Map.TerrainVertex(X3, Z3).Height * Main_Map.HeightMultiplier
-                                        XYZ_dbl.Z = -Z3 * TerrainGridSpacing
+                                        XYZ_dbl.Y = Main_Map.TerrainVertex(X3, Y3).Height * Main_Map.HeightMultiplier
+                                        XYZ_dbl.Z = -Y3 * TerrainGridSpacing
                                         XYZ_dbl2.X = 10.0#
                                         XYZ_dbl2.Y = 10.0#
                                         XYZ_dbl2.Z = 0.0#
@@ -629,7 +632,7 @@ Public Class ctrlMapView
                 'area is selected
                 XY_Reorder(Main_Map.Selected_Area_VertexA.XY, Main_Map.Selected_Area_VertexB.XY, StartXY, FinishXY)
                 XYZ_dbl.X = Main_Map.Selected_Area_VertexB.X * TerrainGridSpacing - ViewPos.X
-                XYZ_dbl.Z = Main_Map.Selected_Area_VertexB.Y * TerrainGridSpacing - ViewPos.Z
+                XYZ_dbl.Z = -Main_Map.Selected_Area_VertexB.Y * TerrainGridSpacing - ViewPos.Z
                 XYZ_dbl.Y = Main_Map.GetVertexAltitude(Main_Map.Selected_Area_VertexB.XY) - ViewPos.Y
                 DrawIt = True
             ElseIf Tool = enumTool.Terrain_Select Then
@@ -683,26 +686,26 @@ Public Class ctrlMapView
                     GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                     GL.End()
                 Next
-                For Z = StartXY.Y To FinishXY.Y - 1
+                For Y = StartXY.Y To FinishXY.Y - 1
                     Vertex0.X = StartXY.X * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Z).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Y).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y * TerrainGridSpacing
                     Vertex1.X = StartXY.X * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Z + 1).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -(Z + 1) * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Y + 1).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -(Y + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
                     GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                     GL.End()
                 Next
-                For Z = StartXY.Y To FinishXY.Y - 1
+                For Y = StartXY.Y To FinishXY.Y - 1
                     Vertex0.X = FinishXY.X * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Z).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Y).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y * TerrainGridSpacing
                     Vertex1.X = FinishXY.X * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Z + 1).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -(Z + 1) * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Y + 1).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -(Y + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.Lines)
                     GL.Color3(1.0F, 1.0F, 1.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -742,19 +745,19 @@ Public Class ctrlMapView
                         D = Main_Map.Gateways(A).PosA.Y
                     End If
                     X2 = Main_Map.Gateways(A).PosA.X
-                    For Z2 = C To D
+                    For Y2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Y2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.75F, 1.0F, 0.0F)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -771,20 +774,20 @@ Public Class ctrlMapView
                         C = Main_Map.Gateways(A).PosB.X
                         D = Main_Map.Gateways(A).PosA.X
                     End If
-                    Z2 = Main_Map.Gateways(A).PosA.Y
+                    Y2 = Main_Map.Gateways(A).PosA.Y
                     For X2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Y2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.75F, 1.0F, 0.0F)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -796,20 +799,20 @@ Public Class ctrlMapView
                 Else
                     'draw invalid gateways as red tile borders
                     X2 = Main_Map.Gateways(A).PosA.X
-                    Z2 = Main_Map.Gateways(A).PosA.Y
+                    Y2 = Main_Map.Gateways(A).PosA.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -Y2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(1.0F, 0.0F, 0.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -819,20 +822,20 @@ Public Class ctrlMapView
                     GL.End()
 
                     X2 = Main_Map.Gateways(A).PosB.X
-                    Z2 = Main_Map.Gateways(A).PosB.Y
+                    Y2 = Main_Map.Gateways(A).PosB.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -Y2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(1.0F, 0.0F, 0.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -876,25 +879,25 @@ Public Class ctrlMapView
                         GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                         GL.End()
                     Next
-                    For Z = StartXY.Y To FinishXY.Y - 1
+                    For Y = StartXY.Y To FinishXY.Y - 1
                         Vertex0.X = StartXY.X * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Z).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(StartXY.X, Y).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y * TerrainGridSpacing
                         Vertex1.X = StartXY.X * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Z + 1).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -(Z + 1) * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(StartXY.X, Y + 1).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -(Y + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
                         GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                         GL.End()
                     Next
-                    For Z = StartXY.Y To FinishXY.Y - 1
+                    For Y = StartXY.Y To FinishXY.Y - 1
                         Vertex0.X = FinishXY.X * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Z).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(FinishXY.X, Y).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y * TerrainGridSpacing
                         Vertex1.X = FinishXY.X * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Z + 1).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -(Z + 1) * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(FinishXY.X, Y + 1).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -(Y + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
                         GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
@@ -941,20 +944,20 @@ Public Class ctrlMapView
 
                 If Main_Map.Selected_Tile_A IsNot Nothing Then
                     X2 = Main_Map.Selected_Tile_A.X
-                    Z2 = Main_Map.Selected_Tile_A.Y
+                    Y2 = Main_Map.Selected_Tile_A.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -Y2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(0.0F, 1.0F, 1.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -972,19 +975,19 @@ Public Class ctrlMapView
                             B = MouseOverTerrain.Tile.Y
                         End If
                         X2 = Main_Map.Selected_Tile_A.X
-                        For Z2 = A To B
+                        For Y2 = A To B
                             Vertex0.X = X2 * TerrainGridSpacing
-                            Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                            Vertex0.Z = -Z2 * TerrainGridSpacing
+                            Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                            Vertex0.Z = -Y2 * TerrainGridSpacing
                             Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                            Vertex1.Z = -Z2 * TerrainGridSpacing
+                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                            Vertex1.Z = -Y2 * TerrainGridSpacing
                             Vertex2.X = X2 * TerrainGridSpacing
-                            Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                            Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                            Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                            Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                             Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                            Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                            Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                             GL.Begin(BeginMode.LineLoop)
                             GL.Color3(0.0F, 1.0F, 1.0F)
                             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1001,20 +1004,20 @@ Public Class ctrlMapView
                             A = Main_Map.Selected_Tile_A.X
                             B = MouseOverTerrain.Tile.X
                         End If
-                        Z2 = Main_Map.Selected_Tile_A.Y
+                        Y2 = Main_Map.Selected_Tile_A.Y
                         For X2 = A To B
                             Vertex0.X = X2 * TerrainGridSpacing
-                            Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                            Vertex0.Z = -Z2 * TerrainGridSpacing
+                            Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                            Vertex0.Z = -Y2 * TerrainGridSpacing
                             Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                            Vertex1.Z = -Z2 * TerrainGridSpacing
+                            Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                            Vertex1.Z = -Y2 * TerrainGridSpacing
                             Vertex2.X = X2 * TerrainGridSpacing
-                            Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                            Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                            Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                            Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                             Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                            Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                            Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                            Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                             GL.Begin(BeginMode.LineLoop)
                             GL.Color3(0.0F, 1.0F, 1.0F)
                             GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1026,20 +1029,20 @@ Public Class ctrlMapView
                     End If
                 Else
                     X2 = MouseOverTerrain.Tile.X
-                    Z2 = MouseOverTerrain.Tile.Y
+                    Y2 = MouseOverTerrain.Tile.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
-                    Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex0.Z = -Z2 * TerrainGridSpacing
+                    Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex0.Z = -Y2 * TerrainGridSpacing
                     Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                    Vertex1.Z = -Z2 * TerrainGridSpacing
+                    Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                    Vertex1.Z = -Y2 * TerrainGridSpacing
                     Vertex2.X = X2 * TerrainGridSpacing
-                    Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                     Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                    Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                    Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                    Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                     GL.Begin(BeginMode.LineLoop)
                     GL.Color3(0.0F, 1.0F, 1.0F)
                     GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1054,23 +1057,23 @@ Public Class ctrlMapView
             If Tool = enumTool.Texture_Brush Then
                 GL.LineWidth(2.0F)
 
-                For Z = Clamp(TextureBrush.Tiles.ZMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(TextureBrush.Tiles.ZMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
-                    Z2 = MouseOverTerrain.Tile.Y + Z
-                    For X = Clamp(TextureBrush.Tiles.XMin(Z - TextureBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(TextureBrush.Tiles.XMax(Z - TextureBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
+                For Y = Clamp(TextureBrush.Tiles.YMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(TextureBrush.Tiles.YMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
+                    Y2 = MouseOverTerrain.Tile.Y + Y
+                    For X = Clamp(TextureBrush.Tiles.XMin(Y - TextureBrush.Tiles.YMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(TextureBrush.Tiles.XMax(Y - TextureBrush.Tiles.YMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
                         X2 = MouseOverTerrain.Tile.X + X
 
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Y2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.0F, 1.0F, 1.0F)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1085,23 +1088,23 @@ Public Class ctrlMapView
             If Tool = enumTool.AutoCliff Or Tool = enumTool.AutoRoad_Remove Then
                 GL.LineWidth(2.0F)
 
-                For Z = Clamp(CliffBrush.Tiles.ZMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(CliffBrush.Tiles.ZMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
-                    Z2 = MouseOverTerrain.Tile.Y + Z
-                    For X = Clamp(CliffBrush.Tiles.XMin(Z - CliffBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(CliffBrush.Tiles.XMax(Z - CliffBrush.Tiles.ZMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
+                For Y = Clamp(CliffBrush.Tiles.YMin + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y To Clamp(CliffBrush.Tiles.YMax + MouseOverTerrain.Tile.Y, 0, Main_Map.TerrainSize.Y - 1) - MouseOverTerrain.Tile.Y
+                    Y2 = MouseOverTerrain.Tile.Y + Y
+                    For X = Clamp(CliffBrush.Tiles.XMin(Y - CliffBrush.Tiles.YMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X To Clamp(CliffBrush.Tiles.XMax(Y - CliffBrush.Tiles.YMin) + MouseOverTerrain.Tile.X, 0, Main_Map.TerrainSize.X - 1) - MouseOverTerrain.Tile.X
                         X2 = MouseOverTerrain.Tile.X + X
 
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         Vertex1.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex1.Z = -Z2 * TerrainGridSpacing
+                        Vertex1.Y = Main_Map.TerrainVertex(X2 + 1, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex1.Z = -Y2 * TerrainGridSpacing
                         Vertex2.X = X2 * TerrainGridSpacing
-                        Vertex2.Y = Main_Map.TerrainVertex(X2, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex2.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex2.Y = Main_Map.TerrainVertex(X2, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex2.Z = -(Y2 + 1) * TerrainGridSpacing
                         Vertex3.X = (X2 + 1) * TerrainGridSpacing
-                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Z2 + 1).Height * Main_Map.HeightMultiplier
-                        Vertex3.Z = -(Z2 + 1) * TerrainGridSpacing
+                        Vertex3.Y = Main_Map.TerrainVertex(X2 + 1, Y2 + 1).Height * Main_Map.HeightMultiplier
+                        Vertex3.Z = -(Y2 + 1) * TerrainGridSpacing
                         GL.Begin(BeginMode.LineLoop)
                         GL.Color3(0.0F, 1.0F, 1.0F)
                         GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
@@ -1133,14 +1136,14 @@ Public Class ctrlMapView
             If Tool = enumTool.AutoTexture_Place Then
                 GL.LineWidth(2.0F)
 
-                For Z = Clamp(TerrainBrush.Tiles.ZMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(TerrainBrush.Tiles.ZMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
-                    Z2 = MouseOverTerrain.Vertex.Y + Z
-                    For X = Clamp(TerrainBrush.Tiles.XMin(Z - TerrainBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(TerrainBrush.Tiles.XMax(Z - TerrainBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
+                For Y = Clamp(TerrainBrush.Tiles.YMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(TerrainBrush.Tiles.YMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
+                    Y2 = MouseOverTerrain.Vertex.Y + Y
+                    For X = Clamp(TerrainBrush.Tiles.XMin(Y - TerrainBrush.Tiles.YMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(TerrainBrush.Tiles.XMax(Y - TerrainBrush.Tiles.YMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
                         X2 = MouseOverTerrain.Vertex.X + X
 
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Color3(0.0F, 1.0F, 1.0F)
                         GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
@@ -1157,14 +1160,14 @@ Public Class ctrlMapView
             Or Tool = enumTool.Height_Change_Brush Then
                 GL.LineWidth(2.0F)
 
-                For Z = Clamp(HeightBrush.Tiles.ZMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(HeightBrush.Tiles.ZMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
-                    Z2 = MouseOverTerrain.Vertex.Y + Z
-                    For X = Clamp(HeightBrush.Tiles.XMin(Z - HeightBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(HeightBrush.Tiles.XMax(Z - HeightBrush.Tiles.ZMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
+                For Y = Clamp(HeightBrush.Tiles.YMin + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y To Clamp(HeightBrush.Tiles.YMax + MouseOverTerrain.Vertex.Y, 0, Main_Map.TerrainSize.Y) - MouseOverTerrain.Vertex.Y
+                    Y2 = MouseOverTerrain.Vertex.Y + Y
+                    For X = Clamp(HeightBrush.Tiles.XMin(Y - HeightBrush.Tiles.YMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X To Clamp(HeightBrush.Tiles.XMax(Y - HeightBrush.Tiles.YMin) + MouseOverTerrain.Vertex.X, 0, Main_Map.TerrainSize.X) - MouseOverTerrain.Vertex.X
                         X2 = MouseOverTerrain.Vertex.X + X
 
                         Vertex0.X = X2 * TerrainGridSpacing
-                        Vertex0.Y = Main_Map.TerrainVertex(X2, Z2).Height * Main_Map.HeightMultiplier
-                        Vertex0.Z = -Z2 * TerrainGridSpacing
+                        Vertex0.Y = Main_Map.TerrainVertex(X2, Y2).Height * Main_Map.HeightMultiplier
+                        Vertex0.Z = -Y2 * TerrainGridSpacing
                         GL.Begin(BeginMode.Lines)
                         GL.Color3(0.0F, 1.0F, 1.0F)
                         GL.Vertex3(Vertex0.X - 8.0#, Vertex0.Y, -Vertex0.Z)
@@ -1197,11 +1200,11 @@ Public Class ctrlMapView
             GL.Enable(EnableCap.Texture2D)
             Dim UnitDrawn(Main_Map.UnitCount - 1) As Boolean
             X2 = DrawCentreSector.X 'Clamp(Int(View_Pos.X / (TerrainGridSpacing * Tiles_Per_Sector)), 0, Map.numSectors.X - 1)
-            Z2 = DrawCentreSector.Y 'Clamp(Int(-View_Pos.Z / (TerrainGridSpacing * Tiles_Per_Sector)), 0, Map.numSectors.Y - 1)
-            For Z = Clamp(Z2 + VisionSectors.ZMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Z2 + VisionSectors.ZMax, 0, Main_Map.SectorCount.Y - 1)
-                For X = Clamp(X2 + VisionSectors.XMin(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Z - Z2 - VisionSectors.ZMin), 0, Main_Map.SectorCount.X - 1)
-                    For A = 0 To Main_Map.Sectors(X, Z).UnitCount - 1
-                        tmpUnit = Main_Map.Sectors(X, Z).Units(A)
+            Y2 = DrawCentreSector.Y 'Clamp(Int(-View_Pos.Z / (TerrainGridSpacing * Tiles_Per_Sector)), 0, Map.numSectors.Y - 1)
+            For Y = Clamp(Y2 + VisionSectors.YMin, 0, Main_Map.SectorCount.Y - 1) To Clamp(Y2 + VisionSectors.YMax, 0, Main_Map.SectorCount.Y - 1)
+                For X = Clamp(X2 + VisionSectors.XMin(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1) To Clamp(X2 + VisionSectors.XMax(Y - Y2 - VisionSectors.YMin), 0, Main_Map.SectorCount.X - 1)
+                    For A = 0 To Main_Map.Sectors(X, Y).UnitCount - 1
+                        tmpUnit = Main_Map.Sectors(X, Y).Units(A)
                         If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
                             UnitDrawn(tmpUnit.Map_UnitNum) = True
                             XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewPos.X
@@ -1282,8 +1285,9 @@ Public Class ctrlMapView
             XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewPos.Y
             XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewPos.Z
             Footprint = tmpUnit.Type.GetFootprint
-            ColourA = New sRGBA_sng((1.0F + PlayerColour(tmpUnit.PlayerNum).Red) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Green) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Blue) / 2.0F, 0.75F)
-            ColourB = New sRGBA_sng(PlayerColour(tmpUnit.PlayerNum).Red, PlayerColour(tmpUnit.PlayerNum).Green, PlayerColour(tmpUnit.PlayerNum).Blue, 0.75F)
+            RGB_sng = Main_Map.GetUnitGroupColour(tmpUnit.UnitGroup)
+            ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
+            ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.75F)
             DrawUnitRectangle(XYZ_dbl, Footprint, 8.0#, ColourA, ColourB)
         Next
         If MouseOverTerrain IsNot Nothing Then
@@ -1293,10 +1297,11 @@ Public Class ctrlMapView
                     XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewPos.X
                     XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewPos.Y
                     XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewPos.Z
-                    GL.Color4((0.5F + PlayerColour(tmpUnit.PlayerNum).Red) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Green) / 1.5F, (0.5F + PlayerColour(tmpUnit.PlayerNum).Blue) / 1.5F, 0.75F)
+                    RGB_sng = Main_Map.GetUnitGroupColour(tmpUnit.UnitGroup)
+                    GL.Color4((0.5F + RGB_sng.Red) / 1.5F, (0.5F + RGB_sng.Green) / 1.5F, (0.5F + RGB_sng.Blue) / 1.5F, 0.75F)
                     Footprint = tmpUnit.Type.GetFootprint
-                    ColourA = New sRGBA_sng((1.0F + PlayerColour(tmpUnit.PlayerNum).Red) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Green) / 2.0F, (1.0F + PlayerColour(tmpUnit.PlayerNum).Blue) / 2.0F, 0.75F)
-                    ColourB = New sRGBA_sng(PlayerColour(tmpUnit.PlayerNum).Red, PlayerColour(tmpUnit.PlayerNum).Green, PlayerColour(tmpUnit.PlayerNum).Blue, 0.875F)
+                    ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
+                    ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.875F)
                     DrawUnitRectangle(XYZ_dbl, Footprint, 16.0#, ColourA, ColourB)
                 End If
             Next
@@ -1325,7 +1330,7 @@ Public Class ctrlMapView
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        If Main_Map.Minimap_Texture_Size > 0 And Main_Map.Minimap_Texture > 0 Then
+        If Main_Map.Minimap_Texture_Size > 0 And Main_Map.Minimap_GLTexture > 0 Then
             dblTemp = MinimapSize
             Tiles_Per_Minimap_Pixel = Math.Sqrt(Main_Map.TerrainSize.X * Main_Map.TerrainSize.X + Main_Map.TerrainSize.Y * Main_Map.TerrainSize.Y) / (RootTwo * dblTemp)
 
@@ -1339,7 +1344,7 @@ Public Class ctrlMapView
 
             GL.Enable(EnableCap.Texture2D)
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
-            GL.BindTexture(TextureTarget.Texture2D, Main_Map.Minimap_Texture)
+            GL.BindTexture(TextureTarget.Texture2D, Main_Map.Minimap_GLTexture)
 
             GL.Begin(BeginMode.Quads)
 
@@ -1725,16 +1730,16 @@ Public Class ctrlMapView
 
         Dim Centre As sXY_int = MouseOverTerrain.Vertex
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
         Dim Y2 As Integer
         Dim AutoTextureChanged As clsMap.clsAutoTextureChange = Main_Map.AutoTextureChange
         Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
         Dim Pos As sXY_int
 
-        For Z = Clamp(TerrainBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(TerrainBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
-            Y2 = Centre.Y + Z
-            For X = Clamp(TerrainBrush.Tiles.XMin(Z - TerrainBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(TerrainBrush.Tiles.XMax(Z - TerrainBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+        For Y = Clamp(TerrainBrush.Tiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(TerrainBrush.Tiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(TerrainBrush.Tiles.XMin(Y - TerrainBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(TerrainBrush.Tiles.XMax(Y - TerrainBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
                 X2 = Centre.X + X
 
                 If Main_Map.TerrainVertex(X2, Y2).Terrain IsNot SelectedTerrain Then
@@ -1826,14 +1831,17 @@ Public Class ctrlMapView
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim A As Integer
-        Dim SourceOfFill(511) As sXY_int
+        Dim SourceOfFill(524288) As sXY_int
         Dim SourceOfFillCount As Integer
         Dim SourceOfFill_Num As Integer
         Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
         Dim AutoTextureChange As clsMap.clsAutoTextureChange = Main_Map.AutoTextureChange
         Dim VertexNum As sXY_int
+        Dim MoveCount As Integer
+        Dim RemainingCount As Integer
+        Dim MoveOffset As Integer
 
         SourceOfFill(0).X = StartVertex.X
         SourceOfFill(0).Y = StartVertex.Y
@@ -1841,92 +1849,92 @@ Public Class ctrlMapView
         SourceOfFill_Num = 0
 
         X = SourceOfFill(SourceOfFill_Num).X
-        Z = SourceOfFill(SourceOfFill_Num).Y
-        Main_Map.TerrainVertex(X, Z).Terrain = FillType
+        Y = SourceOfFill(SourceOfFill_Num).Y
+        Main_Map.TerrainVertex(X, Y).Terrain = FillType
         VertexNum.X = X
-        VertexNum.Y = Z
+        VertexNum.Y = Y
         SectorChange.Vertex_Set_Changed(VertexNum)
         AutoTextureChange.Vertex_Set_Changed(VertexNum)
         Do While SourceOfFill_Num < SourceOfFillCount
             X = SourceOfFill(SourceOfFill_Num).X + 1
-            Z = SourceOfFill(SourceOfFill_Num).Y
+            Y = SourceOfFill(SourceOfFill_Num).Y
             If X >= 0 And X <= Main_Map.TerrainSize.X _
-            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
-                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            And Y >= 0 And Y <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Y).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
                         ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Z
+                    SourceOfFill(SourceOfFillCount).Y = Y
                     SourceOfFillCount += 1
 
-                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+                    Main_Map.TerrainVertex(X, Y).Terrain = FillType
 
                     VertexNum.X = X
-                    VertexNum.Y = Z
+                    VertexNum.Y = Y
                     SectorChange.Vertex_Set_Changed(VertexNum)
                     AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X - 1
-            Z = SourceOfFill(SourceOfFill_Num).Y
+            Y = SourceOfFill(SourceOfFill_Num).Y
             If X >= 0 And X <= Main_Map.TerrainSize.X _
-            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
-                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            And Y >= 0 And Y <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Y).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
                         ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Z
+                    SourceOfFill(SourceOfFillCount).Y = Y
                     SourceOfFillCount += 1
 
-                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+                    Main_Map.TerrainVertex(X, Y).Terrain = FillType
 
                     VertexNum.X = X
-                    VertexNum.Y = Z
+                    VertexNum.Y = Y
                     SectorChange.Vertex_Set_Changed(VertexNum)
                     AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X
-            Z = SourceOfFill(SourceOfFill_Num).Y + 1
+            Y = SourceOfFill(SourceOfFill_Num).Y + 1
             If X >= 0 And X <= Main_Map.TerrainSize.X _
-            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
-                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            And Y >= 0 And Y <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Y).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
                         ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Z
+                    SourceOfFill(SourceOfFillCount).Y = Y
                     SourceOfFillCount += 1
 
-                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+                    Main_Map.TerrainVertex(X, Y).Terrain = FillType
 
                     VertexNum.X = X
-                    VertexNum.Y = Z
+                    VertexNum.Y = Y
                     SectorChange.Vertex_Set_Changed(VertexNum)
                     AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
             End If
 
             X = SourceOfFill(SourceOfFill_Num).X
-            Z = SourceOfFill(SourceOfFill_Num).Y - 1
+            Y = SourceOfFill(SourceOfFill_Num).Y - 1
             If X >= 0 And X <= Main_Map.TerrainSize.X _
-            And Z >= 0 And Z <= Main_Map.TerrainSize.Y Then
-                If Main_Map.TerrainVertex(X, Z).Terrain Is ReplaceType Then
+            And Y >= 0 And Y <= Main_Map.TerrainSize.Y Then
+                If Main_Map.TerrainVertex(X, Y).Terrain Is ReplaceType Then
                     If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
                         ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                     End If
                     SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Z
+                    SourceOfFill(SourceOfFillCount).Y = Y
                     SourceOfFillCount += 1
 
-                    Main_Map.TerrainVertex(X, Z).Terrain = FillType
+                    Main_Map.TerrainVertex(X, Y).Terrain = FillType
 
                     VertexNum.X = X
-                    VertexNum.Y = Z
+                    VertexNum.Y = Y
                     SectorChange.Vertex_Set_Changed(VertexNum)
                     AutoTextureChange.Vertex_Set_Changed(VertexNum)
                 End If
@@ -1934,14 +1942,18 @@ Public Class ctrlMapView
 
             SourceOfFill_Num += 1
 
-            If SourceOfFill_Num > 131072 Then
-                'todo: only move the end of the array
-                SourceOfFillCount -= SourceOfFill_Num
-                For A = 0 To SourceOfFillCount - 1
-                    SourceOfFill(A) = SourceOfFill(SourceOfFill_Num + A)
+            If SourceOfFill_Num >= 131072 Then
+                RemainingCount = SourceOfFillCount - SourceOfFill_Num
+                MoveCount = Math.Min(SourceOfFill_Num, RemainingCount)
+                MoveOffset = SourceOfFillCount - MoveCount
+                For A = 0 To MoveCount - 1
+                    SourceOfFill(A) = SourceOfFill(MoveOffset + A)
                 Next
-                ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                SourceOfFillCount -= SourceOfFill_Num
                 SourceOfFill_Num = 0
+                If SourceOfFillCount * 3 < SourceOfFill.GetUpperBound(0) + 1 Then
+                    ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                End If
             End If
         Loop
 
@@ -1961,16 +1973,16 @@ Public Class ctrlMapView
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
         Dim Y2 As Integer
         Dim SectorChange As clsMap.clsSectorGraphicsChange = Main_Map.SectorGraphicsChange
         Dim Centre As sXY_int = MouseOverTerrain.Tile
         Dim Pos As sXY_int
 
-        For Z = Clamp(TextureBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(TextureBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
-            Y2 = Centre.Y + Z
-            For X = Clamp(TextureBrush.Tiles.XMin(Z - TextureBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(TextureBrush.Tiles.XMax(Z - TextureBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
+        For Y = Clamp(TextureBrush.Tiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(TextureBrush.Tiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(TextureBrush.Tiles.XMin(Y - TextureBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(TextureBrush.Tiles.XMax(Y - TextureBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
                 X2 = Centre.X + X
 
                 Main_Map.TerrainTiles(X2, Y2).Terrain_IsCliff = False
@@ -2046,61 +2058,61 @@ Public Class ctrlMapView
         Dim Centre As sXY_int = MouseOverTerrain.Tile
         Dim Changed As Boolean
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
+        Dim Y2 As Integer
         Dim Pos As sXY_int
 
-        For Z = Clamp(CliffBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(CliffBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
-            Z2 = Centre.Y + Z
-            For X = Clamp(CliffBrush.Tiles.XMin(Z - CliffBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(CliffBrush.Tiles.XMax(Z - CliffBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
+        For Y = Clamp(CliffBrush.Tiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y To Clamp(CliffBrush.Tiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y - 1) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(CliffBrush.Tiles.XMin(Y - CliffBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X To Clamp(CliffBrush.Tiles.XMax(Y - CliffBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X - 1) - Centre.X
                 X2 = Centre.X + X
 
                 Changed = False
 
-                If Main_Map.TerrainSideH(X2, Z2).Road IsNot Nothing Then
-                    Main_Map.TerrainSideH(X2, Z2).Road = Nothing
+                If Main_Map.TerrainSideH(X2, Y2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideH(X2, Y2).Road = Nothing
                     Changed = True
                 End If
-                If Main_Map.TerrainSideH(X2, Z2 + 1).Road IsNot Nothing Then
-                    Main_Map.TerrainSideH(X2, Z2 + 1).Road = Nothing
+                If Main_Map.TerrainSideH(X2, Y2 + 1).Road IsNot Nothing Then
+                    Main_Map.TerrainSideH(X2, Y2 + 1).Road = Nothing
                     Changed = True
                 End If
-                If Main_Map.TerrainSideV(X2, Z2).Road IsNot Nothing Then
-                    Main_Map.TerrainSideV(X2, Z2).Road = Nothing
+                If Main_Map.TerrainSideV(X2, Y2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideV(X2, Y2).Road = Nothing
                     Changed = True
                 End If
-                If Main_Map.TerrainSideV(X2 + 1, Z2).Road IsNot Nothing Then
-                    Main_Map.TerrainSideV(X2 + 1, Z2).Road = Nothing
+                If Main_Map.TerrainSideV(X2 + 1, Y2).Road IsNot Nothing Then
+                    Main_Map.TerrainSideV(X2 + 1, Y2).Road = Nothing
                     Changed = True
                 End If
 
                 If Changed Then
                     Pos.X = X2
-                    Pos.Y = Z2
+                    Pos.Y = Y2
                     Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
                     Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     If X2 > 0 Then
                         Pos.X = X2 - 1
-                        Pos.Y = Z2
+                        Pos.Y = Y2
                         Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
                         Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     End If
-                    If Z2 > 0 Then
+                    If Y2 > 0 Then
                         Pos.X = X2
-                        Pos.Y = Z2 - 1
+                        Pos.Y = Y2 - 1
                         Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
                         Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     End If
                     If X2 < Main_Map.TerrainSize.X - 1 Then
                         Pos.X = X2 + 1
-                        Pos.Y = Z2
+                        Pos.Y = Y2
                         Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
                         Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     End If
-                    If Z2 < Main_Map.TerrainSize.Y - 1 Then
+                    If Y2 < Main_Map.TerrainSize.Y - 1 Then
                         Pos.X = X2
-                        Pos.Y = Z2 + 1
+                        Pos.Y = Y2 + 1
                         Main_Map.SectorGraphicsChange.Tile_Set_Changed(Pos)
                         Main_Map.AutoTextureChange.Tile_Set_Changed(Pos)
                     End If
@@ -2224,9 +2236,6 @@ Public Class ctrlMapView
 
         Main_Map.TerrainTiles(Tile.X, Tile.Y).Tri = Not Main_Map.TerrainTiles(Tile.X, Tile.Y).Tri
 
-        'to update any cliffs
-        Main_Map.Tile_AutoTexture_Changed(Tile.X, Tile.Y, frmMainInstance.cbxInvalidTiles.Checked)
-
         SectorChange.Tile_Set_Changed(Tile)
 
         SectorChange.Update_Graphics()
@@ -2244,13 +2253,13 @@ Public Class ctrlMapView
         End If
 
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim X2 As Integer
-        Dim Z2 As Integer
+        Dim Y2 As Integer
         Dim X3 As Integer
-        Dim Z3 As Integer
+        Dim Y3 As Integer
         Dim X4 As Integer
-        Dim Z4 As Integer
+        Dim Y4 As Integer
         Dim Pos As sXY_int
 
         Dim TempHeight As Integer
@@ -2262,40 +2271,40 @@ Public Class ctrlMapView
 
         ReDim NewHeight(Main_Map.TerrainSize.X, Main_Map.TerrainSize.Y)
 
-        For Z = 0 To Main_Map.TerrainSize.Y
+        For Y = 0 To Main_Map.TerrainSize.Y
             For X = 0 To Main_Map.TerrainSize.X
-                NewHeight(X, Z) = Main_Map.TerrainVertex(X, Z).Height
+                NewHeight(X, Y) = Main_Map.TerrainVertex(X, Y).Height
             Next
         Next
 
-        For Z = Clamp(HeightBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
-            Z2 = Centre.Y + Z
-            For X = Clamp(HeightBrush.Tiles.XMin(Z - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Z - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+        For Y = Clamp(HeightBrush.Tiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+            Y2 = Centre.Y + Y
+            For X = Clamp(HeightBrush.Tiles.XMin(Y - HeightBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Y - HeightBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
                 X2 = Centre.X + X
 
                 TempHeight = 0
                 Samples = 0
 
-                For Z3 = Clamp(SmoothRadius.Tiles.ZMin + Z2, 0, Main_Map.TerrainSize.Y) - Z2 To Clamp(SmoothRadius.Tiles.ZMax + Z2, 0, Main_Map.TerrainSize.Y) - Z2
-                    Z4 = Z2 + Z3
-                    For X3 = Clamp(SmoothRadius.Tiles.XMin(Z3 - SmoothRadius.Tiles.ZMin) + X2, 0, Main_Map.TerrainSize.X) - X2 To Clamp(SmoothRadius.Tiles.XMax(Z3 - SmoothRadius.Tiles.ZMin) + X2, 0, Main_Map.TerrainSize.X) - X2
+                For Y3 = Clamp(SmoothRadius.Tiles.YMin + Y2, 0, Main_Map.TerrainSize.Y) - Y2 To Clamp(SmoothRadius.Tiles.YMax + Y2, 0, Main_Map.TerrainSize.Y) - Y2
+                    Y4 = Y2 + Y3
+                    For X3 = Clamp(SmoothRadius.Tiles.XMin(Y3 - SmoothRadius.Tiles.YMin) + X2, 0, Main_Map.TerrainSize.X) - X2 To Clamp(SmoothRadius.Tiles.XMax(Y3 - SmoothRadius.Tiles.YMin) + X2, 0, Main_Map.TerrainSize.X) - X2
                         X4 = X2 + X3
-                        TempHeight += Main_Map.TerrainVertex(X4, Z4).Height
+                        TempHeight += Main_Map.TerrainVertex(X4, Y4).Height
                         Samples += 1
                     Next
                 Next
 
-                NewHeight(X2, Z2) = Main_Map.TerrainVertex(X2, Z2).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio
+                NewHeight(X2, Y2) = Main_Map.TerrainVertex(X2, Y2).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio
 
                 Pos.X = X2
-                Pos.Y = Z2
+                Pos.Y = Y2
                 SectorChange.Vertex_And_Normals_Changed(Pos)
             Next
         Next
 
-        For Z = 0 To Main_Map.TerrainSize.Y
+        For Y = 0 To Main_Map.TerrainSize.Y
             For X = 0 To Main_Map.TerrainSize.X
-                Main_Map.TerrainVertex(X, Z).Height = NewHeight(X, Z)
+                Main_Map.TerrainVertex(X, Y).Height = NewHeight(X, Y)
             Next
         Next
 
@@ -2326,9 +2335,9 @@ Public Class ctrlMapView
 
         intRate = Math.Round(Rate)
 
-        For Y = Clamp(HeightBrush.Tiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+        For Y = Clamp(HeightBrush.Tiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(HeightBrush.Tiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
             Y2 = Centre.Y + Y
-            For X = Clamp(HeightBrush.Tiles.XMin(Y - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Y - HeightBrush.Tiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+            For X = Clamp(HeightBrush.Tiles.XMin(Y - HeightBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(HeightBrush.Tiles.XMax(Y - HeightBrush.Tiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
                 X2 = Centre.X + X
 
                 Pos.X = X2
@@ -2375,9 +2384,9 @@ Public Class ctrlMapView
         Dim Centre As sXY_int = MouseOverTerrain.Vertex
         Dim Pos As sXY_int
 
-        For Y = Clamp(CircleTiles.ZMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(CircleTiles.ZMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
+        For Y = Clamp(CircleTiles.YMin + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y To Clamp(CircleTiles.YMax + Centre.Y, 0, Main_Map.TerrainSize.Y) - Centre.Y
             Y2 = Centre.Y + Y
-            For X = Clamp(CircleTiles.XMin(Y - CircleTiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(CircleTiles.XMax(Y - CircleTiles.ZMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
+            For X = Clamp(CircleTiles.XMin(Y - CircleTiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X To Clamp(CircleTiles.XMax(Y - CircleTiles.YMin) + Centre.X, 0, Main_Map.TerrainSize.X) - Centre.X
                 X2 = Centre.X + X
 
                 If Main_Map.TerrainVertex(X2, Y2).Height <> HeightNew Then
@@ -2528,12 +2537,16 @@ Public Class ctrlMapView
                             Apply_Road_Remove()
                             DrawViewLater()
                         Case enumTool.ObjectPlace
-                            If frmMainInstance.SelectedObjectType IsNot Nothing Then
+                            If frmMainInstance.SelectedObjectType IsNot Nothing And frmMainInstance.NewPlayerNum.SelectedUnitGroup IsNot Nothing Then
                                 NewUnitType = frmMainInstance.SelectedObjectType
                                 NewUnit = New clsMap.clsUnit
-                                NewUnit.PlayerNum = frmMainInstance.NewPlayerNum.SelectedPlayerNum
+                                NewUnit.UnitGroup = frmMainInstance.NewPlayerNum.SelectedUnitGroup
                                 NewUnit.Pos = Main_Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
-                                NewUnit.Rotation = 0
+                                If frmMainInstance.cbxObjectRandomRotation.Checked Then
+                                    NewUnit.Rotation = CInt(Math.Floor(Rnd() * 360.0#))
+                                Else
+                                    NewUnit.Rotation = 0
+                                End If
                                 NewUnit.Type = NewUnitType
                                 Main_Map.Unit_Add_StoreChange(NewUnit)
                                 Main_Map.UndoStepCreate("Place Object")
@@ -2922,8 +2935,8 @@ Public Class ctrlMapView
                         If Main_Map.Unit_Selected_Area_VertexA IsNot Nothing Then
                             If MouseOverTerrain IsNot Nothing Then
                                 SelectUnits(Main_Map.Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex)
-                                Main_Map.Unit_Selected_Area_VertexA = Nothing
                             End If
+                            Main_Map.Unit_Selected_Area_VertexA = Nothing
                         End If
                 End Select
             End If
@@ -3075,7 +3088,7 @@ Public Class ctrlMapView
         Dim XYZ_dbl As sXYZ_dbl
         Dim TerrainViewVector As sXYZ_dbl
         Dim X As Integer
-        Dim Z As Integer
+        Dim Y As Integer
         Dim LimitA As sXY_dbl
         Dim LimitB As sXY_dbl
         Dim Min As sXY_int
@@ -3122,21 +3135,21 @@ Public Class ctrlMapView
             BestPos.X = Double.NaN
             BestPos.Y = Double.NaN
             BestPos.Z = Double.NaN
-            For Z = Min.Y To Max.Y
+            For Y = Min.Y To Max.Y
                 For X = Min.X To Max.X
 
                     TilePos.X = X * TerrainGridSpacing
-                    TilePos.Y = Z * TerrainGridSpacing
+                    TilePos.Y = Y * TerrainGridSpacing
 
-                    If Main_Map.TerrainTiles(X, Z).Tri Then
-                        TriHeightOffset = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier
-                        TriGradientX = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                    If Main_Map.TerrainTiles(X, Y).Tri Then
+                        TriHeightOffset = Main_Map.TerrainVertex(X, Y).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X + 1, Y).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X, Y + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + (TriGradientX * (TerrainViewPos.X - TilePos.X) + TriGradientZ * (TerrainViewPos.Z - TilePos.Y) + (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# + (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
-                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Z
+                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ <= 1.0# - InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
@@ -3148,14 +3161,14 @@ Public Class ctrlMapView
                             End If
                         End If
 
-                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier
-                        TriGradientX = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Y + 1).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X, Y + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Y).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientX + TriGradientZ + (TriGradientX * (TilePos.X - TerrainViewPos.X) + TriGradientZ * (TilePos.Y - TerrainViewPos.Z) - (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# - (TriGradientX * TerrainViewVector.X + TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
-                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Z
+                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ >= 1.0# - InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
@@ -3169,14 +3182,14 @@ Public Class ctrlMapView
 
                     Else
 
-                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Z).Height * Main_Map.HeightMultiplier
-                        TriGradientX = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X + 1, Y).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X, Y).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X + 1, Y + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientX + (TriGradientX * (TilePos.X - TerrainViewPos.X) + TriGradientZ * (TerrainViewPos.Z - TilePos.Y) - (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# - (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
-                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Z
+                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ <= InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
@@ -3188,14 +3201,14 @@ Public Class ctrlMapView
                             End If
                         End If
 
-                        TriHeightOffset = Main_Map.TerrainVertex(X, Z + 1).Height * Main_Map.HeightMultiplier
-                        TriGradientX = Main_Map.TerrainVertex(X + 1, Z + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
-                        TriGradientZ = Main_Map.TerrainVertex(X, Z).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriHeightOffset = Main_Map.TerrainVertex(X, Y + 1).Height * Main_Map.HeightMultiplier
+                        TriGradientX = Main_Map.TerrainVertex(X + 1, Y + 1).Height * Main_Map.HeightMultiplier - TriHeightOffset
+                        TriGradientZ = Main_Map.TerrainVertex(X, Y).Height * Main_Map.HeightMultiplier - TriHeightOffset
                         XYZ_dbl.Y = (TriHeightOffset + TriGradientZ + (TriGradientX * (TerrainViewPos.X - TilePos.X) + TriGradientZ * (TilePos.Y - TerrainViewPos.Z) + (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) * TerrainViewPos.Y / TerrainViewVector.Y) / TerrainGridSpacing) / (1.0# + (TriGradientX * TerrainViewVector.X - TriGradientZ * TerrainViewVector.Z) / (TerrainViewVector.Y * TerrainGridSpacing))
                         XYZ_dbl.X = TerrainViewPos.X + TerrainViewVector.X * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         XYZ_dbl.Z = TerrainViewPos.Z + TerrainViewVector.Z * (TerrainViewPos.Y - XYZ_dbl.Y) / TerrainViewVector.Y
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
-                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Z
+                        InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ >= InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
                             Dif.X = XYZ_dbl.X - TerrainViewPos.X
                             Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
@@ -3520,8 +3533,8 @@ Public Class ctrlMapView
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
-        Me.tmrDraw = New System.Windows.Forms.Timer()
-        Me.tmrDraw_Delay = New System.Windows.Forms.Timer()
+        Me.tmrDraw = New System.Windows.Forms.Timer
+        Me.tmrDraw_Delay = New System.Windows.Forms.Timer
         Me.ssStatus = New System.Windows.Forms.StatusStrip()
         Me.lblTile = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblVertex = New System.Windows.Forms.ToolStripStatusLabel()
