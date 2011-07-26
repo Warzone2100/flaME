@@ -4,7 +4,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.20"
+    Public Const ProgramVersionNumber As String = "1.21"
 
 #If MonoDevelop = 0.0# Then
     Public Const ProgramPlatform As String = "Windows"
@@ -42,10 +42,10 @@ Public Module modProgram
     Public MyDocumentsProgramPath As String
 
     Public SettingsPath As String
+#If Portable = 0.0# Then
     Public OldSettingsPath As String
+#End If
     Public AutoSavePath As String
-    Public TilesetsPath As String
-    Public ObjectDataPath As String
 #If MonoDevelop <> 0.0# Then
     Public InterfaceImagesPath As String
 #End If
@@ -53,11 +53,14 @@ Public Module modProgram
     Public Sub SetProgramSubDirs()
 
         MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
+#If Portable = 0.0# Then
         SettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings.ini"
         OldSettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings"
         AutoSavePath = MyDocumentsProgramPath & OSPathSeperator & "autosave" & OSPathSeperator
-        TilesetsPath = MyDocumentsProgramPath & OSPathSeperator & "tilesets" & OSPathSeperator
-        ObjectDataPath = MyDocumentsProgramPath & OSPathSeperator & "objectdata" & OSPathSeperator
+#Else
+        SettingsPath = My.Application.Info.DirectoryPath & OSPathSeperator & "settings.ini"
+        AutoSavePath = My.Application.Info.DirectoryPath & OSPathSeperator & "autosave" & OSPathSeperator
+#End If
 #If MonoDevelop <> 0.0# Then
         InterfaceImagesPath = My.Application.Info.DirectoryPath & OSPathSeperator & "interface" & OSPathSeperator
 #End If
@@ -84,6 +87,7 @@ Public Module modProgram
     Public frmCompileInstance As New frmCompile
     Public frmMapTexturerInstance As New frmMapTexturer
     Public frmGeneratorInstance As New frmGenerator
+    Public frmDataInstance As New frmData
 
     Public IsViewKeyDown(255) As Boolean
 
@@ -1864,13 +1868,10 @@ Public Module modProgram
         End If
     End Sub
 
-    Public Const ZeroResetID As UInteger = 1000000UI
-    Public Const LoadModulesID As UInteger = ZeroResetID
-
-    Public Sub ZeroIDWarning(ByVal IDUnit As clsMap.clsUnit)
+    Public Sub ZeroIDWarning(ByVal IDUnit As clsMap.clsUnit, ByVal NewID As UInteger)
         Dim MessageText As String
 
-        MessageText = "An object's ID has been changed from 0 to " & ZeroResetID & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
+        MessageText = "An object's ID has been changed from 0 to " & NewID & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
 
         MsgBox(MessageText, vbOKOnly)
     End Sub

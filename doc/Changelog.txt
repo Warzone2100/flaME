@@ -1,3 +1,6 @@
+1.21:
+bug fixes
+ability to select where to load data from
 1.20:
 many bug fixes
 new .fmap editor format

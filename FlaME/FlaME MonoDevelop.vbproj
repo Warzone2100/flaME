@@ -10,31 +10,41 @@
     <StartupObject>flaME.My.MyApplication</StartupObject>
     <RootNamespace>flaME</RootNamespace>
     <MyType>WindowsForms</MyType>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <ReleaseVersion>1.20</ReleaseVersion>
+    <ReleaseVersion>1.21</ReleaseVersion>
     <ApplicationIcon>flaME.ico</ApplicationIcon>
-    <AssemblyName>FlaME</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1|AnyCPU' ">
     <OutputPath>bin\MonoDevelop Mono 2.10.1</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
-    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=0.0</DefineConstants>
+    <AssemblyName>FlaME</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Microsoft .NET|AnyCPU' ">
     <OutputPath>bin\MonoDevelop Microsoft .NET</OutputPath>
     <DefineTrace>false</DefineTrace>
     <AdditionalParameters />
     <DefineDebug>false</DefineDebug>
-    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=0.0,Portable=0.0</DefineConstants>
+    <AssemblyName>FlaME</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Microsoft .NET for 2.6.7|AnyCPU' ">
     <OutputPath>bin\MonoDevelop Microsoft .NET for 2.6.7</OutputPath>
-    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=1.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=0.0,Mono267=1.0,Portable=0.0</DefineConstants>
     <AdditionalParameters />
     <DefineTrace>false</DefineTrace>
     <DefineDebug>false</DefineDebug>
+    <AssemblyName>FlaME</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Mono 2.10.1 Portable|AnyCPU' ">
+    <OutputPath>bin\Mono 2.10.1 Portable</OutputPath>
+    <DefineTrace>false</DefineTrace>
+    <AdditionalParameters />
+    <AssemblyName>FlaME MonoDevelop</AssemblyName>
+    <DefineDebug>false</DefineDebug>
+    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.targets" />
   <ItemGroup>
@@ -82,6 +92,8 @@
     <Compile Include="clsMapWZ.vb" />
     <Compile Include="ctrlBrush.vb" />
     <Compile Include="frmMainIC.vb" />
+    <Compile Include="ctrlPathSet.vb" />
+    <Compile Include="frmData.vb" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

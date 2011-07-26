@@ -249,6 +249,7 @@
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
         Me.FontDialog = New System.Windows.Forms.FontDialog()
+        Me.menuDirectoriesPrompt = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSaveFME = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
         'CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -2671,7 +2672,7 @@
         '
         'OptionsToolStripMenuItem
         '
-        Me.OptionsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.UndoLimitToolStripMenuItem, Me.AutosaveToolStripMenuItem, Me.CursorModeToolStripMenuItem, Me.DisplayToolStripMenuItem})
+        Me.OptionsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.UndoLimitToolStripMenuItem, Me.AutosaveToolStripMenuItem, Me.CursorModeToolStripMenuItem, Me.DisplayToolStripMenuItem, Me.menuDirectoriesPrompt})
         Me.OptionsToolStripMenuItem.Name = "OptionsToolStripMenuItem"
         Me.OptionsToolStripMenuItem.Size = New System.Drawing.Size(73, 27)
         Me.OptionsToolStripMenuItem.Text = "Options"
@@ -2857,6 +2858,15 @@
         'FontDialog
         '
         Me.FontDialog.Font = New System.Drawing.Font("Arial", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        '
+        'menuDataPrompt
+        '
+        Me.menuDirectoriesPrompt.Checked = True
+        Me.menuDirectoriesPrompt.CheckOnClick = True
+        Me.menuDirectoriesPrompt.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.menuDirectoriesPrompt.Name = "menuDataPrompt"
+        Me.menuDirectoriesPrompt.Size = New System.Drawing.Size(202, 24)
+        Me.menuDirectoriesPrompt.Text = "Ask For Directories"
         '
         'menuSaveFME
         '
@@ -3188,5 +3198,6 @@
     Friend WithEvents cbxObjectRandomRotation As System.Windows.Forms.CheckBox
     Friend WithEvents menuSaveFME As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents menuDirectoriesPrompt As System.Windows.Forms.ToolStripMenuItem
 #End If
 End Class

@@ -229,6 +229,8 @@ Partial Class frmMain
         Me.ToolStripSeparator2 = New System.Windows.Forms.ToolStripSeparator()
         Me.SaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSaveFMap = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuSaveFME = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
         Me.MapLNDToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator6 = New System.Windows.Forms.ToolStripSeparator()
@@ -272,8 +274,7 @@ Partial Class frmMain
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
         Me.FontDialog = New System.Windows.Forms.FontDialog()
-        Me.menuSaveFME = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuDirectoriesPrompt = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
@@ -548,8 +549,11 @@ Partial Class frmMain
         '
         'cboTileset
         '
+        Me.cboTileset.DropDownHeight = 512
         Me.cboTileset.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cboTileset.DropDownWidth = 384
         Me.cboTileset.FormattingEnabled = True
+        Me.cboTileset.IntegralHeight = False
         Me.cboTileset.Items.AddRange(New Object() {"Arizona", "Urban", "Rocky Mountains"})
         Me.cboTileset.Location = New System.Drawing.Point(103, 16)
         Me.cboTileset.Margin = New System.Windows.Forms.Padding(4)
@@ -1819,7 +1823,10 @@ Partial Class frmMain
         'cboDroidTurret3
         '
         Me.cboDroidTurret3.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidTurret3.DropDownHeight = 512
+        Me.cboDroidTurret3.DropDownWidth = 384
         Me.cboDroidTurret3.FormattingEnabled = True
+        Me.cboDroidTurret3.IntegralHeight = False
         Me.cboDroidTurret3.Location = New System.Drawing.Point(100, 158)
         Me.cboDroidTurret3.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidTurret3.Name = "cboDroidTurret3"
@@ -1829,7 +1836,10 @@ Partial Class frmMain
         'cboDroidTurret2
         '
         Me.cboDroidTurret2.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidTurret2.DropDownHeight = 512
+        Me.cboDroidTurret2.DropDownWidth = 384
         Me.cboDroidTurret2.FormattingEnabled = True
+        Me.cboDroidTurret2.IntegralHeight = False
         Me.cboDroidTurret2.Location = New System.Drawing.Point(100, 127)
         Me.cboDroidTurret2.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidTurret2.Name = "cboDroidTurret2"
@@ -1862,7 +1872,10 @@ Partial Class frmMain
         'cboDroidTurret1
         '
         Me.cboDroidTurret1.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidTurret1.DropDownHeight = 512
+        Me.cboDroidTurret1.DropDownWidth = 384
         Me.cboDroidTurret1.FormattingEnabled = True
+        Me.cboDroidTurret1.IntegralHeight = False
         Me.cboDroidTurret1.Location = New System.Drawing.Point(100, 96)
         Me.cboDroidTurret1.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidTurret1.Name = "cboDroidTurret1"
@@ -1872,7 +1885,10 @@ Partial Class frmMain
         'cboDroidPropulsion
         '
         Me.cboDroidPropulsion.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidPropulsion.DropDownHeight = 512
+        Me.cboDroidPropulsion.DropDownWidth = 384
         Me.cboDroidPropulsion.FormattingEnabled = True
+        Me.cboDroidPropulsion.IntegralHeight = False
         Me.cboDroidPropulsion.Location = New System.Drawing.Point(100, 65)
         Me.cboDroidPropulsion.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidPropulsion.Name = "cboDroidPropulsion"
@@ -1882,7 +1898,10 @@ Partial Class frmMain
         'cboDroidBody
         '
         Me.cboDroidBody.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidBody.DropDownHeight = 512
+        Me.cboDroidBody.DropDownWidth = 384
         Me.cboDroidBody.FormattingEnabled = True
+        Me.cboDroidBody.IntegralHeight = False
         Me.cboDroidBody.Location = New System.Drawing.Point(100, 34)
         Me.cboDroidBody.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidBody.Name = "cboDroidBody"
@@ -1892,7 +1911,10 @@ Partial Class frmMain
         'cboDroidType
         '
         Me.cboDroidType.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.cboDroidType.DropDownHeight = 512
+        Me.cboDroidType.DropDownWidth = 384
         Me.cboDroidType.FormattingEnabled = True
+        Me.cboDroidType.IntegralHeight = False
         Me.cboDroidType.Location = New System.Drawing.Point(100, 4)
         Me.cboDroidType.Margin = New System.Windows.Forms.Padding(4)
         Me.cboDroidType.Name = "cboDroidType"
@@ -2591,6 +2613,17 @@ Partial Class frmMain
         Me.menuSaveFMap.Size = New System.Drawing.Size(284, 24)
         Me.menuSaveFMap.Text = "Map fmap..."
         '
+        'ToolStripSeparator11
+        '
+        Me.ToolStripSeparator11.Name = "ToolStripSeparator11"
+        Me.ToolStripSeparator11.Size = New System.Drawing.Size(281, 6)
+        '
+        'menuSaveFME
+        '
+        Me.menuSaveFME.Name = "menuSaveFME"
+        Me.menuSaveFME.Size = New System.Drawing.Size(284, 24)
+        Me.menuSaveFME.Text = "Map fme (1.19 compatability)..."
+        '
         'ToolStripSeparator5
         '
         Me.ToolStripSeparator5.Name = "ToolStripSeparator5"
@@ -2694,7 +2727,7 @@ Partial Class frmMain
         '
         'OptionsToolStripMenuItem
         '
-        Me.OptionsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.UndoLimitToolStripMenuItem, Me.AutosaveToolStripMenuItem, Me.CursorModeToolStripMenuItem, Me.DisplayToolStripMenuItem})
+        Me.OptionsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.UndoLimitToolStripMenuItem, Me.AutosaveToolStripMenuItem, Me.CursorModeToolStripMenuItem, Me.DisplayToolStripMenuItem, Me.menuDirectoriesPrompt})
         Me.OptionsToolStripMenuItem.Name = "OptionsToolStripMenuItem"
         Me.OptionsToolStripMenuItem.Size = New System.Drawing.Size(73, 27)
         Me.OptionsToolStripMenuItem.Text = "Options"
@@ -2702,14 +2735,14 @@ Partial Class frmMain
         'UndoLimitToolStripMenuItem
         '
         Me.UndoLimitToolStripMenuItem.Name = "UndoLimitToolStripMenuItem"
-        Me.UndoLimitToolStripMenuItem.Size = New System.Drawing.Size(168, 24)
+        Me.UndoLimitToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
         Me.UndoLimitToolStripMenuItem.Text = "Undo Limit..."
         '
         'AutosaveToolStripMenuItem
         '
         Me.AutosaveToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuAutosaveEnabled, Me.menuAutosaveInterval, Me.menuAutosaveChanges, Me.menuAutosaveCompress, Me.ToolStripSeparator8, Me.menuAutosaveOpen})
         Me.AutosaveToolStripMenuItem.Name = "AutosaveToolStripMenuItem"
-        Me.AutosaveToolStripMenuItem.Size = New System.Drawing.Size(168, 24)
+        Me.AutosaveToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
         Me.AutosaveToolStripMenuItem.Text = "Autosave"
         '
         'menuAutosaveEnabled
@@ -2755,32 +2788,32 @@ Partial Class frmMain
         '
         Me.CursorModeToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuPointerPlane, Me.menuPointerDirect})
         Me.CursorModeToolStripMenuItem.Name = "CursorModeToolStripMenuItem"
-        Me.CursorModeToolStripMenuItem.Size = New System.Drawing.Size(168, 24)
+        Me.CursorModeToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
         Me.CursorModeToolStripMenuItem.Text = "Pointer Mode"
         '
         'menuPointerPlane
         '
         Me.menuPointerPlane.Name = "menuPointerPlane"
-        Me.menuPointerPlane.Size = New System.Drawing.Size(118, 24)
+        Me.menuPointerPlane.Size = New System.Drawing.Size(152, 24)
         Me.menuPointerPlane.Text = "Plane"
         '
         'menuPointerDirect
         '
         Me.menuPointerDirect.Name = "menuPointerDirect"
-        Me.menuPointerDirect.Size = New System.Drawing.Size(118, 24)
+        Me.menuPointerDirect.Size = New System.Drawing.Size(152, 24)
         Me.menuPointerDirect.Text = "Direct"
         '
         'DisplayToolStripMenuItem
         '
         Me.DisplayToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFont})
         Me.DisplayToolStripMenuItem.Name = "DisplayToolStripMenuItem"
-        Me.DisplayToolStripMenuItem.Size = New System.Drawing.Size(168, 24)
+        Me.DisplayToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
         Me.DisplayToolStripMenuItem.Text = "Display"
         '
         'menuFont
         '
         Me.menuFont.Name = "menuFont"
-        Me.menuFont.Size = New System.Drawing.Size(116, 24)
+        Me.menuFont.Size = New System.Drawing.Size(152, 24)
         Me.menuFont.Text = "Font..."
         '
         'tmrTool
@@ -2881,16 +2914,14 @@ Partial Class frmMain
         '
         Me.FontDialog.Font = New System.Drawing.Font("Arial", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         '
-        'menuSaveFME
+        'menuDataPrompt
         '
-        Me.menuSaveFME.Name = "menuSaveFME"
-        Me.menuSaveFME.Size = New System.Drawing.Size(284, 24)
-        Me.menuSaveFME.Text = "Map fme (1.19 compatability)..."
-        '
-        'ToolStripSeparator11
-        '
-        Me.ToolStripSeparator11.Name = "ToolStripSeparator11"
-        Me.ToolStripSeparator11.Size = New System.Drawing.Size(281, 6)
+        Me.menuDirectoriesPrompt.Checked = True
+        Me.menuDirectoriesPrompt.CheckOnClick = True
+        Me.menuDirectoriesPrompt.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.menuDirectoriesPrompt.Name = "menuDataPrompt"
+        Me.menuDirectoriesPrompt.Size = New System.Drawing.Size(202, 24)
+        Me.menuDirectoriesPrompt.Text = "Ask For Directories"
         '
         'frmMain
         '
@@ -3212,4 +3243,5 @@ Partial Class frmMain
     Friend WithEvents cbxObjectRandomRotation As System.Windows.Forms.CheckBox
     Friend WithEvents menuSaveFME As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents menuDirectoriesPrompt As System.Windows.Forms.ToolStripMenuItem
 End Class

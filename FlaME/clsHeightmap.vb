@@ -680,7 +680,7 @@
         End If
         Inflations = Math.Ceiling(Scale)
         If Inflations < 0 Then Stop
-        Ratio = 2.0# ^ Scale / 2.0# ^ Inflations
+        Ratio = 2.0# ^ (Scale - Inflations)
         intTemp = CInt(2.0# ^ Inflations)
         SizeX = CInt(Math.Ceiling((Final_SizeX / Ratio - 1) / intTemp)) + 1
         SizeY = CInt(Math.Ceiling((Final_SizeY / Ratio - 1) / intTemp)) + 1

@@ -47,7 +47,7 @@
     <PublisherName>FlaME</PublisherName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.20.0.0</ApplicationVersion>
+    <ApplicationVersion>1.21.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -62,7 +62,7 @@
     <NoWarn>41999,42016</NoWarn>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <Optimize>true</Optimize>
-    <DefineConstants>MonoDevelop=0.0,Mono=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -120,6 +120,18 @@
     </Compile>
     <Compile Include="ctrlBrush.vb">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ctrlPathSet.Designer.vb">
+      <DependentUpon>ctrlPathSet.vb</DependentUpon>
+    </Compile>
+    <Compile Include="ctrlPathSet.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="frmData.Designer.vb">
+      <DependentUpon>frmData.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmData.vb">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmGenerator.Designer.vb">
       <DependentUpon>frmGenerator.vb</DependentUpon>
@@ -221,6 +233,9 @@
     <EmbeddedResource Include="ctrlMapView.resx">
       <DependentUpon>ctrlMapView.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ctrlPathSet.resx">
+      <DependentUpon>ctrlPathSet.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="ctrlPlayerNum.resx">
       <DependentUpon>ctrlPlayerNum.vb</DependentUpon>
     </EmbeddedResource>
@@ -229,6 +244,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmCompile.resx">
       <DependentUpon>frmCompile.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmData.resx">
+      <DependentUpon>frmData.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmGenerator.resx">
       <DependentUpon>frmGenerator.vb</DependentUpon>

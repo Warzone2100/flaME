@@ -255,6 +255,36 @@ Partial Public Class clsMap
             End If
         End If
 
+        Dim AvailableID As UInteger
+
+        AvailableID = 1UI
+        For A = 0 To BJOUnitCount - 1
+            If BJOUnits(A).ID >= AvailableID Then
+                AvailableID = BJOUnits(A).ID + 1UI
+            End If
+        Next
+        If INIStructures IsNot Nothing Then
+            For A = 0 To INIStructures.StructureCount - 1
+                If INIStructures.Structures(A).ID >= AvailableID Then
+                    AvailableID = INIStructures.Structures(A).ID + 1UI
+                End If
+            Next
+        End If
+        If INIFeatures IsNot Nothing Then
+            For A = 0 To INIFeatures.FeatureCount - 1
+                If INIFeatures.Features(A).ID >= AvailableID Then
+                    AvailableID = INIFeatures.Features(A).ID + 1UI
+                End If
+            Next
+        End If
+        If INIDroids IsNot Nothing Then
+            For A = 0 To INIDroids.DroidCount - 1
+                If INIDroids.Droids(A).ID >= AvailableID Then
+                    AvailableID = INIDroids.Droids(A).ID + 1UI
+                End If
+            Next
+        End If
+
         For A = 0 To BJOUnitCount - 1
             NewUnit = New clsUnit
             NewUnit.ID = BJOUnits(A).ID
@@ -271,11 +301,14 @@ Partial Public Class clsMap
             NewUnit.Pos = BJOUnits(A).Pos
             NewUnit.Rotation = Math.Min(BJOUnits(A).Rotation, 359UI)
             If BJOUnits(A).ID = 0UI Then
-                BJOUnits(A).ID = ZeroResetID
-                ZeroIDWarning(NewUnit)
+                BJOUnits(A).ID = AvailableID
+                ZeroIDWarning(NewUnit, BJOUnits(A).ID)
             End If
             Unit_Add(NewUnit, BJOUnits(A).ID)
             ErrorIDChange(BJOUnits(A).ID, NewUnit, "Load_WZ->BJOObjects")
+            If AvailableID = BJOUnits(A).ID Then
+                AvailableID = NewUnit.ID + 1UI
+            End If
         Next
 
         Dim tmpDroidType As clsDroidDesign
@@ -341,11 +374,14 @@ Partial Public Class clsMap
                             NewUnit.Health = Clamp(INIStructures.Structures(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIStructures.Structures(A).ID = 0UI Then
-                            INIStructures.Structures(A).ID = ZeroResetID
-                            ZeroIDWarning(NewUnit)
+                            INIStructures.Structures(A).ID = AvailableID
+                            ZeroIDWarning(NewUnit, INIStructures.Structures(A).ID)
                         End If
                         Unit_Add(NewUnit, INIStructures.Structures(A).ID)
                         ErrorIDChange(INIStructures.Structures(A).ID, NewUnit, "Load_WZ->INIStructures")
+                        If AvailableID = INIStructures.Structures(A).ID Then
+                            AvailableID = NewUnit.ID + 1UI
+                        End If
                         'create modules
                         Select Case tmpStructureType.StructureType
                             Case clsStructureType.enumStructureType.Factory
@@ -375,7 +411,8 @@ Partial Public Class clsMap
                                 NewModule.UnitGroup = NewUnit.UnitGroup
                                 NewModule.Pos = NewUnit.Pos
                                 NewModule.Rotation = NewUnit.Rotation
-                                Unit_Add(NewModule, LoadModulesID)
+                                Unit_Add(NewModule, AvailableID)
+                                AvailableID = NewModule.ID + 1UI
                             Next
                         End If
                     End If
@@ -416,11 +453,14 @@ Partial Public Class clsMap
                             NewUnit.Health = Clamp(INIFeatures.Features(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIFeatures.Features(A).ID = 0UI Then
-                            INIFeatures.Features(A).ID = ZeroResetID
-                            ZeroIDWarning(NewUnit)
+                            INIFeatures.Features(A).ID = AvailableID
+                            ZeroIDWarning(NewUnit, INIFeatures.Features(A).ID)
                         End If
                         Unit_Add(NewUnit, INIFeatures.Features(A).ID)
                         ErrorIDChange(INIFeatures.Features(A).ID, NewUnit, "Load_WZ->INIFeatures")
+                        If AvailableID = INIFeatures.Features(A).ID Then
+                            AvailableID = NewUnit.ID + 1UI
+                        End If
                     End If
                 End If
             Next
@@ -552,11 +592,14 @@ Partial Public Class clsMap
                             NewUnit.Health = Clamp(INIDroids.Droids(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIDroids.Droids(A).ID = 0UI Then
-                            INIDroids.Droids(A).ID = ZeroResetID
-                            ZeroIDWarning(NewUnit)
+                            INIDroids.Droids(A).ID = AvailableID
+                            ZeroIDWarning(NewUnit, INIDroids.Droids(A).ID)
                         End If
                         Unit_Add(NewUnit, INIDroids.Droids(A).ID)
                         ErrorIDChange(INIDroids.Droids(A).ID, NewUnit, "Load_WZ->INIDroids")
+                        If AvailableID = INIDroids.Droids(A).ID Then
+                            AvailableID = NewUnit.ID + 1UI
+                        End If
                     End If
                 End If
             Next

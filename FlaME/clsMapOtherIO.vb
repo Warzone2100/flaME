@@ -286,6 +286,14 @@
             Dim NewUnit As clsUnit
             Dim tmpUnitType As clsUnitType = Nothing
             Dim WarningCount As Integer
+            Dim AvailableID As UInteger
+
+            AvailableID = 1UI
+            For A = 0 To TempUnitCount - 1
+                If TempUnit(A).ID >= AvailableID Then
+                    AvailableID = TempUnit(A).ID + 1UI
+                End If
+            Next
             WarningCount = 0
             For A = 0 To TempUnitCount - 1
                 Select Case TempUnit(A).LNDType
@@ -313,11 +321,14 @@
                     NewUnit.Pos.Horizontal.Y = TempUnit(A).Z
                     NewUnit.Rotation = Math.Min(TempUnit(A).Rotation, 359)
                     If TempUnit(A).ID = 0UI Then
-                        TempUnit(A).ID = ZeroResetID
-                        ZeroIDWarning(NewUnit)
+                        TempUnit(A).ID = AvailableID
+                        ZeroIDWarning(NewUnit, TempUnit(A).ID)
                     End If
                     Unit_Add(NewUnit, TempUnit(A).ID)
                     ErrorIDChange(TempUnit(A).ID, NewUnit, "Read_FMEv3+")
+                    If AvailableID = TempUnit(A).ID Then
+                        AvailableID = NewUnit.ID + 1UI
+                    End If
                 Else
                     WarningCount += 1
                 End If
@@ -537,6 +548,14 @@
 
             Dim NewUnit As clsUnit
             Dim tmpUnitType As clsUnitType = Nothing
+            Dim AvailableID As UInteger
+
+            AvailableID = 1UI
+            For A = 0 To TempUnitCount - 1
+                If TempUnit(A).ID >= AvailableID Then
+                    AvailableID = TempUnit(A).ID + 1UI
+                End If
+            Next
             WarningCount = 0
             For A = 0 To TempUnitCount - 1
                 Select Case TempUnit(A).LNDType
@@ -565,11 +584,14 @@
                     NewUnit.Pos.Horizontal.Y = TempUnit(A).Z
                     NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
                     If TempUnit(A).ID = 0UI Then
-                        TempUnit(A).ID = ZeroResetID
-                        ZeroIDWarning(NewUnit)
+                        TempUnit(A).ID = AvailableID
+                        ZeroIDWarning(NewUnit, TempUnit(A).ID)
                     End If
                     Unit_Add(NewUnit, TempUnit(A).ID)
                     ErrorIDChange(TempUnit(A).ID, NewUnit, "Read_FMEv5+")
+                    If AvailableID = TempUnit(A).ID Then
+                        AvailableID = NewUnit.ID + 1UI
+                    End If
                 Else
                     WarningCount += 1
                 End If
@@ -1122,7 +1144,14 @@ LineDone:
             Dim NewUnit As clsUnit
             Dim XYZ_int As sXYZ_int
             Dim NewType As clsUnitType
+            Dim AvailableID As UInteger
 
+            AvailableID = 1UI
+            For A = 0 To ObjectCount - 1
+                If LNDObject(A).ID >= AvailableID Then
+                    AvailableID = LNDObject(A).ID + 1UI
+                End If
+            Next
             For A = 0 To ObjectCount - 1
                 Select Case LNDObject(A).TypeNum
                     Case 0
@@ -1137,8 +1166,6 @@ LineDone:
                 If NewType IsNot Nothing Then
                     NewUnit = New clsUnit
                     NewUnit.Type = NewType
-                    NewUnit.ID = LNDObject(A).ID
-                    'NewUnit.Name = LNDObject(A).Name
                     If LNDObject(A).PlayerNum < 0 Or LNDObject(A).PlayerNum >= PlayerCountMax Then
                         NewUnit.UnitGroup = ScavengerUnitGroup
                     Else
@@ -1149,8 +1176,15 @@ LineDone:
                     XYZ_int.Z = LNDObject(A).Pos.Z
                     NewUnit.Pos = MapPos_From_LNDPos(XYZ_int)
                     NewUnit.Rotation = LNDObject(A).Rotation.Y
+                    If LNDObject(A).ID = 0UI Then
+                        LNDObject(A).ID = AvailableID
+                        ZeroIDWarning(NewUnit, LNDObject(A).ID)
+                    End If
                     Unit_Add(NewUnit, LNDObject(A).ID)
-                    'todo: warn if id is changed
+                    ErrorIDChange(LNDObject(A).ID, NewUnit, "Load_LND")
+                    If AvailableID = LNDObject(A).ID Then
+                        AvailableID = NewUnit.ID + 1UI
+                    End If
                 End If
             Next
 
@@ -1169,7 +1203,7 @@ LineDone:
                 Next
             End If
 
-            AfterInitialized
+            AfterInitialized()
 
         Catch ex As Exception
             Load_LND.Problem = ex.Message

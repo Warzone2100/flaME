@@ -94,8 +94,7 @@ Partial Class ctrlBrush
         '
         'ctrlBrush
         '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 16.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.Controls.Add(Me.tabShape)
         Me.Controls.Add(Me.Label1)
         Me.Controls.Add(Me.nudRadius)

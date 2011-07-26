@@ -15,15 +15,19 @@
 ;--------------------------------
 ;Defines
 
+!define PROGRAMNAME "FlaME"
+
 !define EXESOURCELOC "FlaME\bin\VB 2010"
-!define SRCCODEDIR "FlaME"
-!define DATASOURCELOC "data"
-!define TILESOURCELOC "data"
+!define SRCCODEDIR "${PROGRAMNAME}"
 
 !define INSTALLERDATA "Windows Installer"
 
-!define FLAMEVSHORT "1.20"
+!define PROGRAMVMAJOR "1"
+!define PROGRAMVMINOR "21"
+!define FLAMEVSHORT "${PROGRAMVMAJOR}.${PROGRAMVMINOR}"
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
+!define FLAMEFULLNAME "${PROGRAMNAME} ${FLAMEVSHORT}"
+!define UNDERSCOREFULLNAME "${PROGRAMNAME}_${PROGRAMVMAJOR}_${PROGRAMVMINOR}"
 	
 ;--------------------------------
 ;General
@@ -31,14 +35,11 @@
 	SetCompressor /SOLID	lzma
 
 	;Name and file
-	Name "FlaME ${FLAMEVSHORT}"
-	OutFile "Install FlaME ${FLAMEVSHORT}.exe"
+	Name "${FLAMEFULLNAME}"
+	OutFile "Install ${FLAMEFULLNAME}.exe"
 
 	;Default installation folder
-	InstallDir "$PROGRAMFILES\FlaME ${FLAMEVSHORT}"
-	
-	;Get installation folder from registry if available
-	;InstallDirRegKey HKCU "Software\flaME\1.x" ""
+	InstallDir "$PROGRAMFILES\${FLAMEFULLNAME}"
 
 	;Request application privileges for Windows Vista
 	RequestExecutionLevel admin
@@ -48,12 +49,12 @@
 
 VIProductVersion "${FLAMEVFULL}"
 VIAddVersionKey "CompanyName"		""
-VIAddVersionKey "FileDescription"	"FlaME ${FLAMEVSHORT} Installer"
+VIAddVersionKey "FileDescription"	"${FLAMEFULLNAME} Installer"
 VIAddVersionKey "FileVersion"		"${FLAMEVFULL}"
-VIAddVersionKey "InternalName"		"FlaME ${FLAMEVSHORT}"
-VIAddVersionKey "LegalCopyright"	"FlaME Copyright © 2010-2011 Flail13"
-VIAddVersionKey "OriginalFilename"	"FlaME ${FLAMEVSHORT}.exe"
-VIAddVersionKey "ProductName"		"FlaME ${FLAMEVSHORT}"
+VIAddVersionKey "InternalName"		"${FLAMEFULLNAME}"
+VIAddVersionKey "LegalCopyright"	"${PROGRAMNAME} Copyright © 2010-2011 Flail13"
+VIAddVersionKey "OriginalFilename"	"${FLAMEFULLNAME}.exe"
+VIAddVersionKey "ProductName"		"${FLAMEFULLNAME}"
 VIAddVersionKey "ProductVersion"	"${FLAMEVFULL}"
 VIAddVersionKey "Installer"			"Installer script Copyright © 2010-2011 Milo Christiansen"
 
@@ -66,14 +67,14 @@ VIAddVersionKey "Installer"			"Installer script Copyright © 2010-2011 Milo Chris
 ;Interface Settings
 
 	!define MUI_HEADERIMAGE
-	!define MUI_HEADERIMAGE_BITMAP "${INSTALLERDATA}\flaME header.bmp"
+	!define MUI_HEADERIMAGE_BITMAP "${INSTALLERDATA}\Header.bmp"
 	!define MUI_HEADERIMAGE_RIGHT
 	
-	!define MUI_WELCOMEFINISHPAGE_BITMAP "${INSTALLERDATA}\flaME welcome.bmp"
-	!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${INSTALLERDATA}\flaME welcome.bmp"
+	!define MUI_WELCOMEFINISHPAGE_BITMAP "${INSTALLERDATA}\Welcome.bmp"
+	!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${INSTALLERDATA}\Welcome.bmp"
 
 	!define MUI_ICON "${INSTALLERDATA}\flaME.ico"
-	!define MUI_UNICON "${INSTALLERDATA}\flaME uninstall.ico"
+	!define MUI_UNICON "${INSTALLERDATA}\Uninstall.ico"
 
 	!define MUI_ABORTWARNING
 
@@ -82,15 +83,15 @@ VIAddVersionKey "Installer"			"Installer script Copyright © 2010-2011 Milo Chris
 	!define MUI_UNFINISHPAGE_NOAUTOCLOSE
 	!define MUI_FINISHPAGE_RUN
 	!define MUI_FINISHPAGE_RUN_NOTCHECKED
-	!define MUI_FINISHPAGE_RUN_TEXT "Launch FlaME"
+	!define MUI_FINISHPAGE_RUN_TEXT "Launch ${PROGRAMNAME}"
 	!define MUI_FINISHPAGE_RUN_FUNCTION "LaunchLink"
 	;!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 	;!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\Readme.txt"
 	
 	;Start Menu Folder Page Configuration
-	!define MUI_STARTMENUPAGE_DEFAULTFOLDER "FlaME"
+	!define MUI_STARTMENUPAGE_DEFAULTFOLDER "${FLAMEFULLNAME}"
 	!define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKCU" 
-	!define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\flaME\1.x" 
+	!define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\${FLAMEFULLNAME}" 
 	!define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
 
 ;--------------------------------
@@ -99,7 +100,7 @@ VIAddVersionKey "Installer"			"Installer script Copyright © 2010-2011 Milo Chris
 	!insertmacro MUI_PAGE_WELCOME
 	!insertmacro MUI_PAGE_COMPONENTS
 	!insertmacro MUI_PAGE_DIRECTORY
-	!insertmacro MUI_PAGE_STARTMENU "FlaME" $StartMenuFolder
+	!insertmacro MUI_PAGE_STARTMENU "${UNDERSCOREFULLNAME}" $StartMenuFolder
 	!insertmacro MUI_PAGE_INSTFILES
 	!insertmacro MUI_PAGE_FINISH
 
@@ -117,15 +118,9 @@ VIAddVersionKey "Installer"			"Installer script Copyright © 2010-2011 Milo Chris
 ;--------------------------------
 ;Installer Sections
 ;Main install Section
-Section "Install FlaME" Main
+Section "Install ${PROGRAMNAME}" Main
 
 	SectionIn RO
-
-	;SetOutPath "$INSTDIR\default"
-	;File "${DATASOURCELOC}\objectdata.zip"
-	
-	;SetOutPath "$INSTDIR\tilesets"
-	;File "${TILESOURCELOC}\tilesets.zip"
 	
 	SetOutPath "$INSTDIR"
 	File "${EXESOURCELOC}\OpenTK.GLControl.dll"
@@ -138,21 +133,21 @@ Section "Install FlaME" Main
 	File "${INSTALLERDATA}\map.ico"
 	
 	;Startmenu shortcuts
-	!insertmacro MUI_STARTMENU_WRITE_BEGIN "FlaME"
+	!insertmacro MUI_STARTMENU_WRITE_BEGIN "${UNDERSCOREFULLNAME}"
 		CreateDirectory "$SMPROGRAMS\$StartMenuFolder"
-		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\FlaME.lnk" "$INSTDIR\FlaME.exe"
-		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Uninstall FlaME.lnk" "$INSTDIR\Uninstall.exe"
+		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\${FLAMEFULLNAME}.lnk" "$INSTDIR\FlaME.exe"
+		CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Uninstall ${FLAMEFULLNAME}.lnk" "$INSTDIR\Uninstall.exe"
 	!insertmacro MUI_STARTMENU_WRITE_END
 	
 	;Store installation folder
-	WriteRegStr HKCU "Software\flaME\1.x" "" $INSTDIR
+	WriteRegStr HKCU "Software\${FLAMEFULLNAME}" "" $INSTDIR
 	
 	;Register with add/remove programs
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME" "DisplayName" "FlaME ${FLAMEVSHORT}"
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME" "NoModify" "1"
-	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME" "NoRepair" "1"
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME" "Publisher" "Flail13"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}" "DisplayName" "${FLAMEFULLNAME}"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}" "NoModify" "1"
+	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}" "NoRepair" "1"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}" "Publisher" "Flail13"
 	
 	;Create uninstaller
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -162,11 +157,11 @@ SectionEnd
 SubSection "File Associations"
 
 Section "FlaME .fmap" RegFMAP
-	${registerExtension} "$INSTDIR\FlaME.exe" ".fmap" "FlaME Map File" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fmap" "${PROGRAMNAME} Map File" "$INSTDIR\map.ico"
 SectionEnd
 
 Section "FlaME .fme" RegFME
-	${registerExtension} "$INSTDIR\FlaME.exe" ".fme" "FlaME Map File" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fme" "${PROGRAMNAME} Map File" "$INSTDIR\map.ico"
 SectionEnd
 
 Section "Editworld .lnd" RegLND
@@ -181,7 +176,7 @@ SubSectionEnd
 
 Section "Desktop Shortcut" ShortcutDT
 	SetOutPath "$INSTDIR"	
-	CreateShortCut "$DESKTOP\FlaME.lnk" "$INSTDIR\FlaME.exe"
+	CreateShortCut "$DESKTOP\${FLAMEFULLNAME}.lnk" "$INSTDIR\FlaME.exe"
 SectionEnd
 
 ;--------------------------------
@@ -194,7 +189,7 @@ FunctionEnd
 ;--------------------------------
 ;Installer Section descriptions
 
-LangString DESC_Main ${LANG_ENGLISH} "Install FlaME."
+LangString DESC_Main ${LANG_ENGLISH} "Install ${PROGRAMNAME}."
 LangString DESC_RegFMAP ${LANG_ENGLISH} "Open .fmap files when double clicked."
 LangString DESC_RegFME ${LANG_ENGLISH} "Open .fme files when double clicked."
 LangString DESC_RegLND ${LANG_ENGLISH} "Open .lnd files when double clicked."
@@ -211,13 +206,13 @@ LangString DESC_RegWZ ${LANG_ENGLISH} "Open .wz files when double clicked."
 ;--------------------------------
 ;Uninstaller Section
 
-Section "un.Uninstall FlaME" unMain
+Section "un.Uninstall ${PROGRAMNAME}" unMain
 
-	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\flaME"
+	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${FLAMEFULLNAME}"
 	
 	Delete "$INSTDIR\Uninstall.exe"
 	Delete "$INSTDIR\map.ico"
-	Delete "$INSTDIR\flame.ico"
+	Delete "$INSTDIR\flaME.ico"
 	Delete "$INSTDIR\FlaME.exe"
 	Delete "$INSTDIR\ICSharpCode.SharpZipLib.dll"
 	Delete "$INSTDIR\notile.png"
@@ -226,22 +221,19 @@ Section "un.Uninstall FlaME" unMain
 	Delete "$INSTDIR\OpenTK.GLControl.dll"
 	RMDir "$INSTDIR"
 
-	!insertmacro MUI_STARTMENU_GETFOLDER "flaME" $StartMenuFolder
+	!insertmacro MUI_STARTMENU_GETFOLDER "${UNDERSCOREFULLNAME}" $StartMenuFolder
 	
-	Delete "$SMPROGRAMS\$StartMenuFolder\Uninstall FlaME.lnk"
-	Delete "$SMPROGRAMS\$StartMenuFolder\FlaME.lnk"
+	Delete "$SMPROGRAMS\$StartMenuFolder\Uninstall ${FLAMEFULLNAME}.lnk"
+	Delete "$SMPROGRAMS\$StartMenuFolder\${FLAMEFULLNAME}.lnk"
 	RMDir "$SMPROGRAMS\$StartMenuFolder"
 	
-	DeleteRegKey /ifempty HKCU "Software\flaME\1.x"
+	DeleteRegKey /ifempty HKCU "Software\${FLAMEFULLNAME}"
 	
 	; remove the desktop shortcut icon
-	Delete "$DESKTOP\flaME.lnk"
+	Delete "$DESKTOP\${FLAMEFULLNAME}.lnk"
 	
-SectionEnd
-
-Section "un.Delete File Registration" unReg
-	${unregisterExtension} ".fmap" "FlaME Map File"
-	${unregisterExtension} ".fme" "FlaME Map File"
+	${unregisterExtension} ".fmap" "${PROGRAMNAME} Map File"
+	${unregisterExtension} ".fme" "${PROGRAMNAME} Map File"
 	${unregisterExtension} ".wz" "Warzone 2100 Archive"
 	${unregisterExtension} ".lnd" "EditWorld Map File"
 SectionEnd
@@ -249,10 +241,8 @@ SectionEnd
 ;--------------------------------
 ;Installer Section descriptions
 
-LangString DESC_unMain ${LANG_ENGLISH} "Uninstall FlaME."
-LangString DESC_unReg ${LANG_ENGLISH} "Deregister .fmap, .fme, .lnd and .wz files."
+LangString DESC_unMain ${LANG_ENGLISH} "Uninstall ${PROGRAMNAME}."
 
 !insertmacro MUI_UNFUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${unMain} $(DESC_unMain)
-	!insertmacro MUI_DESCRIPTION_TEXT ${unReg} $(DESC_unReg)
 !insertmacro MUI_UNFUNCTION_DESCRIPTION_END

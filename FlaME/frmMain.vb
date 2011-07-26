@@ -63,6 +63,7 @@ Partial Public Class frmMain
         TextureView = New ctrlTextureView
     End Sub
 
+#If MonoDevelop <> 0.0# Then
     Public InterfaceImage_DisplayAutoTexture As Bitmap
     Public InterfaceImage_DrawTileOrientation As Bitmap
     Public InterfaceImage_QuickSave As Bitmap
@@ -75,6 +76,7 @@ Partial Public Class frmMain
     Public InterfaceImage_SelectionPaste As Bitmap
     Public InterfaceImage_SelectionPasteOptions As Bitmap
     Public InterfaceImage_Gateways As Bitmap
+#End If
 
     Private Sub LoadInterfaceIcons()
 
@@ -97,7 +99,7 @@ Partial Public Class frmMain
     Private Sub frmMain_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
         If LoseMapQuestion() Then
-            Settings_Write()
+            Dim Result As clsResult = Settings_Write()
         Else
             e.Cancel = True
         End If
@@ -199,7 +201,19 @@ Partial Public Class frmMain
         View.BGColor.Green = 0.5F
         View.BGColor.Blue = 0.25F
 
-        InitializeResult.AppendAsWarning(LoadTilesets(), "Load tilesets: ")
+        Dim SettingsLoadResult As clsResult = Settings_Load()
+        InitializeResult.AppendAsWarning(SettingsLoadResult, "Load settings: ")
+
+        If menuDirectoriesPrompt.Checked Then
+            If frmDataInstance.ShowDialog() <> Windows.Forms.DialogResult.OK Then
+                End
+            End If
+        End If
+
+        Dim TilesetsPath As String = frmDataInstance.TilesetsPathSet.SelectedPath
+        If TilesetsPath IsNot Nothing And TilesetsPath <> "" Then
+            InitializeResult.AppendAsWarning(LoadTilesets(EndWithPathSeperator(TilesetsPath)), "Load tilesets: ")
+        End If
 
         cboTileset_Update(-1)
 
@@ -208,7 +222,10 @@ Partial Public Class frmMain
 
         CreateTemplateDroidTypes() 'do before loading data
 
-        InitializeResult.AppendAsWarning(DataLoad(ObjectDataPath), "Load object data: ")
+        Dim ObjectDataPath As String = frmDataInstance.ObjectDataPathSet.SelectedPath
+        If ObjectDataPath IsNot Nothing And ObjectDataPath <> "" Then
+            InitializeResult.AppendAsWarning(DataLoad(EndWithPathSeperator(ObjectDataPath)), "Load object data: ")
+        End If
 
         CreateGeneratorTilesets()
         CreatePainterArizona()
@@ -216,8 +233,6 @@ Partial Public Class frmMain
         CreatePainterRockies()
 
         Main_Map = New clsMap(1, 1)
-
-        InitializeResult.AppendAsWarning(Settings_Load(), "Load settings: ")
 
         SetMenuPointerModeChecked()
 
@@ -301,6 +316,7 @@ Partial Public Class frmMain
         frmMapTexturerInstance.Icon = ProgramIcon
         frmGeneratorInstance.Icon = ProgramIcon
         frmSplashInstance.Icon = ProgramIcon
+        frmDataInstance.Icon = ProgramIcon
 
         frmSplashInstance.Show()
 #End If
@@ -339,7 +355,7 @@ Partial Public Class frmMain
         Rate = Rate_Get()
 
         Zoom = tmrKey.Interval * Rate * 0.002#
-        Move = tmrKey.Interval * Rate * Math.Max(Math.Abs(View.ViewPos.Y), 512.0#) / 1536.0#
+        Move = tmrKey.Interval * Rate * View.FOVMultiplier * (View.GLSize.X + View.GLSize.Y) * Math.Max(Math.Abs(View.ViewPos.Y), 512.0#) / 2048.0#
 
         If Control_View_Zoom_In.Active Then
             View.FOV_Scale_2E_Change(-Zoom)
@@ -474,7 +490,11 @@ Partial Public Class frmMain
 
             AngleChanged = False
 
-            PanRate = View.FieldOfViewY / 16.0# * Rate
+            If View.RTSOrbit Then
+                PanRate = Rate / 32.0#
+            Else
+                PanRate = View.FieldOfViewY / 16.0# * Rate
+            End If
             If View.RTSOrbit Then
                 If Control_View_Forward.Active Then
                     AnglePY.Pitch = Clamp(AnglePY.Pitch + PanRate, -RadOf90Deg + 0.03125# * RadOf1Deg, RadOf90Deg - 0.03125# * RadOf1Deg)
@@ -819,16 +839,19 @@ Partial Public Class frmMain
 
         If SplitPath.FileExtension = "fmap" Then
             ReturnResult.Append(ResultMap.Load_FMap(Path, InterfaceOptions), "Load FMap: ")
-            ResultMap.LastFMapSaveInfo = New clsMap.clsFMapSaveInfo(Path)
+            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, True)
         ElseIf SplitPath.FileExtension = "fme" Or SplitPath.FileExtension = "wzme" Then
             ReturnResult.Append(ResultMap.Load_FME(Path, InterfaceOptions), "")
+            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
         ElseIf SplitPath.FileExtension = "wz" Then
             ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
+            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
         ElseIf SplitPath.FileExtension = "lnd" Then
             Result = ResultMap.Load_LND(Path)
             If Not Result.Success Then
                 ReturnResult.Problem_Add("Load LND: " & Result.Problem)
             End If
+            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
         Else
             ReturnResult.Problem_Add("File extension not recognised.")
         End If
@@ -862,11 +885,7 @@ Partial Public Class frmMain
 
         If LoseMapQuestion() Then
             Dim Dialog As New OpenFileDialog
-            If Main_Map.LastFMapSaveInfo Is Nothing Then
-                Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
-            Else
-                Dialog.InitialDirectory = Main_Map.LastFMapSaveInfo.Path
-            End If
+            Dialog.InitialDirectory = Main_Map.GetDirectory
             Dialog.FileName = ""
             Dialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.lnd)|*.fmap;*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
             If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
@@ -1236,11 +1255,7 @@ Error_Exit:
     Private Sub Save_FMap_Prompt()
         Dim Dialog As New SaveFileDialog
 
-        If Main_Map.LastFMapSaveInfo Is Nothing Then
-            Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
-        Else
-            Dialog.InitialDirectory = Main_Map.LastFMapSaveInfo.Path
-        End If
+        Dialog.InitialDirectory = Main_Map.GetDirectory
         Dialog.FileName = ""
         Dialog.Filter = ProgramName & " Map Files (*.fmap)|*.fmap"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
@@ -1253,7 +1268,7 @@ Error_Exit:
         Dim Result As clsResult
         Result = Main_Map.Write_FMap(Dialog.FileName, True, True)
         If Not Result.HasProblems Then
-            Main_Map.LastFMapSaveInfo = New clsMap.clsFMapSaveInfo(Dialog.FileName)
+            Main_Map.PathInfo = New clsMap.clsPathInfo(Dialog.FileName, True)
             tsbSave.Enabled = False
             Title_Text_Update()
         End If
@@ -1300,19 +1315,21 @@ Error_Exit:
 
     Sub Save_FMap_Quick()
 
-        If Main_Map.LastFMapSaveInfo Is Nothing Then
+        If Main_Map.PathInfo Is Nothing Then
             Save_FMap_Prompt()
-        Else
+        ElseIf Main_Map.PathInfo.IsFMap Then
             'If Not PromptFileFMEVersion(Map.LastFMESaveInfo.Path) Then
             '    Save_FME_Prompt()
             '    Exit Sub
             'End If
 
-            Dim Result As clsResult = Main_Map.Write_FMap(Main_Map.LastFMapSaveInfo.Path, True, True)
+            Dim Result As clsResult = Main_Map.Write_FMap(Main_Map.PathInfo.Path, True, True)
             If Not Result.HasProblems Then
                 tsbSave.Enabled = False
             End If
             ShowWarnings(Result, "Quick Save FMap")
+        Else
+            Save_FMap_Prompt()
         End If
     End Sub
 
@@ -2444,16 +2461,21 @@ Error_Exit:
         frmGeneratorInstance.Activate()
     End Sub
 
-    Sub Title_Text_Update()
+    Private Sub Title_Text_Update()
         Dim MapFileTitle As String
 
-        If Main_Map.LastFMapSaveInfo Is Nothing Then
+        If Main_Map.PathInfo Is Nothing Then
             MapFileTitle = "Unsaved map"
-            tsbSave.ToolTipText = "Save FMap"
+            tsbSave.ToolTipText = "Save FMap..."
         Else
-            Dim SplitPath As New sSplitPath(Main_Map.LastFMapSaveInfo.Path)
-            MapFileTitle = SplitPath.FileTitleWithoutExtension
-            tsbSave.ToolTipText = "Quick save FMap to " & ControlChars.Quote & Main_Map.LastFMapSaveInfo.Path & ControlChars.Quote
+            Dim SplitPath As New sSplitPath(Main_Map.PathInfo.Path)
+            If Main_Map.PathInfo.IsFMap Then
+                MapFileTitle = SplitPath.FileTitleWithoutExtension
+                tsbSave.ToolTipText = "Quick save FMap to " & ControlChars.Quote & Main_Map.PathInfo.Path & ControlChars.Quote
+            Else
+                MapFileTitle = SplitPath.FileTitle
+                tsbSave.ToolTipText = "Save FMap..."
+            End If
         End If
 
         Text = MapFileTitle & " - " & ProgramName & " " & ProgramVersionNumber
@@ -2470,11 +2492,13 @@ Error_Exit:
             ReturnResult.Append(Read_Settings(File_Settings), "Read settings.ini: ")
             File_Settings.Close()
         Else
+#If Portable = 0.0# Then
             Dim File_OldSettings As New clsReadFile
             If File_OldSettings.Begin(OldSettingsPath).Success Then
                 Read_OldSettings(File_OldSettings)
                 File_OldSettings.Close()
             End If
+#End If
         End If
 
         Return ReturnResult
@@ -2487,6 +2511,15 @@ Error_Exit:
         Public FontItalic As Boolean = False
         Public AutoSaveEnabled As Boolean = True
         Public AutoSaveCompress As Boolean
+        Public DirectoriesPrompt As Boolean = True
+
+        Public TilesetsPaths(-1) As String
+        Public TilesetsPathCount As Integer = 0
+        Public ObjectDataPaths(-1) As String
+        Public ObjectDataPathCount As Integer = 0
+
+        Public DefaultTilesetPathNum As Integer = -1
+        Public DefaultObjectDataPathNum As Integer = -1
 
         Public Function Translate_INI(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
@@ -2569,6 +2602,32 @@ Error_Exit:
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
+                Case "tilesetspath"
+                    ReDim Preserve TilesetsPaths(TilesetsPathCount)
+                    TilesetsPaths(TilesetsPathCount) = INIProperty.Value
+                    TilesetsPathCount += 1
+                Case "objectdatapath"
+                    ReDim Preserve ObjectDataPaths(ObjectDataPathCount)
+                    ObjectDataPaths(ObjectDataPathCount) = INIProperty.Value
+                    ObjectDataPathCount += 1
+                Case "defaulttilesetspathnum"
+                    Try
+                        DefaultTilesetPathNum = CInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "defaultobjectdatapathnum"
+                    Try
+                        DefaultObjectDataPathNum = CInt(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
+                Case "directoriesprompt"
+                    Try
+                        DirectoriesPrompt = CBool(INIProperty.Value)
+                    Catch ex As Exception
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End Try
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -2586,6 +2645,7 @@ Error_Exit:
 
         menuAutosaveEnabled.Checked = NewSettings.AutoSaveEnabled
         menuAutosaveCompress.Checked = NewSettings.AutoSaveCompress
+        menuDirectoriesPrompt.Checked = NewSettings.DirectoriesPrompt
 
         If NewSettings.FontFamily <> "" Then
             Dim tmpFontStyle As Integer = FontStyle.Regular
@@ -2597,6 +2657,15 @@ Error_Exit:
             End If
             Dim tmpFont As New Font(NewSettings.FontFamily, 1.0F, CType(tmpFontStyle, FontStyle))
             SetFont(tmpFont)
+        End If
+
+        frmDataInstance.TilesetsPathSet.SetPaths(NewSettings.TilesetsPaths)
+        If NewSettings.DefaultTilesetPathNum >= -1 And NewSettings.DefaultTilesetPathNum < NewSettings.TilesetsPathCount Then
+            frmDataInstance.TilesetsPathSet.SelectedNum = NewSettings.DefaultTilesetPathNum
+        End If
+        frmDataInstance.ObjectDataPathSet.SetPaths(NewSettings.ObjectDataPaths)
+        If NewSettings.DefaultObjectDataPathNum >= -1 And NewSettings.DefaultObjectDataPathNum < NewSettings.ObjectDataPathCount Then
+            frmDataInstance.ObjectDataPathSet.SelectedNum = NewSettings.DefaultObjectDataPathNum
         End If
 
         Return ReturnResult
@@ -2658,6 +2727,17 @@ Error_Exit:
     Private Function Settings_Write() As clsResult
         Dim ReturnResult As New clsResult
 
+#If Portable = 0.0# Then
+        If Not IO.Directory.Exists(MyDocumentsProgramPath) Then
+            Try
+                IO.Directory.CreateDirectory(MyDocumentsProgramPath)
+            Catch ex As Exception
+                ReturnResult.Problem_Add("Unable to create folder " & ControlChars.Quote & MyDocumentsProgramPath & ControlChars.Quote & ": " & ex.Message)
+                Return ReturnResult
+            End Try
+        End If
+#End If
+
         Dim INI_Settings As clsINIWrite = CreateINIWriteFile()
 
         ReturnResult.Append(Data_Settings(INI_Settings), "Compile settings.ini: ")
@@ -2687,6 +2767,25 @@ Error_Exit:
         File.Property_Append("AutoSaveMinInterval", AutoSave_MinInterval_s)
         File.Property_Append("AutoSaveMinChanges", AutoSave_MinChanges)
         File.Property_Append("AutoSaveCompress", menuAutosaveCompress.Checked)
+        File.Property_Append("DirectoriesPrompt", menuDirectoriesPrompt.Checked)
+        Dim A As Integer
+        Dim Paths() As String
+        Paths = frmDataInstance.TilesetsPathSet.GetPaths
+        For A = 0 To Paths.GetUpperBound(0)
+            File.Property_Append("TilesetsPath", Paths(A))
+        Next
+        A = frmDataInstance.TilesetsPathSet.SelectedNum
+        If A >= 0 Then
+            File.Property_Append("DefaultTilesetsPathNum", A)
+        End If
+        Paths = frmDataInstance.ObjectDataPathSet.GetPaths
+        For A = 0 To Paths.GetUpperBound(0)
+            File.Property_Append("ObjectDataPath", Paths(A))
+        Next
+        A = frmDataInstance.ObjectDataPathSet.SelectedNum
+        If A >= 0 Then
+            File.Property_Append("DefaultObjectDataPathNum", A)
+        End If
 
         Return ReturnResult
     End Function
@@ -2950,7 +3049,7 @@ Error_Exit:
         UnitLabelFontSize = FontDialog.Font.SizeInPoints
     End Sub
 
-    Private Function LoadTilesets() As clsResult
+    Private Function LoadTilesets(ByVal TilesetsPath As String) As clsResult
         LoadTilesets = New clsResult
 
         Dim TilesetDirs() As String

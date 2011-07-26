@@ -1197,7 +1197,14 @@ Partial Public Class clsMap
         Dim IsDesign As Boolean
         Dim tmpUnitGroup As clsUnitGroup
         Dim ZeroPos As New sXY_int(0, 0)
+        Dim AvailableID As UInteger
 
+        AvailableID = 1UI
+        For A = 0 To INIObjects.ObjectCount - 1
+            If INIObjects.Objects(A).ID >= AvailableID Then
+                AvailableID = INIObjects.Objects(A).ID + 1UI
+            End If
+        Next
         For A = 0 To INIObjects.ObjectCount - 1
             If INIObjects.Objects(A).Pos Is Nothing Then
                 ObjectPosInvalidCount += 1
@@ -1302,11 +1309,14 @@ Partial Public Class clsMap
                         End If
                     End If
                     If INIObjects.Objects(A).ID = 0UI Then
-                        INIObjects.Objects(A).ID = ZeroResetID
-                        ZeroIDWarning(NewObject)
+                        INIObjects.Objects(A).ID = AvailableID
+                        ZeroIDWarning(NewObject, INIObjects.Objects(A).ID)
                     End If
                     Unit_Add(NewObject, INIObjects.Objects(A).ID)
                     ErrorIDChange(INIObjects.Objects(A).ID, NewObject, "Read_FMap_Objects")
+                    If AvailableID = INIObjects.Objects(A).ID Then
+                        AvailableID = NewObject.ID + 1UI
+                    End If
                 End If
             End If
         Next

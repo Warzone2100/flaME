@@ -1,0 +1,4 @@
+
+This is a map editor for the versions of Warzone 2100 found at http://wz2100.net
+
+The tileset and object data is provided in separate archives.

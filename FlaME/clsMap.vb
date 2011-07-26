@@ -216,14 +216,29 @@ Partial Public Class clsMap
 
     Public Tileset As clsTileset
 
-    Public Class clsFMapSaveInfo
-        Public Path As String
+    Public Class clsPathInfo
+        Private _Path As String
+        Private _IsFMap As Boolean
 
-        Public Sub New(ByVal NewPath As String)
-            Path = NewPath
+        Public ReadOnly Property Path As String
+            Get
+                Return _Path
+            End Get
+        End Property
+
+        Public ReadOnly Property IsFMap As Boolean
+            Get
+                Return _IsFMap
+            End Get
+        End Property
+
+        Public Sub New(ByVal NewPath As String, ByVal NewIsFMap As Boolean)
+
+            _Path = NewPath
+            _IsFMap = NewIsFMap
         End Sub
     End Class
-    Public LastFMapSaveInfo As clsFMapSaveInfo
+    Public PathInfo As clsPathInfo
 
     Class clsAutoSave
         Public ChangeCount As UInteger
@@ -2029,8 +2044,7 @@ Partial Public Class clsMap
         Unit_Add_StoreChange = Unit_Add(NewUnit, ID)
     End Function
 
-    Function Unit_Add(ByVal NewUnit As clsUnit) As Integer
-
+    Public Function GetAvailableID() As UInteger
         Dim A As Integer
         Dim ID As UInteger
 
@@ -2040,7 +2054,13 @@ Partial Public Class clsMap
                 ID = Units(A).ID + 1UI
             End If
         Next
-        Return Unit_Add(NewUnit, ID)
+
+        Return ID
+    End Function
+
+    Function Unit_Add(ByVal NewUnit As clsUnit) As Integer
+
+        Return Unit_Add(NewUnit, GetAvailableID)
     End Function
 
     Function Unit_Add(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
@@ -2064,7 +2084,7 @@ Partial Public Class clsMap
             End If
         Next
         If A < UnitCount Then
-            Return Unit_Add(NewUnit)
+            ID = GetAvailableID()
         End If
 
         NewUnit.ID = ID
@@ -2969,4 +2989,13 @@ Partial Public Class clsMap
         AutoTextureChange = New clsAutoTextureChange(Me)
         SectorGraphicsChange = New clsSectorGraphicsChange(Me)
     End Sub
+
+    Public Function GetDirectory() As String
+
+        If PathInfo Is Nothing Then
+            Return My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Else
+            Return (New sSplitPath(Main_Map.PathInfo.Path)).FilePath
+        End If
+    End Function
 End Class
