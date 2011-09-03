@@ -6,10 +6,10 @@
         Public Type As clsUnitType
         Public Chance As UInteger
 
-        Public Sub New(ByVal NewType As clsUnitType, ByVal NewChance As UInteger)
+        Public Sub New(ByVal Type As clsUnitType, ByVal Chance As UInteger)
 
-            Type = NewType
-            Chance = NewChance
+            Me.Type = Type
+            Me.Chance = Chance
         End Sub
     End Structure
     Public ScatteredUnits(-1) As sUnitChance
@@ -29,7 +29,7 @@
             Exit Sub
         End If
 
-        ScatteredUnitChanceTotal += NewUnit.Chance
+        ScatteredUnitChanceTotal += CInt(NewUnit.Chance)
 
         ReDim Preserve ScatteredUnits(ScatteredUnitCount)
         ScatteredUnits(ScatteredUnitCount) = NewUnit
@@ -42,7 +42,7 @@
             Exit Sub
         End If
 
-        ClusteredUnitChanceTotal += NewUnit.Chance
+        ClusteredUnitChanceTotal += CInt(NewUnit.Chance)
 
         ReDim Preserve ClusteredUnits(ClusteredUnitCount)
         ClusteredUnits(ClusteredUnitCount) = NewUnit

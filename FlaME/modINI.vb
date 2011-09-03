@@ -61,14 +61,14 @@
                 Return ReturnResult
             End Function
 
-            Public Function Translate(ByVal SectionNum As Integer, ByVal Translator As Func(Of Integer, clsINIRead.clsSection.sProperty, enumTranslatorResult), ByRef ErrorCount As sErrorCount) As clsResult
+            Public Function Translate(ByVal SectionNum As Integer, ByVal Translator As clsINIRead.clsSectionTranslator, ByRef ErrorCount As sErrorCount) As clsResult
                 Dim ReturnResult As New clsResult
 
                 Dim A As Integer
                 Dim TranslatorResult As enumTranslatorResult
 
                 For A = 0 To PropertyCount - 1
-                    TranslatorResult = Translator(SectionNum, Properties(A))
+                    TranslatorResult = Translator.Translate(SectionNum, Properties(A))
                     Select Case TranslatorResult
                         Case enumTranslatorResult.NameUnknown
                             If ErrorCount.NameErrorCount < 16 Then
@@ -86,7 +86,7 @@
                 Return ReturnResult
             End Function
 
-            Public Function Translate(ByVal Translator As Func(Of clsINIRead.clsSection.sProperty, enumTranslatorResult)) As clsResult
+            Public Function Translate(ByVal Translator As clsINIRead.clsTranslator) As clsResult
                 Dim ReturnResult As New clsResult
 
                 Dim A As Integer
@@ -97,7 +97,7 @@
                 ErrorCount.ValueWarningCountMax = 16
 
                 For A = 0 To PropertyCount - 1
-                    TranslatorResult = Translator(Properties(A))
+                    TranslatorResult = Translator.Translate(Properties(A))
                     Select Case TranslatorResult
                         Case enumTranslatorResult.NameUnknown
                             If ErrorCount.NameErrorCount < 16 Then
@@ -212,7 +212,7 @@
             Public ValueWarningCountMax As Integer
         End Structure
 
-        Public Function Translate(ByVal Translator As Func(Of Integer, clsINIRead.clsSection.sProperty, enumTranslatorResult)) As clsResult
+        Public Function Translate(ByVal Translator As clsINIRead.clsSectionTranslator) As clsResult
             Dim ReturnResult As New clsResult
 
             Dim A As Integer
@@ -234,6 +234,16 @@
 
             Return ReturnResult
         End Function
+
+        Public MustInherit Class clsSectionTranslator
+
+            Public MustOverride Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As enumTranslatorResult
+        End Class
+
+        Public MustInherit Class clsTranslator
+
+            Public MustOverride Function Translate(ByVal INIProperty As clsINIRead.clsSection.sProperty) As enumTranslatorResult
+        End Class
     End Class
 
     Public Class clsINIWrite
@@ -244,16 +254,16 @@
 
         Public Sub SectionName_Append(ByVal Name As String)
 
-            Name.Replace(LineEndChar, "")
+            Name = Name.Replace(LineEndChar, "")
 
             File.Text_Append("["c & Name & "]"c & LineEndChar)
         End Sub
 
         Public Sub Property_Append(ByVal Name As String, ByVal Value As String)
 
-            Name.Replace(LineEndChar, "")
-            Name.Replace(EqualsChar, "")
-            Value.Replace(LineEndChar, "")
+            Name = Name.Replace(LineEndChar, "")
+            Name = Name.Replace(EqualsChar, "")
+            Value = Value.Replace(LineEndChar, "")
 
             File.Text_Append(Name & EqualsChar & Value & LineEndChar)
         End Sub

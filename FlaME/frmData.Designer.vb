@@ -99,8 +99,8 @@ Partial Class frmData
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents btnContinue As System.Windows.Forms.Button
-    Friend WithEvents btnQuit As System.Windows.Forms.Button
-    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents btnContinue As System.Windows.Forms.Button
+    Public WithEvents btnQuit As System.Windows.Forms.Button
+    Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
 End Class

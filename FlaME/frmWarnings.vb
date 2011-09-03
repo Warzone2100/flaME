@@ -3,11 +3,12 @@
     Inherits Form
 #End If
 
-    Public Sub New(ByVal Result As clsResult, ByVal WindowTitle As String, ByVal WindowIcon As Icon)
+    Public Sub New(ByVal Result As clsResult, ByVal WindowTitle As String)
         InitializeComponent()
 
+        Icon = ProgramIcon
+
         Text = WindowTitle
-        Icon = WindowIcon
 
         Dim A As Integer
         lstWarnings.Items.Clear()
@@ -41,11 +42,10 @@
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(324, 222)
         Me.Controls.Add(Me.lstWarnings)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow
         Me.Name = "frmWarnings"
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents lstWarnings As System.Windows.Forms.ListBox
+    Public WithEvents lstWarnings As System.Windows.Forms.ListBox
 #End If
 End Class

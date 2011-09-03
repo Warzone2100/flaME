@@ -13,9 +13,7 @@
 		UpdateControlValues()
 
 		AddHandler nudRadius.LostFocus, AddressOf nudRadius_LostFocus
-#If Mono <> 0.0# Then
         AddHandler nudRadius.ValueChanged, AddressOf nudRadius_LostFocus
-#End If
     End Sub
 
     Public Sub UpdateControlValues()
@@ -27,7 +25,7 @@
             Exit Sub
         End If
 
-        nudRadius.Value = Brush.Radius
+        nudRadius.Value = CDec(Brush.Radius)
         Select Case Brush.Shape
             Case clsBrush.enumShape.Circle
                 tabShape.SelectedIndex = 0
@@ -56,10 +54,10 @@
         If Converted Then
             If NewRadius < 0.0# Then
                 NewRadius = 0.0#
-                nudRadius.Value = NewRadius
+                nudRadius.Value = CDec(NewRadius)
             ElseIf NewRadius > 512.0# Then
                 NewRadius = 512.0#
-                nudRadius.Value = NewRadius
+                nudRadius.Value = CDec(NewRadius)
             End If
             Brush.Radius = NewRadius
         End If
@@ -88,7 +86,6 @@
         Me.Label1 = New System.Windows.Forms.Label()
         Me.nudRadius = New System.Windows.Forms.NumericUpDown()
         Me.tabShape.SuspendLayout()
-        'CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'tabShape
@@ -162,14 +159,13 @@
         Me.Name = "ctrlBrush"
         Me.Size = New System.Drawing.Size(334, 35)
         Me.tabShape.ResumeLayout(False)
-        'CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents tabShape As System.Windows.Forms.TabControl
-    Friend WithEvents TabPage37 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage38 As System.Windows.Forms.TabPage
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents nudRadius As System.Windows.Forms.NumericUpDown
+    Public WithEvents tabShape As System.Windows.Forms.TabControl
+    Public WithEvents TabPage37 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage38 As System.Windows.Forms.TabPage
+    Public WithEvents Label1 As System.Windows.Forms.Label
+    Public WithEvents nudRadius As System.Windows.Forms.NumericUpDown
 #End If
 End Class

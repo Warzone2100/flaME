@@ -34,7 +34,7 @@
         For A = 0 To ButtonsPerRow - 1
             tsbNumber(A) = New ToolStripButton
             tsbNumber(A).DisplayStyle = ToolStripItemDisplayStyle.Text
-            tsbNumber(A).Text = A
+            tsbNumber(A).Text = CStr(A)
             tsbNumber(A).AutoToolTip = False
             AddHandler tsbNumber(A).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum1.Items.Add(tsbNumber(A))
@@ -42,7 +42,7 @@
             B = A + ButtonsPerRow
             tsbNumber(B) = New ToolStripButton
             tsbNumber(B).DisplayStyle = ToolStripItemDisplayStyle.Text
-            tsbNumber(B).Text = B
+            tsbNumber(B).Text = CStr(B)
             tsbNumber(B).AutoToolTip = False
             AddHandler tsbNumber(B).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum2.Items.Add(tsbNumber(B))
@@ -62,7 +62,7 @@
     End Sub
 
     Private Sub tsbNumber_Clicked(ByVal sender As Object, ByVal e As EventArgs)
-        Dim tsb As ToolStripButton = sender
+        Dim tsb As ToolStripButton = CType(sender, ToolStripButton)
         Dim tmpUnitGroup As clsMap.clsUnitGroup = CType(tsb.Tag, clsMap.clsUnitGroup)
 
         If tmpUnitGroup Is _SelectedUnitGroup Then
@@ -130,7 +130,7 @@
         Me.PerformLayout()
 
     End Sub
-    Friend WithEvents tsPlayerNum1 As System.Windows.Forms.ToolStrip
-    Friend WithEvents tsPlayerNum2 As System.Windows.Forms.ToolStrip
+    Public WithEvents tsPlayerNum1 As System.Windows.Forms.ToolStrip
+    Public WithEvents tsPlayerNum2 As System.Windows.Forms.ToolStrip
 #End If
 End Class

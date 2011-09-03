@@ -6,6 +6,7 @@
 
     Public GenerateTileset As clsGeneratorTileset
 
+#If Mono267 = 0.0# Then
     Public Structure sGenerateTerrainVertex
         Public Node As PathfinderNode
         Public TopLink As PathfinderConnection
@@ -17,9 +18,23 @@
         Public LeftLink As PathfinderConnection
         Public TopLeftLink As PathfinderConnection
     End Structure
+#Else
+     Public Class sGenerateTerrainVertex
+        Public Node As PathfinderNode
+        Public TopLink As PathfinderConnection
+        Public TopRightLink As PathfinderConnection
+        Public RightLink As PathfinderConnection
+        Public BottomRightLink As PathfinderConnection
+        Public BottomLink As PathfinderConnection
+        Public BottomLeftLink As PathfinderConnection
+        Public LeftLink As PathfinderConnection
+        Public TopLeftLink As PathfinderConnection
+    End Class
+#End If
     Public GenerateTerrainVertex(,) As sGenerateTerrainVertex
 
-    Structure sGenerateTerrainTile
+#If Mono267 = 0.0# Then
+    Public Structure sGenerateTerrainTile
         Public Node As PathfinderNode
         Public TopLeftLink As PathfinderConnection
         Public TopLink As PathfinderConnection
@@ -30,6 +45,19 @@
         Public BottomLeftLink As PathfinderConnection
         Public LeftLink As PathfinderConnection
     End Structure
+#Else
+    Public Class sGenerateTerrainTile
+        Public Node As PathfinderNode
+        Public TopLeftLink As PathfinderConnection
+        Public TopLink As PathfinderConnection
+        Public TopRightLink As PathfinderConnection
+        Public RightLink As PathfinderConnection
+        Public BottomRightLink As PathfinderConnection
+        Public BottomLink As PathfinderConnection
+        Public BottomLeftLink As PathfinderConnection
+        Public LeftLink As PathfinderConnection
+    End Class
+#End If
     Public GenerateTerrainTiles(-1, -1) As sGenerateTerrainTile
 
     Public LevelCount As Integer
@@ -82,7 +110,6 @@
         Public ExtraOilClusterSizeMax As Integer
         Public OilDispersion As Single
         Public OilAtATime As Integer
-        Public OilTolerance As Single
         Public WaterSpawnQuantity As Integer
         Public TotalWaterQuantity As Integer
     End Structure
@@ -192,17 +219,17 @@
     End Class
 
     Public Function GetNodePosDist(ByVal NodeA As PathfinderNode, ByVal NodeB As PathfinderNode) As Single
-        Dim TagA As clsNodeTag = NodeA.Tag
-        Dim TagB As clsNodeTag = NodeB.Tag
+        Dim TagA As clsNodeTag = CType(NodeA.Tag, clsNodeTag)
+        Dim TagB As clsNodeTag = CType(NodeB.Tag, clsNodeTag)
 
-        Return CSng(GetDist(TagA.Pos, TagB.Pos))
+        Return CSng(GetDist_XY_int(TagA.Pos, TagB.Pos))
     End Function
 
     Public Sub CalcNodePos(ByVal Node As PathfinderNode, ByRef Pos As sXY_dbl, ByRef SampleCount As Integer)
 
         If Node.GetLayer.GetNetwork_LayerNum = 0 Then
             Dim NodeTag As clsNodeTag
-            NodeTag = Node.Tag
+            NodeTag = CType(Node.Tag, clsNodeTag)
             Pos.X += NodeTag.Pos.X
             Pos.Y += NodeTag.Pos.Y
         Else
@@ -215,25 +242,27 @@
     End Sub
 
     Public Function GenerateLayout(ByVal Args As sGenerateLayoutArgs) As sResult
-        GenerateLayout.Success = False
-        GenerateLayout.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim X As Integer
         Dim Y As Integer
 
         _PlayerCount = Args.PlayerCount * Args.SymmetryBlockCount
-        TerrainSize = Args.Size
+        Terrain.TileSize = Args.Size
         _SymmetryBlockCount = Args.SymmetryBlockCount
 
         Dim SymmetrySize As sXY_dbl
 
-        SymmetrySize.X = TerrainSize.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X
-        SymmetrySize.Y = TerrainSize.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y
+        SymmetrySize.X = Terrain.TileSize.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X
+        SymmetrySize.Y = Terrain.TileSize.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y
 
-        ReDim TerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
-        ReDim TerrainVertex(TerrainSize.X, TerrainSize.Y)
-        ReDim GenerateTerrainTiles(TerrainSize.X - 1, TerrainSize.Y - 1)
-        ReDim GenerateTerrainVertex(TerrainSize.X, TerrainSize.Y)
+        'ReDim Terrain.Tiles(Terrain.Size.X - 1, Terrain.Size.Y - 1)
+        'ReDim Terrain.Vertices(Terrain.Size.X, Terrain.Size.Y)
+        Terrain_Blank(Terrain.TileSize)
+        ReDim GenerateTerrainTiles(Terrain.TileSize.X - 1, Terrain.TileSize.Y - 1)
+        ReDim GenerateTerrainVertex(Terrain.TileSize.X, Terrain.TileSize.Y)
 
         Dim tmpNodeA As PathfinderNode
         Dim tmpNodeB As PathfinderNode
@@ -241,16 +270,17 @@
 
         VertexPathMap = New PathfinderNetwork
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
+                GenerateTerrainVertex(X, Y) = New sGenerateTerrainVertex
                 GenerateTerrainVertex(X, Y).Node = New PathfinderNode(VertexPathMap)
                 NodeTag = New clsNodeTag
                 NodeTag.Pos = New sXY_int(X * 128, Y * 128)
                 GenerateTerrainVertex(X, Y).Node.Tag = NodeTag
             Next
         Next
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
                 tmpNodeA = GenerateTerrainVertex(X, Y).Node
                 If X > 0 Then
                     tmpNodeB = GenerateTerrainVertex(X - 1, Y).Node
@@ -263,23 +293,23 @@
                     End If
                     tmpNodeB = GenerateTerrainVertex(X, Y - 1).Node
                     GenerateTerrainVertex(X, Y).TopLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-                    If X < TerrainSize.X Then
+                    If X < Terrain.TileSize.X Then
                         tmpNodeB = GenerateTerrainVertex(X + 1, Y - 1).Node
                         GenerateTerrainVertex(X, Y).TopRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
                 End If
-                If X < TerrainSize.X Then
+                If X < Terrain.TileSize.X Then
                     tmpNodeB = GenerateTerrainVertex(X + 1, Y).Node
                     GenerateTerrainVertex(X, Y).RightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                 End If
-                If Y < TerrainSize.Y Then
+                If Y < Terrain.TileSize.Y Then
                     If X > 0 Then
                         tmpNodeB = GenerateTerrainVertex(X - 1, Y + 1).Node
                         GenerateTerrainVertex(X, Y).BottomLeftLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
                     tmpNodeB = GenerateTerrainVertex(X, Y + 1).Node
                     GenerateTerrainVertex(X, Y).BottomLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-                    If X < TerrainSize.X Then
+                    If X < Terrain.TileSize.X Then
                         tmpNodeB = GenerateTerrainVertex(X + 1, Y + 1).Node
                         GenerateTerrainVertex(X, Y).BottomRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
@@ -292,16 +322,17 @@
 
         TilePathMap = New PathfinderNetwork
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                GenerateTerrainTiles(X, Y) = New sGenerateTerrainTile
                 GenerateTerrainTiles(X, Y).Node = New PathfinderNode(TilePathMap)
                 NodeTag = New clsNodeTag
-                NodeTag.Pos = New sXY_int((X + 0.5#) * 128.0#, (Y + 0.5#) * 128.0#)
+                NodeTag.Pos = New sXY_int(CInt((X + 0.5#) * 128.0#), CInt((Y + 0.5#) * 128.0#))
                 GenerateTerrainTiles(X, Y).Node.Tag = NodeTag
             Next
         Next
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 tmpNodeA = GenerateTerrainTiles(X, Y).Node
                 If X > 0 Then
                     tmpNodeB = GenerateTerrainTiles(X - 1, Y).Node
@@ -314,23 +345,23 @@
                     End If
                     tmpNodeB = GenerateTerrainTiles(X, Y - 1).Node
                     GenerateTerrainTiles(X, Y).TopLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-                    If X < TerrainSize.X - 1 Then
+                    If X < Terrain.TileSize.X - 1 Then
                         tmpNodeB = GenerateTerrainTiles(X + 1, Y - 1).Node
                         GenerateTerrainTiles(X, Y).TopRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
                 End If
-                If X < TerrainSize.X - 1 Then
+                If X < Terrain.TileSize.X - 1 Then
                     tmpNodeB = GenerateTerrainTiles(X + 1, Y).Node
                     GenerateTerrainTiles(X, Y).RightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                 End If
-                If Y < TerrainSize.Y - 1 Then
+                If Y < Terrain.TileSize.Y - 1 Then
                     If X > 0 Then
                         tmpNodeB = GenerateTerrainTiles(X - 1, Y + 1).Node
                         GenerateTerrainTiles(X, Y).BottomLeftLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
                     tmpNodeB = GenerateTerrainTiles(X, Y + 1).Node
                     GenerateTerrainTiles(X, Y).BottomLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-                    If X < TerrainSize.X - 1 Then
+                    If X < Terrain.TileSize.X - 1 Then
                         tmpNodeB = GenerateTerrainTiles(X + 1, Y + 1).Node
                         GenerateTerrainTiles(X, Y).BottomRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
                     End If
@@ -350,10 +381,11 @@
         Dim G As Integer
         Dim H As Integer
         Dim BaseLayer As PathfinderLayer = VertexPathMap.GetNodeLayer(0)
-        Dim BaseNodeLevel(BaseLayer.GetNodeCount - 1) As Single
         Dim JitterLayer As PathfinderLayer = VertexPathMap.GetNodeLayer(Args.JitterScale)
         A = JitterLayer.GetNodeCount - 1
         Dim NodeLevel(A) As Integer
+        Dim BaseNodeLevel As sBaseNodeLevels
+        ReDim BaseNodeLevel.NodeLevels(BaseLayer.GetNodeCount - 1)
 
         'set position of jitter layer nodes
 
@@ -367,17 +399,17 @@
                 XY_dbl.Y = 0.0#
                 CalcNodePos(tmpNodeA, XY_dbl, C)
                 NodeTag = New clsNodeTag
-                NodeTag.Pos.X = XY_dbl.X / C
-                NodeTag.Pos.Y = XY_dbl.Y / C
+                NodeTag.Pos.X = CInt(XY_dbl.X / C)
+                NodeTag.Pos.Y = CInt(XY_dbl.Y / C)
                 tmpNodeA.Tag = NodeTag
             Next
         End If
 
         'create passage nodes
 
-        Dim PassageRadius As Integer = 128.0F * Args.NodeScale
+        Dim PassageRadius As Integer = CInt(128.0F * Args.NodeScale)
         Dim MaxLikelyPassageNodeCount As Integer
-        MaxLikelyPassageNodeCount = Math.Ceiling(2.0# * Args.Size.X * 128 * Args.Size.Y * 128 / (Math.PI * PassageRadius * PassageRadius))
+        MaxLikelyPassageNodeCount = CInt(Math.Ceiling(2.0# * Args.Size.X * 128 * Args.Size.Y * 128 / (Math.PI * PassageRadius * PassageRadius)))
 
         ReDim PassageNodes(Args.SymmetryBlockCount - 1, MaxLikelyPassageNodeCount - 1)
         Dim LoopCount As Integer
@@ -388,44 +420,44 @@
         Dim NewPointPos As sXY_int
 
         If Args.SymmetryBlockCountXY.X = 1 Then
-            EdgeSections.X = Int((Args.Size.X * TerrainGridSpacing - EdgeOffset * 2.0#) / (Args.NodeScale * TerrainGridSpacing * 2.0F))
+            EdgeSections.X = CInt(Int((Args.Size.X * TerrainGridSpacing - EdgeOffset * 2.0#) / (Args.NodeScale * TerrainGridSpacing * 2.0F)))
             EdgeSectionSize.X = (Args.Size.X * TerrainGridSpacing - EdgeOffset * 2.0#) / EdgeSections.X
             EdgeSections.X -= 1
         Else
-            EdgeSections.X = Int((Args.Size.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#)
+            EdgeSections.X = CInt(Int((Args.Size.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#))
             EdgeSectionSize.X = (Args.Size.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X - EdgeOffset) / (Int((Args.Size.X * TerrainGridSpacing / Args.SymmetryBlockCountXY.X - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#) + 0.5#)
         End If
         If Args.SymmetryBlockCountXY.Y = 1 Then
-            EdgeSections.Y = Int((Args.Size.Y * TerrainGridSpacing - EdgeOffset * 2.0#) / (Args.NodeScale * TerrainGridSpacing * 2.0F))
+            EdgeSections.Y = CInt(Int((Args.Size.Y * TerrainGridSpacing - EdgeOffset * 2.0#) / (Args.NodeScale * TerrainGridSpacing * 2.0F)))
             EdgeSectionSize.Y = (Args.Size.Y * TerrainGridSpacing - EdgeOffset * 2.0#) / EdgeSections.Y
             EdgeSections.Y -= 1
         Else
-            EdgeSections.Y = Int((Args.Size.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#)
+            EdgeSections.Y = CInt(Int((Args.Size.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#))
             EdgeSectionSize.Y = (Args.Size.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y - EdgeOffset) / (Int((Args.Size.Y * TerrainGridSpacing / Args.SymmetryBlockCountXY.Y - EdgeOffset) / (Args.NodeScale * TerrainGridSpacing * 2.0F) - 0.5#) + 0.5#)
         End If
 
         PassageNodeCount = 0
         For Y = 1 To EdgeSections.Y
-            If Not MakePassageNodes(New sXY_int(EdgeOffset, EdgeOffset + Y * EdgeSectionSize.Y), True, Args) Then
-                GenerateLayout.Problem = "Error: Bad border node."
-                Exit Function
+            If Not MakePassageNodes(New sXY_int(EdgeOffset, EdgeOffset + CInt(Y * EdgeSectionSize.Y)), True, Args) Then
+                ReturnResult.Problem = "Error: Bad border node."
+                Return ReturnResult
             End If
             If Args.SymmetryBlockCountXY.X = 1 Then
-                If Not MakePassageNodes(New sXY_int(Args.Size.X * TerrainGridSpacing - EdgeOffset, EdgeOffset + Y * EdgeSectionSize.Y), True, Args) Then
-                    GenerateLayout.Problem = "Error: Bad border node."
-                    Exit Function
+                If Not MakePassageNodes(New sXY_int(Args.Size.X * TerrainGridSpacing - EdgeOffset, EdgeOffset + CInt(Y * EdgeSectionSize.Y)), True, Args) Then
+                    ReturnResult.Problem = "Error: Bad border node."
+                    Return ReturnResult
                 End If
             End If
         Next
         For X = 1 To EdgeSections.X
-            If Not MakePassageNodes(New sXY_int(EdgeOffset + X * EdgeSectionSize.X, EdgeOffset), True, Args) Then
-                GenerateLayout.Problem = "Error: Bad border node."
-                Exit Function
+            If Not MakePassageNodes(New sXY_int(EdgeOffset + CInt(X * EdgeSectionSize.X), EdgeOffset), True, Args) Then
+                ReturnResult.Problem = "Error: Bad border node."
+                Return ReturnResult
             End If
             If Args.SymmetryBlockCountXY.Y = 1 Then
-                If Not MakePassageNodes(New sXY_int(EdgeOffset + X * EdgeSectionSize.X, Args.Size.Y * TerrainGridSpacing - EdgeOffset), True, Args) Then
-                    GenerateLayout.Problem = "Error: Bad border node."
-                    Exit Function
+                If Not MakePassageNodes(New sXY_int(EdgeOffset + CInt(X * EdgeSectionSize.X), Args.Size.Y * TerrainGridSpacing - EdgeOffset), True, Args) Then
+                    ReturnResult.Problem = "Error: Bad border node."
+                    Return ReturnResult
                 End If
             End If
         Next
@@ -434,18 +466,18 @@
             Do
                 PointIsValid = True
                 If Args.SymmetryBlockCountXY.X = 1 Then
-                    NewPointPos.X = EdgeOffset + Int(Rnd() * (SymmetrySize.X - EdgeOffset * 2.0# + 1.0#))
+                    NewPointPos.X = EdgeOffset + CInt(Int(Rnd() * (SymmetrySize.X - EdgeOffset * 2.0# + 1.0#)))
                 Else
-                    NewPointPos.X = EdgeOffset + Int(Rnd() * (SymmetrySize.X - EdgeOffset + 1.0#))
+                    NewPointPos.X = EdgeOffset + CInt(Int(Rnd() * (SymmetrySize.X - EdgeOffset + 1.0#)))
                 End If
                 If Args.SymmetryBlockCountXY.Y = 1 Then
-                    NewPointPos.Y = EdgeOffset + Int(Rnd() * (SymmetrySize.Y - EdgeOffset * 2.0# + 1.0#))
+                    NewPointPos.Y = EdgeOffset + CInt(Int(Rnd() * (SymmetrySize.Y - EdgeOffset * 2.0# + 1.0#)))
                 Else
-                    NewPointPos.Y = EdgeOffset + Int(Rnd() * (SymmetrySize.Y - EdgeOffset + 1.0#))
+                    NewPointPos.Y = EdgeOffset + CInt(Int(Rnd() * (SymmetrySize.Y - EdgeOffset + 1.0#)))
                 End If
                 For A = 0 To PassageNodeCount - 1
                     For B = 0 To Args.SymmetryBlockCount - 1
-                        If GetDist(PassageNodes(B, A).Pos, NewPointPos) < PassageRadius * 2 Then
+                        If GetDist_XY_int(PassageNodes(B, A).Pos, NewPointPos) < PassageRadius * 2 Then
                             GoTo PointTooClose
                         End If
                     Next
@@ -540,9 +572,9 @@ PointMakingFinished:
         'Dim ConnectionsD(PassageNodeCount * 16 - 1) As clsConnection
         'Dim ConnectionCount As Integer
 
-        Dim AngleA As Single
-        Dim AngleB As Single
-        Dim AngleC As Single
+        Dim AngleA As Double
+        Dim AngleB As Double
+        Dim AngleC As Double
 
         Do
             'create valid connections
@@ -705,12 +737,14 @@ PointMakingFinished:
         Dim MapLevelCount(Args.LevelCount - 1) As Integer
         Dim Dist As Single
         Dim BestDist As Single
-        Dim PassageNodesMinLevel(PassageNodeCount - 1) As Integer
-        Dim PassageNodesMaxLevel(PassageNodeCount - 1) As Integer
+        Dim PassageNodesMinLevel As sPassageNodeLevels
+        ReDim PassageNodesMinLevel.Nodes(PassageNodeCount - 1)
+        Dim PassageNodesMaxLevel As sPassageNodeLevels
+        ReDim PassageNodesMaxLevel.Nodes(PassageNodeCount - 1)
 
         For A = 0 To PassageNodeCount - 1
-            PassageNodesMinLevel(A) = 0
-            PassageNodesMaxLevel(A) = Args.LevelCount - 1
+            PassageNodesMinLevel.Nodes(A) = 0
+            PassageNodesMaxLevel.Nodes(A) = Args.LevelCount - 1
         Next
 
         'create bases
@@ -721,7 +755,7 @@ PointMakingFinished:
             For A = 0 To PassageNodeCount - 1
                 tmpPassageNodeA = PassageNodes(0, A)
                 If Not tmpPassageNodeA.IsOnBorder Then
-                    Dist = GetDist(tmpPassageNodeA.Pos, Args.PlayerBasePos(B))
+                    Dist = CSng(GetDist_XY_int(tmpPassageNodeA.Pos, Args.PlayerBasePos(B)))
                     If Dist < BestDist Then
                         BestDist = Dist
                         tmpPassageNodeB = tmpPassageNodeA
@@ -730,7 +764,7 @@ PointMakingFinished:
             Next
 
             If Args.BaseLevel < 0 Then
-                D = Int(Rnd() * Args.LevelCount)
+                D = CInt(Int(Rnd() * Args.LevelCount))
             Else
                 D = Args.BaseLevel
             End If
@@ -761,8 +795,8 @@ PointMakingFinished:
         Dim ActionTotal As Integer = Args.FlatChance + Args.PassageChance + Args.VariationChance + Args.RandomChance + Args.EqualizeChance
 
         If ActionTotal <= 0 Then
-            GenerateLayout.Problem = "All height level behaviors are zero"
-            Exit Function
+            ReturnResult.Problem = "All height level behaviors are zero"
+            Return ReturnResult
         End If
 
         Dim RandomAction As Integer
@@ -790,11 +824,11 @@ PointMakingFinished:
                 Next
                 CanDoFlatsAroundWater = True
                 For B = 0 To tmpPassageNodeA.ConnectionCount - 1
-                    If PassageNodesMinLevel(tmpPassageNodeA.Connections(B).GetOther.Num) > 0 Then
+                    If PassageNodesMinLevel.Nodes(tmpPassageNodeA.Connections(B).GetOther.Num) > 0 Then
                         CanDoFlatsAroundWater = False
                     End If
                 Next
-                If CanDoFlatsAroundWater And ((WaterCount = 0 And WaterSpawns < Args.WaterSpawnQuantity) Or (WaterCount = 1 And Args.TotalWaterQuantity - TotalWater > Args.WaterSpawnQuantity - WaterSpawns)) And PassageNodesMinLevel(tmpPassageNodeA.Num) = 0 And TotalWater < Args.TotalWaterQuantity Then
+                If CanDoFlatsAroundWater And ((WaterCount = 0 And WaterSpawns < Args.WaterSpawnQuantity) Or (WaterCount = 1 And Args.TotalWaterQuantity - TotalWater > Args.WaterSpawnQuantity - WaterSpawns)) And PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) = 0 And TotalWater < Args.TotalWaterQuantity Then
                     If WaterCount = 0 Then
                         WaterSpawns += 1
                     End If
@@ -846,13 +880,13 @@ PointMakingFinished:
                         PassageNodesMaxLevelSet(tmpPassageNodeA, PassageNodesMaxLevel, 0, Args.MaxLevelTransition)
                         MapLevelCount(0) += 1
                         Changed = True
-                    ElseIf PassageNodesMinLevel(tmpPassageNodeA.Num) > PassageNodesMaxLevel(tmpPassageNodeA.Num) Then
-                        F = PassageNodesMinLevel(tmpPassageNodeA.Num) - PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                    ElseIf PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) > PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num) Then
+                        F = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) - PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                         Math.DivRem(F, 2, D)
                         If D = 1 Then
-                            E = PassageNodesMinLevel(tmpPassageNodeA.Num) + CInt((F - 1) / 2.0F) + CInt(Int(Rnd() * 2.0F))
+                            E = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) + CInt((F - 1) / 2.0F) + CInt(Int(Rnd() * 2.0F))
                         Else
-                            E = PassageNodesMinLevel(tmpPassageNodeA.Num) + F / 2.0F
+                            E = CInt(PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) + F / 2.0F)
                         End If
                         For D = 0 To Args.SymmetryBlockCount - 1
                             PassageNodes(D, tmpPassageNodeA.Num).Level = E
@@ -887,12 +921,12 @@ PointMakingFinished:
                                 BestNum = Min + CInt(C / 2.0F)
                             End If
                         Else
-                            RandomAction = Int(Rnd() * ActionTotal)
+                            RandomAction = CInt(Int(Rnd() * ActionTotal))
                             If RandomAction < FlatCutoff Then
                                 'extend the level that surrounds this most
                                 C = 0
                                 EligableCount = 0
-                                For B = PassageNodesMinLevel(tmpPassageNodeA.Num) To PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                                For B = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) To PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                                     If LevelCounts(B) > C Then
                                         C = LevelCounts(B)
                                         Eligables(0) = B
@@ -902,11 +936,11 @@ PointMakingFinished:
                                         EligableCount += 1
                                     End If
                                 Next
-                                BestNum = Eligables(Int(Rnd() * EligableCount))
+                                BestNum = Eligables(CInt(Int(Rnd() * EligableCount)))
                             ElseIf RandomAction < PassageCutoff Then
                                 'extend any level that surrounds only once, or closest to
                                 EligableCount = 0
-                                For B = PassageNodesMinLevel(tmpPassageNodeA.Num) To PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                                For B = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) To PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                                     If LevelCounts(B) = 1 Then
                                         Eligables(EligableCount) = B
                                         EligableCount += 1
@@ -917,7 +951,7 @@ PointMakingFinished:
                                     'extend the most uncommon surrounding
                                     C = Integer.MaxValue
                                     EligableCount = 0
-                                    For B = PassageNodesMinLevel(tmpPassageNodeA.Num) To PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                                    For B = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) To PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                                         If LevelCounts(B) < C Then
                                             C = LevelCounts(B)
                                             Eligables(0) = B
@@ -928,12 +962,12 @@ PointMakingFinished:
                                         End If
                                     Next
                                 End If
-                                BestNum = Eligables(Int(Rnd() * EligableCount))
+                                BestNum = Eligables(CInt(Int(Rnd() * EligableCount)))
                             ElseIf RandomAction < VariationCutoff Then
                                 'extend the most uncommon surrounding
                                 C = Integer.MaxValue
                                 EligableCount = 0
-                                For B = PassageNodesMinLevel(tmpPassageNodeA.Num) To PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                                For B = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) To PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                                     If LevelCounts(B) < C Then
                                         C = LevelCounts(B)
                                         Eligables(0) = B
@@ -943,14 +977,14 @@ PointMakingFinished:
                                         EligableCount += 1
                                     End If
                                 Next
-                                BestNum = Eligables(Int(Rnd() * EligableCount))
+                                BestNum = Eligables(CInt(Int(Rnd() * EligableCount)))
                             ElseIf RandomAction < RandomCutoff Then
-                                BestNum = PassageNodesMinLevel(tmpPassageNodeA.Num) + CInt(Int(Rnd() * (PassageNodesMaxLevel(tmpPassageNodeA.Num) - PassageNodesMinLevel(tmpPassageNodeA.Num) + 1)))
+                                BestNum = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) + CInt(Int(Rnd() * (PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num) - PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) + 1)))
                             ElseIf RandomAction < EqualizeCutoff Then
                                 'switch to the most uncommon level on the map
                                 C = Integer.MaxValue
                                 EligableCount = 0
-                                For B = PassageNodesMinLevel(tmpPassageNodeA.Num) To PassageNodesMaxLevel(tmpPassageNodeA.Num)
+                                For B = PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) To PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num)
                                     If MapLevelCount(B) < C Then
                                         C = MapLevelCount(B)
                                         Eligables(0) = B
@@ -960,10 +994,10 @@ PointMakingFinished:
                                         EligableCount += 1
                                     End If
                                 Next
-                                BestNum = Eligables(Int(Rnd() * EligableCount))
+                                BestNum = Eligables(CInt(Int(Rnd() * EligableCount)))
                             Else
-                                GenerateLayout.Problem = "Error: Random number out of range."
-                                Exit Function
+                                ReturnResult.Problem = "Error: Random number out of range."
+                                Return ReturnResult
                             End If
                         End If
                         C = tmpPassageNodeA.Num
@@ -984,27 +1018,27 @@ PointMakingFinished:
             tmpPassageNodeA = PassageNodes(0, A)
             If tmpPassageNodeA.IsOnBorder Then
                 If tmpPassageNodeA.Level >= 0 Then
-                    GenerateLayout.Problem = "Error: Border has had its height set."
-                    Exit Function
+                    ReturnResult.Problem = "Error: Border has had its height set."
+                    Return ReturnResult
                 End If
                 'If tmpPassageNodeA.ConnectionCount <> 1 Then
-                '    GenerateLayout.Problem = "Error: Border has incorrect connections."
+                '    ReturnResult.Problem = "Error: Border has incorrect connections."
                 '    Exit Function
                 'End If
                 tmpPassageNodeC = Nothing
                 CanDoFlatsAroundWater = True
                 For B = 0 To tmpPassageNodeA.ConnectionCount - 1
                     tmpPassageNodeB = tmpPassageNodeA.Connections(B).GetOther
-                    If Not tmpPassageNodeB.IsOnBorder And PassageNodesMinLevel(tmpPassageNodeA.Num) <= tmpPassageNodeB.Level And PassageNodesMaxLevel(tmpPassageNodeA.Num) >= tmpPassageNodeB.Level Then
+                    If Not tmpPassageNodeB.IsOnBorder And PassageNodesMinLevel.Nodes(tmpPassageNodeA.Num) <= tmpPassageNodeB.Level And PassageNodesMaxLevel.Nodes(tmpPassageNodeA.Num) >= tmpPassageNodeB.Level Then
                         tmpPassageNodeC = tmpPassageNodeB
                     End If
-                    If PassageNodesMinLevel(tmpPassageNodeB.Num) > 0 Then
+                    If PassageNodesMinLevel.Nodes(tmpPassageNodeB.Num) > 0 Then
                         CanDoFlatsAroundWater = False
                     End If
                 Next
                 If tmpPassageNodeC Is Nothing Then
-                    GenerateLayout.Problem = "Error: No connection for border node"
-                    Exit Function
+                    ReturnResult.Problem = "Error: No connection for border node"
+                    Return ReturnResult
                 End If
                 PassageNodesMinLevelSet(tmpPassageNodeC, PassageNodesMinLevel, tmpPassageNodeC.Level, Args.MaxLevelTransition)
                 PassageNodesMaxLevelSet(tmpPassageNodeC, PassageNodesMaxLevel, tmpPassageNodeC.Level, Args.MaxLevelTransition)
@@ -1028,7 +1062,7 @@ PointMakingFinished:
         Dim BestNode As clsPassageNode
 
         For A = 0 To JitterLayer.GetNodeCount - 1
-            NodeTag = JitterLayer.GetNode(A).Tag
+            NodeTag = CType(JitterLayer.GetNode(A).Tag, clsNodeTag)
             NodeLevel(A) = -1
             BestDist = Single.MaxValue
             BestConnection = Nothing
@@ -1039,10 +1073,10 @@ PointMakingFinished:
                     'only do this if the levels are the same
                     'this is to make sure nodes that are connected are actually connected on the terrain
                     XY_int = PointGetClosestPosOnLine(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos, NodeTag.Pos)
-                    Dist = GetDist(XY_int, NodeTag.Pos)
+                    Dist = CSng(GetDist_XY_int(XY_int, NodeTag.Pos))
                     If Dist < BestDist Then
                         BestDist = Dist
-                        If GetDist(NodeTag.Pos, Connections(B).PassageNodeA.Pos) <= GetDist(NodeTag.Pos, Connections(B).PassageNodeB.Pos) Then
+                        If GetDist_XY_int(NodeTag.Pos, Connections(B).PassageNodeA.Pos) <= GetDist_XY_int(NodeTag.Pos, Connections(B).PassageNodeB.Pos) Then
                             BestNode = Connections(B).PassageNodeA
                         Else
                             BestNode = Connections(B).PassageNodeB
@@ -1054,7 +1088,7 @@ PointMakingFinished:
             For C = 0 To PassageNodeCount - 1
                 'If Not PassageNodesA(C).IsOnBorder Then
                 For D = 0 To Args.SymmetryBlockCount - 1
-                    Dist = GetDist(NodeTag.Pos, PassageNodes(D, C).Pos)
+                    Dist = CSng(GetDist_XY_int(NodeTag.Pos, PassageNodes(D, C).Pos))
                     If Dist < BestDist Then
                         BestDist = Dist
                         BestNode = PassageNodes(D, C)
@@ -1069,8 +1103,8 @@ PointMakingFinished:
                 NodeLevel(A) = BestConnection.PassageNodeA.Level
             End If
             If NodeLevel(A) < 0 Then
-                GenerateLayout.Problem = "Error: Node height is not set."
-                Exit Function
+                ReturnResult.Problem = "Error: Node height is not set."
+                Return ReturnResult
             End If
         Next
 
@@ -1128,24 +1162,35 @@ PointMakingFinished:
             End If
         Next
 
+        Dim Connectedness As New clsNodeConnectedness
+        ReDim Connectedness.NodeConnectedness(PassageNodeCount - 1)
+        ReDim Connectedness.PassageNodeVisited(Args.SymmetryBlockCount - 1, PassageNodeCount - 1)
+        Connectedness.PassageNodePathNodes = PassageNodePathNodes
+        Connectedness.PassageNodePathMap = PassageNodePathMap
+
         Dim tmpConnectionB As clsConnection
         Dim tmpPathConnection(3) As PathfinderConnection
         Dim Value As Single
-        Dim NodeConnectedness(PassageNodeCount - 1) As Single
-        Dim PassageNodeUpdated(PassageNodeCount - 1) As Boolean
         Dim BestDistB As Single
-        Dim PassageNodeVisited(Args.SymmetryBlockCount - 1, PassageNodeCount - 1) As Boolean
         Dim BaseDist As Single
         Dim RampDist As Single
+        Dim UpdateNodeConnectednessArgs As sUpdateNodeConnectednessArgs
+        Dim UpdateNetworkConnectednessArgs As sUpdateNetworkConnectednessArgs
+
+        UpdateNodeConnectednessArgs.Args = Connectedness
+        UpdateNetworkConnectednessArgs.Args = Connectedness
+        ReDim UpdateNetworkConnectednessArgs.PassageNodeUpdated(PassageNodeCount - 1)
+        UpdateNetworkConnectednessArgs.SymmetryBlockCount = Args.SymmetryBlockCount
 
         For A = 0 To PassageNodeCount - 1
-            NodeConnectedness(A) = 0.0F
+            Connectedness.NodeConnectedness(A) = 0.0F
             For B = 0 To PassageNodeCount - 1
                 For C = 0 To Args.SymmetryBlockCount - 1
-                    PassageNodeVisited(C, B) = False
+                    Connectedness.PassageNodeVisited(C, B) = False
                 Next
             Next
-            UpdateNodeConnectedness(PassageNodes(0, A), PassageNodes(0, A), NodeConnectedness, PassageNodeVisited, PassageNodePathMap, PassageNodePathNodes)
+            UpdateNodeConnectednessArgs.OriginalNode = PassageNodes(0, A)
+            UpdateNodeConnectedness(UpdateNodeConnectednessArgs, PassageNodes(0, A))
         Next
 
         Do
@@ -1157,17 +1202,17 @@ PointMakingFinished:
                 If ConnectionsCanRamp(B) And Not Connections(B).IsRamp Then
                     XY_int.X = Connections(B).PassageNodeB.Pos.X - Connections(B).PassageNodeA.Pos.X
                     XY_int.Y = Connections(B).PassageNodeB.Pos.Y - Connections(B).PassageNodeA.Pos.Y
-                    AngleA = GetAngle(XY_int)
+                    AngleA = XY_int.GetAngle
                     For C = 0 To Connections(B).PassageNodeA.ConnectionCount - 1
                         tmpConnectionB = Connections(B).PassageNodeA.Connections(C).Connection
                         If tmpConnectionB IsNot Connections(B) Then
                             If tmpConnectionB.IsRamp Then
                                 XY_int.X = tmpConnectionB.PassageNodeB.Pos.X - tmpConnectionB.PassageNodeA.Pos.X
                                 XY_int.Y = tmpConnectionB.PassageNodeB.Pos.Y - tmpConnectionB.PassageNodeA.Pos.Y
-                                AngleB = GetAngle(XY_int)
+                                AngleB = XY_int.GetAngle
                                 AngleC = AngleClamp(AngleA - AngleB)
                                 If tmpConnectionB.PassageNodeA IsNot Connections(B).PassageNodeA Then
-                                    AngleC = AngleClamp(AngleC - Pi)
+                                    AngleC = AngleClamp(AngleC - Math.PI)
                                 End If
                                 If Math.Abs(AngleC) < 80.0# * RadOf1Deg Then
                                     Exit For
@@ -1182,10 +1227,10 @@ PointMakingFinished:
                                 If tmpConnectionB.IsRamp Then
                                     XY_int.X = tmpConnectionB.PassageNodeB.Pos.X - tmpConnectionB.PassageNodeA.Pos.X
                                     XY_int.Y = tmpConnectionB.PassageNodeB.Pos.Y - tmpConnectionB.PassageNodeA.Pos.Y
-                                    AngleB = GetAngle(XY_int)
+                                    AngleB = XY_int.GetAngle
                                     AngleC = AngleClamp(AngleA - AngleB)
                                     If tmpConnectionB.PassageNodeA Is Connections(B).PassageNodeB Then
-                                        AngleC = AngleClamp(AngleC - Pi)
+                                        AngleC = AngleClamp(AngleC - Math.PI)
                                     End If
                                     If Math.Abs(AngleC) < 80.0# * RadOf1Deg Then
                                         Exit For
@@ -1197,17 +1242,17 @@ PointMakingFinished:
                             GetPathStartNodes(0) = PassageNodePathNodes(Connections(B).PassageNodeA.MirrorNum, Connections(B).PassageNodeA.Num)
                             ResultPaths = PassageNodePathMap.GetPath(GetPathStartNodes, PassageNodePathNodes(Connections(B).PassageNodeB.MirrorNum, Connections(B).PassageNodeB.Num), -1, 0)
                             BaseDist = Single.MaxValue
-                            XY_int.X = (Connections(B).PassageNodeA.Pos.X + Connections(B).PassageNodeB.Pos.X) / 2.0#
-                            XY_int.Y = (Connections(B).PassageNodeA.Pos.Y + Connections(B).PassageNodeB.Pos.Y) / 2.0#
+                            XY_int.X = CInt((Connections(B).PassageNodeA.Pos.X + Connections(B).PassageNodeB.Pos.X) / 2.0#)
+                            XY_int.Y = CInt((Connections(B).PassageNodeA.Pos.Y + Connections(B).PassageNodeB.Pos.Y) / 2.0#)
                             For E = 0 To Args.PlayerCount - 1
-                                Dist = GetDist(BasePassageNodes(E).Pos, XY_int)
+                                Dist = CSng(GetDist_XY_int(BasePassageNodes(E).Pos, XY_int))
                                 If Dist < BaseDist Then
                                     BaseDist = Dist
                                 End If
                             Next
-                            RampDist = Math.Max(Args.MaxDisconnectionDist * Args.RampBase ^ (BaseDist / 1024.0#), 1.0F)
+                            RampDist = Math.Max(CSng(Args.MaxDisconnectionDist * Args.RampBase ^ (BaseDist / 1024.0#)), 1.0F)
                             If ResultPaths Is Nothing Then
-                                Value = NodeConnectedness(Connections(B).PassageNodeA.Num) + NodeConnectedness(Connections(B).PassageNodeB.Num)
+                                Value = Connectedness.NodeConnectedness(Connections(B).PassageNodeA.Num) + Connectedness.NodeConnectedness(Connections(B).PassageNodeB.Num)
                                 If Single.MaxValue > BestDist Then
                                     BestDist = Single.MaxValue
                                     BestDistB = Value
@@ -1224,8 +1269,8 @@ PointMakingFinished:
                                     End If
                                 End If
                             ElseIf ResultPaths(0).PathCount <> 1 Then
-                                GenerateLayout.Problem = "Error: Invalid number of routes returned."
-                                Exit Function
+                                ReturnResult.Problem = "Error: Invalid number of routes returned."
+                                Return ReturnResult
                             ElseIf ResultPaths(0).Paths(0).Value / RampDist > BestDist Then
                                 BestDist = ResultPaths(0).Paths(0).Value / RampDist
                                 PossibleRamps(0) = Connections(B)
@@ -1247,7 +1292,7 @@ PointMakingFinished:
                 End If
             Next
             If PossibleRampCount > 0 Then
-                BestNum = Int(Rnd() * PossibleRampCount)
+                BestNum = CInt(Int(Rnd() * PossibleRampCount))
                 PossibleRamps(BestNum).IsRamp = True
                 tmpPassageNodeA = PossibleRamps(BestNum).PassageNodeA
                 tmpPassageNodeB = PossibleRamps(BestNum).PassageNodeB
@@ -1264,15 +1309,15 @@ PointMakingFinished:
                 Next
                 PassageNodePathMap.FindCalc()
                 For E = 0 To PassageNodeCount - 1
-                    PassageNodeUpdated(E) = False
+                    UpdateNetworkConnectednessArgs.PassageNodeUpdated(E) = False
                 Next
                 If PossibleRamps(BestNum).PassageNodeA.MirrorNum = 0 Then
-                    UpdateNetworkConnectedness(PossibleRamps(BestNum).PassageNodeA, NodeConnectedness, PassageNodeUpdated, PassageNodeVisited, Args.SymmetryBlockCount, PassageNodePathMap, PassageNodePathNodes)
+                    UpdateNetworkConnectedness(UpdateNetworkConnectednessArgs, PossibleRamps(BestNum).PassageNodeA)
                 ElseIf PossibleRamps(BestNum).PassageNodeB.MirrorNum = 0 Then
-                    UpdateNetworkConnectedness(PossibleRamps(BestNum).PassageNodeB, NodeConnectedness, PassageNodeUpdated, PassageNodeVisited, Args.SymmetryBlockCount, PassageNodePathMap, PassageNodePathNodes)
+                    UpdateNetworkConnectedness(UpdateNetworkConnectednessArgs, PossibleRamps(BestNum).PassageNodeB)
                 Else
-                    GenerateLayout.Problem = "Error: Initial ramp not in area 0."
-                    Exit Function
+                    ReturnResult.Problem = "Error: Initial ramp not in area 0."
+                    Return ReturnResult
                 End If
             Else
                 Exit Do
@@ -1284,11 +1329,11 @@ PointMakingFinished:
 
         For B = 0 To ConnectionCount - 1
             For A = 0 To JitterLayer.GetNodeCount - 1
-                RampLength = Math.Max(CInt(GetDist(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos)) * 0.75#, MinRampLength * Math.Abs(Connections(B).PassageNodeA.Level - Connections(B).PassageNodeB.Level))
+                RampLength = Math.Max(CInt(GetDist_XY_int(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos) * 0.75#), MinRampLength * Math.Abs(Connections(B).PassageNodeA.Level - Connections(B).PassageNodeB.Level))
                 If Connections(B).IsRamp Then
-                    NodeTag = JitterLayer.GetNode(A).Tag
+                    NodeTag = CType(JitterLayer.GetNode(A).Tag, clsNodeTag)
                     XY_int = PointGetClosestPosOnLine(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos, NodeTag.Pos)
-                    Dist = GetDist(XY_int, NodeTag.Pos)
+                    Dist = CSng(GetDist_XY_int(XY_int, NodeTag.Pos))
                     If Dist < RampLength * 2.0F Then
                         SetBaseLevelRamp(JitterLayer.GetNode(A), Connections(B), BaseNodeLevel, RampLength)
                     End If
@@ -1297,8 +1342,8 @@ PointMakingFinished:
         Next
 
         For A = 0 To BaseLayer.GetNodeCount - 1
-            NodeTag = BaseLayer.GetNode(A).Tag
-            TerrainVertex(NodeTag.Pos.X / 128.0F, NodeTag.Pos.Y / 128.0F).Height = BaseNodeLevel(A) * LevelHeight
+            NodeTag = CType(BaseLayer.GetNode(A).Tag, clsNodeTag)
+            Terrain.Vertices(CInt(NodeTag.Pos.X / 128.0F), CInt(NodeTag.Pos.Y / 128.0F)).Height = CByte(BaseNodeLevel.NodeLevels(A) * LevelHeight)
         Next
 
         'unique connections test
@@ -1327,8 +1372,8 @@ PointMakingFinished:
                             GetPathStartNodes(0) = PassageNodePathNodes(D, A)
                             ResultPaths = PassageNodePathMap.GetPath(GetPathStartNodes, PassageNodePathNodes(C, B), -1, 0)
                             If ResultPaths Is Nothing Then
-                                GenerateLayout.Problem = "Map is not all connected."
-                                Exit Function
+                                ReturnResult.Problem = "Map is not all connected."
+                                Return ReturnResult
                             Else
                                 If ResultPaths(0).PathCount <> 1 Then
                                     Stop
@@ -1343,64 +1388,42 @@ PointMakingFinished:
         Next
 
         'place oil
-        Dim PlayerOilScore(Args.PlayerCount - 1) As Single
         Dim ExtraOilCount As Integer
-        Dim BestValue As Single
-        Dim BestPlayerOilScoreAddition(Args.PlayerCount - 1) As Single
         Dim MaxBestNodeCount As Integer
         MaxBestNodeCount = 1
         For A = 0 To Args.OilAtATime - 1
             MaxBestNodeCount *= PassageNodeCount
         Next
-        Dim BestNodes(,) As clsPassageNode
-        Dim BestNodeScores() As Single
-        Dim BestNodeCount As Integer
-        Dim OilClusterSizes(Args.OilAtATime - 1) As Integer
-        Dim OilNodes(Args.OilAtATime - 1) As clsPassageNode
-        Dim LoopNum As Integer
+        Dim BestPossibility As clsGeneratorMap.clsOilPossibilities.clsPossibility
+        Dim OilArgs As clsGeneratorMap.sOilBalanceLoopArgs
+        ReDim OilArgs.OilClusterSizes(Args.OilAtATime - 1)
+        ReDim OilArgs.PlayerOilScore(Args.PlayerCount - 1)
+        ReDim OilArgs.OilNodes(Args.OilAtATime - 1)
+        OilArgs.GenerateLayoutArgs = Args
 
         'balanced oil
         Do While ExtraOilCount < Args.ExtraOilCount
             'place oil farthest away from other oil and where it best balances the player oil score
             For A = 0 To Args.OilAtATime - 1
-                OilClusterSizes(A) = Math.Min(Args.ExtraOilClusterSizeMin + CInt(Int(Rnd() * (Args.ExtraOilClusterSizeMax - Args.ExtraOilClusterSizeMin + 1))), Math.Max(CInt(Math.Ceiling((Args.ExtraOilCount - ExtraOilCount) / Args.SymmetryBlockCount)), 1))
+                OilArgs.OilClusterSizes(A) = Math.Min(Args.ExtraOilClusterSizeMin + CInt(Int(Rnd() * (Args.ExtraOilClusterSizeMax - Args.ExtraOilClusterSizeMin + 1))), Math.Max(CInt(Math.Ceiling((Args.ExtraOilCount - ExtraOilCount) / Args.SymmetryBlockCount)), 1))
             Next
-            BestValue = Single.MaxValue
-            LoopNum = 0
-            ReDim BestNodes(MaxBestNodeCount - 1, Args.OilAtATime - 1)
-            ReDim BestNodeScores(MaxBestNodeCount - 1)
-            BestNodeCount = 0
-            OilBalanceLoop(OilNodes, OilClusterSizes, BestNodes, BestNodeScores, BestNodeCount, BestPlayerOilScoreAddition, BestValue, PlayerOilScore, LoopNum, Args)
+            OilArgs.OilPossibilities = New clsGeneratorMap.clsOilPossibilities
+            OilBalanceLoop(OilArgs, 0)
 
-            BestValue = Single.MaxValue
-            For A = 0 To BestNodeCount - 1
-                If BestNodeScores(A) < BestValue Then
-                    BestValue = BestNodeScores(A)
-                End If
-            Next
-            If BestValue < Single.MaxValue Then
-                C = 0
-                For A = 0 To BestNodeCount - 1
-                    If BestValue >= Args.OilTolerance * BestNodeScores(A) Then
-                        For B = 0 To Args.OilAtATime - 1
-                            BestNodes(C, B) = BestNodes(A, B)
-                        Next
-                        C += 1
-                    End If
-                Next
-                D = Int(Rnd() * C)
+            BestPossibility = OilArgs.OilPossibilities.BestPossibility
+            If BestPossibility IsNot Nothing Then
                 For B = 0 To Args.OilAtATime - 1
                     For A = 0 To Args.SymmetryBlockCount - 1
-                        PassageNodes(A, BestNodes(D, B).Num).OilCount += OilClusterSizes(B)
+                        PassageNodes(A, BestPossibility.Nodes(B).Num).OilCount += OilArgs.OilClusterSizes(B)
                     Next
-                    ExtraOilCount += OilClusterSizes(B) * Args.SymmetryBlockCount
+                    ExtraOilCount += OilArgs.OilClusterSizes(B) * Args.SymmetryBlockCount
                 Next
                 For A = 0 To Args.PlayerCount - 1
-                    PlayerOilScore(A) += BestPlayerOilScoreAddition(A)
+                    OilArgs.PlayerOilScore(A) += BestPossibility.PlayerOilScoreAddition(A)
                 Next
             Else
-                GenerateLayout.Problem = "Map is too small for that number of oil clusters"
-                Exit Function
+                ReturnResult.Problem = "Map is too small for that number of oil clusters"
+                Return ReturnResult
             End If
         Loop
 
@@ -1413,15 +1436,20 @@ PointMakingFinished:
 
         LevelCount = Args.LevelCount
 
-        GenerateLayout.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Private Sub PassageNodesMinLevelSet(ByVal PassageNode As clsPassageNode, ByRef PassageNodesMinLevel() As Integer, ByVal Level As Integer, ByVal LevelChange As Integer)
+    Private Structure sPassageNodeLevels
+        Public Nodes() As Integer
+    End Structure
+
+    Private Sub PassageNodesMinLevelSet(ByVal PassageNode As clsPassageNode, ByRef PassageNodesMinLevel As sPassageNodeLevels, ByVal Level As Integer, ByVal LevelChange As Integer)
         Dim A As Integer
         Dim tmpPassageNode As clsPassageNode
 
-        If Level > PassageNodesMinLevel(PassageNode.Num) Then
-            PassageNodesMinLevel(PassageNode.Num) = Level
+        If Level > PassageNodesMinLevel.Nodes(PassageNode.Num) Then
+            PassageNodesMinLevel.Nodes(PassageNode.Num) = Level
             For A = 0 To PassageNode.ConnectionCount - 1
                 tmpPassageNode = PassageNode.Connections(A).GetOther
                 If tmpPassageNode.MirrorNum = 0 Then
@@ -1431,12 +1459,12 @@ PointMakingFinished:
         End If
     End Sub
 
-    Private Sub PassageNodesMaxLevelSet(ByVal PassageNode As clsPassageNode, ByRef PassageNodesMaxLevel() As Integer, ByVal Level As Integer, ByVal LevelChange As Integer)
+    Private Sub PassageNodesMaxLevelSet(ByVal PassageNode As clsPassageNode, ByRef PassageNodesMaxLevel As sPassageNodeLevels, ByVal Level As Integer, ByVal LevelChange As Integer)
         Dim A As Integer
         Dim tmpPassageNode As clsPassageNode
 
-        If Level < PassageNodesMaxLevel(PassageNode.Num) Then
-            PassageNodesMaxLevel(PassageNode.Num) = Level
+        If Level < PassageNodesMaxLevel.Nodes(PassageNode.Num) Then
+            PassageNodesMaxLevel.Nodes(PassageNode.Num) = Level
             For A = 0 To PassageNode.ConnectionCount - 1
                 tmpPassageNode = PassageNode.Connections(A).GetOther
                 If tmpPassageNode.MirrorNum = 0 Then
@@ -1446,20 +1474,32 @@ PointMakingFinished:
         End If
     End Sub
 
-    Private Sub UpdateNodeConnectedness(ByVal OriginalNode As clsPassageNode, ByVal PassageNode As clsPassageNode, ByRef NodeConnectedness() As Single, ByRef VisitedB(,) As Boolean, ByVal PassageNodePathMap As PathfinderNetwork, ByRef PassageNodePathNodes(,) As PathfinderNode)
+    Private Class clsNodeConnectedness
+        Public NodeConnectedness() As Single
+        Public PassageNodeVisited(,) As Boolean
+        Public PassageNodePathMap As PathfinderNetwork
+        Public PassageNodePathNodes(,) As PathfinderNode
+    End Class
+
+    Private Structure sUpdateNodeConnectednessArgs
+        Public OriginalNode As clsPassageNode
+        Public Args As clsNodeConnectedness
+    End Structure
+
+    Private Sub UpdateNodeConnectedness(ByRef Args As sUpdateNodeConnectednessArgs, ByVal PassageNode As clsPassageNode)
         Dim A As Integer
         Dim tmpConnection As clsConnection
         Dim tmpOtherNode As clsPassageNode
         Dim PassableCount As Integer
 
-        VisitedB(PassageNode.MirrorNum, PassageNode.Num) = True
+        Args.Args.PassageNodeVisited(PassageNode.MirrorNum, PassageNode.Num) = True
 
         For A = 0 To PassageNode.ConnectionCount - 1
             tmpConnection = PassageNode.Connections(A).Connection
             If Not (tmpConnection.PassageNodeA.IsOnBorder Or tmpConnection.PassageNodeB.IsOnBorder Or tmpConnection.PassageNodeA.IsWater Or tmpConnection.PassageNodeB.IsWater) And (tmpConnection.IsRamp Or tmpConnection.PassageNodeA.Level = tmpConnection.PassageNodeB.Level) Then
                 tmpOtherNode = PassageNode.Connections(A).GetOther
-                If Not VisitedB(tmpOtherNode.MirrorNum, tmpOtherNode.Num) Then
-                    UpdateNodeConnectedness(OriginalNode, tmpOtherNode, NodeConnectedness, VisitedB, PassageNodePathMap, PassageNodePathNodes)
+                If Not Args.Args.PassageNodeVisited(tmpOtherNode.MirrorNum, tmpOtherNode.Num) Then
+                    UpdateNodeConnectedness(Args, tmpOtherNode)
                 End If
                 PassableCount += 1
             End If
@@ -1467,44 +1507,61 @@ PointMakingFinished:
 
         Dim Paths() As PathfinderNetwork.PathList
         Dim StartNodes(0) As PathfinderNode
-        StartNodes(0) = PassageNodePathNodes(0, OriginalNode.Num)
-        Paths = PassageNodePathMap.GetPath(StartNodes, PassageNodePathNodes(PassageNode.MirrorNum, PassageNode.Num), -1, 0)
-        NodeConnectedness(OriginalNode.Num) += PassableCount * 0.999# ^ Paths(0).Paths(0).Value
+        StartNodes(0) = Args.Args.PassageNodePathNodes(0, Args.OriginalNode.Num)
+        Paths = Args.Args.PassageNodePathMap.GetPath(StartNodes, Args.Args.PassageNodePathNodes(PassageNode.MirrorNum, PassageNode.Num), -1, 0)
+        Args.Args.NodeConnectedness(Args.OriginalNode.Num) += CSng(PassableCount * 0.999# ^ Paths(0).Paths(0).Value)
     End Sub
 
-    Private Sub UpdateNetworkConnectedness(ByVal PassageNode As clsPassageNode, ByRef NodeConnectedness() As Single, ByRef Visited() As Boolean, ByRef VisitedB(,) As Boolean, ByVal SymmetryBlockCount As Integer, ByVal PassageNodePathMap As PathfinderNetwork, ByRef PassageNodePathNodes(,) As PathfinderNode)
+    Private Structure sUpdateNetworkConnectednessArgs
+        Public PassageNodeUpdated() As Boolean
+        Public SymmetryBlockCount As Integer
+        Public Args As clsNodeConnectedness
+    End Structure
+
+    Private Sub UpdateNetworkConnectedness(ByRef Args As sUpdateNetworkConnectednessArgs, ByVal PassageNode As clsPassageNode)
         Dim A As Integer
         Dim tmpConnection As clsConnection
         Dim tmpOtherNode As clsPassageNode
+        Dim NodeConnectednessArgs As sUpdateNodeConnectednessArgs
         Dim B As Integer
         Dim C As Integer
 
-        Visited(PassageNode.Num) = True
+        Args.PassageNodeUpdated(PassageNode.Num) = True
 
         For A = 0 To PassageNode.ConnectionCount - 1
             tmpConnection = PassageNode.Connections(A).Connection
             If Not (tmpConnection.PassageNodeA.IsOnBorder Or tmpConnection.PassageNodeB.IsOnBorder Or tmpConnection.PassageNodeA.IsWater Or tmpConnection.PassageNodeB.IsWater) And (tmpConnection.IsRamp Or tmpConnection.PassageNodeA.Level = tmpConnection.PassageNodeB.Level) Then
                 tmpOtherNode = PassageNode.Connections(A).GetOther
-                If Not Visited(tmpOtherNode.Num) And tmpOtherNode.MirrorNum = 0 Then
+                If Not Args.PassageNodeUpdated(tmpOtherNode.Num) And tmpOtherNode.MirrorNum = 0 Then
                     For B = 0 To PassageNodeCount - 1
-                        For C = 0 To SymmetryBlockCount - 1
-                            VisitedB(C, B) = False
+                        For C = 0 To Args.SymmetryBlockCount - 1
+                            Args.Args.PassageNodeVisited(C, B) = False
                         Next
                     Next
-                    UpdateNodeConnectedness(PassageNode, PassageNode, NodeConnectedness, VisitedB, PassageNodePathMap, PassageNodePathNodes)
+                    NodeConnectednessArgs.OriginalNode = PassageNode
+                    NodeConnectednessArgs.Args = Args.Args
+                    UpdateNodeConnectedness(NodeConnectednessArgs, PassageNode)
                 End If
             End If
         Next
     End Sub
 
-    Private Sub OilBalanceLoop(ByRef OilNodes() As clsPassageNode, ByRef OilClusterSizes() As Integer, ByRef BestNodes(,) As clsPassageNode, ByRef BestNodeScores() As Single, ByRef BestNodeCount As Integer, ByRef BestPlayerScoreAddition() As Single, ByRef BestValue As Single, ByRef PlayerOilScore() As Single, ByVal LoopNum As Integer, ByRef GenerateLayoutArgs As sGenerateLayoutArgs)
+    Private Structure sOilBalanceLoopArgs
+        Public OilNodes() As clsPassageNode
+        Public OilClusterSizes() As Integer
+        Public OilPossibilities As clsGeneratorMap.clsOilPossibilities
+        Public PlayerOilScore() As Double
+        Public GenerateLayoutArgs As sGenerateLayoutArgs
+    End Structure
+
+    Private Sub OilBalanceLoop(ByRef Args As sOilBalanceLoopArgs, ByVal LoopNum As Integer)
         Dim A As Integer
         Dim B As Integer
         Dim C As Integer
         Dim NextLoopNum As Integer = LoopNum + 1
         Dim tmpPassageNodeA As clsPassageNode
 
-        If NextLoopNum < GenerateLayoutArgs.OilAtATime Then
+        If NextLoopNum < Args.GenerateLayoutArgs.OilAtATime Then
             For A = 0 To PassageNodeCount - 1
                 tmpPassageNodeA = PassageNodes(0, A)
                 For B = 0 To _PlayerCount - 1
@@ -1513,13 +1570,13 @@ PointMakingFinished:
                     End If
                 Next
                 For C = 0 To LoopNum - 1
-                    If OilNodes(C) Is tmpPassageNodeA Then
+                    If Args.OilNodes(C) Is tmpPassageNodeA Then
                         Exit For
                     End If
                 Next
                 If tmpPassageNodeA.OilCount = 0 And Not tmpPassageNodeA.IsOnBorder And B = _PlayerCount And C = LoopNum And Not tmpPassageNodeA.IsWater Then
-                    OilNodes(LoopNum) = tmpPassageNodeA
-                    OilBalanceLoop(OilNodes, OilClusterSizes, BestNodes, BestNodeScores, BestNodeCount, BestPlayerScoreAddition, BestValue, PlayerOilScore, NextLoopNum, GenerateLayoutArgs)
+                    Args.OilNodes(LoopNum) = tmpPassageNodeA
+                    OilBalanceLoop(Args, NextLoopNum)
                 End If
             Next
         Else
@@ -1531,140 +1588,157 @@ PointMakingFinished:
                     End If
                 Next
                 For C = 0 To LoopNum - 1
-                    If OilNodes(C) Is tmpPassageNodeA Then
+                    If Args.OilNodes(C) Is tmpPassageNodeA Then
                         Exit For
                     End If
                 Next
                 If tmpPassageNodeA.OilCount = 0 And Not tmpPassageNodeA.IsOnBorder And B = _PlayerCount And C = LoopNum And Not tmpPassageNodeA.IsWater Then
-                    OilNodes(LoopNum) = tmpPassageNodeA
-                    OilValueCalc(OilNodes, OilClusterSizes, BestNodes, BestNodeScores, BestNodeCount, BestPlayerScoreAddition, BestValue, PlayerOilScore, GenerateLayoutArgs)
+                    Args.OilNodes(LoopNum) = tmpPassageNodeA
+                    OilValueCalc(Args)
                 End If
             Next
         End If
     End Sub
 
-    Private Sub OilValueCalc(ByRef OilNodes() As clsPassageNode, ByRef OilClusterSizes() As Integer, ByRef BestNodes(,) As clsPassageNode, ByRef BestNodeScores() As Single, ByRef BestNodeCount As Integer, ByRef BestPlayerScoreAddition() As Single, ByRef BestValue As Single, ByRef PlayerOilScore() As Single, ByRef GenerateLayoutArgs As sGenerateLayoutArgs)
-        Dim OilDistScore As Single
-        Dim OilStraightDistScore As Single
-        Dim LowestScore As Single
-        Dim HighestScore As Single
-        Dim EnemiesOilScore As Single
-        Dim PlayerOilScoreAddition() As Single
-        Dim UnbalancedScore As Single
-        Dim sngTemp As Single
-        Dim A As Integer
-        Dim B As Integer
-        Dim C As Integer
-        Dim D As Integer
-        Dim E As Integer
-        Dim F As Integer
-        Dim Value As Single
-        Dim BaseOilScore() As Single
+    Public Class clsOilPossibilities
+        Public Class clsPossibility
+            Public Nodes() As clsPassageNode
+            Public Score As Double
+            Public PlayerOilScoreAddition() As Double
+        End Class
+        Public BestPossibility As clsPossibility
 
-        ReDim PlayerOilScoreAddition(GenerateLayoutArgs.PlayerCount - 1)
-        ReDim BaseOilScore(GenerateLayoutArgs.PlayerCount - 1)
+        Public Sub NewPossibility(ByVal Possibility As clsPossibility)
 
-        OilDistScore = 0.0F
-        OilStraightDistScore = 0.0F
-        For B = 0 To GenerateLayoutArgs.PlayerCount - 1
-            PlayerOilScoreAddition(B) = 0.0F
+            If BestPossibility Is Nothing Then
+                BestPossibility = Possibility
+            ElseIf Possibility.Score < BestPossibility.Score Then
+                BestPossibility = Possibility
+            End If
+        End Sub
+    End Class
+
+    Private Sub OilValueCalc(ByRef Args As sOilBalanceLoopArgs)
+        Dim OilDistScore As Double
+        Dim OilStraightDistScore As Double
+        Dim LowestScore As Double
+        Dim HighestScore As Double
+        'Dim TotalOilScore As Double
+        Dim UnbalancedScore As Double
+        Dim dblTemp As Double
+        Dim Value As Double
+        Dim NewPossibility As New clsGeneratorMap.clsOilPossibilities.clsPossibility
+        Dim BaseOilScore(Args.GenerateLayoutArgs.PlayerCount - 1) As Double
+
+        ReDim NewPossibility.PlayerOilScoreAddition(Args.GenerateLayoutArgs.PlayerCount - 1)
+
+        Dim NewOilNum As Integer
+        Dim OtherOilNum As Integer
+        Dim NewOilNodeNum As Integer
+        Dim OtherOilNodeNum As Integer
+        Dim SymmetryBlockNum As Integer
+        Dim MapNodeNum As Integer
+        Dim PlayerNum As Integer
+        'Dim NewOilCount As Integer
+        Dim OilMassMultiplier As Double
+
+        OilDistScore = 0.0#
+        OilStraightDistScore = 0.0#
+        For PlayerNum = 0 To Args.GenerateLayoutArgs.PlayerCount - 1
+            NewPossibility.PlayerOilScoreAddition(PlayerNum) = 0.0#
         Next
-        For E = 0 To GenerateLayoutArgs.OilAtATime - 1
-            A = OilNodes(E).Num
+        For NewOilNum = 0 To Args.GenerateLayoutArgs.OilAtATime - 1
+            NewOilNodeNum = Args.OilNodes(NewOilNum).Num
             'other oil to be placed in the first area
-            For F = A + 1 To GenerateLayoutArgs.OilAtATime - 1
-                B = OilNodes(F).Num
-                OilDistScore += OilClusterSizes(E) * 384.0F * OilClusterSizes(F) / Math.Max(384.0F, PassageNodeDists(0, A, 0, B))
-                OilStraightDistScore += OilClusterSizes(E) * 384.0F * OilClusterSizes(F) / Math.Max(384.0F, GetDist(PassageNodes(0, A).Pos, PassageNodes(0, B).Pos))
+            For OtherOilNum = NewOilNum + 1 To Args.GenerateLayoutArgs.OilAtATime - 1
+                OtherOilNodeNum = Args.OilNodes(OtherOilNum).Num
+                OilMassMultiplier = Args.OilClusterSizes(NewOilNum) * Args.OilClusterSizes(OtherOilNum)
+                OilDistScore += OilMassMultiplier / PassageNodeDists(0, NewOilNodeNum, 0, OtherOilNodeNum)
+                OilStraightDistScore += OilMassMultiplier / GetDist_XY_int(PassageNodes(0, NewOilNodeNum).Pos, PassageNodes(0, OtherOilNodeNum).Pos)
             Next
             'other oil to be placed in symmetrical areas
-            For F = 0 To GenerateLayoutArgs.OilAtATime - 1
-                B = OilNodes(F).Num
-                For C = 1 To GenerateLayoutArgs.SymmetryBlockCount - 1
-                    OilDistScore += OilClusterSizes(E) * 384.0F * OilClusterSizes(F) / Math.Max(384.0F, PassageNodeDists(0, A, C, B))
-                    OilStraightDistScore += OilClusterSizes(E) * 384.0F * OilClusterSizes(F) / Math.Max(384.0F, GetDist(PassageNodes(0, A).Pos, PassageNodes(C, B).Pos))
+            For OtherOilNum = 0 To Args.GenerateLayoutArgs.OilAtATime - 1
+                OtherOilNodeNum = Args.OilNodes(OtherOilNum).Num
+                OilMassMultiplier = Args.OilClusterSizes(NewOilNum) * Args.OilClusterSizes(OtherOilNum)
+                For SymmetryBlockNum = 1 To Args.GenerateLayoutArgs.SymmetryBlockCount - 1
+                    OilDistScore += OilMassMultiplier / PassageNodeDists(0, NewOilNodeNum, SymmetryBlockNum, OtherOilNodeNum)
+                    OilStraightDistScore += OilMassMultiplier / GetDist_XY_int(PassageNodes(0, NewOilNodeNum).Pos, PassageNodes(SymmetryBlockNum, OtherOilNodeNum).Pos)
                 Next
             Next
             'oil on the map
-            For B = 0 To PassageNodeCount - 1
-                For C = 0 To GenerateLayoutArgs.SymmetryBlockCount - 1
-                    If PassageNodes(C, B).OilCount > 0 Then
-                        OilDistScore += OilClusterSizes(E) * 384.0F * PassageNodes(C, B).OilCount / Math.Max(384.0F, PassageNodeDists(0, A, C, B))
-                        OilStraightDistScore += OilClusterSizes(E) * 384.0F * PassageNodes(C, B).OilCount / Math.Max(384.0F, GetDist(PassageNodes(0, A).Pos, PassageNodes(C, B).Pos))
+            For MapNodeNum = 0 To PassageNodeCount - 1
+                For SymmetryBlockNum = 0 To Args.GenerateLayoutArgs.SymmetryBlockCount - 1
+                    If PassageNodes(SymmetryBlockNum, MapNodeNum).OilCount > 0 Then
+                        OilMassMultiplier = Args.OilClusterSizes(NewOilNum) * PassageNodes(SymmetryBlockNum, MapNodeNum).OilCount
+                        OilDistScore += OilMassMultiplier / PassageNodeDists(0, NewOilNodeNum, SymmetryBlockNum, MapNodeNum)
+                        OilStraightDistScore += OilMassMultiplier / GetDist_XY_int(PassageNodes(0, NewOilNodeNum).Pos, PassageNodes(SymmetryBlockNum, MapNodeNum).Pos)
                     End If
                 Next
             Next
             'extra oil score for players
-            For B = 0 To GenerateLayoutArgs.PlayerCount - 1
-                BaseOilScore(B) = 0.0F
-                For C = 0 To GenerateLayoutArgs.SymmetryBlockCount - 1
-                    BaseOilScore(B) += Math.Max(384.0F, PassageNodeDists(0, BasePassageNodes(B).Num, C, A)) * 2.0F + GetDist(BasePassageNodes(B).Pos, PassageNodes(C, A).Pos)
+            For PlayerNum = 0 To Args.GenerateLayoutArgs.PlayerCount - 1
+                BaseOilScore(PlayerNum) = 0.0#
+                For SymmetryBlockNum = 0 To Args.GenerateLayoutArgs.SymmetryBlockCount - 1
+                    dblTemp = PassageNodeDists(0, BasePassageNodes(PlayerNum).Num, SymmetryBlockNum, NewOilNodeNum) * 2.0# + GetDist_XY_int(BasePassageNodes(PlayerNum).Pos, PassageNodes(SymmetryBlockNum, NewOilNodeNum).Pos)
+                    BaseOilScore(PlayerNum) += 100.0# / dblTemp
                 Next
             Next
-            For B = 0 To GenerateLayoutArgs.PlayerCount - 1
-                For D = 0 To GenerateLayoutArgs.SymmetryBlockCount - 1
-                    EnemiesOilScore = 0.0F
-                    For C = 0 To GenerateLayoutArgs.PlayerCount - 1
-                        If C <> B Then
-                            EnemiesOilScore += BaseOilScore(C)
-                        End If
-                    Next
-                    PlayerOilScoreAddition(B) += OilClusterSizes(E) * EnemiesOilScore / (BaseOilScore(B) * BaseOilScore(B) * _PlayerCount)
-                Next
+            'TotalOilScore = 0.0#
+            'For PlayerNum = 0 To Args.GenerateLayoutArgs.PlayerCount - 1
+            '    TotalOilScore += BaseOilScore(PlayerNum)
+            'Next
+            For PlayerNum = 0 To Args.GenerateLayoutArgs.PlayerCount - 1
+                NewPossibility.PlayerOilScoreAddition(PlayerNum) += Args.OilClusterSizes(NewOilNum) * BaseOilScore(PlayerNum)
             Next
         Next
 
-        LowestScore = Single.MaxValue
-        HighestScore = Single.MinValue
-        For B = 0 To GenerateLayoutArgs.PlayerCount - 1
-            sngTemp = PlayerOilScore(B) + PlayerOilScoreAddition(B)
-            If sngTemp < LowestScore Then
-                LowestScore = sngTemp
+        LowestScore = Double.MaxValue
+        HighestScore = Double.MinValue
+        For PlayerNum = 0 To Args.GenerateLayoutArgs.PlayerCount - 1
+            dblTemp = Args.PlayerOilScore(PlayerNum) + NewPossibility.PlayerOilScoreAddition(PlayerNum)
+            If dblTemp < LowestScore Then
+                LowestScore = dblTemp
             End If
-            If sngTemp > HighestScore Then
-                HighestScore = sngTemp
+            If dblTemp > HighestScore Then
+                HighestScore = dblTemp
             End If
         Next
         UnbalancedScore = HighestScore - LowestScore
 
-        C = 0
-        For B = 0 To GenerateLayoutArgs.OilAtATime - 1
-            C += OilClusterSizes(B)
-        Next
+        'NewOilCount = 0
+        'For NewOilNum = 0 To Args.GenerateLayoutArgs.OilAtATime - 1
+        '    NewOilCount += Args.OilClusterSizes(NewOilNum)
+        'Next
         'divide all dists by the number of oil resources placed. does not include other symmetries, since they were never added in, and are exactly the same.
-        Value = GenerateLayoutArgs.OilDispersion * (OilDistScore * 3.0F + OilStraightDistScore) / C + UnbalancedScore * 20000.0#
-        'If Value < BestValue Then
-        '    BestValue = Value
-        '    For B = 0 To GenerateLayoutArgs.OilAtATime - 1
-        '        BestNodes(B) = OilNodes(B)
-        '    Next
-        '    For B = 0 To GenerateLayoutArgs.PlayerCount - 1
-        '        BestPlayerScoreAddition(B) = PlayerOilScoreAddition(B)
-        '    Next
-        'End If
-        BestNodeScores(BestNodeCount) = Value
-        For B = 0 To GenerateLayoutArgs.OilAtATime - 1
-            BestNodes(BestNodeCount, B) = OilNodes(B)
+        Value = Args.GenerateLayoutArgs.OilDispersion * (OilDistScore * 3.0# + OilStraightDistScore) + UnbalancedScore
+        NewPossibility.Score = Value
+        ReDim NewPossibility.Nodes(Args.GenerateLayoutArgs.OilAtATime - 1)
+        For NewOilNum = 0 To Args.GenerateLayoutArgs.OilAtATime - 1
+            NewPossibility.Nodes(NewOilNum) = Args.OilNodes(NewOilNum)
         Next
-        BestNodeCount += 1
+        Args.OilPossibilities.NewPossibility(NewPossibility)
     End Sub
 
-    Private Sub SetBaseLevel(ByVal Node As PathfinderNode, ByVal NewLevel As Integer, ByRef BaseLevel() As Single)
+    Private Structure sBaseNodeLevels
+        Public NodeLevels() As Single
+    End Structure
+
+    Private Sub SetBaseLevel(ByVal Node As PathfinderNode, ByVal NewLevel As Integer, ByRef BaseLevel As sBaseNodeLevels)
 
         If Node.GetChildNodeCount = 0 Then
             Dim A As Integer
             Dim Height As Single
             Dim Lowest As Single = NewLevel
             For A = 0 To Node.GetConnectionCount - 1
-                Height = BaseLevel(Node.GetConnection(A).GetOtherNode(Node).GetLayer_NodeNum)
+                Height = BaseLevel.NodeLevels(Node.GetConnection(A).GetOtherNode(Node).GetLayer_NodeNum)
                 If Height < Lowest Then
                     Lowest = Height
                 End If
             Next
             If NewLevel - Lowest > 1.0F Then
-                BaseLevel(Node.GetLayer_NodeNum) = Lowest + 1.0F
+                BaseLevel.NodeLevels(Node.GetLayer_NodeNum) = Lowest + 1.0F
             Else
-                BaseLevel(Node.GetLayer_NodeNum) = NewLevel
+                BaseLevel.NodeLevels(Node.GetLayer_NodeNum) = NewLevel
             End If
         Else
             Dim A As Integer
@@ -1674,25 +1748,25 @@ PointMakingFinished:
         End If
     End Sub
 
-    Private Sub SetBaseLevelRamp(ByVal Node As PathfinderNode, ByVal Connection As clsConnection, ByRef BaseLevel() As Single, ByVal RampLength As Integer)
+    Private Sub SetBaseLevelRamp(ByVal Node As PathfinderNode, ByVal Connection As clsConnection, ByRef BaseLevel As sBaseNodeLevels, ByVal RampLength As Integer)
 
         If Node.GetChildNodeCount = 0 Then
-            Dim NodeTag As clsNodeTag = Node.Tag
+            Dim NodeTag As clsNodeTag = CType(Node.Tag, clsNodeTag)
             Dim XY_int As sXY_int = PointGetClosestPosOnLine(Connection.PassageNodeA.Pos, Connection.PassageNodeB.Pos, NodeTag.Pos)
-            Dim ConnectionLength As Single = GetDist(Connection.PassageNodeA.Pos, Connection.PassageNodeB.Pos)
+            Dim ConnectionLength As Single = CSng(GetDist_XY_int(Connection.PassageNodeA.Pos, Connection.PassageNodeB.Pos))
             Dim Extra As Single = ConnectionLength - RampLength
-            Dim ConnectionPos As Single = GetDist(XY_int, Connection.PassageNodeA.Pos)
-            Dim RampPos As Single = Clamp((ConnectionPos - Extra / 2.0F) / RampLength, 0.0F, 1.0F)
+            Dim ConnectionPos As Single = CSng(GetDist_XY_int(XY_int, Connection.PassageNodeA.Pos))
+            Dim RampPos As Single = Clamp_sng((ConnectionPos - Extra / 2.0F) / RampLength, 0.0F, 1.0F)
             Dim Layer_NodeNum As Integer = Node.GetLayer_NodeNum
-            RampPos = 1.0# - (Math.Cos(RampPos * Pi) + 1.0#) / 2.0#
+            RampPos = CSng(1.0# - (Math.Cos(RampPos * Math.PI) + 1.0#) / 2.0#)
             If RampPos > 0.0F And RampPos < 1.0F Then
-                Dim Dist2 As Single = GetDist(NodeTag.Pos, XY_int)
+                Dim Dist2 As Single = CSng(GetDist_XY_int(NodeTag.Pos, XY_int))
                 If Dist2 < 320.0F Then
                     Dim Dist2Factor As Single = 1.0F 'Math.Min(3.0F - 3.0F * Dist2 / 384.0F, 1.0F) 'distance fading
-                    If BaseLevel(Layer_NodeNum) = Int(BaseLevel(Layer_NodeNum)) Then
-                        BaseLevel(Layer_NodeNum) = BaseLevel(Layer_NodeNum) * (1.0F - Dist2Factor) + (Connection.PassageNodeA.Level * (1.0F - RampPos) + Connection.PassageNodeB.Level * RampPos) * Dist2Factor
+                    If BaseLevel.NodeLevels(Layer_NodeNum) = Int(BaseLevel.NodeLevels(Layer_NodeNum)) Then
+                        BaseLevel.NodeLevels(Layer_NodeNum) = BaseLevel.NodeLevels(Layer_NodeNum) * (1.0F - Dist2Factor) + (Connection.PassageNodeA.Level * (1.0F - RampPos) + Connection.PassageNodeB.Level * RampPos) * Dist2Factor
                     Else
-                        BaseLevel(Layer_NodeNum) = (BaseLevel(Layer_NodeNum) * (2.0F - Dist2Factor) + (Connection.PassageNodeA.Level * (1.0F - RampPos) + Connection.PassageNodeB.Level * RampPos) * Dist2Factor) / 2.0F
+                        BaseLevel.NodeLevels(Layer_NodeNum) = (BaseLevel.NodeLevels(Layer_NodeNum) * (2.0F - Dist2Factor) + (Connection.PassageNodeA.Level * (1.0F - RampPos) + Connection.PassageNodeB.Level * RampPos) * Dist2Factor) / 2.0F
                     End If
                 End If
             End If
@@ -1748,7 +1822,7 @@ PointMakingFinished:
             For B = 0 To Args.Args.SymmetryBlockCount - 1
                 If PassageNodes(B, A) IsNot Args.tmpPassageNodeA And PassageNodes(B, A) IsNot Args.tmpPassageNodeB Then
                     XY_int = PointGetClosestPosOnLine(Args.tmpPassageNodeA.Pos, Args.tmpPassageNodeB.Pos, PassageNodes(B, A).Pos)
-                    If GetDist(XY_int, PassageNodes(B, A).Pos) < Args.MinConDist Then
+                    If GetDist_XY_int(XY_int, PassageNodes(B, A).Pos) < Args.MinConDist Then
                         Return False
                     End If
                 End If
@@ -1771,7 +1845,7 @@ PointMakingFinished:
                 If Args.Args.SymmetryIsRotational Then
                     ReDim .NodeA(Args.Args.SymmetryBlockCount - 1)
                     ReDim .NodeB(Args.Args.SymmetryBlockCount - 1)
-                    ReflectionCount = Args.Args.SymmetryBlockCount / 2.0#
+                    ReflectionCount = CInt(Args.Args.SymmetryBlockCount / 2.0#)
                     For ReflectionNum = 0 To ReflectionCount - 1
                         If Args.Args.SymmetryBlocks(0).ReflectToNum(ReflectionNum) = Args.tmpPassageNodeB.MirrorNum Then
                             Exit For
@@ -1792,7 +1866,7 @@ PointMakingFinished:
                     If Args.Args.SymmetryBlockCount = 4 Then
                         ReDim .NodeA(1)
                         ReDim .NodeB(1)
-                        ReflectionCount = Args.Args.SymmetryBlockCount / 2.0#
+                        ReflectionCount = CInt(Args.Args.SymmetryBlockCount / 2.0#)
                         For ReflectionNum = 0 To ReflectionCount - 1
                             If Args.Args.SymmetryBlocks(0).ReflectToNum(ReflectionNum) = Args.tmpPassageNodeB.MirrorNum Then
                                 Exit For
@@ -1829,10 +1903,10 @@ PointMakingFinished:
         Dim X As Integer
         Dim Y As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If TerrainTiles(X, Y).Texture.TextureNum >= 0 Then
-                    If GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Or GenerateTileset.Tileset.Tiles(TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 Then
+                    If GenerateTileset.Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Or GenerateTileset.Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
                         TileNodeBlock(X, Y)
                     End If
                 End If
@@ -1842,6 +1916,7 @@ PointMakingFinished:
     End Sub
 
     Public Function GetWaterMap() As clsBooleanMap
+        Dim ReturnResult As New clsBooleanMap
         Dim BestDist As Single
         Dim BestIsWater As Boolean
         Dim Pos As sXY_int
@@ -1852,10 +1927,9 @@ PointMakingFinished:
         Dim X As Integer
         Dim Y As Integer
 
-        GetWaterMap = New clsBooleanMap
-        GetWaterMap.Blank(TerrainSize.X + 1, TerrainSize.Y + 1)
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
+        ReturnResult.Blank(Terrain.TileSize.X + 1, Terrain.TileSize.Y + 1)
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
                 BestDist = Single.MaxValue
                 Pos = New sXY_int(X * TerrainGridSpacing, Y * TerrainGridSpacing)
                 For B = 0 To ConnectionCount - 1
@@ -1864,10 +1938,10 @@ PointMakingFinished:
                         'only do this if the waters are the same
                         'this is to make sure nodes that are connected are actually connected as water
                         XY_int = PointGetClosestPosOnLine(Connections(B).PassageNodeA.Pos, Connections(B).PassageNodeB.Pos, Pos)
-                        Dist = GetDist(XY_int, Pos)
+                        Dist = CSng(GetDist_XY_int(XY_int, Pos))
                         If Dist < BestDist Then
                             BestDist = Dist
-                            If GetDist(Pos, Connections(B).PassageNodeA.Pos) <= GetDist(Pos, Connections(B).PassageNodeB.Pos) Then
+                            If GetDist_XY_int(Pos, Connections(B).PassageNodeA.Pos) <= GetDist_XY_int(Pos, Connections(B).PassageNodeB.Pos) Then
                                 BestIsWater = Connections(B).PassageNodeA.IsWater
                             Else
                                 BestIsWater = Connections(B).PassageNodeB.IsWater
@@ -1877,16 +1951,17 @@ PointMakingFinished:
                 Next
                 For C = 0 To PassageNodeCount - 1
                     For B = 0 To _SymmetryBlockCount - 1
-                        Dist = GetDist(Pos, PassageNodes(B, C).Pos)
+                        Dist = CSng(GetDist_XY_int(Pos, PassageNodes(B, C).Pos))
                         If Dist < BestDist Then
                             BestDist = Dist
                             BestIsWater = PassageNodes(B, C).IsWater
                         End If
                     Next
                 Next
-                GetWaterMap.ValueData.Value(Y, X) = BestIsWater
+                ReturnResult.ValueData.Value(Y, X) = BestIsWater
             Next
         Next
+        Return ReturnResult
     End Function
 
     Public Function GetNearestNode(ByVal Network As PathfinderNetwork, ByVal Pos As sXY_int, ByVal MinClearance As Integer) As PathfinderNode
@@ -1902,8 +1977,8 @@ PointMakingFinished:
         For A = 0 To Network.GetNodeLayer(0).GetNodeCount - 1
             tmpNode = Network.GetNodeLayer(0).GetNode(A)
             If tmpNode.GetClearance >= MinClearance Then
-                tmpNodeTag = tmpNode.Tag
-                Dist = GetDist(tmpNodeTag.Pos, Pos)
+                tmpNodeTag = CType(tmpNode.Tag, clsNodeTag)
+                Dist = GetDist_XY_int(tmpNodeTag.Pos, Pos)
                 If Dist < BestDist Then
                     BestDist = Dist
                     BestNode = tmpNode
@@ -1926,24 +2001,24 @@ PointMakingFinished:
 
         PosNode = GetNearestNode(TilePathMap, Pos, Clearance)
         If PosNode IsNot Nothing Then
-            NodeTag = PosNode.Tag
-            If GetDist(Pos, NodeTag.Pos) <= MaxDistFromPos Then
+            NodeTag = CType(PosNode.Tag, clsNodeTag)
+            If GetDist_XY_int(Pos, NodeTag.Pos) <= MaxDistFromPos Then
 
                 Dim NewUnit As New clsMap.clsUnit
                 NewUnit.Type = Type
                 NewUnit.UnitGroup = UnitGroups(PlayerNum)
 
-                FinalTilePos.X = Int(NodeTag.Pos.X / TerrainGridSpacing)
-                FinalTilePos.Y = Int(NodeTag.Pos.Y / TerrainGridSpacing)
+                FinalTilePos.X = CInt(Int(NodeTag.Pos.X / TerrainGridSpacing))
+                FinalTilePos.Y = CInt(Int(NodeTag.Pos.Y / TerrainGridSpacing))
                 Footprint = Type.GetFootprint
                 Math.DivRem(Footprint.X, 2, Remainder)
                 If Remainder > 0 Then
                     NewUnit.Pos.Horizontal.X = NodeTag.Pos.X
                 Else
                     If Rnd() >= 0.5F Then
-                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X - TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X - CInt(TerrainGridSpacing / 2.0#)
                     Else
-                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X + TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.X = NodeTag.Pos.X + CInt(TerrainGridSpacing / 2.0#)
                     End If
                 End If
                 Math.DivRem(Footprint.Y, 2, Remainder)
@@ -1951,22 +2026,22 @@ PointMakingFinished:
                     NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y
                 Else
                     If Rnd() >= 0.5F Then
-                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y - TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y - CInt(TerrainGridSpacing / 2.0#)
                     Else
-                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y + TerrainGridSpacing / 2.0#
+                        NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y + CInt(TerrainGridSpacing / 2.0#)
                     End If
                 End If
-                NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
-                TilePosA.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#)
-                TilePosA.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#)
-                TilePosB.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#)
-                TilePosB.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#)
+                'NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
+                TilePosA.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#))
+                TilePosA.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#))
+                TilePosB.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#))
+                TilePosB.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#))
                 NewUnit.Rotation = Rotation
 
                 Unit_Add(NewUnit)
 
-                For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, TerrainSize.Y - 1)
-                    For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, TerrainSize.X - 1)
+                For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, Terrain.TileSize.Y - 1)
+                    For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, Terrain.TileSize.X - 1)
                         TileNodeBlock(X2, Y2)
                     Next
                 Next
@@ -1994,22 +2069,22 @@ PointMakingFinished:
         NewUnit.Type = Type
         NewUnit.UnitGroup = UnitGroups(PlayerNum)
 
-        FinalTilePos.X = Int(Pos.Horizontal.X / TerrainGridSpacing)
-        FinalTilePos.Y = Int(Pos.Horizontal.Y / TerrainGridSpacing)
+        FinalTilePos.X = CInt(Int(Pos.Horizontal.X / TerrainGridSpacing))
+        FinalTilePos.Y = CInt(Int(Pos.Horizontal.Y / TerrainGridSpacing))
 
         Footprint = Type.GetFootprint
 
         NewUnit.Pos = Pos
-        TilePosA.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#)
-        TilePosA.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#)
-        TilePosB.X = Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#)
-        TilePosB.Y = Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#)
+        TilePosA.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#))
+        TilePosA.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#))
+        TilePosB.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#))
+        TilePosB.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#))
         NewUnit.Rotation = Rotation
 
         Unit_Add(NewUnit)
 
-        For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, TerrainSize.Y - 1)
-            For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, TerrainSize.X - 1)
+        For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, Terrain.TileSize.Y - 1)
+            For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, Terrain.TileSize.X - 1)
                 TileNodeBlock(X2, Y2)
             Next
         Next
@@ -2023,8 +2098,8 @@ PointMakingFinished:
         Dim X2 As Integer
         Dim Y2 As Integer
 
-        For Y2 = Math.Max(Y - 6, 0) To Math.Min(Y + 6, TerrainSize.Y - 1)
-            For X2 = Math.Max(X - 6, 0) To Math.Min(X + 6, TerrainSize.X - 1)
+        For Y2 = Math.Max(Y - 6, 0) To Math.Min(Y + 6, Terrain.TileSize.Y - 1)
+            For X2 = Math.Max(X - 6, 0) To Math.Min(X + 6, Terrain.TileSize.X - 1)
                 GenerateTerrainTiles(X2, Y2).Node.ClearanceSet(Math.Min(GenerateTerrainTiles(X2, Y2).Node.GetClearance, Math.Max(Math.Abs(Y2 - Y), Math.Abs(X2 - X))))
             Next
         Next
@@ -2063,6 +2138,29 @@ PointMakingFinished:
         End If
     End Sub
 
+    Public Sub BlockEdgeTiles()
+        Dim X As Integer
+        Dim Y As Integer
+
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To 2
+                TileNodeBlock(X, Y)
+            Next
+            For X = Terrain.TileSize.X - 4 To Terrain.TileSize.X - 1
+                TileNodeBlock(X, Y)
+            Next
+        Next
+        For X = 3 To Terrain.TileSize.X - 5
+            For Y = 0 To 2
+                TileNodeBlock(X, Y)
+            Next
+            For Y = Terrain.TileSize.Y - 4 To Terrain.TileSize.Y - 1
+                TileNodeBlock(X, Y)
+            Next
+        Next
+        TilePathMap.FindCalc()
+    End Sub
+
     Public Structure sGenerateUnitsArgs
         Public FeatureClusterChance As Single
         Public FeatureClusterMinUnits As Integer
@@ -2072,90 +2170,72 @@ PointMakingFinished:
     End Structure
 
     Public Function GenerateUnits(ByRef Args As sGenerateUnitsArgs) As sResult
-        GenerateUnits.Success = False
-        GenerateUnits.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim A As Integer
         Dim B As Integer
         Dim C As Integer
         Dim D As Integer
-        Dim X As Integer
-        Dim Y As Integer
         Dim tmpUnit As clsMap.clsUnit
         Dim Count As Integer
         Dim FeaturePlaceRange As Integer = 6 * 128
         Dim BasePlaceRange As Integer = 16 * 128
         Dim TilePos As sXY_int
         Dim AverageHeight As Byte
-
-        'block edge tiles
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To 2
-                TileNodeBlock(X, Y)
-            Next
-            For X = TerrainSize.X - 4 To TerrainSize.X - 1
-                TileNodeBlock(X, Y)
-            Next
-        Next
-        For X = 3 To TerrainSize.X - 5
-            For Y = 0 To 2
-                TileNodeBlock(X, Y)
-            Next
-            For Y = TerrainSize.Y - 4 To TerrainSize.Y - 1
-                TileNodeBlock(X, Y)
-            Next
-        Next
-        TilePathMap.FindCalc()
+        Dim PlayerNum As Byte
 
         For A = 0 To _PlayerCount - 1
-            If PlaceUnitNear(UnitType_CommandCentre, BasePassageNodes(A).Pos, A, 3, 0, BasePlaceRange) Is Nothing Then
-                GenerateUnits.Problem = "No room for base structures"
-                Exit Function
+            PlayerNum = CByte(A)
+            If PlaceUnitNear(UnitType_CommandCentre, BasePassageNodes(A).Pos, PlayerNum, 3, 0, BasePlaceRange) Is Nothing Then
+                ReturnResult.Problem = "No room for base structures"
+                Return ReturnResult
             End If
-            tmpUnit = PlaceUnitNear(UnitType_PowerGenerator, BasePassageNodes(A).Pos, A, 3, 0, BasePlaceRange)
+            tmpUnit = PlaceUnitNear(UnitType_PowerGenerator, BasePassageNodes(A).Pos, PlayerNum, 3, 0, BasePlaceRange)
             If tmpUnit Is Nothing Then
-                GenerateUnits.Problem = "No room for base structures."
-                Exit Function
+                ReturnResult.Problem = "No room for base structures."
+                Return ReturnResult
             End If
-            tmpUnit = PlaceUnit(UnitType_PowerModule, tmpUnit.Pos, A, 0)
+            tmpUnit = PlaceUnit(UnitType_PowerModule, tmpUnit.Pos, PlayerNum, 0)
             If tmpUnit Is Nothing Then
-                GenerateUnits.Problem = "No room for placing module."
-                Exit Function
+                ReturnResult.Problem = "No room for placing module."
+                Return ReturnResult
             End If
             For B = 1 To 2
-                tmpUnit = PlaceUnitNear(UnitType_ResearchFacility, BasePassageNodes(A).Pos, A, 3, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_ResearchFacility, BasePassageNodes(A).Pos, PlayerNum, 3, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
-                    GenerateUnits.Problem = "No room for base structures"
-                    Exit Function
+                    ReturnResult.Problem = "No room for base structures"
+                    Return ReturnResult
                 End If
-                tmpUnit = PlaceUnit(UnitType_ResearchModule, tmpUnit.Pos, A, 0)
+                tmpUnit = PlaceUnit(UnitType_ResearchModule, tmpUnit.Pos, PlayerNum, 0)
                 If tmpUnit Is Nothing Then
-                    GenerateUnits.Problem = "No room for module."
-                    Exit Function
+                    ReturnResult.Problem = "No room for module."
+                    Return ReturnResult
                 End If
             Next
             For B = 1 To 2
-                tmpUnit = PlaceUnitNear(UnitType_Factory, BasePassageNodes(A).Pos, A, 4, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_Factory, BasePassageNodes(A).Pos, PlayerNum, 4, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
-                    GenerateUnits.Problem = "No room for base structures"
-                    Exit Function
+                    ReturnResult.Problem = "No room for base structures"
+                    Return ReturnResult
                 End If
-                tmpUnit = PlaceUnit(UnitType_FactoryModule, tmpUnit.Pos, A, 0)
+                tmpUnit = PlaceUnit(UnitType_FactoryModule, tmpUnit.Pos, PlayerNum, 0)
                 If tmpUnit Is Nothing Then
-                    GenerateUnits.Problem = "No room for module."
-                    Exit Function
+                    ReturnResult.Problem = "No room for module."
+                    Return ReturnResult
                 End If
             Next
-            tmpUnit = PlaceUnitNear(UnitType_CyborgFactory, BasePassageNodes(A).Pos, A, 3, 0, BasePlaceRange)
+            tmpUnit = PlaceUnitNear(UnitType_CyborgFactory, BasePassageNodes(A).Pos, PlayerNum, 3, 0, BasePlaceRange)
             If tmpUnit Is Nothing Then
-                GenerateUnits.Problem = "No room for base structures"
-                Exit Function
+                ReturnResult.Problem = "No room for base structures"
+                Return ReturnResult
             End If
             For B = 1 To Args.TruckCount
-                tmpUnit = PlaceUnitNear(UnitType_Truck, BasePassageNodes(A).Pos, A, 2, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_Truck, BasePassageNodes(A).Pos, PlayerNum, 2, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
-                    GenerateUnits.Problem = "No room for trucks"
-                    Exit Function
+                    ReturnResult.Problem = "No room for trucks"
+                    Return ReturnResult
                 End If
             Next
         Next
@@ -2173,24 +2253,24 @@ PointMakingFinished:
                         tmpUnit = PlaceUnitNear(UnitType_OilResource, PassageNodes(D, A).Pos, 0, 2, 0, FeaturePlaceRange)
                     End If
                     If tmpUnit Is Nothing Then
-                        GenerateUnits.Problem = "No room for base oil."
-                        Exit Function
+                        ReturnResult.Problem = "No room for base oil."
+                        Return ReturnResult
                     End If
                     'flatten ground underneath
-                    TilePos.X = Int(tmpUnit.Pos.Horizontal.X / TerrainGridSpacing)
-                    TilePos.Y = Int(tmpUnit.Pos.Horizontal.Y / TerrainGridSpacing)
-                    AverageHeight = CByte((CInt(TerrainVertex(TilePos.X, TilePos.Y).Height) + CInt(TerrainVertex(TilePos.X + 1, TilePos.Y).Height) + CInt(TerrainVertex(TilePos.X, TilePos.Y + 1).Height) + CInt(TerrainVertex(TilePos.X + 1, TilePos.Y + 1).Height)) / 4.0#)
-                    TerrainVertex(TilePos.X, TilePos.Y).Height = AverageHeight
-                    TerrainVertex(TilePos.X + 1, TilePos.Y).Height = AverageHeight
-                    TerrainVertex(TilePos.X, TilePos.Y + 1).Height = AverageHeight
-                    TerrainVertex(TilePos.X + 1, TilePos.Y + 1).Height = AverageHeight
-                    tmpUnit.Pos.Altitude = AverageHeight * HeightMultiplier
+                    TilePos.X = CInt(Int(tmpUnit.Pos.Horizontal.X / TerrainGridSpacing))
+                    TilePos.Y = CInt(Int(tmpUnit.Pos.Horizontal.Y / TerrainGridSpacing))
+                    AverageHeight = CByte((CInt(Terrain.Vertices(TilePos.X, TilePos.Y).Height) + CInt(Terrain.Vertices(TilePos.X + 1, TilePos.Y).Height) + CInt(Terrain.Vertices(TilePos.X, TilePos.Y + 1).Height) + CInt(Terrain.Vertices(TilePos.X + 1, TilePos.Y + 1).Height)) / 4.0#)
+                    Terrain.Vertices(TilePos.X, TilePos.Y).Height = AverageHeight
+                    Terrain.Vertices(TilePos.X + 1, TilePos.Y).Height = AverageHeight
+                    Terrain.Vertices(TilePos.X, TilePos.Y + 1).Height = AverageHeight
+                    Terrain.Vertices(TilePos.X + 1, TilePos.Y + 1).Height = AverageHeight
+                    'tmpUnit.Pos.Altitude = AverageHeight * HeightMultiplier
                     If C < _PlayerCount Then
                         'place base derrick
-                        tmpUnit = PlaceUnit(UnitType_Derrick, tmpUnit.Pos, C, 0)
+                        tmpUnit = PlaceUnit(UnitType_Derrick, tmpUnit.Pos, CByte(C), 0)
                         If tmpUnit Is Nothing Then
-                            GenerateUnits.Problem = "No room for derrick."
-                            Exit Function
+                            ReturnResult.Problem = "No room for derrick."
+                            Return ReturnResult
                         End If
                     End If
                 Next
@@ -2221,9 +2301,9 @@ PointMakingFinished:
             For A = 0 To PassageNodeCount - 1
                 For D = 0 To _SymmetryBlockCount - 1
                     If PassageNodes(D, A).HasFeatureCluster Then
-                        Count = Args.FeatureClusterMinUnits + Int(Rnd() * (Args.FeatureClusterMaxUnits - Args.FeatureClusterMinUnits + 1))
+                        Count = Args.FeatureClusterMinUnits + CInt(Int(Rnd() * (Args.FeatureClusterMaxUnits - Args.FeatureClusterMinUnits + 1)))
                         For B = 1 To Count
-                            RandNum = Int(CDbl(Rnd()) * GenerateTileset.ClusteredUnitChanceTotal)
+                            RandNum = CUInt(Int(Rnd() * CDbl(GenerateTileset.ClusteredUnitChanceTotal)))
                             uintTemp = 0
                             For C = 0 To GenerateTileset.ClusteredUnitCount - 1
                                 uintTemp += GenerateTileset.ClusteredUnits(C).Chance
@@ -2235,8 +2315,8 @@ PointMakingFinished:
                             E = CInt(Math.Ceiling(Math.Max(Footprint.X, Footprint.Y) / 2.0F)) + 1
                             tmpUnit = PlaceUnitNear(GenerateTileset.ClusteredUnits(C).Type, PassageNodes(D, A).Pos, 0, E, 0, FeaturePlaceRange)
                             If tmpUnit Is Nothing Then
-                                GenerateUnits.Problem = "Not enough space for a clustered unit"
-                                Exit Function
+                                ReturnResult.Problem = "Not enough space for a clustered unit"
+                                Return ReturnResult
                             End If
                         Next
                     End If
@@ -2245,13 +2325,13 @@ PointMakingFinished:
         End If
 
         If TilePathMap.GetNodeLayer(TilePathMap.GetNodeLayerCount - 1).GetNodeCount <> 1 Then
-            GenerateUnits.Problem = "Error: bad node count on top layer!"
-            Exit Function
+            ReturnResult.Problem = "Error: bad node count on top layer!"
+            Return ReturnResult
         End If
 
         If GenerateTileset.ScatteredUnitChanceTotal > 0 Then
             For A = 1 To Args.FeatureScatterCount
-                RandNum = Int(CDbl(Rnd()) * GenerateTileset.ScatteredUnitChanceTotal)
+                RandNum = CUInt(Int(Rnd() * CDbl(GenerateTileset.ScatteredUnitChanceTotal)))
                 uintTemp = 0
                 For C = 0 To GenerateTileset.ScatteredUnitCount - 1
                     uintTemp += GenerateTileset.ScatteredUnits(C).Chance
@@ -2263,19 +2343,20 @@ PointMakingFinished:
                 B = 2 + CInt(Math.Ceiling(Math.Max(Footprint.X, Footprint.Y) / 2.0F))
                 tmpNode = GetRandomChildNode(TilePathMap.GetNodeLayer(TilePathMap.GetNodeLayerCount - 1).GetNode(0), B + 2)
                 If tmpNode Is Nothing Then
-                    GenerateUnits.Problem = "Not enough space for a scattered unit"
-                    Exit Function
+                    ReturnResult.Problem = "Not enough space for a scattered unit"
+                    Return ReturnResult
                 Else
-                    Dim NodeTag As clsNodeTag = tmpNode.Tag
+                    Dim NodeTag As clsNodeTag = CType(tmpNode.Tag, clsNodeTag)
                     If PlaceUnitNear(GenerateTileset.ScatteredUnits(C).Type, NodeTag.Pos, 0, B, 0, FeaturePlaceRange) Is Nothing Then
-                        GenerateUnits.Problem = "Not enough space for a scattered unit"
-                        Exit Function
+                        ReturnResult.Problem = "Not enough space for a scattered unit"
+                        Return ReturnResult
                     End If
                 End If
             Next
         End If
 
-        GenerateUnits.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
     Public Function GetRandomChildNode(ByVal InputNode As PathfinderNode, ByVal MinClearance As Integer) As PathfinderNode
@@ -2289,9 +2370,11 @@ PointMakingFinished:
         Else
             Dim A As Integer
             Do
-                A = Int(Rnd() * InputNode.GetChildNodeCount)
+                A = CInt(Int(Rnd() * InputNode.GetChildNodeCount))
             Loop While InputNode.GetChildNode(A).GetClearance < MinClearance
-            Return GetRandomChildNode(InputNode.GetChildNode(A), MinClearance)
+
+            Dim ReturnResult As PathfinderNode = GetRandomChildNode(InputNode.GetChildNode(A), MinClearance)
+            Return ReturnResult
         End If
     End Function
 
@@ -2307,21 +2390,21 @@ PointMakingFinished:
     End Structure
 
     Public Function GenerateGateways(ByRef Args As sGenerateGatewaysArgs) As sResult
-        GenerateGateways.Success = False
-        GenerateGateways.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         'must be done before units otherwise the units will be treated as gateway obstacles
 
         Dim X As Integer
         Dim SpaceCount As Integer
         Dim Y As Integer
-        Dim PossibleGateways(TerrainSize.Y * TerrainSize.X * 2 - 1) As sPossibleGateway
+        Dim PossibleGateways(Terrain.TileSize.X * Terrain.TileSize.Y * 2 - 1) As sPossibleGateway
         Dim PossibleGatewayCount As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
             SpaceCount = 0
-            X = 0
-            Do While X < TerrainSize.X
+            For X = 0 To Terrain.TileSize.X - 1
                 If GenerateTerrainTiles(X, Y).Node.GetClearance < 1 Then
 
                 ElseIf GenerateTerrainTiles(X, Y).Node.GetClearance = 1 Then
@@ -2338,13 +2421,12 @@ PointMakingFinished:
                 Else
                     SpaceCount += 1
                 End If
-                X += 1
-            Loop
+            Next
         Next
-        For X = 0 To TerrainSize.X - 1
+        For X = 0 To Terrain.TileSize.X - 1
             SpaceCount = 0
             Y = 0
-            Do While Y < TerrainSize.Y
+            Do While Y < Terrain.TileSize.Y
                 If GenerateTerrainTiles(X, Y).Node.GetClearance < 1 Then
 
                 ElseIf GenerateTerrainTiles(X, Y).Node.GetClearance = 1 Then
@@ -2371,7 +2453,7 @@ PointMakingFinished:
         Dim Value As Single
         Dim BestValue As Single
         Dim BestNum As Integer
-        Dim TileIsGateway(TerrainSize.X - 1, TerrainSize.Y - 1) As Boolean
+        Dim TileIsGateway(Terrain.TileSize.X - 1, Terrain.TileSize.Y - 1) As Boolean
         Dim Valid As Boolean
         Dim InvalidPos As sXY_int
         Dim InvalidDist As Double
@@ -2425,7 +2507,7 @@ PointMakingFinished:
                     Next
                 End If
                 If Valid Then
-                    If GetDist(InvalidPos, PossibleGateways(A).MiddlePos) < InvalidDist Then
+                    If GetDist_XY_int(InvalidPos, PossibleGateways(A).MiddlePos) < InvalidDist Then
                         Valid = False
                     End If
                 End If
@@ -2440,7 +2522,8 @@ PointMakingFinished:
             Loop
         Loop
 
-        GenerateGateways.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
     Private Function MakePassageNodes(ByVal Pos As sXY_int, ByVal IsOnBorder As Boolean, ByRef Args As sGenerateLayoutArgs) As Boolean
@@ -2459,11 +2542,11 @@ PointMakingFinished:
         RatioPos.Y = Pos.Y / SymmetrySize.Y
 
         For A = 0 To Args.SymmetryBlockCount - 1
-            RotatedPos = GetTileRotatedPos(Args.SymmetryBlocks(A).Orientation, RatioPos)
-            Positions(A).X = (Args.SymmetryBlocks(A).XYNum.X + RotatedPos.X) * SymmetrySize.X
-            Positions(A).Y = (Args.SymmetryBlocks(A).XYNum.Y + RotatedPos.Y) * SymmetrySize.Y
+            RotatedPos = GetTileRotatedPos_dbl(Args.SymmetryBlocks(A).Orientation, RatioPos)
+            Positions(A).X = CInt((Args.SymmetryBlocks(A).XYNum.X + RotatedPos.X) * SymmetrySize.X)
+            Positions(A).Y = CInt((Args.SymmetryBlocks(A).XYNum.Y + RotatedPos.Y) * SymmetrySize.Y)
             For B = 0 To A - 1
-                If GetDist(Positions(A), Positions(B)) < Args.NodeScale * TerrainGridSpacing * 2.0F Then
+                If GetDist_XY_int(Positions(A), Positions(B)) < Args.NodeScale * TerrainGridSpacing * 2.0F Then
                     Return False
                 End If
             Next
@@ -2511,16 +2594,16 @@ PointMakingFinished:
     '    Dim NodeTag As clsNodeTag
 
 
-    '    For Y = 0 To TerrainSize.Y
-    '        For X = 0 To TerrainSize.X
+    '    For Y = 0 To Terrain.Size.Y
+    '        For X = 0 To Terrain.Size.X
     '            GenerateTerrainVertex(X, Y).Node = New PathfinderNode(RoadPathMap)
     '            NodeTag = New clsNodeTag
     '            NodeTag.Pos = New sXY_int(X * 128, Y * 128)
     '            GenerateTerrainVertex(X, Y).Node.Tag = NodeTag
     '        Next
     '    Next
-    '    For Y = 0 To TerrainSize.Y
-    '        For X = 0 To TerrainSize.X
+    '    For Y = 0 To Terrain.Size.Y
+    '        For X = 0 To Terrain.Size.X
     '            tmpNodeA = GenerateTerrainVertex(X, Y).Node
     '            If X > 0 Then
     '                tmpNodeB = GenerateTerrainVertex(X - 1, Y).Node
@@ -2533,23 +2616,23 @@ PointMakingFinished:
     '                End If
     '                tmpNodeB = GenerateTerrainVertex(X, Y - 1).Node
     '                GenerateTerrainVertex(X, Y).TopLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-    '                If X < TerrainSize.X Then
+    '                If X < Terrain.Size.X Then
     '                    tmpNodeB = GenerateTerrainVertex(X + 1, Y - 1).Node
     '                    GenerateTerrainVertex(X, Y).TopRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
     '                End If
     '            End If
-    '            If X < TerrainSize.X Then
+    '            If X < Terrain.Size.X Then
     '                tmpNodeB = GenerateTerrainVertex(X + 1, Y).Node
     '                GenerateTerrainVertex(X, Y).RightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
     '            End If
-    '            If Y < TerrainSize.Y Then
+    '            If Y < Terrain.Size.Y Then
     '                If X > 0 Then
     '                    tmpNodeB = GenerateTerrainVertex(X - 1, Y + 1).Node
     '                    GenerateTerrainVertex(X, Y).BottomLeftLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
     '                End If
     '                tmpNodeB = GenerateTerrainVertex(X, Y + 1).Node
     '                GenerateTerrainVertex(X, Y).BottomLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
-    '                If X < TerrainSize.X Then
+    '                If X < Terrain.Size.X Then
     '                    tmpNodeB = GenerateTerrainVertex(X + 1, Y + 1).Node
     '                    GenerateTerrainVertex(X, Y).BottomRightLink = tmpNodeA.GetOrCreateConnection(tmpNodeB, GetNodePosDist(tmpNodeA, tmpNodeB))
     '                End If
@@ -2594,8 +2677,8 @@ PointMakingFinished:
         Erase BasePassageNodes
     End Sub
 
-    Public Sub New(ByVal Size As sXY_int)
-        MyBase.New(Size.X, Size.Y)
+    Public Sub New(ByVal TileSize As sXY_int)
+        MyBase.New(TileSize)
 
     End Sub
 End Class

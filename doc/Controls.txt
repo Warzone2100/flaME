@@ -30,12 +30,6 @@ m - move selected objects to mouse position
 delete - delete selected objects
 shift - select multiple objects
 
-Entire Map Painter
-after clicking in the layers list:
-	insert - add layer 
-	shift-delete - remove layer
-	press -, + to move layers up and down
-
 Gateways
 shift + left click - remove gateway
 

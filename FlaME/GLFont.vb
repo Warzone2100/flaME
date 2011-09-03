@@ -12,12 +12,12 @@ Public Class GLFont
     Public Character(255) As sCharacter
     Public Height As Integer
 
-    Public Sub New(ByRef BaseFont As Font)
+    Public Sub New(ByVal BaseFont As Font)
 
         GLTextures_Generate(BaseFont)
     End Sub
 
-    Private Sub GLTextures_Generate(ByRef NewBaseFont As Font)
+    Private Sub GLTextures_Generate(ByVal BaseFont As Font)
         Dim A As Integer
         Dim X As Integer
         Dim Y As Integer
@@ -30,7 +30,7 @@ Public Class GLFont
         Dim TexBitmap As Bitmap
         Dim tmpString As String
 
-        BaseFont = NewBaseFont
+        BaseFont = BaseFont
         Height = BaseFont.Height
         For A = 0 To 255
             tmpString = Chr(A)
@@ -60,7 +60,7 @@ Public Class GLFont
             NewSizeX = FinishX - StartX + 1
             If NewSizeX <= 0 Then
                 NewSizeX = Math.Max(CInt(Math.Round(Height / 4.0F)), 1)
-                Character(A).TexSize = Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(NewSizeX, TempBitmap.Height)) / Math.Log(2.0#)))
+                Character(A).TexSize = CInt(Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(NewSizeX, TempBitmap.Height)) / Math.Log(2.0#))))
                 TexBitmap = New Bitmap(Character(A).TexSize, Character(A).TexSize, Imaging.PixelFormat.Format32bppArgb)
                 gfx = Graphics.FromImage(TexBitmap)
                 gfx.Clear(Color.Transparent)
@@ -74,7 +74,7 @@ Public Class GLFont
                 TexBitmap.UnlockBits(tmpData)
                 Character(A).Width = NewSizeX
             Else
-                Character(A).TexSize = Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(NewSizeX, TempBitmap.Height)) / Math.Log(2.0#)))
+                Character(A).TexSize = CInt(Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(NewSizeX, TempBitmap.Height)) / Math.Log(2.0#))))
                 TexBitmap = New Bitmap(Character(A).TexSize, Character(A).TexSize, Imaging.PixelFormat.Format32bppArgb)
                 gfx = Graphics.FromImage(TexBitmap)
                 gfx.Clear(Color.Transparent)

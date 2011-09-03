@@ -91,6 +91,7 @@ Public Class clsTurret
                 Result = "ECM"
                 Return True
             Case Else
+            	Result = Nothing
                 Return False
         End Select
     End Function

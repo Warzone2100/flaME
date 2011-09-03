@@ -2,83 +2,83 @@
 
     Public Tag As Object
 
-    Friend Network_FindParentNum As Integer = -1
+    Public Network_FindParentNum As Integer = -1
 
-    Friend Layer As PathfinderLayer
+    Public Layer As PathfinderLayer
     Public ReadOnly Property GetLayer As PathfinderLayer
         Get
             Return Layer
         End Get
     End Property
-    Friend Layer_NodeNum As Integer = -1
+    Public Layer_NodeNum As Integer = -1
     Public ReadOnly Property GetLayer_NodeNum As Integer
         Get
             Return Layer_NodeNum
         End Get
     End Property
 
-    Friend Layer_ChangedNodeNum As Integer = -1
+    Public Layer_ChangedNodeNum As Integer = -1
 
-    Friend ParentNode As PathfinderNode
+    Public ParentNode As PathfinderNode
     Public ReadOnly Property GetParentNode As PathfinderNode
         Get
             Return ParentNode
         End Get
     End Property
-    Friend ParentNode_NodeNum As Integer = -1
+    Public ParentNode_NodeNum As Integer = -1
     Public ReadOnly Property GetParentNode_NodeNum As Integer
         Get
             Return ParentNode_NodeNum
         End Get
     End Property
 
-    Friend Nodes(3) As PathfinderNode
+    Public Nodes(3) As PathfinderNode
     Public ReadOnly Property GetChildNode(ByVal Num As Integer) As PathfinderNode
         Get
             Return Nodes(Num)
         End Get
     End Property
-    Friend NodeCount As Integer
+    Public NodeCount As Integer
     Public ReadOnly Property GetChildNodeCount As Integer
         Get
             Return NodeCount
         End Get
     End Property
 
-    Friend Connections(1) As PathfinderConnection
+    Public Connections(1) As PathfinderConnection
     Public ReadOnly Property GetConnection(ByVal Num As Integer) As PathfinderConnection
         Get
             Return Connections(Num)
         End Get
     End Property
-    Friend ConnectionCount As Integer
+    Public ConnectionCount As Integer
     Public ReadOnly Property GetConnectionCount As Integer
         Get
             Return ConnectionCount
         End Get
     End Property
 
-    Friend SiblingSpan As Single
+    Public SiblingSpan As Single
     Public ReadOnly Property GetSiblingSpan As Single
         Get
             Return SiblingSpan
         End Get
     End Property
-    Friend ChildrenSpan As Single
+    Public ChildrenSpan As Single
     Public ReadOnly Property GetChildrenSpan As Single
         Get
             Return ChildrenSpan
         End Get
     End Property
 
-    Friend Clearance As Integer = Integer.MaxValue
+    Public Clearance As Integer = Integer.MaxValue
     Public ReadOnly Property GetClearance As Integer
         Get
             Return Clearance
         End Get
     End Property
 
-    Friend Sub Node_Add(ByVal NodeToAdd As PathfinderNode)
+    Public Sub Node_Add(ByVal NodeToAdd As PathfinderNode)
 
         If Layer Is Nothing Then
             Stop
@@ -116,7 +116,7 @@
         End If
     End Sub
 
-    Friend Sub RaiseConnections()
+    Public Sub RaiseConnections()
         Dim A As Integer
 
         For A = 0 To ConnectionCount - 1
@@ -137,7 +137,7 @@
         Return Nothing
     End Function
 
-    Friend Sub Node_Remove(ByVal Num As Integer)
+    Public Sub Node_Remove(ByVal Num As Integer)
         Dim tmpNodeA As PathfinderNode = Nodes(Num)
         Dim tmpConnection As PathfinderConnection
         Dim A As Integer
@@ -173,25 +173,29 @@
         ClearanceCalc()
     End Sub
 
-    Friend Sub FloodCheckInternal(ByVal CurrentNode As PathfinderNode, ByRef Visited() As Boolean)
+    Public Structure sVisited
+        Public Visited() As Boolean
+    End Structure
+
+    Public Sub FloodCheckInternal(ByVal CurrentNode As PathfinderNode, ByRef Visited As sVisited)
         Dim A As Integer
         Dim tmpNode As PathfinderNode
         Dim tmpConnection As PathfinderConnection
 
-        Visited(CurrentNode.ParentNode_NodeNum) = True
+        Visited.Visited(CurrentNode.ParentNode_NodeNum) = True
 
         For A = 0 To CurrentNode.ConnectionCount - 1
             tmpConnection = CurrentNode.Connections(A)
             tmpNode = tmpConnection.GetOtherNode(CurrentNode)
             If tmpNode.ParentNode Is Me Then
-                If Not Visited(tmpNode.ParentNode_NodeNum) Then
+                If Not Visited.Visited(tmpNode.ParentNode_NodeNum) Then
                     FloodCheckInternal(tmpNode, Visited)
                 End If
             End If
         Next
     End Sub
 
-    Friend Sub Deallocate()
+    Public Sub Deallocate()
 
         If Network_FindParentNum >= 0 Then
             Layer.Network.FindParentNode_Remove(Network_FindParentNum)
@@ -211,7 +215,7 @@
         Layer.Node_Remove(Layer_NodeNum)
     End Sub
 
-    Friend Sub ForceDeallocate()
+    Public Sub ForceDeallocate()
         Dim A As Integer
 
         For A = 0 To ConnectionCount - 1
@@ -223,7 +227,7 @@
         Layer = Nothing
     End Sub
 
-    Friend Sub FindParent()
+    Public Sub FindParent()
         Dim tmpNodeA As PathfinderNode
         Dim BestScore As Single
         Dim BestNode As PathfinderNode = Nothing
@@ -336,7 +340,7 @@ CountFinished:
         End If
     End Sub
 
-    Friend Sub Split()
+    Public Sub Split()
 
         If NodeCount <> 4 Then
             Stop
@@ -447,15 +451,16 @@ CountFinished:
         End If
     End Sub
 
-    Friend Sub CheckIntegrity()
+    Public Sub CheckIntegrity()
         'make sure im still a good parent
 
         If NodeCount >= 2 Then
-            Dim Visited(NodeCount - 1) As Boolean
+            Dim Visited As sVisited
+            ReDim Visited.Visited(NodeCount - 1)
             Dim A As Integer
             FloodCheckInternal(Nodes(0), Visited)
             For A = 0 To NodeCount - 1
-                If Not Visited(A) Then
+                If Not Visited.Visited(A) Then
                     GoTo DisbandAndFind
                 End If
             Next
@@ -505,13 +510,13 @@ DisbandAndFind:
         tmpLayer.Node_Add(Me)
     End Sub
 
-    Friend Sub New(ByVal NewParentLayer As PathfinderLayer)
+    Public Sub New(ByVal NewParentLayer As PathfinderLayer)
 
         Layer = NewParentLayer
         Layer.Node_Add(Me)
     End Sub
 
-    Friend Sub Disband()
+    Public Sub Disband()
         Dim tmpNode As PathfinderNode
 
         tmpNode = ParentNode
@@ -555,7 +560,7 @@ DisbandAndFind:
         Return tmpConnection
     End Function
 
-    Friend Sub Connection_Add(ByVal Connection As PathfinderConnection, ByRef OutputNum As Integer)
+    Public Sub Connection_Add(ByVal Connection As PathfinderConnection, ByRef OutputNum As Integer)
 
         OutputNum = ConnectionCount
 
@@ -570,7 +575,7 @@ DisbandAndFind:
         End If
     End Sub
 
-    Friend Sub Connection_Remove(ByVal Num As Integer)
+    Public Sub Connection_Remove(ByVal Num As Integer)
 
         ConnectionCount -= 1
         If Num < ConnectionCount Then
@@ -605,7 +610,7 @@ DisbandAndFind:
         End If
     End Sub
 
-    Friend Sub ClearanceCalc()
+    Public Sub ClearanceCalc()
         Dim A As Integer
 
         If Layer.Network_LayerNum = 0 Then
@@ -628,7 +633,7 @@ DisbandAndFind:
         End If
     End Sub
 
-    Friend Sub SpanCalc()
+    Public Sub SpanCalc()
         Dim Args As New PathfinderNetwork.sFloodSpanArgs
         Dim A As Integer
         Dim NumA As Integer

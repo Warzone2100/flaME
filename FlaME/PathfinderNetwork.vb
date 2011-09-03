@@ -1,28 +1,28 @@
 ﻿Public Class PathfinderNetwork
 
-    Friend NodeLayers(-1) As PathfinderLayer
+    Public NodeLayers(-1) As PathfinderLayer
     Public ReadOnly Property GetNodeLayer(ByVal Num As Integer) As PathfinderLayer
         Get
             Return NodeLayers(Num)
         End Get
     End Property
-    Friend NodeLayerCount As Integer
+    Public NodeLayerCount As Integer
     Public ReadOnly Property GetNodeLayerCount As Integer
         Get
             Return NodeLayerCount
         End Get
     End Property
 
-    Friend FindParentNodes(-1) As PathfinderNode
-    Friend FindParentNodeCount As Integer
+    Public FindParentNodes(-1) As PathfinderNode
+    Public FindParentNodeCount As Integer
 
     Public Class LargeArrays
-        Friend Nodes_Booleans() As Boolean
-        Friend Nodes_ValuesA() As Single
-        Friend Nodes_ValuesB() As Single
-        Friend Nodes_Path As New Path
-        Friend Nodes_Nodes() As PathfinderNode
-        Friend Size As Integer
+        Public Nodes_Booleans() As Boolean
+        Public Nodes_ValuesA() As Single
+        Public Nodes_ValuesB() As Single
+        Public Nodes_Path As New Path
+        Public Nodes_Nodes() As PathfinderNode
+        Public Size As Integer
 
         Public SizeEnlargementRatio As Single = 2.0F
         Public SizeReductionRatio As Single = 3.0F
@@ -60,7 +60,7 @@
             End If
         End Sub
     End Class
-    Friend NetworkLargeArrays As New LargeArrays
+    Public NetworkLargeArrays As New LargeArrays
 
     Public Class Path
         Public Nodes(-1) As PathfinderNode
@@ -68,7 +68,7 @@
         Public Value As Single
     End Class
 
-    Friend Sub NodeLayer_Add(ByVal NewNodeLayer As PathfinderLayer)
+    Public Sub NodeLayer_Add(ByVal NewNodeLayer As PathfinderLayer)
 
         If NodeLayerCount > 0 Then
             NodeLayers(NodeLayerCount - 1).ParentLayer = NewNodeLayer
@@ -80,7 +80,7 @@
         NodeLayerCount += 1
     End Sub
 
-    Friend Sub FindParentNode_Add(ByVal NewFindParentNode As PathfinderNode)
+    Public Sub FindParentNode_Add(ByVal NewFindParentNode As PathfinderNode)
 
         If NewFindParentNode.Network_FindParentNum >= 0 Then
             Exit Sub
@@ -94,7 +94,7 @@
         FindParentNodeCount += 1
     End Sub
 
-    Friend Sub FindParentNode_Remove(ByVal Num As Integer)
+    Public Sub FindParentNode_Remove(ByVal Num As Integer)
 
         FindParentNodes(Num).Network_FindParentNum = -1
         FindParentNodes(Num) = Nothing
@@ -313,7 +313,7 @@
         Return Paths
     End Function
 
-    Friend Function GetAllPaths(ByVal StartNodes() As PathfinderNode, ByVal FinishNode As PathfinderNode, ByVal MinClearance As Integer) As Path()
+    Public Function GetAllPaths(ByVal StartNodes() As PathfinderNode, ByVal FinishNode As PathfinderNode, ByVal MinClearance As Integer) As Path()
         Dim StartNodeCount As Integer = StartNodes.GetUpperBound(0) + 1
         Dim LayerStartNodes(31, StartNodeCount - 1) As PathfinderNode
         Dim LayerFinishNodes(31) As PathfinderNode
@@ -426,7 +426,7 @@
         Return SubPaths
     End Function
 
-    Friend Structure sFloodRouteArgs
+    Public Structure sFloodRouteArgs
         Public CurrentPath As Path
         Public FinishNodes() As PathfinderNode
         Public FinishNodeCount As Integer
@@ -438,7 +438,7 @@
         Public MinClearance As Integer
     End Structure
 
-    Friend Structure sFloodRouteAllArgs
+    Public Structure sFloodRouteAllArgs
         Public StartNodes() As PathfinderNode
         Public StartNodeCount As Integer
         Public FinishNode As PathfinderNode
@@ -451,7 +451,7 @@
         Public MinClearance As Integer
     End Structure
 
-    Friend Sub FloodRoute(ByRef Args As sFloodRouteArgs)
+    Public Sub FloodRoute(ByRef Args As sFloodRouteArgs)
         Dim CurrentNode As PathfinderNode
         Dim ConnectedNode As PathfinderNode
         Dim A As Integer
@@ -558,7 +558,7 @@ NoPath:
         Next
     End Sub
 
-    Friend Structure sFloodSpanArgs
+    Public Structure sFloodSpanArgs
         Public CurrentPath As Path
         Public SourceParentNode As PathfinderNode
         Public FinishNodes() As PathfinderNode
@@ -570,7 +570,7 @@ NoPath:
         Public MinClearance As Integer
     End Structure
 
-    Friend Sub FloodSpan(ByRef Args As sFloodSpanArgs)
+    Public Sub FloodSpan(ByRef Args As sFloodSpanArgs)
         Dim CurrentNode As PathfinderNode
         Dim ConnectedNode As PathfinderNode
         Dim A As Integer
@@ -671,7 +671,7 @@ NoPath:
         Next
     End Sub
 
-    Friend Structure sFloodForValuesArgs
+    Public Structure sFloodForValuesArgs
         Public CurrentPath As Path
         Public SourceParentNodeA As PathfinderNode
         Public SourceParentNodeB As PathfinderNode
@@ -684,7 +684,7 @@ NoPath:
         Public MinClearance As Integer
     End Structure
 
-    Friend Sub FloodForValues(ByRef Args As sFloodForValuesArgs)
+    Public Sub FloodForValues(ByRef Args As sFloodForValuesArgs)
         Dim CurrentNode As PathfinderNode
         Dim ConnectedNode As PathfinderNode
         Dim A As Integer
@@ -785,7 +785,7 @@ NoPath:
         Next
     End Sub
 
-    Friend Sub FloodRouteAll(ByRef Args As sFloodRouteAllArgs)
+    Public Sub FloodRouteAll(ByRef Args As sFloodRouteAllArgs)
         Dim CurrentNode As PathfinderNode
         Dim ConnectedNode As PathfinderNode
         Dim SourceNodeCount As Integer
@@ -984,5 +984,6 @@ NoPath:
                 Return False
             End If
         Loop
+        Return False
     End Function
 End Class

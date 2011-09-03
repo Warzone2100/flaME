@@ -106,14 +106,10 @@ It will place any random number from the "Min" number to the "Max" number.
 "Oil Dispersion" text box
 Higher numbers here will encourage oil resources to spread out. Lower numbers will leave them close together.
 This is needed because it tries to place oil resources fairly, and the best spot for that is in the middle of all the players.
-A number too high can make oil spread out at the expense of fairness.
 It has no effect on symmetrical maps where only one base is positioned.
 
 "Oil Clusters At A Time"
 This is the number of oil clusters that are placed at once. The only valid entries are 1 and 2. A value of 2 will cause oil to spread out more, without becoming more uneven, reducing the need for "Oil Dispersion". 2 is slower than 1. The maximum is 2 because this option is very exponentially slow.
-
-"Oil Randomness %"
-If you want oil placed randomly with no consideration of fairness, put this at 100. For the best fairness leave it at 0.
 
 ON THE TOP RIGHT OF THE WINDOW:
 

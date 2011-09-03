@@ -499,8 +499,9 @@ Partial Class frmMapTexturer
         Me.Controls.Add(Me.lstLayer)
         Me.Controls.Add(Me.btnDo)
         Me.Controls.Add(Me.Label2)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.Margin = New System.Windows.Forms.Padding(4)
+        Me.MaximizeBox = False
         Me.Name = "frmMapTexturer"
         Me.Text = "Entire Map Painter"
         CType(Me.picHeightmap, System.ComponentModel.ISupportInitialize).EndInit()
@@ -511,7 +512,7 @@ Partial Class frmMapTexturer
     Public WithEvents lstLayer As System.Windows.Forms.ListBox
     Public WithEvents btnDo As System.Windows.Forms.Button
     Public WithEvents Label2 As System.Windows.Forms.Label
-    Friend WithEvents btnTerrain_Rem As System.Windows.Forms.Button
+    Public WithEvents btnTerrain_Rem As System.Windows.Forms.Button
     Public WithEvents txtDensity As System.Windows.Forms.TextBox
     Public WithEvents txtScale As System.Windows.Forms.TextBox
     Public WithEvents btnGen As System.Windows.Forms.Button
@@ -532,9 +533,9 @@ Partial Class frmMapTexturer
     Public WithEvents Label8 As System.Windows.Forms.Label
     Public WithEvents Label4 As System.Windows.Forms.Label
     Public WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents clstAvoid As System.Windows.Forms.CheckedListBox
+    Public WithEvents clstAvoid As System.Windows.Forms.CheckedListBox
     Public WithEvents cboWithin As System.Windows.Forms.ComboBox
     Public WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents btnWithinClear As System.Windows.Forms.Button
-    Friend WithEvents OpenFileDialog As System.Windows.Forms.OpenFileDialog
+    Public WithEvents btnWithinClear As System.Windows.Forms.Button
+    Public WithEvents OpenFileDialog As System.Windows.Forms.OpenFileDialog
 End Class

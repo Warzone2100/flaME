@@ -3,11 +3,11 @@
         Public Num As Integer
         Public Name As String
 
-        Public Tiles As sTileList
+        Public Tiles As New clsTileList
     End Class
     Public Terrains() As clsTerrain
     Public TerrainCount As Integer
-    Public Structure sTileList
+    Public Class clsTileList
         Public Structure sTile_Orientation_Chance
             Public TextureNum As Integer
             Public Direction As sTileDirection
@@ -25,12 +25,12 @@
             Tiles(TileCount).Chance = Chance
             TileCount += 1
 
-            TileChanceTotal += Chance
+            TileChanceTotal += CInt(Chance)
         End Sub
 
         Public Sub Tile_Remove(ByVal Num As Integer)
 
-            TileChanceTotal -= Tiles(Num).Chance
+            TileChanceTotal -= CInt(Tiles(Num).Chance)
 
             TileCount -= 1
             If Num <> TileCount Then
@@ -40,44 +40,47 @@
         End Sub
 
         Public Function GetRandom() As sTile_Orientation_Chance
+            Dim ReturnResult As sTile_Orientation_Chance
             Dim A As Integer
             Dim intRandom As Integer
             Dim Total As Integer
 
-            intRandom = Math.Floor(Rnd() * TileChanceTotal)
+            intRandom = CInt(Int(Rnd() * TileChanceTotal))
             For A = 0 To TileCount - 1
-                Total += Tiles(A).Chance
+                Total += CInt(Tiles(A).Chance)
                 If intRandom < Total Then
                     Exit For
                 End If
-            Next A
+            Next
             If A = TileCount Then
-                GetRandom.TextureNum = -1
-                GetRandom.Direction = TileDirection_None
+                'todo: dont do this when user has elected to not have invalid tiles
+                ReturnResult.TextureNum = -1
+                ReturnResult.Direction = TileDirection_None
             Else
-                GetRandom = Tiles(A)
+                ReturnResult = Tiles(A)
             End If
+            Return ReturnResult
         End Function
-    End Structure
-    Public Structure sTransition_Brush
+    End Class
+    Public Class clsTransition_Brush
         Public Name As String
         Public Terrain_Inner As clsTerrain
         Public Terrain_Outer As clsTerrain
-        Public Tiles_Straight As sTileList
-        Public Tiles_Corner_In As sTileList
-        Public Tiles_Corner_Out As sTileList
-    End Structure
-    Public Structure sCliff_Brush
+        Public Tiles_Straight As New clsTileList
+        Public Tiles_Corner_In As New clsTileList
+        Public Tiles_Corner_Out As New clsTileList
+    End Class
+    Public Class clsCliff_Brush
         Public Name As String
         Public Terrain_Inner As clsTerrain
         Public Terrain_Outer As clsTerrain
-        Public Tiles_Straight As sTileList
-        Public Tiles_Corner_In As sTileList
-        Public Tiles_Corner_Out As sTileList
-    End Structure
-    Public TransitionBrushes() As sTransition_Brush
+        Public Tiles_Straight As New clsTileList
+        Public Tiles_Corner_In As New clsTileList
+        Public Tiles_Corner_Out As New clsTileList
+    End Class
+    Public TransitionBrushes() As clsTransition_Brush
     Public TransitionBrushCount As Integer
-    Public CliffBrushes() As sCliff_Brush
+    Public CliffBrushes() As clsCliff_Brush
     Public CliffBrushCount As Integer
 
     Public Class clsRoad
@@ -85,20 +88,20 @@
         Public Name As String
     End Class
     Public Roads() As clsRoad
-    Public RoadCount As UInteger
-    Public Structure sRoad_Brush
-        Dim Road As clsRoad
-        Dim Terrain As clsTerrain
-        Dim Tile_Straight As sTileList
-        Dim Tile_Corner_In As sTileList
-        Dim Tile_TIntersection As sTileList
-        Dim Tile_CrossIntersection As sTileList
-        Dim Tile_End As sTileList
-    End Structure
-    Public RoadBrushes() As sRoad_Brush
+    Public RoadCount As Integer
+    Public Class clsRoad_Brush
+        Public Road As clsRoad
+        Public Terrain As clsTerrain
+        Public Tile_Straight As New clsTileList
+        Public Tile_Corner_In As New clsTileList
+        Public Tile_TIntersection As New clsTileList
+        Public Tile_CrossIntersection As New clsTileList
+        Public Tile_End As New clsTileList
+    End Class
+    Public RoadBrushes() As clsRoad_Brush
     Public RoadBrushCount As Integer
 
-    Public Sub TransitionBrush_Add(ByVal NewBrush As sTransition_Brush)
+    Public Sub TransitionBrush_Add(ByVal NewBrush As clsTransition_Brush)
 
         ReDim Preserve TransitionBrushes(TransitionBrushCount)
         TransitionBrushes(TransitionBrushCount) = NewBrush
@@ -114,7 +117,7 @@
         ReDim Preserve TransitionBrushes(TransitionBrushCount - 1)
     End Sub
 
-    Public Sub CliffBrush_Add(ByVal NewBrush As sCliff_Brush)
+    Public Sub CliffBrush_Add(ByVal NewBrush As clsCliff_Brush)
 
         ReDim Preserve CliffBrushes(CliffBrushCount)
         CliffBrushes(CliffBrushCount) = NewBrush
@@ -149,7 +152,7 @@
         ReDim Preserve Terrains(TerrainCount - 1)
     End Sub
 
-    Public Sub RoadBrush_Add(ByVal NewRoadBrush As sRoad_Brush)
+    Public Sub RoadBrush_Add(ByVal NewRoadBrush As clsRoad_Brush)
 
         ReDim Preserve RoadBrushes(RoadBrushCount)
         RoadBrushes(RoadBrushCount) = NewRoadBrush

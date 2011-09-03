@@ -42,12 +42,11 @@ Partial Class frmWZLoad
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(619, 315)
         Me.Controls.Add(Me.lstMap)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow
         Me.Margin = New System.Windows.Forms.Padding(4)
         Me.Name = "frmWZLoad"
         Me.Text = "frmWZLoad"
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents lstMap As System.Windows.Forms.ListBox
+    Public WithEvents lstMap As System.Windows.Forms.ListBox
 End Class

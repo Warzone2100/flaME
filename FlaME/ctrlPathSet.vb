@@ -170,11 +170,11 @@
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents gbxTitle As System.Windows.Forms.GroupBox
-    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents btnRemove As System.Windows.Forms.Button
-    Friend WithEvents btnAdd As System.Windows.Forms.Button
+    Public WithEvents gbxTitle As System.Windows.Forms.GroupBox
+    Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents btnRemove As System.Windows.Forms.Button
+    Public WithEvents btnAdd As System.Windows.Forms.Button
     Private WithEvents lstPaths As System.Windows.Forms.ListBox
 #End If
 End Class

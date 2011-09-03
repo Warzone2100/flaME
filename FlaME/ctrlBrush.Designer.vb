@@ -28,7 +28,6 @@ Partial Class ctrlBrush
         Me.Label1 = New System.Windows.Forms.Label()
         Me.nudRadius = New System.Windows.Forms.NumericUpDown()
         Me.tabShape.SuspendLayout()
-        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'tabShape
@@ -101,14 +100,13 @@ Partial Class ctrlBrush
         Me.Name = "ctrlBrush"
         Me.Size = New System.Drawing.Size(334, 35)
         Me.tabShape.ResumeLayout(False)
-        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents tabShape As System.Windows.Forms.TabControl
-    Friend WithEvents TabPage37 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage38 As System.Windows.Forms.TabPage
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents nudRadius As System.Windows.Forms.NumericUpDown
+    Public WithEvents tabShape As System.Windows.Forms.TabControl
+    Public WithEvents TabPage37 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage38 As System.Windows.Forms.TabPage
+    Public WithEvents Label1 As System.Windows.Forms.Label
+    Public WithEvents nudRadius As System.Windows.Forms.NumericUpDown
 
 End Class

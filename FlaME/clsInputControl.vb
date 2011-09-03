@@ -1,36 +1,36 @@
 ﻿Public Class clsInputControl
 
-    Class clsKeyCombo
+    Public Class clsKeyCombo
         Public Keys(-1) As Integer
         Public KeyCount As Integer
         Public UnlessKey(-1) As Integer
         Public UnlessKeyCount As Integer
 
-        Function IsPressed(ByRef IsKeyDown() As Boolean) As Boolean
+        Public Function IsPressed(ByVal KeysDown As clsKeysActive) As Boolean
             Dim A As Integer
             Dim B As Integer
 
             For A = 0 To KeyCount - 1
-                If Not IsKeyDown(Keys(A)) Then
+                If Not KeysDown.Keys(Keys(A)) Then
                     Exit For
                 End If
             Next
             For B = 0 To UnlessKeyCount - 1
-                If IsKeyDown(UnlessKey(B)) Then
+                If KeysDown.Keys(UnlessKey(B)) Then
                     Exit For
                 End If
             Next
-            IsPressed = ((A = KeyCount) And (B = UnlessKeyCount))
+            Return ((A = KeyCount) And (B = UnlessKeyCount))
         End Function
 
-        Sub New(ByVal KeyA As Integer)
+        Public Sub New(ByVal KeyA As Integer)
 
             KeyCount = 1
             ReDim Keys(0)
             Keys(0) = KeyA
         End Sub
 
-        Sub New(ByVal KeyA As Integer, ByVal KeyB As Integer)
+        Public Sub New(ByVal KeyA As Integer, ByVal KeyB As Integer)
 
             KeyCount = 2
             ReDim Keys(1)
@@ -38,7 +38,7 @@
             Keys(1) = KeyB
         End Sub
 
-        Sub New(ByVal KeyA As Integer, ByVal KeyB As Integer, ByVal KeyC As Integer)
+        Public Sub New(ByVal KeyA As Integer, ByVal KeyB As Integer, ByVal KeyC As Integer)
 
             KeyCount = 3
             ReDim Keys(2)
@@ -47,7 +47,7 @@
             Keys(2) = KeyC
         End Sub
 
-        Sub New(ByVal Key_Combo_To_Copy As clsKeyCombo)
+        Public Sub New(ByVal Key_Combo_To_Copy As clsKeyCombo)
             Dim A As Integer
 
             KeyCount = Key_Combo_To_Copy.KeyCount
@@ -62,7 +62,7 @@
             Next
         End Sub
 
-        Sub Unless_Key_Add(ByVal Key As Integer)
+        Public Sub Unless_Key_Add(ByVal Key As Integer)
 
             ReDim Preserve UnlessKey(UnlessKeyCount)
             UnlessKey(UnlessKeyCount) = Key
@@ -75,18 +75,18 @@
 
     Public Active As Boolean
 
-    Sub SetToDefault()
+    Public Sub SetToDefault()
 
         If DefaultKeys IsNot Nothing Then
             KeyCombo = New clsKeyCombo(DefaultKeys)
         End If
     End Sub
 
-    Sub KeysChanged(ByRef IsKeyDown() As Boolean)
+    Public Sub KeysChanged(ByVal KeysDown As clsKeysActive)
 
         Active = False
         If KeyCombo IsNot Nothing Then
-            If KeyCombo.IsPressed(IsKeyDown) Then
+            If KeyCombo.IsPressed(KeysDown) Then
                 Active = True
             End If
         End If

@@ -6,7 +6,7 @@ Public Class clsWriteFile
     Public ByteCount As Integer
     Public ByteBufferLength As Integer = 8192
 
-    Function Make_Length(ByVal Extra_Length As Integer) As Integer
+    Public Function Make_Length(ByVal Extra_Length As Integer) As Integer
         Dim Num As Integer
 
         Num = ByteCount + Extra_Length - 1
@@ -17,40 +17,40 @@ Public Class clsWriteFile
         ByteCount += Extra_Length
     End Function
 
-    Sub Text_Append(ByVal Text As String, Optional ByVal LengthDescriptor As Boolean = False)
+    Public Sub Text_Append(ByVal Text As String, Optional ByVal LengthDescriptor As Boolean = False)
         Dim Num As Integer
         Dim A As Integer
 
         If LengthDescriptor Then
-            U32_Append(Text.Length)
+            U32_Append(CUInt(Text.Length))
         End If
         Num = Make_Length(Text.Length)
         For A = 0 To Text.Length - 1
-            Bytes(Num + A) = Asc(Text.Chars(A))
+            Bytes(Num + A) = CByte(Asc(Text.Chars(A)))
         Next
     End Sub
 
-    Sub Text_Append(ByVal Text As String, ByVal Length As Integer)
+    Public Sub Text_Append(ByVal Text As String, ByVal Length As Integer)
         Dim Num As Integer
         Dim A As Integer
 
         Num = Make_Length(Length)
         For A = 0 To Math.Min(Text.Length, Length) - 1
-            Bytes(Num + A) = Asc(Text.Chars(A))
+            Bytes(Num + A) = CByte(Asc(Text.Chars(A)))
         Next
         For A = A To Length - 1
             Bytes(Num + A) = 0
         Next
     End Sub
 
-    Sub U8_Append(ByVal Value As Byte)
+    Public Sub U8_Append(ByVal Value As Byte)
         Dim Num As Integer
 
         Num = Make_Length(1)
         Bytes(Num) = Value
     End Sub
 
-    Sub U16_Append(ByVal Value As UShort)
+    Public Sub U16_Append(ByVal Value As UShort)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -61,7 +61,7 @@ Public Class clsWriteFile
         Bytes(Num + 1) = tmpByte(1)
     End Sub
 
-    Sub U32_Append(ByVal Value As UInteger)
+    Public Sub U32_Append(ByVal Value As UInteger)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -74,7 +74,7 @@ Public Class clsWriteFile
         Bytes(Num + 3) = tmpByte(3)
     End Sub
 
-    Sub S16_Append(ByVal Value As Short)
+    Public Sub S16_Append(ByVal Value As Short)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -85,7 +85,7 @@ Public Class clsWriteFile
         Bytes(Num + 1) = tmpByte(1)
     End Sub
 
-    Sub S32_Append(ByVal Value As Integer)
+    Public Sub S32_Append(ByVal Value As Integer)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -98,7 +98,7 @@ Public Class clsWriteFile
         Bytes(Num + 3) = tmpByte(3)
     End Sub
 
-    Sub F32_Append(ByVal Value As Single)
+    Public Sub F32_Append(ByVal Value As Single)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -111,7 +111,7 @@ Public Class clsWriteFile
         Bytes(Num + 3) = tmpByte(3)
     End Sub
 
-    Sub F64_Append(ByVal Value As Double)
+    Public Sub F64_Append(ByVal Value As Double)
         Dim tmpByte() As Byte
         Dim Num As Integer
 
@@ -128,7 +128,7 @@ Public Class clsWriteFile
         Bytes(Num + 7) = tmpByte(7)
     End Sub
 
-    Sub Trim_Buffer()
+    Public Sub Trim_Buffer()
 
         If Bytes.GetUpperBound(0) <> ByteCount - 1 Then
             ReDim Preserve Bytes(ByteCount - 1)

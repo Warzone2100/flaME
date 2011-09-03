@@ -13,22 +13,22 @@ Public Class clsUnitType
     End Enum
     Public Type As enumType
 
-    Class clsAttachment
+    Public Class clsAttachment
         Public Pos_Offset As sXYZ_sng
-        Public AngleOffsetMatrix(8) As Double
+        Public AngleOffsetMatrix As New Matrix3D.Matrix3D
         Public Models() As clsModel
         Public ModelCount As Integer
         Public Attachments() As clsAttachment
         Public AttachmentCount As Integer
 
-        Sub New()
+        Public Sub New()
 
-            MatrixSetToIdentity(AngleOffsetMatrix)
+            Matrix3D.MatrixSetToIdentity(AngleOffsetMatrix)
         End Sub
 
-        Sub GLDraw()
-            Dim AngleRPY As sAngleRPY
-            Dim matrixA(8) As Double
+        Public Sub GLDraw()
+            Dim AngleRPY As Matrix3D.AngleRPY
+            Dim matrixA As New Matrix3D.Matrix3D
             Dim A As Integer
 
             'Matrix_Invert(Angle_Matrix, matrixA)
@@ -43,8 +43,8 @@ Public Class clsUnitType
 
             For A = 0 To AttachmentCount - 1
                 GL.PushMatrix()
-                MatrixInvert(Attachments(A).AngleOffsetMatrix, matrixA)
-                MatrixToRPY(matrixA, AngleRPY)
+                Matrix3D.MatrixInvert(Attachments(A).AngleOffsetMatrix, matrixA)
+                Matrix3D.MatrixToRPY(matrixA, AngleRPY)
                 GL.Translate(Attachments(A).Pos_Offset.X, Attachments(A).Pos_Offset.Y, -Attachments(A).Pos_Offset.Z)
                 GL.Rotate(-AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, 1.0F)
                 GL.Rotate(AngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
@@ -54,7 +54,7 @@ Public Class clsUnitType
             Next
         End Sub
 
-        Function CreateAttachment() As clsAttachment
+        Public Function CreateAttachment() As clsAttachment
 
             ReDim Preserve Attachments(AttachmentCount)
             CreateAttachment = New clsAttachment
@@ -67,7 +67,7 @@ Public Class clsUnitType
             Dim A As Integer
 
             ReDim Preserve Attachments(AttachmentCount)
-            MatrixCopy(AttachmentToCopy.AngleOffsetMatrix, tmpAttachment.AngleOffsetMatrix)
+            Matrix3D.MatrixCopy(AttachmentToCopy.AngleOffsetMatrix, tmpAttachment.AngleOffsetMatrix)
             For A = 0 To AttachmentToCopy.ModelCount - 1
                 tmpAttachment.AddModel(AttachmentToCopy.Models(A))
             Next
@@ -80,7 +80,7 @@ Public Class clsUnitType
             Return tmpAttachment
         End Function
 
-        Sub AddModel(ByVal NewModel As clsModel)
+        Public Sub AddModel(ByVal NewModel As clsModel)
 
             If NewModel Is Nothing Then
                 Exit Sub
@@ -111,12 +111,12 @@ Public Class clsUnitType
         Get
             Select Case Type
                 Case enumType.Feature
-                    GetFootprint = CType(Me, clsFeatureType).Footprint
+                    Return CType(Me, clsFeatureType).Footprint
                 Case enumType.PlayerStructure
-                    GetFootprint = CType(Me, clsStructureType).Footprint
+                    Return CType(Me, clsStructureType).Footprint
                 Case Else
-                    GetFootprint.X = 1
-                    GetFootprint.Y = 1
+                    Dim XY_int As New sXY_int(1, 1)
+                    Return XY_int
             End Select
         End Get
     End Property
@@ -455,10 +455,10 @@ Public Class clsDroidDesign
                 Turret1 = Args.Weapon1
                 If Args.Weapon2 IsNot Nothing Then
                     Turret2 = Args.Weapon2
-                    TurretCount += 1
+                    TurretCount += CByte(1)
                     If Args.Weapon3 IsNot Nothing Then
                         Turret3 = Args.Weapon3
-                        TurretCount += 1
+                        TurretCount += CByte(1)
                     End If
                 End If
             End If

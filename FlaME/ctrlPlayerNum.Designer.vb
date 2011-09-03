@@ -57,7 +57,7 @@ Partial Class ctrlPlayerNum
         Me.PerformLayout()
 
     End Sub
-    Friend WithEvents tsPlayerNum1 As System.Windows.Forms.ToolStrip
-    Friend WithEvents tsPlayerNum2 As System.Windows.Forms.ToolStrip
+    Public WithEvents tsPlayerNum1 As System.Windows.Forms.ToolStrip
+    Public WithEvents tsPlayerNum2 As System.Windows.Forms.ToolStrip
 
 End Class

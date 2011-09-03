@@ -2,10 +2,11 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>
+    </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{35445AD6-5363-42FB-8005-68D8371789A5}</ProjectGuid>
+    <ProjectGuid>{59A15906-263A-4A68-AF44-6AF69F431A99}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <StartupObject>FlaME.My.MyApplication</StartupObject>
     <RootNamespace>FlaME</RootNamespace>
@@ -13,26 +14,9 @@
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <OptionExplicit>On</OptionExplicit>
-    <OptionCompare>Binary</OptionCompare>
-    <OptionStrict>Off</OptionStrict>
-    <OptionInfer>On</OptionInfer>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <ManifestCertificateThumbprint>2C2FEFA643AE165E963436B80714710507AB9AD9</ManifestCertificateThumbprint>
-    <ManifestKeyFile>
-    </ManifestKeyFile>
-    <GenerateManifests>false</GenerateManifests>
-    <SignManifests>false</SignManifests>
-    <ApplicationIcon>flaME.ico</ApplicationIcon>
-    <TargetZone>LocalIntranet</TargetZone>
-    <ExcludedPermissions>
-    </ExcludedPermissions>
-    <SignAssembly>false</SignAssembly>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <OldToolsVersion>3.5</OldToolsVersion>
-    <UpgradeBackupLocation />
-    <PublishUrl>C:\FlaME\</PublishUrl>
+    <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -41,62 +25,90 @@
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>false</MapFileExtensions>
-    <TargetCulture>en-AU</TargetCulture>
-    <ProductName>FlaME</ProductName>
-    <PublisherName>FlaME</PublisherName>
-    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
+    <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.21.0.0</ApplicationVersion>
+    <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
-    <PublishWizardCompleted>true</PublishWizardCompleted>
-    <BootstrapperEnabled>false</BootstrapperEnabled>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
-    <OutputPath>bin\VB 2010\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>FlaME.xml</DocumentationFile>
-    <NoWarn>41999,42016</NoWarn>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
-    <Optimize>true</Optimize>
-    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Portable=1.0</DefineConstants>
+    <NoWarn>
+    </NoWarn>
+    <WarningsAsErrors>
+    </WarningsAsErrors>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <DefineDebug>false</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>FlaME.xml</DocumentationFile>
-    <NoWarn>41999,42016</NoWarn>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <NoWarn>
+    </NoWarn>
+    <WarningsAsErrors>
+    </WarningsAsErrors>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup />
+  <PropertyGroup>
+    <OptionExplicit>On</OptionExplicit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionCompare>Binary</OptionCompare>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionStrict>Off</OptionStrict>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>flaME.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>.\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL" />
-    <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL" />
+    <Reference Include="Matrix3D, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\Matrix3D.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\OpenTK.GLControl.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
   </ItemGroup>
   <ItemGroup>
     <Import Include="Microsoft.VisualBasic" />
     <Import Include="System" />
     <Import Include="System.Collections" />
     <Import Include="System.Collections.Generic" />
+    <Import Include="System.Data" />
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
@@ -106,19 +118,32 @@
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
     <Compile Include="clsComponent.vb" />
+    <Compile Include="clsGeneratorMap.vb" />
+    <Compile Include="clsGeneratorTileset.vb" />
+    <Compile Include="clsHeightmap.vb" />
+    <Compile Include="clsInputControl.vb" />
+    <Compile Include="clsMap.vb" />
     <Compile Include="clsMapFMap.vb" />
     <Compile Include="clsMapOtherIO.vb" />
     <Compile Include="clsMapTools.vb" />
     <Compile Include="clsMapWZ.vb" />
+    <Compile Include="clsModel.vb" />
+    <Compile Include="clsPainter.vb" />
     <Compile Include="clsReadFile.vb" />
     <Compile Include="clsResult.vb" />
+    <Compile Include="clsTileset.vb" />
+    <Compile Include="clsUnitType.vb" />
     <Compile Include="clsWriteFile.vb" />
-    <Compile Include="clsGeneratorMap.vb" />
-    <Compile Include="clsGeneratorTileset.vb" />
     <Compile Include="ctrlBrush.Designer.vb">
       <DependentUpon>ctrlBrush.vb</DependentUpon>
     </Compile>
     <Compile Include="ctrlBrush.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ctrlMapView.Designer.vb">
+      <DependentUpon>ctrlMapView.vb</DependentUpon>
+    </Compile>
+    <Compile Include="ctrlMapView.vb">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ctrlPathSet.Designer.vb">
@@ -127,64 +152,10 @@
     <Compile Include="ctrlPathSet.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="frmData.Designer.vb">
-      <DependentUpon>frmData.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmData.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmGenerator.Designer.vb">
-      <DependentUpon>frmGenerator.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmGenerator.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmMainIC.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmWarnings.Designer.vb">
-      <DependentUpon>frmWarnings.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmWarnings.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="GLFont.vb" />
-    <Compile Include="clsHeightmap.vb" />
-    <Compile Include="clsInputControl.vb" />
-    <Compile Include="clsMap.vb" />
-    <Compile Include="clsModel.vb" />
     <Compile Include="ctrlPlayerNum.Designer.vb">
       <DependentUpon>ctrlPlayerNum.vb</DependentUpon>
     </Compile>
     <Compile Include="ctrlPlayerNum.vb">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="frmSplash.Designer.vb">
-      <DependentUpon>frmSplash.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmSplash.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Application.vb" />
-    <Compile Include="modBitmap.vb" />
-    <Compile Include="modGenerator.vb" />
-    <Compile Include="modINI.vb" />
-    <Compile Include="My Project\Resources.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="PathfinderConnection.vb" />
-    <Compile Include="PathfinderLayer.vb" />
-    <Compile Include="PathfinderNetwork.vb" />
-    <Compile Include="PathfinderNode.vb" />
-    <Compile Include="clsPainter.vb" />
-    <Compile Include="clsTileset.vb" />
-    <Compile Include="clsUnitType.vb" />
-    <Compile Include="ctrlMapView.Designer.vb">
-      <DependentUpon>ctrlMapView.vb</DependentUpon>
-    </Compile>
-    <Compile Include="ctrlMapView.vb">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ctrlTextureView.Designer.vb">
@@ -199,11 +170,25 @@
     <Compile Include="frmCompile.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmMain.vb">
+    <Compile Include="frmData.Designer.vb">
+      <DependentUpon>frmData.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmData.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmGenerator.Designer.vb">
+      <DependentUpon>frmGenerator.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmGenerator.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmMain.Designer.vb">
       <DependentUpon>frmMain.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmMain.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmMainIC.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmMapTexturer.Designer.vb">
@@ -212,23 +197,62 @@
     <Compile Include="frmMapTexturer.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmOptions.Designer.vb">
+      <DependentUpon>frmOptions.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmOptions.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmSplash.Designer.vb">
+      <DependentUpon>frmSplash.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmSplash.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmWarnings.Designer.vb">
+      <DependentUpon>frmWarnings.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmWarnings.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmWZLoad.Designer.vb">
       <DependentUpon>frmWZLoad.vb</DependentUpon>
     </Compile>
     <Compile Include="frmWZLoad.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="GLFont.vb" />
+    <Compile Include="modBitmap.vb" />
     <Compile Include="modData.vb" />
+    <Compile Include="modGenerator.vb" />
+    <Compile Include="modINI.vb" />
     <Compile Include="modMath.vb" />
-    <Compile Include="modMatrix.vb" />
     <Compile Include="modProgram.vb" />
+    <Compile Include="modSettings.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
+    <Compile Include="My Project\Application.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Application.myapp</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Settings.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="PathfinderConnection.vb" />
+    <Compile Include="PathfinderLayer.vb" />
+    <Compile Include="PathfinderNetwork.vb" />
+    <Compile Include="PathfinderNode.vb" />
     <Compile Include="TileOrientation.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ctrlBrush.resx">
       <DependentUpon>ctrlBrush.vb</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ctrlMapView.resx">
       <DependentUpon>ctrlMapView.vb</DependentUpon>
@@ -253,14 +277,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.vb</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="frmMapTexturer.resx">
       <DependentUpon>frmMapTexturer.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmOptions.resx">
+      <DependentUpon>frmOptions.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmSplash.resx">
       <DependentUpon>frmSplash.vb</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="frmWarnings.resx">
       <DependentUpon>frmWarnings.vb</DependentUpon>
@@ -269,36 +294,39 @@
       <DependentUpon>frmWZLoad.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
-      <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.vb</LastGenOutput>
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="My Project\app.manifest" />
+    <None Include="My Project\Application.myapp">
+      <Generator>MyApplicationCodeGenerator</Generator>
+      <LastGenOutput>Application.Designer.vb</LastGenOutput>
+    </None>
+    <None Include="My Project\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <CustomToolNamespace>My</CustomToolNamespace>
+      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4 Client Profile %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 2.0 %28x86%29</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.0">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.0 %28x86%29</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>true</Install>
+      <Install>false</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
       <Visible>False</Visible>

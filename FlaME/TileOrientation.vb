@@ -2,21 +2,21 @@
 
     Public Structure sTileOrientation
         Public ResultXFlip As Boolean
-        Public ResultZFlip As Boolean
+        Public ResultYFlip As Boolean
         Public SwitchedAxes As Boolean
 
         Public Sub New(ByVal New_ResultXFlip As Boolean, ByVal New_ResultZFlip As Boolean, ByVal New_SwitchedAxes As Boolean)
 
             ResultXFlip = New_ResultXFlip
-            ResultZFlip = New_ResultZFlip
+            ResultYFlip = New_ResultZFlip
             SwitchedAxes = New_SwitchedAxes
         End Sub
 
         Public Sub RotateClockwise()
 
             SwitchedAxes = Not SwitchedAxes
-            If ResultXFlip Xor ResultZFlip Then
-                ResultZFlip = Not ResultZFlip
+            If ResultXFlip Xor ResultYFlip Then
+                ResultYFlip = Not ResultYFlip
             Else
                 ResultXFlip = Not ResultXFlip
             End If
@@ -25,56 +25,66 @@
         Public Sub RotateAnticlockwise()
 
             SwitchedAxes = Not SwitchedAxes
-            If ResultXFlip Xor ResultZFlip Then
+            If ResultXFlip Xor ResultYFlip Then
                 ResultXFlip = Not ResultXFlip
             Else
-                ResultZFlip = Not ResultZFlip
+                ResultYFlip = Not ResultYFlip
+            End If
+        End Sub
+
+        Public Sub Reverse()
+
+            If SwitchedAxes Then
+                If ResultXFlip Xor ResultYFlip Then
+                    ResultXFlip = Not ResultXFlip
+                    ResultYFlip = Not ResultYFlip
+                End If
             End If
         End Sub
     End Structure
 
     Public Structure sTileDirection
         Public X As Byte '0-2, 1=middle
-        Public Z As Byte '0-2, 1=middle
+        Public Y As Byte '0-2, 1=middle
 
-        Public Sub New(ByVal NewX As Byte, ByVal NewZ As Byte)
+        Public Sub New(ByVal NewX As Byte, ByVal NewY As Byte)
 
             X = NewX
-            Z = NewZ
+            Y = NewY
         End Sub
 
         Public Sub FlipX()
 
-            X = 2 - X
+            X = CByte(2) - X
         End Sub
 
-        Public Sub FlipZ()
+        Public Sub FlipY()
 
-            Z = 2 - Z
+            Y = CByte(2) - Y
         End Sub
 
         Public Sub RotateClockwise()
             Dim byteTemp As Byte
 
             byteTemp = X
-            X = 2 - Z
-            Z = byteTemp
+            X = CByte(2) - Y
+            Y = byteTemp
         End Sub
 
         Public Sub RotateAnticlockwise()
             Dim byteTemp As Byte
 
             byteTemp = X
-            X = Z
-            Z = 2 - byteTemp
+            X = Y
+            Y = CByte(2) - byteTemp
         End Sub
 
         Public Sub SwitchAxes()
             Dim byteTemp As Byte
 
             byteTemp = X
-            X = Z
-            Z = byteTemp
+            X = Y
+            Y = byteTemp
         End Sub
     End Structure
 
@@ -88,109 +98,113 @@
     Public TileDirection_Left As New sTileDirection(0, 1)
     Public TileDirection_None As New sTileDirection(1, 1)
 
-    Public Function OrientateTile(ByRef TileChance As clsPainter.sTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.sTerrainTile.sTexture
-        Dim IsDiagonal As Boolean
+    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
+        Dim ReturnResult As clsMap.clsTerrain.Tile.sTexture
 
         'use random for empty tiles
         If TileChance.TextureNum < 0 Then
-            OrientateTile.Orientation.ResultXFlip = (Rnd() >= 0.5F)
-            OrientateTile.Orientation.ResultZFlip = (Rnd() >= 0.5F)
-            OrientateTile.Orientation.SwitchedAxes = (Rnd() >= 0.5F)
-            OrientateTile.TextureNum = -1
-            Exit Function
+            ReturnResult.Orientation.ResultXFlip = (Rnd() >= 0.5F)
+            ReturnResult.Orientation.ResultYFlip = (Rnd() >= 0.5F)
+            ReturnResult.Orientation.SwitchedAxes = (Rnd() >= 0.5F)
+            ReturnResult.TextureNum = -1
+            Return ReturnResult
         End If
         'stop invalid numbers
-        If TileChance.Direction.X > 2 Or TileChance.Direction.Z > 2 Or NewDirection.X > 2 Or NewDirection.Z > 2 Then
+        If TileChance.Direction.X > 2 Or TileChance.Direction.Y > 2 Or NewDirection.X > 2 Or NewDirection.Y > 2 Then
             Stop
             Exit Function
         End If
         'stop different direction types
-        If (NewDirection.X = 1 Xor NewDirection.Z = 1) Xor (TileChance.Direction.X = 1 Xor TileChance.Direction.Z = 1) Then
+        If (NewDirection.X = 1 Xor NewDirection.Y = 1) Xor (TileChance.Direction.X = 1 Xor TileChance.Direction.Y = 1) Then
             Stop
             Exit Function
         End If
 
-        OrientateTile.TextureNum = TileChance.TextureNum
+        ReturnResult.TextureNum = TileChance.TextureNum
 
         'if a direction is neutral then give a random orientation
-        If (NewDirection.X = 1 And NewDirection.Z = 1) Or (TileChance.Direction.X = 1 And TileChance.Direction.Z = 1) Then
-            OrientateTile.Orientation.SwitchedAxes = (Rnd() >= 0.5F)
-            OrientateTile.Orientation.ResultXFlip = (Rnd() >= 0.5F)
-            OrientateTile.Orientation.ResultZFlip = (Rnd() >= 0.5F)
-            Exit Function
+        If (NewDirection.X = 1 And NewDirection.Y = 1) Or (TileChance.Direction.X = 1 And TileChance.Direction.Y = 1) Then
+            ReturnResult.Orientation.SwitchedAxes = (Rnd() >= 0.5F)
+            ReturnResult.Orientation.ResultXFlip = (Rnd() >= 0.5F)
+            ReturnResult.Orientation.ResultYFlip = (Rnd() >= 0.5F)
+            Return ReturnResult
         End If
 
-        IsDiagonal = (NewDirection.X <> 1 And NewDirection.Z <> 1)
+        Dim IsDiagonal As Boolean
+
+        IsDiagonal = (NewDirection.X <> 1 And NewDirection.Y <> 1)
         If IsDiagonal Then
-            OrientateTile.Orientation.SwitchedAxes = False
+            ReturnResult.Orientation.SwitchedAxes = False
             'use flips to match the directions
             If TileChance.Direction.X = 0 Xor NewDirection.X = 0 Then
-                OrientateTile.Orientation.ResultXFlip = True
+                ReturnResult.Orientation.ResultXFlip = True
             Else
-                OrientateTile.Orientation.ResultXFlip = False
+                ReturnResult.Orientation.ResultXFlip = False
             End If
-            If TileChance.Direction.Z = 0 Xor NewDirection.Z = 0 Then
-                OrientateTile.Orientation.ResultZFlip = True
+            If TileChance.Direction.Y = 0 Xor NewDirection.Y = 0 Then
+                ReturnResult.Orientation.ResultYFlip = True
             Else
-                OrientateTile.Orientation.ResultZFlip = False
+                ReturnResult.Orientation.ResultYFlip = False
             End If
             'randomly switch to the alternate orientation
             If Rnd() >= 0.5F Then
-                OrientateTile.Orientation.SwitchedAxes = Not OrientateTile.Orientation.SwitchedAxes
-                If (NewDirection.X = 0 Xor NewDirection.Z = 0) Xor (OrientateTile.Orientation.ResultXFlip Xor OrientateTile.Orientation.ResultZFlip) Then
-                    OrientateTile.Orientation.ResultXFlip = Not OrientateTile.Orientation.ResultXFlip
-                    OrientateTile.Orientation.ResultZFlip = Not OrientateTile.Orientation.ResultZFlip
+                ReturnResult.Orientation.SwitchedAxes = Not ReturnResult.Orientation.SwitchedAxes
+                If (NewDirection.X = 0 Xor NewDirection.Y = 0) Xor (ReturnResult.Orientation.ResultXFlip Xor ReturnResult.Orientation.ResultYFlip) Then
+                    ReturnResult.Orientation.ResultXFlip = Not ReturnResult.Orientation.ResultXFlip
+                    ReturnResult.Orientation.ResultYFlip = Not ReturnResult.Orientation.ResultYFlip
                 End If
             End If
         Else
             'switch axes if the directions are on different axes
-            OrientateTile.Orientation.SwitchedAxes = (TileChance.Direction.X = 1 Xor NewDirection.X = 1)
+            ReturnResult.Orientation.SwitchedAxes = (TileChance.Direction.X = 1 Xor NewDirection.X = 1)
             'use a flip to match the directions
-            If OrientateTile.Orientation.SwitchedAxes Then
-                If TileChance.Direction.Z <> NewDirection.X Then
-                    OrientateTile.Orientation.ResultXFlip = True
+            If ReturnResult.Orientation.SwitchedAxes Then
+                If TileChance.Direction.Y <> NewDirection.X Then
+                    ReturnResult.Orientation.ResultXFlip = True
                 Else
-                    OrientateTile.Orientation.ResultXFlip = False
+                    ReturnResult.Orientation.ResultXFlip = False
                 End If
-                If TileChance.Direction.X <> NewDirection.Z Then
-                    OrientateTile.Orientation.ResultZFlip = True
+                If TileChance.Direction.X <> NewDirection.Y Then
+                    ReturnResult.Orientation.ResultYFlip = True
                 Else
-                    OrientateTile.Orientation.ResultZFlip = False
+                    ReturnResult.Orientation.ResultYFlip = False
                 End If
             Else
                 If TileChance.Direction.X <> NewDirection.X Then
-                    OrientateTile.Orientation.ResultXFlip = True
+                    ReturnResult.Orientation.ResultXFlip = True
                 Else
-                    OrientateTile.Orientation.ResultXFlip = False
+                    ReturnResult.Orientation.ResultXFlip = False
                 End If
-                If TileChance.Direction.Z <> NewDirection.Z Then
-                    OrientateTile.Orientation.ResultZFlip = True
+                If TileChance.Direction.Y <> NewDirection.Y Then
+                    ReturnResult.Orientation.ResultYFlip = True
                 Else
-                    OrientateTile.Orientation.ResultZFlip = False
+                    ReturnResult.Orientation.ResultYFlip = False
                 End If
             End If
             'randomly switch to the alternate orientation
             If Rnd() >= 0.5F Then
                 If NewDirection.X = 1 Then
-                    OrientateTile.Orientation.ResultXFlip = Not OrientateTile.Orientation.ResultXFlip
+                    ReturnResult.Orientation.ResultXFlip = Not ReturnResult.Orientation.ResultXFlip
                 Else
-                    OrientateTile.Orientation.ResultZFlip = Not OrientateTile.Orientation.ResultZFlip
+                    ReturnResult.Orientation.ResultYFlip = Not ReturnResult.Orientation.ResultYFlip
                 End If
             End If
         End If
+
+        Return ReturnResult
     End Function
 
-    Public Sub OrientationToDirection(ByVal InitialDirection As sTileDirection, ByVal TileTexture As clsMap.sTerrainTile.sTexture, ByRef ResultDirection As sTileDirection)
+    Public Sub RotateDirection(ByVal InitialDirection As sTileDirection, ByVal Orientation As sTileOrientation, ByRef ResultDirection As sTileDirection)
 
         ResultDirection = InitialDirection
-        If TileTexture.Orientation.SwitchedAxes Then
+        If Orientation.SwitchedAxes Then
             ResultDirection.SwitchAxes()
         End If
-        If TileTexture.Orientation.ResultXFlip Then
+        If Orientation.ResultXFlip Then
             ResultDirection.FlipX()
         End If
-        If TileTexture.Orientation.ResultZFlip Then
-            ResultDirection.FlipZ()
+        If Orientation.ResultYFlip Then
+            ResultDirection.FlipY()
         End If
     End Sub
 
@@ -203,7 +217,7 @@
             Else
                 Result.X = Pos.Y
             End If
-            If TileOrientation.ResultZFlip Then
+            If TileOrientation.ResultYFlip Then
                 Result.Y = TerrainGridSpacing - Pos.X
             Else
                 Result.Y = Pos.X
@@ -214,7 +228,7 @@
             Else
                 Result.X = Pos.X
             End If
-            If TileOrientation.ResultZFlip Then
+            If TileOrientation.ResultYFlip Then
                 Result.Y = TerrainGridSpacing - Pos.Y
             Else
                 Result.Y = Pos.Y
@@ -224,58 +238,64 @@
         Return Result
     End Function
 
-    Public Function GetTileRotatedPos(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_sng) As sXY_sng
+    Public Function GetTileRotatedPos_sng(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_sng) As sXY_sng
+        Dim ReturnResult As sXY_sng
 
         If TileOrientation.SwitchedAxes Then
             If TileOrientation.ResultXFlip Then
-                GetTileRotatedPos.X = 1.0F - Pos.Y
+                ReturnResult.X = 1.0F - Pos.Y
             Else
-                GetTileRotatedPos.X = Pos.Y
+                ReturnResult.X = Pos.Y
             End If
-            If TileOrientation.ResultZFlip Then
-                GetTileRotatedPos.Y = 1.0F - Pos.X
+            If TileOrientation.ResultYFlip Then
+                ReturnResult.Y = 1.0F - Pos.X
             Else
-                GetTileRotatedPos.Y = Pos.X
+                ReturnResult.Y = Pos.X
             End If
         Else
             If TileOrientation.ResultXFlip Then
-                GetTileRotatedPos.X = 1.0F - Pos.X
+                ReturnResult.X = 1.0F - Pos.X
             Else
-                GetTileRotatedPos.X = Pos.X
+                ReturnResult.X = Pos.X
             End If
-            If TileOrientation.ResultZFlip Then
-                GetTileRotatedPos.Y = 1.0F - Pos.Y
+            If TileOrientation.ResultYFlip Then
+                ReturnResult.Y = 1.0F - Pos.Y
             Else
-                GetTileRotatedPos.Y = Pos.Y
+                ReturnResult.Y = Pos.Y
             End If
         End If
+
+        Return ReturnResult
     End Function
 
-    Public Function GetTileRotatedPos(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_dbl) As sXY_dbl
+    Public Function GetTileRotatedPos_dbl(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_dbl) As sXY_dbl
+        Dim ReturnResult As sXY_dbl
 
         If TileOrientation.SwitchedAxes Then
             If TileOrientation.ResultXFlip Then
-                GetTileRotatedPos.X = 1.0# - Pos.Y
+                ReturnResult.X = 1.0# - Pos.Y
             Else
-                GetTileRotatedPos.X = Pos.Y
+                ReturnResult.X = Pos.Y
             End If
-            If TileOrientation.ResultZFlip Then
-                GetTileRotatedPos.Y = 1.0# - Pos.X
+            If TileOrientation.ResultYFlip Then
+                ReturnResult.Y = 1.0# - Pos.X
             Else
-                GetTileRotatedPos.Y = Pos.X
+                ReturnResult.Y = Pos.X
             End If
         Else
             If TileOrientation.ResultXFlip Then
-                GetTileRotatedPos.X = 1.0# - Pos.X
+                ReturnResult.X = 1.0# - Pos.X
             Else
-                GetTileRotatedPos.X = Pos.X
+                ReturnResult.X = Pos.X
             End If
-            If TileOrientation.ResultZFlip Then
-                GetTileRotatedPos.Y = 1.0# - Pos.Y
+            If TileOrientation.ResultYFlip Then
+                ReturnResult.Y = 1.0# - Pos.Y
             Else
-                GetTileRotatedPos.Y = Pos.Y
+                ReturnResult.Y = Pos.Y
             End If
         End If
+
+        Return ReturnResult
     End Function
 
     Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
@@ -283,7 +303,7 @@
         Dim ZFlip As Boolean
 
         XFlip = TileOrientation.ResultXFlip
-        ZFlip = TileOrientation.ResultZFlip
+        ZFlip = TileOrientation.ResultYFlip
 
         'texcoords are reverse of normal
         If TileOrientation.SwitchedAxes Then
@@ -350,14 +370,14 @@
             Else
                 OutputRotation = 3
             End If
-            OutputFlipX = Not (TileOrientation.ResultXFlip Xor TileOrientation.ResultZFlip)
+            OutputFlipX = Not (TileOrientation.ResultXFlip Xor TileOrientation.ResultYFlip)
         Else
-            If TileOrientation.ResultZFlip Then
+            If TileOrientation.ResultYFlip Then
                 OutputRotation = 2
             Else
                 OutputRotation = 0
             End If
-            OutputFlipX = (TileOrientation.ResultXFlip Xor TileOrientation.ResultZFlip)
+            OutputFlipX = (TileOrientation.ResultXFlip Xor TileOrientation.ResultYFlip)
         End If
     End Sub
 
@@ -366,23 +386,23 @@
         If OldRotation = 0 Then
             Output_TileOrientation.SwitchedAxes = False
             Output_TileOrientation.ResultXFlip = False
-            Output_TileOrientation.ResultZFlip = False
+            Output_TileOrientation.ResultYFlip = False
         ElseIf OldRotation = 1 Then
             Output_TileOrientation.SwitchedAxes = True
             Output_TileOrientation.ResultXFlip = True
-            Output_TileOrientation.ResultZFlip = False
+            Output_TileOrientation.ResultYFlip = False
         ElseIf OldRotation = 2 Then
             Output_TileOrientation.SwitchedAxes = False
             Output_TileOrientation.ResultXFlip = True
-            Output_TileOrientation.ResultZFlip = True
+            Output_TileOrientation.ResultYFlip = True
         ElseIf OldRotation = 3 Then
             Output_TileOrientation.SwitchedAxes = True
             Output_TileOrientation.ResultXFlip = False
-            Output_TileOrientation.ResultZFlip = True
+            Output_TileOrientation.ResultYFlip = True
         End If
         If OldFlipX Then
             If Output_TileOrientation.SwitchedAxes Then
-                Output_TileOrientation.ResultZFlip = Not Output_TileOrientation.ResultZFlip
+                Output_TileOrientation.ResultYFlip = Not Output_TileOrientation.ResultYFlip
             Else
                 Output_TileOrientation.ResultXFlip = Not Output_TileOrientation.ResultXFlip
             End If
@@ -391,13 +411,49 @@
             If Output_TileOrientation.SwitchedAxes Then
                 Output_TileOrientation.ResultXFlip = Not Output_TileOrientation.ResultXFlip
             Else
-                Output_TileOrientation.ResultZFlip = Not Output_TileOrientation.ResultZFlip
+                Output_TileOrientation.ResultYFlip = Not Output_TileOrientation.ResultYFlip
             End If
         End If
     End Sub
 
     Public Function IdenticalTileOrientations(ByVal TileOrientationA As sTileDirection, ByVal TileOrientationB As sTileDirection) As Boolean
 
-        IdenticalTileOrientations = (TileOrientationA.X = TileOrientationB.X And TileOrientationA.Z = TileOrientationB.Z)
+        Return (TileOrientationA.X = TileOrientationB.X And TileOrientationA.Y = TileOrientationB.Y)
+    End Function
+
+    Public Function DirectionsOnSameSide(ByVal DirectionA As sTileDirection, ByVal DirectionB As sTileDirection) As Boolean
+
+        If DirectionA.X = 0 Then
+            If DirectionB.X = 0 Then
+                Return True
+            End If
+        End If
+        If DirectionA.X = 2 Then
+            If DirectionB.X = 2 Then
+                Return True
+            End If
+        End If
+        If DirectionA.Y = 0 Then
+            If DirectionB.Y = 0 Then
+                Return True
+            End If
+        End If
+        If DirectionA.Y = 2 Then
+            If DirectionB.Y = 2 Then
+                Return True
+            End If
+        End If
+        Return False
+    End Function
+
+    Public Function DirectionsAreInLine(ByVal DirectionA As sTileDirection, ByVal DirectionB As sTileDirection) As Boolean
+
+        If DirectionA.X = DirectionB.X Then
+            Return True
+        End If
+        If DirectionA.Y = DirectionB.Y Then
+            Return True
+        End If
+        Return False
     End Function
 End Module

@@ -3,6 +3,8 @@
 Partial Public Class clsMap
 
     Public Class clsFMap_INIObjects
+        Inherits clsINIRead.clsSectionTranslator
+
         Public Structure sObject
             Public ID As UInteger
             Public Type As clsUnitType.enumType
@@ -41,7 +43,7 @@ Partial Public Class clsMap
             Next
         End Sub
 
-        Public Function Translate_INI(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "type"
@@ -172,7 +174,7 @@ Partial Public Class clsMap
                         CommaText(A) = CommaText(A).Trim()
                     Next
                     Try
-                        Objects(INISectionNum).Pos = New clsXY_int(New sXY_int(CommaText(0), CommaText(1)))
+                        Objects(INISectionNum).Pos = New clsXY_int(New sXY_int(CInt(CommaText(0)), CInt(CommaText(1))))
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
@@ -207,7 +209,7 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Function Write_FMap(ByVal Path As String, ByVal Overwrite As Boolean, ByVal Compress As Boolean) As clsResult
+    Public Function Write_FMap(ByVal Path As String, ByVal Overwrite As Boolean, ByVal Compress As Boolean) As clsResult
         Dim ReturnResult As New clsResult
 
         If Not Overwrite Then
@@ -322,9 +324,9 @@ Partial Public Class clsMap
             File.Property_Append("Tileset", "Rockies")
         End If
 
-        File.Property_Append("Size", TerrainSize.X & ", " & TerrainSize.Y)
+        File.Property_Append("Size", Terrain.TileSize.X & ", " & Terrain.TileSize.Y)
 
-        File.Property_Append("AutoScrollLimits", frmCompileInstance.cbxAutoScrollLimits.Checked)
+        File.Property_Append("AutoScrollLimits", CStr(frmCompileInstance.cbxAutoScrollLimits.Checked))
         File.Property_Append("ScrollMinX", frmCompileInstance.txtScrollMinX.Text)
         File.Property_Append("ScrollMinY", frmCompileInstance.txtScrollMinY.Text)
         File.Property_Append("ScrollMaxX", frmCompileInstance.txtScrollMaxX.Text)
@@ -332,12 +334,12 @@ Partial Public Class clsMap
 
         File.Property_Append("Name", frmCompileInstance.txtName.Text)
         File.Property_Append("Players", frmCompileInstance.txtMultiPlayers.Text)
-        File.Property_Append("XPlayerLev", frmCompileInstance.cbxNewPlayerFormat.Checked)
+        File.Property_Append("XPlayerLev", CStr(frmCompileInstance.cbxNewPlayerFormat.Checked))
         File.Property_Append("Author", frmCompileInstance.txtAuthor.Text)
         File.Property_Append("License", frmCompileInstance.cboLicense.Text)
         File.Property_Append("CampTime", frmCompileInstance.txtCampTime.Text)
         If frmCompileInstance.cboCampType.SelectedIndex >= 0 Then
-            File.Property_Append("CampType", frmCompileInstance.cboCampType.SelectedIndex)
+            File.Property_Append("CampType", CStr(frmCompileInstance.cboCampType.SelectedIndex))
         End If
     End Sub
 
@@ -345,9 +347,9 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                File.U8_Append(TerrainVertex(X, Y).Height)
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
+                File.U8_Append(Terrain.Vertices(X, Y).Height)
             Next
         Next
     End Sub
@@ -360,21 +362,21 @@ Partial Public Class clsMap
         Dim ErrorCount As Integer
         Dim Value As Integer
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                If TerrainVertex(X, Y).Terrain Is Nothing Then
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
+                If Terrain.Vertices(X, Y).Terrain Is Nothing Then
                     Value = 0
-                ElseIf TerrainVertex(X, Y).Terrain.Num < 0 Then
+                ElseIf Terrain.Vertices(X, Y).Terrain.Num < 0 Then
                     ErrorCount += 1
                     Value = 0
                 Else
-                    Value = TerrainVertex(X, Y).Terrain.Num + 1
+                    Value = Terrain.Vertices(X, Y).Terrain.Num + 1
                     If Value > 255 Then
                         ErrorCount += 1
                         Value = 0
                     End If
                 End If
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
 
@@ -393,14 +395,14 @@ Partial Public Class clsMap
         Dim ErrorCount As Integer
         Dim Value As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                Value = TerrainTiles(X, Y).Texture.TextureNum + 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                Value = Terrain.Tiles(X, Y).Texture.TextureNum + 1
                 If Value < 0 Or Value > 255 Then
                     ErrorCount += 1
                     Value = 0
                 End If
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
 
@@ -416,22 +418,22 @@ Partial Public Class clsMap
         Dim Y As Integer
         Dim Value As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 Value = 0
-                If TerrainTiles(X, Y).Texture.Orientation.SwitchedAxes Then
+                If Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes Then
                     Value += 8
                 End If
-                If TerrainTiles(X, Y).Texture.Orientation.ResultXFlip Then
+                If Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip Then
                     Value += 4
                 End If
-                If TerrainTiles(X, Y).Texture.Orientation.ResultZFlip Then
+                If Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip Then
                     Value += 2
                 End If
-                If TerrainTiles(X, Y).Tri Then
+                If Terrain.Tiles(X, Y).Tri Then
                     Value += 1
                 End If
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
     End Sub
@@ -445,43 +447,43 @@ Partial Public Class clsMap
         Dim DownSideValue As Integer
         Dim ErrorCount As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 Value = 0
-                If TerrainTiles(X, Y).Tri Then
-                    If TerrainTiles(X, Y).TriTopLeftIsCliff Then
+                If Terrain.Tiles(X, Y).Tri Then
+                    If Terrain.Tiles(X, Y).TriTopLeftIsCliff Then
                         Value += 2
                     End If
-                    If TerrainTiles(X, Y).TriBottomRightIsCliff Then
+                    If Terrain.Tiles(X, Y).TriBottomRightIsCliff Then
                         Value += 1
                     End If
                 Else
-                    If TerrainTiles(X, Y).TriBottomLeftIsCliff Then
+                    If Terrain.Tiles(X, Y).TriBottomLeftIsCliff Then
                         Value += 2
                     End If
-                    If TerrainTiles(X, Y).TriTopRightIsCliff Then
+                    If Terrain.Tiles(X, Y).TriTopRightIsCliff Then
                         Value += 1
                     End If
                 End If
-                If TerrainTiles(X, Y).Terrain_IsCliff Then
+                If Terrain.Tiles(X, Y).Terrain_IsCliff Then
                     Value += 4
                 End If
-                If IdenticalTileOrientations(TerrainTiles(X, Y).DownSide, TileDirection_None) Then
+                If IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_None) Then
                     DownSideValue = 0
-                ElseIf IdenticalTileOrientations(TerrainTiles(X, Y).DownSide, TileDirection_Top) Then
+                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Top) Then
                     DownSideValue = 1
-                ElseIf IdenticalTileOrientations(TerrainTiles(X, Y).DownSide, TileDirection_Left) Then
+                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Left) Then
                     DownSideValue = 2
-                ElseIf IdenticalTileOrientations(TerrainTiles(X, Y).DownSide, TileDirection_Right) Then
+                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Right) Then
                     DownSideValue = 3
-                ElseIf IdenticalTileOrientations(TerrainTiles(X, Y).DownSide, TileDirection_Bottom) Then
+                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Bottom) Then
                     DownSideValue = 4
                 Else
                     ErrorCount += 1
                     DownSideValue = 0
                 End If
                 Value += DownSideValue * 8
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
 
@@ -500,38 +502,38 @@ Partial Public Class clsMap
         Dim Value As Integer
         Dim ErrorCount As Integer
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X - 1
-                If TerrainSideH(X, Y).Road Is Nothing Then
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X - 1
+                If Terrain.SideH(X, Y).Road Is Nothing Then
                     Value = 0
-                ElseIf TerrainSideH(X, Y).Road.Num < 0 Then
+                ElseIf Terrain.SideH(X, Y).Road.Num < 0 Then
                     ErrorCount += 1
                     Value = 0
                 Else
-                    Value = TerrainSideH(X, Y).Road.Num + 1
+                    Value = Terrain.SideH(X, Y).Road.Num + 1
                     If Value > 255 Then
                         ErrorCount += 1
                         Value = 0
                     End If
                 End If
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X
-                If TerrainSideV(X, Y).Road Is Nothing Then
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X
+                If Terrain.SideV(X, Y).Road Is Nothing Then
                     Value = 0
-                ElseIf TerrainSideV(X, Y).Road.Num < 0 Then
+                ElseIf Terrain.SideV(X, Y).Road.Num < 0 Then
                     ErrorCount += 1
                     Value = 0
                 Else
-                    Value = TerrainSideV(X, Y).Road.Num + 1
+                    Value = Terrain.SideV(X, Y).Road.Num + 1
                     If Value > 255 Then
                         ErrorCount += 1
                         Value = 0
                     End If
                 End If
-                File.U8_Append(Value)
+                File.U8_Append(CByte(Value))
             Next
         Next
 
@@ -553,7 +555,7 @@ Partial Public Class clsMap
 
         For A = 0 To UnitCount - 1
             tmpUnit = Units(A)
-            File.SectionName_Append(A)
+            File.SectionName_Append(CStr(A))
             Select Case tmpUnit.Type.Type
                 Case clsUnitType.enumType.Feature
                     File.Property_Append("Type", "Feature, " & CType(tmpUnit.Type, clsFeatureType).Code)
@@ -574,7 +576,7 @@ Partial Public Class clsMap
                         If tmpDroid.Propulsion IsNot Nothing Then
                             File.Property_Append("Propulsion", tmpDroid.Propulsion.Code)
                         End If
-                        File.Property_Append("TurretCount", tmpDroid.TurretCount)
+                        File.Property_Append("TurretCount", CStr(tmpDroid.TurretCount))
                         If tmpDroid.Turret1 IsNot Nothing Then
                             If tmpDroid.Turret1.GetTurretTypeName(strTemp) Then
                                 File.Property_Append("Turret1", strTemp & ", " & tmpDroid.Turret1.Code)
@@ -594,18 +596,18 @@ Partial Public Class clsMap
                 Case Else
                     WarningCount += 1
             End Select
-            File.Property_Append("ID", tmpUnit.ID)
-            File.Property_Append("Priority", tmpUnit.SavePriority)
+            File.Property_Append("ID", CStr(tmpUnit.ID))
+            File.Property_Append("Priority", CStr(tmpUnit.SavePriority))
             File.Property_Append("Pos", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y)
-            File.Property_Append("Heading", tmpUnit.Rotation)
+            File.Property_Append("Heading", CStr(tmpUnit.Rotation))
             If tmpUnit.UnitGroup.Map_UnitGroupNum < 0 Then
                 strTemp = "scavenger"
             Else
-                strTemp = tmpUnit.UnitGroup.Map_UnitGroupNum
+                strTemp = CStr(tmpUnit.UnitGroup.Map_UnitGroupNum)
             End If
             File.Property_Append("UnitGroup", strTemp)
             If tmpUnit.Health < 1.0# Then
-                File.Property_Append("Health", tmpUnit.Health)
+                File.Property_Append("Health", CStr(tmpUnit.Health))
             End If
             File.Gap_Append()
         Next
@@ -621,11 +623,11 @@ Partial Public Class clsMap
         Dim A As Integer
 
         For A = 0 To GatewayCount - 1
-            File.SectionName_Append(A)
-            File.Property_Append("AX", Gateways(A).PosA.X)
-            File.Property_Append("AY", Gateways(A).PosA.Y)
-            File.Property_Append("BX", Gateways(A).PosB.X)
-            File.Property_Append("BY", Gateways(A).PosB.Y)
+            File.SectionName_Append(CStr(A))
+            File.Property_Append("AX", CStr(Gateways(A).PosA.X))
+            File.Property_Append("AY", CStr(Gateways(A).PosA.Y))
+            File.Property_Append("BX", CStr(Gateways(A).PosB.X))
+            File.Property_Append("BY", CStr(Gateways(A).PosB.Y))
             File.Gap_Append()
         Next
     End Sub
@@ -678,7 +680,7 @@ Partial Public Class clsMap
         End If
 
         SetPainterToDefaults() 'depends on tileset. must be called before loading the terrains.
-        Terrain_Blank(NewTerrainSize.X, NewTerrainSize.Y)
+        Terrain_Blank(NewTerrainSize)
         TileType_Reset()
 
         FindPath = "vertexheight.dat"
@@ -770,11 +772,13 @@ Partial Public Class clsMap
     End Function
 
     Public Class clsFMapInfo
+        Inherits clsINIRead.clsTranslator
+
         Public TerrainSize As sXY_int = New sXY_int(-1, -1)
         Public InterfaceOptions As New clsInterfaceOptions
         Public Tileset As clsTileset
 
-        Public Function Translate_INI(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "tileset"
@@ -832,13 +836,13 @@ Partial Public Class clsMap
                     End Try
                 Case "scrollmaxx"
                     Try
-                        InterfaceOptions.ScrollMax.X = CInt(INIProperty.Value)
+                        InterfaceOptions.ScrollMax.X = CUInt(INIProperty.Value)
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
                 Case "scrollmaxy"
                     Try
-                        InterfaceOptions.ScrollMax.Y = CInt(INIProperty.Value)
+                        InterfaceOptions.ScrollMax.Y = CUInt(INIProperty.Value)
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
@@ -874,7 +878,7 @@ Partial Public Class clsMap
         ReturnResult.Append(InfoINI.ReadFile(File), "")
 
         ResultInfo = New clsFMapInfo
-        ReturnResult.Append(InfoINI.Translate(AddressOf ResultInfo.Translate_INI), "")
+        ReturnResult.Append(InfoINI.Translate(ResultInfo), "")
 
         If ResultInfo.TerrainSize.X < 0 Or ResultInfo.TerrainSize.Y < 0 Then
             ReturnResult.Problem_Add("Map size was not specified or was invalid.")
@@ -889,9 +893,9 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
-                If Not File.Get_U8(TerrainVertex(X, Y).Height) Then
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
+                If Not File.Get_U8(Terrain.Vertices(X, Y).Height) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
                 End If
@@ -914,23 +918,23 @@ Partial Public Class clsMap
         Dim byteTemp As Byte
         Dim WarningCount As Integer
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
                 End If
                 Value = CInt(byteTemp) - 1
                 If Value < 0 Then
-                    TerrainVertex(X, Y).Terrain = Nothing
+                    Terrain.Vertices(X, Y).Terrain = Nothing
                 ElseIf Value >= Painter.TerrainCount Then
                     If WarningCount < 16 Then
                         ReturnResult.Warning_Add("Painted terrain at vertex " & X & ", " & Y & " was invalid.")
                     End If
                     WarningCount += 1
-                    TerrainVertex(X, Y).Terrain = Nothing
+                    Terrain.Vertices(X, Y).Terrain = Nothing
                 Else
-                    TerrainVertex(X, Y).Terrain = Painter.Terrains(Value)
+                    Terrain.Vertices(X, Y).Terrain = Painter.Terrains(Value)
                 End If
             Next
         Next
@@ -953,13 +957,13 @@ Partial Public Class clsMap
         Dim Y As Integer
         Dim byteTemp As Byte
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
                 End If
-                TerrainTiles(X, Y).Texture.TextureNum = CInt(byteTemp) - 1
+                Terrain.Tiles(X, Y).Texture.TextureNum = CInt(byteTemp) - 1
             Next
         Next
 
@@ -980,8 +984,8 @@ Partial Public Class clsMap
         Dim PartValue As Integer
         Dim WarningCount As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
@@ -989,7 +993,7 @@ Partial Public Class clsMap
 
                 Value = byteTemp
 
-                PartValue = Math.Floor(Value / 16)
+                PartValue = CInt(Math.Floor(Value / 16))
                 If PartValue > 0 Then
                     If WarningCount < 16 Then
                         ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
@@ -998,20 +1002,20 @@ Partial Public Class clsMap
                 End If
                 Value -= PartValue * 16
 
-                PartValue = Math.Floor(Value / 8)
-                TerrainTiles(X, Y).Texture.Orientation.SwitchedAxes = (PartValue > 0)
+                PartValue = CInt(Int(Value / 8.0#))
+                Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes = (PartValue > 0)
                 Value -= PartValue * 8
 
-                PartValue = Math.Floor(Value / 4)
-                TerrainTiles(X, Y).Texture.Orientation.ResultXFlip = (PartValue > 0)
+                PartValue = CInt(Int(Value / 4.0#))
+                Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip = (PartValue > 0)
                 Value -= PartValue * 4
 
-                PartValue = Math.Floor(Value / 2)
-                TerrainTiles(X, Y).Texture.Orientation.ResultZFlip = (PartValue > 0)
+                PartValue = CInt(Int(Value / 2.0#))
+                Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip = (PartValue > 0)
                 Value -= PartValue * 2
 
                 PartValue = Value
-                TerrainTiles(X, Y).Tri = (PartValue > 0)
+                Terrain.Tiles(X, Y).Tri = (PartValue > 0)
             Next
         Next
 
@@ -1037,8 +1041,8 @@ Partial Public Class clsMap
         Dim DownSideWarningCount As Integer
         Dim WarningCount As Integer
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
@@ -1046,7 +1050,7 @@ Partial Public Class clsMap
 
                 Value = byteTemp
 
-                PartValue = Math.Floor(Value / 64)
+                PartValue = CInt(Int(Value / 64.0#))
                 If PartValue > 0 Then
                     If WarningCount < 16 Then
                         ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
@@ -1055,20 +1059,20 @@ Partial Public Class clsMap
                 End If
                 Value -= PartValue * 64
 
-                PartValue = Math.Floor(Value / 8)
+                PartValue = CInt(Int(Value / 8.0#))
                 Select Case PartValue
                     Case 0
-                        TerrainTiles(X, Y).DownSide = TileDirection_None
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_None
                     Case 1
-                        TerrainTiles(X, Y).DownSide = TileDirection_Top
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_Top
                     Case 2
-                        TerrainTiles(X, Y).DownSide = TileDirection_Left
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_Left
                     Case 3
-                        TerrainTiles(X, Y).DownSide = TileDirection_Right
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_Right
                     Case 4
-                        TerrainTiles(X, Y).DownSide = TileDirection_Bottom
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_Bottom
                     Case Else
-                        TerrainTiles(X, Y).DownSide = TileDirection_None
+                        Terrain.Tiles(X, Y).DownSide = TileDirection_None
                         If DownSideWarningCount < 16 Then
                             ReturnResult.Warning_Add("Down side value for tile " & X & ", " & Y & " was invalid.")
                         End If
@@ -1076,23 +1080,23 @@ Partial Public Class clsMap
                 End Select
                 Value -= PartValue * 8
 
-                PartValue = Math.Floor(Value / 4)
-                TerrainTiles(X, Y).Terrain_IsCliff = (PartValue > 0)
+                PartValue = CInt(Int(Value / 4.0#))
+                Terrain.Tiles(X, Y).Terrain_IsCliff = (PartValue > 0)
                 Value -= PartValue * 4
 
-                PartValue = Math.Floor(Value / 2)
-                If TerrainTiles(X, Y).Tri Then
-                    TerrainTiles(X, Y).TriTopLeftIsCliff = (PartValue > 0)
+                PartValue = CInt(Int(Value / 2.0#))
+                If Terrain.Tiles(X, Y).Tri Then
+                    Terrain.Tiles(X, Y).TriTopLeftIsCliff = (PartValue > 0)
                 Else
-                    TerrainTiles(X, Y).TriBottomLeftIsCliff = (PartValue > 0)
+                    Terrain.Tiles(X, Y).TriBottomLeftIsCliff = (PartValue > 0)
                 End If
                 Value -= PartValue * 2
 
                 PartValue = Value
-                If TerrainTiles(X, Y).Tri Then
-                    TerrainTiles(X, Y).TriBottomRightIsCliff = (PartValue > 0)
+                If Terrain.Tiles(X, Y).Tri Then
+                    Terrain.Tiles(X, Y).TriBottomRightIsCliff = (PartValue > 0)
                 Else
-                    TerrainTiles(X, Y).TriTopRightIsCliff = (PartValue > 0)
+                    Terrain.Tiles(X, Y).TriTopRightIsCliff = (PartValue > 0)
                 End If
             Next
         Next
@@ -1120,43 +1124,43 @@ Partial Public Class clsMap
         Dim WarningCount As Integer
         Dim byteTemp As Byte
 
-        For Y = 0 To TerrainSize.Y
-            For X = 0 To TerrainSize.X - 1
+        For Y = 0 To Terrain.TileSize.Y
+            For X = 0 To Terrain.TileSize.X - 1
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
                 End If
                 Value = CInt(byteTemp) - 1
                 If Value < 0 Then
-                    TerrainSideH(X, Y).Road = Nothing
+                    Terrain.SideH(X, Y).Road = Nothing
                 ElseIf Value >= Painter.RoadCount Then
                     If WarningCount < 16 Then
                         ReturnResult.Warning_Add("Invalid road value for horizontal side " & X & ", " & Y & ".")
                     End If
                     WarningCount += 1
-                    TerrainSideH(X, Y).Road = Nothing
+                    Terrain.SideH(X, Y).Road = Nothing
                 Else
-                    TerrainSideH(X, Y).Road = Painter.Roads(Value)
+                    Terrain.SideH(X, Y).Road = Painter.Roads(Value)
                 End If
             Next
         Next
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X
                 If Not File.Get_U8(byteTemp) Then
                     ReturnResult.Problem_Add("Read error.")
                     Return ReturnResult
                 End If
                 Value = CInt(byteTemp) - 1
                 If Value < 0 Then
-                    TerrainSideV(X, Y).Road = Nothing
+                    Terrain.SideV(X, Y).Road = Nothing
                 ElseIf Value >= Painter.RoadCount Then
                     If WarningCount < 16 Then
                         ReturnResult.Warning_Add("Invalid road value for vertical side " & X & ", " & Y & ".")
                     End If
                     WarningCount += 1
-                    TerrainSideV(X, Y).Road = Nothing
+                    Terrain.SideV(X, Y).Road = Nothing
                 Else
-                    TerrainSideV(X, Y).Road = Painter.Roads(Value)
+                    Terrain.SideV(X, Y).Road = Painter.Roads(Value)
                 End If
             Next
         Next
@@ -1175,13 +1179,13 @@ Partial Public Class clsMap
     Private Function Read_FMap_Objects(ByVal File As clsReadFile) As clsResult
         Dim ReturnResult As New clsResult
 
-		Dim A As Integer
+        Dim A As Integer
 
         Dim ObjectsINI As New clsINIRead
         ReturnResult.Append(ObjectsINI.ReadFile(File), "")
 
         Dim INIObjects As New clsFMap_INIObjects(ObjectsINI.SectionCount)
-        ReturnResult.Append(ObjectsINI.Translate(AddressOf INIObjects.Translate_INI), "")
+        ReturnResult.Append(ObjectsINI.Translate(INIObjects), "")
 
         Dim DroidComponentUnknownCount As Integer
         Dim ObjectTypeMissingCount As Integer
@@ -1208,7 +1212,7 @@ Partial Public Class clsMap
         For A = 0 To INIObjects.ObjectCount - 1
             If INIObjects.Objects(A).Pos Is Nothing Then
                 ObjectPosInvalidCount += 1
-            ElseIf Not PosIsWithinTileArea(INIObjects.Objects(A).Pos.XY, ZeroPos, TerrainSize) Then
+            ElseIf Not PosIsWithinTileArea(INIObjects.Objects(A).Pos.XY, ZeroPos, Terrain.TileSize) Then
                 ObjectPosInvalidCount += 1
             Else
                 tmpUnitType = Nothing
@@ -1238,7 +1242,7 @@ Partial Public Class clsMap
                                 DroidComponentUnknownCount += 1
                             End If
                         End If
-                        tmpDroidDesign.TurretCount = INIObjects.Objects(A).TurretCount
+                        tmpDroidDesign.TurretCount = CByte(INIObjects.Objects(A).TurretCount)
                         If INIObjects.Objects(A).TurretCodes(0) <> "" Then
                             tmpDroidDesign.Turret1 = FindOrCreateTurret(INIObjects.Objects(A).TurretTypes(0), INIObjects.Objects(A).TurretCodes(0))
                             If tmpDroidDesign.Turret1.IsUnknown Then
@@ -1276,7 +1280,6 @@ Partial Public Class clsMap
                     NewObject.Type = tmpUnitType
                     NewObject.Pos.Horizontal.X = INIObjects.Objects(A).Pos.X
                     NewObject.Pos.Horizontal.Y = INIObjects.Objects(A).Pos.Y
-                    NewObject.Pos.Altitude = GetTerrainHeight(NewObject.Pos.Horizontal)
                     NewObject.Health = INIObjects.Objects(A).Health
                     NewObject.SavePriority = INIObjects.Objects(A).Priority
                     NewObject.Rotation = CInt(INIObjects.Objects(A).Heading)
@@ -1296,7 +1299,7 @@ Partial Public Class clsMap
                             Try
                                 PlayerNum = CUInt(INIObjects.Objects(A).UnitGroup)
                                 If PlayerNum < PlayerCountMax Then
-                                    tmpUnitGroup = UnitGroups(PlayerNum)
+                                    tmpUnitGroup = UnitGroups(CInt(PlayerNum))
                                 Else
                                     tmpUnitGroup = ScavengerUnitGroup
                                     ObjectPlayerNumInvalidCount += 1
@@ -1312,7 +1315,7 @@ Partial Public Class clsMap
                         INIObjects.Objects(A).ID = AvailableID
                         ZeroIDWarning(NewObject, INIObjects.Objects(A).ID)
                     End If
-                    Unit_Add(NewObject, INIObjects.Objects(A).ID)
+                    UnitID_Add(NewObject, INIObjects.Objects(A).ID)
                     ErrorIDChange(INIObjects.Objects(A).ID, NewObject, "Read_FMap_Objects")
                     If AvailableID = INIObjects.Objects(A).ID Then
                         AvailableID = NewObject.ID + 1UI
@@ -1344,6 +1347,8 @@ Partial Public Class clsMap
     End Function
 
     Public Class clsFMap_INIGateways
+        Inherits clsINIRead.clsSectionTranslator
+
         Public Structure sGateway
             Public PosA As sXY_int
             Public PosB As sXY_int
@@ -1364,7 +1369,7 @@ Partial Public Class clsMap
             Next
         End Sub
 
-        Public Function Translate_INI(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "ax"
@@ -1405,7 +1410,7 @@ Partial Public Class clsMap
         ReturnResult.Append(GatewaysINI.ReadFile(File), "")
 
         Dim INIGateways As New clsFMap_INIGateways(GatewaysINI.SectionCount)
-        ReturnResult.Append(GatewaysINI.Translate(AddressOf INIGateways.Translate_INI), "")
+        ReturnResult.Append(GatewaysINI.Translate(INIGateways), "")
 
         Dim A As Integer
         Dim InvalidGatewayCount As Integer = 0

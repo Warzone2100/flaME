@@ -6,6 +6,8 @@
     Public ObjectDataPathSet As New ctrlPathSet("Object Data Directories")
     Public TilesetsPathSet As New ctrlPathSet("Tilesets Directories")
 
+    Private IsDialog As Boolean = True
+
     Public Sub New()
         InitializeComponent()
 
@@ -16,6 +18,13 @@
         TableLayoutPanel1.Controls.Add(ObjectDataPathSet, 0, 1)
     End Sub
 
+    Public Sub HideButtons()
+
+        btnQuit.Visible = False
+        btnContinue.Visible = False
+        IsDialog = False
+    End Sub
+
     Private Sub btnQuit_Click(sender As System.Object, e As System.EventArgs) Handles btnQuit.Click
 
         DialogResult = Windows.Forms.DialogResult.Cancel
@@ -24,6 +33,14 @@
     Private Sub btnContinue_Click(sender As System.Object, e As System.EventArgs) Handles btnContinue.Click
 
         DialogResult = Windows.Forms.DialogResult.OK
+    End Sub
+
+    Private Sub frmData_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+
+        If Not IsDialog Then
+            e.Cancel = True
+            Hide()
+        End If
     End Sub
 
 #If MonoDevelop <> 0.0# Then
@@ -105,9 +122,9 @@
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents btnContinue As System.Windows.Forms.Button
-    Friend WithEvents btnQuit As System.Windows.Forms.Button
-    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents btnContinue As System.Windows.Forms.Button
+    Public WithEvents btnQuit As System.Windows.Forms.Button
+    Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
 #End If
 End Class

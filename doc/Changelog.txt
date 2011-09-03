@@ -1,3 +1,7 @@
+1.22:
+bug fixes and small improvements
+changes for Mono 2.6.7
+options window
 1.21:
 bug fixes
 ability to select where to load data from

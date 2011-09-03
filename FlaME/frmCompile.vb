@@ -15,7 +15,7 @@
         Dim MapName As String
         Dim License As String = cboLicense.Text
         Dim B As Integer
-        Dim PlayerCount As Integer = CInt(Clamp(Val(txtMultiPlayers.Text), 0, CDbl(Integer.MaxValue)))
+        Dim PlayerCount As Integer = CInt(Clamp_dbl(Val(txtMultiPlayers.Text), 0, CDbl(Integer.MaxValue)))
         Dim IsXPlayerFormat As Boolean = cbxNewPlayerFormat.Checked
         If PlayerCount < 2 Or PlayerCount > 10 Then
             ReturnResult.Problem_Add("The number of players must be from 2 to " & PlayerCountMax)
@@ -91,10 +91,10 @@
         'check unit positions
 
         Dim A As Integer
-        Dim TileHasUnit(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As Boolean
-        Dim TileStructureType(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsStructureType
-        Dim TileFeatureType(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsFeatureType
-        Dim TileObjectGroup(Main_Map.TerrainSize.X - 1, Main_Map.TerrainSize.Y - 1) As clsMap.clsUnitGroup
+        Dim TileHasUnit(Main_Map.Terrain.TileSize.X - 1, Main_Map.Terrain.TileSize.Y - 1) As Boolean
+        Dim TileStructureType(Main_Map.Terrain.TileSize.X - 1, Main_Map.Terrain.TileSize.Y - 1) As clsStructureType
+        Dim TileFeatureType(Main_Map.Terrain.TileSize.X - 1, Main_Map.Terrain.TileSize.Y - 1) As clsFeatureType
+        Dim TileObjectGroup(Main_Map.Terrain.TileSize.X - 1, Main_Map.Terrain.TileSize.Y - 1) As clsMap.clsUnitGroup
         Dim X As Integer
         Dim Y As Integer
         Dim StartPos As sXY_int
@@ -120,8 +120,8 @@
             If Not UnitIsStructureModule(A) Then
                 Footprint = Main_Map.Units(A).Type.GetFootprint
                 Main_Map.GetFootprintTileRange(Main_Map.Units(A).Pos.Horizontal, Footprint, StartPos, FinishPos)
-                If StartPos.X < 0 Or FinishPos.X >= Main_Map.TerrainSize.X _
-                  Or StartPos.Y < 0 Or FinishPos.Y >= Main_Map.TerrainSize.Y Then
+                If StartPos.X < 0 Or FinishPos.X >= Main_Map.Terrain.TileSize.X _
+                  Or StartPos.Y < 0 Or FinishPos.Y >= Main_Map.Terrain.TileSize.Y Then
                     Result.Problem_Add("Unit off map at position " & Main_Map.Units(A).GetPosText & ".")
                 Else
                     For Y = StartPos.Y To FinishPos.Y
@@ -146,10 +146,10 @@
         For A = 0 To Main_Map.UnitCount - 1
             If UnitIsStructureModule(A) Then
                 StructureType = CType(Main_Map.Units(A).Type, clsStructureType).StructureType
-                CentrePos.X = Math.Floor(Main_Map.Units(A).Pos.Horizontal.X / TerrainGridSpacing)
-                CentrePos.Y = Math.Floor(Main_Map.Units(A).Pos.Horizontal.Y / TerrainGridSpacing)
-                If CentrePos.X < 0 Or CentrePos.X >= Main_Map.TerrainSize.X _
-                  Or CentrePos.Y < 0 Or CentrePos.Y >= Main_Map.TerrainSize.Y Then
+                CentrePos.X = CInt(Int(Main_Map.Units(A).Pos.Horizontal.X / TerrainGridSpacing))
+                CentrePos.Y = CInt(Int(Main_Map.Units(A).Pos.Horizontal.Y / TerrainGridSpacing))
+                If CentrePos.X < 0 Or CentrePos.X >= Main_Map.Terrain.TileSize.X _
+                  Or CentrePos.Y < 0 Or CentrePos.Y >= Main_Map.Terrain.TileSize.Y Then
                     Result.Problem_Add("Module off map at position " & Main_Map.Units(A).GetPosText & ".")
                 Else
                     If TileStructureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
@@ -280,17 +280,17 @@
     End Function
 
     Private Function ValidateMap() As clsResult
-        ValidateMap = New clsResult
+        Dim ReturnResult As New clsResult
 
-        If Main_Map.TerrainSize.X > WZMapMaxSize Then
-            ValidateMap.Warning_Add("Map width is too large. The maximum is " & WZMapMaxSize & ".")
+        If Main_Map.Terrain.TileSize.X > WZMapMaxSize Then
+            ReturnResult.Warning_Add("Map width is too large. The maximum is " & WZMapMaxSize & ".")
         End If
-        If Main_Map.TerrainSize.Y > WZMapMaxSize Then
-            ValidateMap.Warning_Add("Map height is too large. The maximum is " & WZMapMaxSize & ".")
+        If Main_Map.Terrain.TileSize.Y > WZMapMaxSize Then
+            ReturnResult.Warning_Add("Map height is too large. The maximum is " & WZMapMaxSize & ".")
         End If
 
         If Main_Map.Tileset Is Nothing Then
-            ValidateMap.Problem_Add("No tileset selected.")
+            ReturnResult.Problem_Add("No tileset selected.")
         End If
 
         Dim A As Integer
@@ -315,15 +315,16 @@
             If UnitTypes(B).Type = clsUnitType.enumType.PlayerStructure Then
                 For A = 0 To PlayerCountMax - 1
                     If PlayerStructureTypeCount(A, B) > 255 Then
-                        ValidateMap.Problem_Add("Player " & A & " has too many (" & PlayerStructureTypeCount(A, B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
+                        ReturnResult.Problem_Add("Player " & A & " has too many (" & PlayerStructureTypeCount(A, B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                     End If
                 Next
                 If ScavStructureTypeCount(B) > 255 Then
-                    ValidateMap.Problem_Add("Scavengers have too many (" & ScavStructureTypeCount(B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
+                    ReturnResult.Problem_Add("Scavengers have too many (" & ScavStructureTypeCount(B) & ") of structure " & ControlChars.Quote & CType(UnitTypes(B), clsStructureType).Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                 End If
             End If
         Next
 ExitLoop:
+        Return ReturnResult
     End Function
 
     Private Function ValidateMap_WaterTris() As Integer
@@ -335,11 +336,11 @@ ExitLoop:
             Return 0
         End If
 
-        For Y = 0 To Main_Map.TerrainSize.Y - 1
-            For X = 0 To Main_Map.TerrainSize.X - 1
-                If Main_Map.TerrainTiles(X, Y).Tri Then
-                    If Main_Map.TerrainTiles(X, Y).Texture.TextureNum >= 0 And Main_Map.TerrainTiles(X, Y).Texture.TextureNum < Main_Map.Tileset.TileCount Then
-                        If Main_Map.Tileset.Tiles(Main_Map.TerrainTiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
+        For Y = 0 To Main_Map.Terrain.TileSize.Y - 1
+            For X = 0 To Main_Map.Terrain.TileSize.X - 1
+                If Main_Map.Terrain.Tiles(X, Y).Tri Then
+                    If Main_Map.Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Main_Map.Terrain.Tiles(X, Y).Texture.TextureNum < Main_Map.Tileset.TileCount Then
+                        If Main_Map.Tileset.Tiles(Main_Map.Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
                             Count += 1
                         End If
                     End If
@@ -385,8 +386,8 @@ ExitLoop:
         WriteWZArgs.Overwrite = False
         SetScrollLimits(WriteWZArgs.ScrollMin, WriteWZArgs.ScrollMax)
         WriteWZArgs.Campaign = New clsMap.sWrite_WZ_Args.clsCampaign
-        WriteWZArgs.Campaign.GAMTime = Clamp(Val(txtCampTime.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-        WriteWZArgs.Campaign.GAMType = TypeNum
+        WriteWZArgs.Campaign.GAMTime = CUInt(Clamp_dbl(Val(txtCampTime.Text), UInteger.MinValue, UInteger.MaxValue))
+        WriteWZArgs.Campaign.GAMType = CUInt(TypeNum)
         WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Campaign
         ReturnResult.Append(Main_Map.Write_WZ(WriteWZArgs), "")
         ShowWarnings(ReturnResult, "Compile Campaign")
@@ -423,13 +424,13 @@ ExitLoop:
         If cbxAutoScrollLimits.Checked Then
             Min.X = 0
             Min.Y = 0
-            Max.X = CUInt(Main_Map.TerrainSize.X)
-            Max.Y = CUInt(Main_Map.TerrainSize.Y)
+            Max.X = CUInt(Main_Map.Terrain.TileSize.X)
+            Max.Y = CUInt(Main_Map.Terrain.TileSize.Y)
         Else
-            Min.X = Clamp(Val(txtScrollMinX.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-            Min.Y = Clamp(Val(txtScrollMinY.Text), CDbl(Integer.MinValue), CDbl(Integer.MaxValue))
-            Max.X = Clamp(Val(txtScrollMaxX.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
-            Max.Y = Clamp(Val(txtScrollMaxY.Text), CDbl(UInteger.MinValue), CDbl(UInteger.MaxValue))
+            Min.X = CInt(Clamp_dbl(Val(txtScrollMinX.Text), Integer.MinValue, Integer.MaxValue))
+            Min.Y = CInt(Clamp_dbl(Val(txtScrollMinY.Text), Integer.MinValue, Integer.MaxValue))
+            Max.X = CUInt(Clamp_dbl(Val(txtScrollMaxX.Text), UInteger.MinValue, UInteger.MaxValue))
+            Max.Y = CUInt(Clamp_dbl(Val(txtScrollMaxY.Text), UInteger.MinValue, UInteger.MaxValue))
         End If
     End Sub
 
@@ -486,9 +487,10 @@ ExitLoop:
         Me.Label1.Location = New System.Drawing.Point(25, 18)
         Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(49, 17)
+        Me.Label1.Size = New System.Drawing.Size(44, 20)
         Me.Label1.TabIndex = 1
         Me.Label1.Text = "Name:"
+        Me.Label1.UseCompatibleTextRendering = True
         '
         'Label2
         '
@@ -496,9 +498,10 @@ ExitLoop:
         Me.Label2.Location = New System.Drawing.Point(18, 20)
         Me.Label2.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(59, 17)
+        Me.Label2.Size = New System.Drawing.Size(53, 20)
         Me.Label2.TabIndex = 2
         Me.Label2.Text = "Players:"
+        Me.Label2.UseCompatibleTextRendering = True
         '
         'txtMultiPlayers
         '
@@ -516,6 +519,7 @@ ExitLoop:
         Me.btnCompileMultiplayer.Size = New System.Drawing.Size(128, 30)
         Me.btnCompileMultiplayer.TabIndex = 10
         Me.btnCompileMultiplayer.Text = "Compile"
+        Me.btnCompileMultiplayer.UseCompatibleTextRendering = True
         Me.btnCompileMultiplayer.UseVisualStyleBackColor = True
         '
         'Label3
@@ -524,9 +528,10 @@ ExitLoop:
         Me.Label3.Location = New System.Drawing.Point(18, 22)
         Me.Label3.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(43, 17)
+        Me.Label3.Size = New System.Drawing.Size(38, 20)
         Me.Label3.TabIndex = 12
         Me.Label3.Text = "Time:"
+        Me.Label3.UseCompatibleTextRendering = True
         '
         'txtCampTime
         '
@@ -542,9 +547,10 @@ ExitLoop:
         Me.Label5.Location = New System.Drawing.Point(154, 22)
         Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(44, 17)
+        Me.Label5.Size = New System.Drawing.Size(38, 20)
         Me.Label5.TabIndex = 14
         Me.Label5.Text = "Type:"
+        Me.Label5.UseCompatibleTextRendering = True
         '
         'txtScrollMaxX
         '
@@ -576,9 +582,10 @@ ExitLoop:
         Me.Label10.Location = New System.Drawing.Point(82, 27)
         Me.Label10.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label10.Name = "Label10"
-        Me.Label10.Size = New System.Drawing.Size(18, 17)
+        Me.Label10.Size = New System.Drawing.Size(15, 20)
         Me.Label10.TabIndex = 21
         Me.Label10.Text = "x:"
+        Me.Label10.UseCompatibleTextRendering = True
         '
         'txtScrollMinX
         '
@@ -594,9 +601,10 @@ ExitLoop:
         Me.Label11.Location = New System.Drawing.Point(10, 51)
         Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label11.Name = "Label11"
-        Me.Label11.Size = New System.Drawing.Size(67, 17)
+        Me.Label11.Size = New System.Drawing.Size(63, 20)
         Me.Label11.TabIndex = 24
         Me.Label11.Text = "Minimum:"
+        Me.Label11.UseCompatibleTextRendering = True
         '
         'Label12
         '
@@ -604,9 +612,10 @@ ExitLoop:
         Me.Label12.Location = New System.Drawing.Point(7, 88)
         Me.Label12.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label12.Name = "Label12"
-        Me.Label12.Size = New System.Drawing.Size(70, 17)
+        Me.Label12.Size = New System.Drawing.Size(67, 20)
         Me.Label12.TabIndex = 25
         Me.Label12.Text = "Maximum:"
+        Me.Label12.UseCompatibleTextRendering = True
         '
         'txtAuthor
         '
@@ -622,9 +631,10 @@ ExitLoop:
         Me.Label4.Location = New System.Drawing.Point(22, 52)
         Me.Label4.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label4.Name = "Label4"
-        Me.Label4.Size = New System.Drawing.Size(54, 17)
+        Me.Label4.Size = New System.Drawing.Size(48, 20)
         Me.Label4.TabIndex = 26
         Me.Label4.Text = "Author:"
+        Me.Label4.UseCompatibleTextRendering = True
         '
         'Label13
         '
@@ -632,9 +642,10 @@ ExitLoop:
         Me.Label13.Location = New System.Drawing.Point(14, 84)
         Me.Label13.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label13.Name = "Label13"
-        Me.Label13.Size = New System.Drawing.Size(61, 17)
+        Me.Label13.Size = New System.Drawing.Size(55, 20)
         Me.Label13.TabIndex = 28
         Me.Label13.Text = "License:"
+        Me.Label13.UseCompatibleTextRendering = True
         '
         'cboLicense
         '
@@ -654,6 +665,7 @@ ExitLoop:
         Me.cbxNewPlayerFormat.Size = New System.Drawing.Size(221, 25)
         Me.cbxNewPlayerFormat.TabIndex = 30
         Me.cbxNewPlayerFormat.Text = "X Player Support"
+        Me.cbxNewPlayerFormat.UseCompatibleTextRendering = True
         Me.cbxNewPlayerFormat.UseVisualStyleBackColor = True
         '
         'Label7
@@ -662,9 +674,10 @@ ExitLoop:
         Me.Label7.Location = New System.Drawing.Point(148, 27)
         Me.Label7.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label7.Name = "Label7"
-        Me.Label7.Size = New System.Drawing.Size(19, 17)
+        Me.Label7.Size = New System.Drawing.Size(15, 20)
         Me.Label7.TabIndex = 31
         Me.Label7.Text = "y:"
+        Me.Label7.UseCompatibleTextRendering = True
         '
         'Label8
         '
@@ -674,6 +687,7 @@ ExitLoop:
         Me.Label8.Size = New System.Drawing.Size(132, 41)
         Me.Label8.TabIndex = 32
         Me.Label8.Text = "Select from the list or type another."
+        Me.Label8.UseCompatibleTextRendering = True
         '
         'cboCampType
         '
@@ -756,6 +770,7 @@ ExitLoop:
         Me.GroupBox1.TabIndex = 35
         Me.GroupBox1.TabStop = False
         Me.GroupBox1.Text = "Scroll Limits"
+        Me.GroupBox1.UseCompatibleTextRendering = True
         '
         'cbxAutoScrollLimits
         '
@@ -777,8 +792,9 @@ ExitLoop:
         Me.Controls.Add(Me.TabControl1)
         Me.Controls.Add(Me.Label1)
         Me.Controls.Add(Me.txtName)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.Margin = New System.Windows.Forms.Padding(4)
+        Me.MaximizeBox = False
         Me.Name = "frmCompile"
         Me.Text = "Compile Map"
         Me.TabControl1.ResumeLayout(False)
@@ -792,36 +808,36 @@ ExitLoop:
         Me.PerformLayout()
 
     End Sub
-    Friend WithEvents txtName As System.Windows.Forms.TextBox
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents Label2 As System.Windows.Forms.Label
-    Friend WithEvents txtMultiPlayers As System.Windows.Forms.TextBox
-    Friend WithEvents btnCompileMultiplayer As System.Windows.Forms.Button
-    Friend WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents txtCampTime As System.Windows.Forms.TextBox
-    Friend WithEvents Label5 As System.Windows.Forms.Label
-    Friend WithEvents txtScrollMaxX As System.Windows.Forms.TextBox
-    Friend WithEvents txtScrollMaxY As System.Windows.Forms.TextBox
-    Friend WithEvents txtScrollMinY As System.Windows.Forms.TextBox
-    Friend WithEvents Label10 As System.Windows.Forms.Label
-    Friend WithEvents txtScrollMinX As System.Windows.Forms.TextBox
-    Friend WithEvents Label11 As System.Windows.Forms.Label
-    Friend WithEvents Label12 As System.Windows.Forms.Label
-    Friend WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
-    Friend WithEvents FolderBrowserDialog As System.Windows.Forms.FolderBrowserDialog
-    Friend WithEvents txtAuthor As System.Windows.Forms.TextBox
-    Friend WithEvents Label4 As System.Windows.Forms.Label
-    Friend WithEvents Label13 As System.Windows.Forms.Label
-    Friend WithEvents cboLicense As System.Windows.Forms.ComboBox
-    Friend WithEvents cbxNewPlayerFormat As System.Windows.Forms.CheckBox
-    Friend WithEvents Label7 As System.Windows.Forms.Label
-    Friend WithEvents Label8 As System.Windows.Forms.Label
-    Friend WithEvents cboCampType As System.Windows.Forms.ComboBox
-    Friend WithEvents TabControl1 As System.Windows.Forms.TabControl
-    Friend WithEvents TabPage1 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage2 As System.Windows.Forms.TabPage
-    Friend WithEvents btnCompileCampaign As System.Windows.Forms.Button
-    Friend WithEvents GroupBox1 As System.Windows.Forms.GroupBox
-    Friend WithEvents cbxAutoScrollLimits As System.Windows.Forms.CheckBox
+    Public WithEvents txtName As System.Windows.Forms.TextBox
+    Public WithEvents Label1 As System.Windows.Forms.Label
+    Public WithEvents Label2 As System.Windows.Forms.Label
+    Public WithEvents txtMultiPlayers As System.Windows.Forms.TextBox
+    Public WithEvents btnCompileMultiplayer As System.Windows.Forms.Button
+    Public WithEvents Label3 As System.Windows.Forms.Label
+    Public WithEvents txtCampTime As System.Windows.Forms.TextBox
+    Public WithEvents Label5 As System.Windows.Forms.Label
+    Public WithEvents txtScrollMaxX As System.Windows.Forms.TextBox
+    Public WithEvents txtScrollMaxY As System.Windows.Forms.TextBox
+    Public WithEvents txtScrollMinY As System.Windows.Forms.TextBox
+    Public WithEvents Label10 As System.Windows.Forms.Label
+    Public WithEvents txtScrollMinX As System.Windows.Forms.TextBox
+    Public WithEvents Label11 As System.Windows.Forms.Label
+    Public WithEvents Label12 As System.Windows.Forms.Label
+    Public WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
+    Public WithEvents FolderBrowserDialog As System.Windows.Forms.FolderBrowserDialog
+    Public WithEvents txtAuthor As System.Windows.Forms.TextBox
+    Public WithEvents Label4 As System.Windows.Forms.Label
+    Public WithEvents Label13 As System.Windows.Forms.Label
+    Public WithEvents cboLicense As System.Windows.Forms.ComboBox
+    Public WithEvents cbxNewPlayerFormat As System.Windows.Forms.CheckBox
+    Public WithEvents Label7 As System.Windows.Forms.Label
+    Public WithEvents Label8 As System.Windows.Forms.Label
+    Public WithEvents cboCampType As System.Windows.Forms.ComboBox
+    Public WithEvents TabControl1 As System.Windows.Forms.TabControl
+    Public WithEvents TabPage1 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage2 As System.Windows.Forms.TabPage
+    Public WithEvents btnCompileCampaign As System.Windows.Forms.Button
+    Public WithEvents GroupBox1 As System.Windows.Forms.GroupBox
+    Public WithEvents cbxAutoScrollLimits As System.Windows.Forms.CheckBox
 #End If
 End Class

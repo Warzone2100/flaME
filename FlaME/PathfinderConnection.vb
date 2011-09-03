@@ -1,29 +1,29 @@
 ﻿Public Class PathfinderConnection
 
-    Friend Destroyed As Boolean
+    Public Destroyed As Boolean
 
-    Friend Layer_ConnectionNum As Integer = -1
+    Public Layer_ConnectionNum As Integer = -1
 
-    Friend NodeA As PathfinderNode
+    Public NodeA As PathfinderNode
     Public ReadOnly Property GetNodeA As PathfinderNode
         Get
             Return NodeA
         End Get
     End Property
-    Friend NodeA_ConnectionNum As Integer = -1
+    Public NodeA_ConnectionNum As Integer = -1
     Public ReadOnly Property GetNodeA_ConnectionNum As Integer
         Get
             Return NodeA_ConnectionNum
         End Get
     End Property
 
-    Friend NodeB As PathfinderNode
+    Public NodeB As PathfinderNode
     Public ReadOnly Property GetNodeB As PathfinderNode
         Get
             Return NodeB
         End Get
     End Property
-    Friend NodeB_ConnectionNum As Integer = -1
+    Public NodeB_ConnectionNum As Integer = -1
     Public ReadOnly Property GetNodeB_ConnectionNum As Integer
         Get
             Return NodeB_ConnectionNum
@@ -34,15 +34,15 @@
 
     Private LinkCount As Integer
 
-    Friend Value As Single = 1.0F
+    Public Value As Single = 1.0F
     Public ReadOnly Property GetValue As Single
         Get
             Return Value
         End Get
     End Property
-    Friend CalcValueNum As Integer = -1
+    Public CalcValueNum As Integer = -1
 
-    Friend Sub New(ByVal NewNodeA As PathfinderNode, ByVal NewNodeB As PathfinderNode, ByVal NewValue As Single)
+    Public Sub New(ByVal NewNodeA As PathfinderNode, ByVal NewNodeB As PathfinderNode, ByVal NewValue As Single)
 
         If NewNodeA.Layer.Network_LayerNum > 0 Or NewNodeB.Layer.Network_LayerNum > 0 Or NewValue <= 0.0F Then
             Stop
@@ -63,7 +63,7 @@
         RaiseDependant()
     End Sub
 
-    Friend Sub New(ByVal SourceConnection As PathfinderConnection)
+    Public Sub New(ByVal SourceConnection As PathfinderConnection)
 
         NodeA = SourceConnection.NodeA.ParentNode
         NodeB = SourceConnection.NodeB.ParentNode
@@ -109,7 +109,7 @@
         End If
     End Sub
 
-    Friend Sub RaiseDependant()
+    Public Sub RaiseDependant()
         Dim tmpConnectionA As PathfinderConnection
 
         If DependantConnection IsNot Nothing Then
@@ -153,14 +153,14 @@
         Layer.Connection_Remove(Layer_ConnectionNum)
     End Sub
 
-    Friend Sub ForceDeallocate()
+    Public Sub ForceDeallocate()
 
         DependantConnection = Nothing
         NodeA = Nothing
         NodeB = Nothing
     End Sub
 
-    Friend Sub UnlinkParentDependants()
+    Public Sub UnlinkParentDependants()
 
         If DependantConnection IsNot Nothing Then
             Dim tmpConnection As PathfinderConnection = DependantConnection
@@ -169,7 +169,7 @@
         End If
     End Sub
 
-    Friend Sub ValueCalc()
+    Public Sub ValueCalc()
 
         If NodeA.Layer.Network_LayerNum = 0 Then
             Stop

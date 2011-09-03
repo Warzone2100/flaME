@@ -60,7 +60,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_U8(ByRef Output As Byte) As Boolean
+    Public Function Get_U8(ByRef Output As Byte) As Boolean
 
         If FindLength(1) Then
             Output = Bytes(BytesPosition)
@@ -71,27 +71,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_U8_Array(ByRef Output() As Byte) As Boolean
-
-        If Output Is Nothing Then
-            Return False
-        End If
-
-        Dim Upper As Integer = Output.GetUpperBound(0)
-        Dim Count As Integer = Upper + 1
-        If FindLength(Count) Then
-            Dim Num As Integer
-            For Num = 0 To Upper
-                Output(Num) = Bytes(BytesPosition + Num)
-            Next
-            BytesPosition += Count
-            Return True
-        Else
-            Return False
-        End If
-    End Function
-
-    Function Get_U16(ByRef Output As UShort) As Boolean
+    Public Function Get_U16(ByRef Output As UShort) As Boolean
 
         If FindLength(2) Then
             Output = BitConverter.ToUInt16(Bytes, BytesPosition)
@@ -102,7 +82,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_U32(ByRef Output As UInteger) As Boolean
+    Public Function Get_U32(ByRef Output As UInteger) As Boolean
 
         If FindLength(4) Then
             Output = BitConverter.ToUInt32(Bytes, BytesPosition)
@@ -113,7 +93,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_U64(ByRef Output As ULong) As Boolean
+    Public Function Get_U64(ByRef Output As ULong) As Boolean
 
         If FindLength(8) Then
             Output = BitConverter.ToUInt64(Bytes, BytesPosition)
@@ -124,7 +104,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_S16(ByRef Output As Short) As Boolean
+    Public Function Get_S16(ByRef Output As Short) As Boolean
 
         If FindLength(2) Then
             Output = BitConverter.ToInt16(Bytes, BytesPosition)
@@ -135,7 +115,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_S32(ByRef Output As Integer) As Boolean
+    Public Function Get_S32(ByRef Output As Integer) As Boolean
 
         If FindLength(4) Then
             Output = BitConverter.ToInt32(Bytes, BytesPosition)
@@ -146,7 +126,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_F32(ByRef Output As Single) As Boolean
+    Public Function Get_F32(ByRef Output As Single) As Boolean
 
         If FindLength(4) Then
             Output = BitConverter.ToSingle(Bytes, BytesPosition)
@@ -157,7 +137,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_F64(ByRef Output As Double) As Boolean
+    Public Function Get_F64(ByRef Output As Double) As Boolean
 
         If FindLength(8) Then
             Output = BitConverter.ToDouble(Bytes, BytesPosition)
@@ -168,7 +148,7 @@ Public Class clsReadFile
         End If
     End Function
 
-    Function Get_Text_VariableLength(ByRef Output As String) As Boolean
+    Public Function Get_Text_VariableLength(ByRef Output As String) As Boolean
         Dim Length As Integer
         Dim uintTemp As UInteger
 
@@ -176,14 +156,14 @@ Public Class clsReadFile
             Return False
         End If
         Try
-            Length = uintTemp
+            Length = CInt(uintTemp)
         Catch ex As Exception
             Return False
         End Try
         Return Get_Text(Length, Output)
     End Function
 
-    Function Get_Text(ByVal Length As Integer, ByRef Output As String) As Boolean
+    Public Function Get_Text(ByVal Length As Integer, ByRef Output As String) As Boolean
         Dim Chars() As Char
         Dim CharOffset As Integer
         Dim CharsLeft As Integer
@@ -212,7 +192,7 @@ Public Class clsReadFile
         Return True
     End Function
 
-    Function Get_Text_Terminated(ByVal Terminators() As Char, ByVal IncludeTerminator As Boolean, ByVal EOFIsValid As Boolean, ByRef Output As String) As Boolean
+    Public Function Get_Text_Terminated(ByVal Terminators() As Char, ByVal IncludeTerminator As Boolean, ByVal EOFIsValid As Boolean, ByRef Output As String) As Boolean
         Dim CharCount As Integer = 0
         Dim Chars(0) As Char
         Dim CurrentChar As Char
@@ -263,16 +243,17 @@ Public Class clsReadFile
     End Function
 
     Public Function Begin(ByVal Path As String) As sResult
-        Begin.Success = False
-        Begin.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Close()
         Type = enumStreamType.None
         Try
             FileStream = New IO.FileStream(Path, IO.FileMode.Open, IO.FileAccess.Read, IO.FileShare.Read)
         Catch ex As Exception
-            Begin.Problem = ex.Message
-            Exit Function
+            ReturnResult.Problem = ex.Message
+            Return ReturnResult
         End Try
         Type = enumStreamType.FileStream
         FilePosition = 0L
@@ -280,7 +261,8 @@ Public Class clsReadFile
         RedimBytesToBufferLength()
         ReadBlock()
 
-        Begin.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
     Public Sub Begin(ByVal Stream As Zip.ZipInputStream, ByVal ReadLength As Integer)
@@ -334,7 +316,7 @@ Public Class clsReadFile
             BytesPosition = 0
             Return ReadBlock()
         Else
-            BytesPosition = NewPosition - FilePosition
+            BytesPosition = CInt(NewPosition - FilePosition)
             Return True
         End If
     End Function

@@ -6,10 +6,12 @@
     Private PlayerCount As Integer = 4
     Private StopTrying As Boolean
 
-    Private Function ValidateTextbox(ByRef TextBoxToValidate As TextBox, ByVal Min As Double, ByVal Max As Double, ByVal Multiplier As Double) As Integer
+    Private Function ValidateTextbox(ByVal TextBoxToValidate As TextBox, ByVal Min As Double, ByVal Max As Double, ByVal Multiplier As Double) As Integer
+        Dim Result As Integer
 
-        ValidateTextbox = CInt(Int(Clamp(Val(TextBoxToValidate.Text), Min, Max) * Multiplier))
-        TextBoxToValidate.Text = CSng(ValidateTextbox / Multiplier)
+        Result = CInt(Int(Clamp_dbl(Val(TextBoxToValidate.Text), Min, Max) * Multiplier))
+        TextBoxToValidate.Text = CStr(CSng(Result / Multiplier))
+        Return Result
     End Function
 
     Private Sub btnGenerate_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnGenerate.Click
@@ -48,11 +50,11 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(1, 0)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(True, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryIsRotational = True
             Case 2 'v rotation
@@ -62,11 +64,11 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(0, 1)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(True, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryIsRotational = True
             Case 3 'h flip
@@ -76,11 +78,11 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(1, 0)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(True, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryIsRotational = False
             Case 4 'v flip
@@ -90,11 +92,11 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(0, 1)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(False, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryIsRotational = False
             Case 5 '4x rotation
@@ -104,22 +106,22 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(1) = 2
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(1, 0)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(True, False, True)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 3
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(1) = 0
                 LayoutArgs.SymmetryBlocks(2).XYNum = New sXY_int(0, 1)
                 LayoutArgs.SymmetryBlocks(2).Orientation = New sTileOrientation(False, True, True)
-                ReDim LayoutArgs.SymmetryBlocks(2).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(2).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(2).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryBlocks(2).ReflectToNum(1) = 3
                 LayoutArgs.SymmetryBlocks(3).XYNum = New sXY_int(1, 1)
                 LayoutArgs.SymmetryBlocks(3).Orientation = New sTileOrientation(True, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(3).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(3).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(3).ReflectToNum(0) = 2
                 LayoutArgs.SymmetryBlocks(3).ReflectToNum(1) = 1
                 LayoutArgs.SymmetryIsRotational = True
@@ -130,22 +132,22 @@
                 ReDim LayoutArgs.SymmetryBlocks(LayoutArgs.SymmetryBlockCount - 1)
                 LayoutArgs.SymmetryBlocks(0).XYNum = New sXY_int(0, 0)
                 LayoutArgs.SymmetryBlocks(0).Orientation = New sTileOrientation(False, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(0).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(0) = 1
                 LayoutArgs.SymmetryBlocks(0).ReflectToNum(1) = 2
                 LayoutArgs.SymmetryBlocks(1).XYNum = New sXY_int(1, 0)
                 LayoutArgs.SymmetryBlocks(1).Orientation = New sTileOrientation(True, False, False)
-                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(1).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(0) = 0
                 LayoutArgs.SymmetryBlocks(1).ReflectToNum(1) = 3
                 LayoutArgs.SymmetryBlocks(2).XYNum = New sXY_int(0, 1)
                 LayoutArgs.SymmetryBlocks(2).Orientation = New sTileOrientation(False, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(2).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(2).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(2).ReflectToNum(0) = 3
                 LayoutArgs.SymmetryBlocks(2).ReflectToNum(1) = 0
                 LayoutArgs.SymmetryBlocks(3).XYNum = New sXY_int(1, 1)
                 LayoutArgs.SymmetryBlocks(3).Orientation = New sTileOrientation(True, True, False)
-                ReDim LayoutArgs.SymmetryBlocks(3).ReflectToNum(LayoutArgs.SymmetryBlockCount / 2.0# - 1)
+                ReDim LayoutArgs.SymmetryBlocks(3).ReflectToNum(CInt(LayoutArgs.SymmetryBlockCount / 2.0#) - 1)
                 LayoutArgs.SymmetryBlocks(3).ReflectToNum(0) = 2
                 LayoutArgs.SymmetryBlocks(3).ReflectToNum(1) = 1
                 LayoutArgs.SymmetryIsRotational = False
@@ -178,7 +180,7 @@
         ReDim LayoutArgs.PlayerBasePos(LayoutArgs.PlayerCount - 1)
         Dim BaseMin As Double = 12.0#
         Dim BaseMax As sXY_dbl = New sXY_dbl(Math.Min(LayoutArgs.Size.X / LayoutArgs.SymmetryBlockCountXY.X, LayoutArgs.Size.X - 12.0#), Math.Min(LayoutArgs.Size.Y / LayoutArgs.SymmetryBlockCountXY.Y, LayoutArgs.Size.Y - 12.0#))
-        LayoutArgs.PlayerBasePos(0) = New sXY_int(ValidateTextbox(txt1x, BaseMin, BaseMax.X, TerrainGridSpacing), ValidateTextbox(txt1y, BaseMin, BaseMax.Y, TerrainGridSpacing))
+        LayoutArgs.PlayerBasePos(0) = New sXY_int(ValidateTextbox(txt1x, BaseMin, BaseMax.X, TerrainGridSpacing), ValidateTextbox(txt1y, BaseMin, BaseMax.X, TerrainGridSpacing))
         If LayoutArgs.PlayerCount >= 2 Then
             LayoutArgs.PlayerBasePos(1) = New sXY_int(ValidateTextbox(txt2x, BaseMin, BaseMax.X, TerrainGridSpacing), ValidateTextbox(txt2y, BaseMin, BaseMax.Y, TerrainGridSpacing))
             If LayoutArgs.PlayerCount >= 3 Then
@@ -225,7 +227,6 @@
         LayoutArgs.ExtraOilClusterSizeMin = ValidateTextbox(txtOilClusterMin, 0.0#, CDbl(LayoutArgs.ExtraOilClusterSizeMax), 1.0#)
         LayoutArgs.OilDispersion = ValidateTextbox(txtOilDispersion, 0.0#, 9999.0#, 1.0#) / 100.0F
         LayoutArgs.OilAtATime = ValidateTextbox(txtOilAtATime, 1.0#, 2.0#, 1.0#)
-        LayoutArgs.OilTolerance = 1.0F - ValidateTextbox(txtOilTolerance, 0.0#, 100.0#, 10.0#) / 1000.0F
         LayoutArgs.WaterSpawnQuantity = ValidateTextbox(txtWaterQuantity, 0.0#, 9999.0#, 1.0#)
         LayoutArgs.TotalWaterQuantity = ValidateTextbox(txtConnectedWater, 0.0#, 9999.0#, 1.0#)
 
@@ -308,10 +309,15 @@ MakeNewMap:
             NewMap.SetPainterToDefaults()
             Dim A As Integer
             Dim CliffAngle As Double = Math.Atan(255.0# * NewMap.HeightMultiplier / (2.0# * (NewMap.LevelCount - 1.0#) * TerrainGridSpacing)) - RadOf1Deg
-            Dim tmpTiles As New sBrushTiles
-            SquareTiles_Create(Math.Ceiling(Math.Max(NewMap.TerrainSize.X, NewMap.TerrainSize.Y)), tmpTiles, 1.0#)
-            NewMap.Apply_Cliff(New sXY_int(CInt(Int(NewMap.TerrainSize.X / 2.0#)), CInt(Int(NewMap.TerrainSize.Y / 2.0#))), tmpTiles, CliffAngle, True)
-            NewMap.AutoTextureChange.Update_AutoTexture()
+            Dim tmpBrush As New clsBrush(CDbl(Math.Max(NewMap.Terrain.TileSize.X, NewMap.Terrain.TileSize.Y)) * 1.1#, clsBrush.enumShape.Square)
+            Dim ApplyCliff As New clsMap.clsAction.clsApplyCliff
+            ApplyCliff.Map = NewMap
+            ApplyCliff.Angle = CliffAngle
+            ApplyCliff.SetTris = True
+            Dim Alignments As clsBrush.sPosNum
+            Alignments.Normal = New sXY_int(CInt(Int(NewMap.Terrain.TileSize.X / 2.0#)), CInt(Int(NewMap.Terrain.TileSize.Y / 2.0#)))
+            Alignments.Alignment = Alignments.Normal
+            tmpBrush.PerformActionMapTiles(ApplyCliff, Alignments)
             Dim RevertSlope() As Boolean
             Dim RevertHeight() As Boolean
             Dim WaterMap As New clsBooleanMap
@@ -324,7 +330,7 @@ MakeNewMap:
                     With .OldTextureLayers.Layers(A)
                         .Terrainmap = NewMap.GenerateTerrainMap(.Scale, .Density)
                         If .SlopeMax < 0.0F Then
-                            .SlopeMax = CliffAngle - RadOf1Deg
+                            .SlopeMax = CSng(CliffAngle - RadOf1Deg)
                             If .HeightMax < 0.0F Then
                                 .HeightMax = 255.0F
                                 bmTemp.Within(.Terrainmap, WaterMap)
@@ -354,6 +360,10 @@ MakeNewMap:
 
         NewMap.LevelWater()
 
+        NewMap.WaterTriCorrection()
+
+        NewMap.BlockEdgeTiles()
+
         Dim GatewaysArgs As clsGeneratorMap.sGenerateGatewaysArgs
         GatewaysArgs.LayoutArgs = LayoutArgs
         NewMap.GenerateGateways(GatewaysArgs)
@@ -373,21 +383,19 @@ MakeNewMap:
             GoTo MakeNewMap
         End If
 
-        NewMap.WaterTriCorrection()
-
         NewMap.ClearGenerator(LayoutArgs.SymmetryBlockCount)
 
         Main_Map.Deallocate()
         Main_Map = NewMap
 
-        Main_Map.Undo_Clear()
-        Main_Map.ShadowSector_CreateAll()
+        Main_Map.AfterInitialized()
+        Main_Map.Update()
 
         lblProgress.Text = "Done."
         btnGenerate.Enabled = True
 
         Dim InterfaceInfo As New clsMap.clsInterfaceOptions
-        InterfaceInfo.CompileMultiPlayers = NewMap.PlayerCount
+        InterfaceInfo.CompileMultiPlayers = CStr(NewMap.PlayerCount)
 
         frmMainInstance.Map_Changed(InterfaceInfo)
     End Sub
@@ -572,10 +580,9 @@ MakeNewMap:
     End Sub
 
     Public Sub New()
-        ' This call is required by the designer.
-        InitializeComponent() 'and monodevelop
+        InitializeComponent()
 
-        ' Add any initialization after the InitializeComponent() call.
+
     End Sub
 
 #If MonoDevelop <> 0.0# Then
@@ -661,8 +668,6 @@ MakeNewMap:
         Me.Label6 = New System.Windows.Forms.Label()
         Me.txtOilAtATime = New System.Windows.Forms.TextBox()
         Me.Label31 = New System.Windows.Forms.Label()
-        Me.txtOilTolerance = New System.Windows.Forms.TextBox()
-        Me.Label32 = New System.Windows.Forms.Label()
         Me.txtRampBase = New System.Windows.Forms.TextBox()
         Me.Label33 = New System.Windows.Forms.Label()
         Me.txtConnectedWater = New System.Windows.Forms.TextBox()
@@ -1423,24 +1428,6 @@ MakeNewMap:
         Me.Label31.TextAlign = System.Drawing.ContentAlignment.MiddleRight
         Me.Label31.UseCompatibleTextRendering = True
         '
-        'txtOilTolerance
-        '
-        Me.txtOilTolerance.Location = New System.Drawing.Point(393, 189)
-        Me.txtOilTolerance.Name = "txtOilTolerance"
-        Me.txtOilTolerance.Size = New System.Drawing.Size(46, 22)
-        Me.txtOilTolerance.TabIndex = 91
-        Me.txtOilTolerance.Text = "0"
-        '
-        'Label32
-        '
-        Me.Label32.Location = New System.Drawing.Point(268, 188)
-        Me.Label32.Name = "Label32"
-        Me.Label32.Size = New System.Drawing.Size(119, 20)
-        Me.Label32.TabIndex = 92
-        Me.Label32.Text = "Oil Randomness %"
-        Me.Label32.TextAlign = System.Drawing.ContentAlignment.MiddleRight
-        Me.Label32.UseCompatibleTextRendering = True
-        '
         'txtRampBase
         '
         Me.txtRampBase.Location = New System.Drawing.Point(579, 415)
@@ -1557,8 +1544,6 @@ MakeNewMap:
         Me.Controls.Add(Me.Label34)
         Me.Controls.Add(Me.txtRampBase)
         Me.Controls.Add(Me.Label33)
-        Me.Controls.Add(Me.txtOilTolerance)
-        Me.Controls.Add(Me.Label32)
         Me.Controls.Add(Me.txtOilAtATime)
         Me.Controls.Add(Me.Label31)
         Me.Controls.Add(Me.cboSymmetry)
@@ -1649,100 +1634,98 @@ MakeNewMap:
         Me.PerformLayout()
 
     End Sub
-    Friend WithEvents btnGenerate As System.Windows.Forms.Button
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents txtWidth As System.Windows.Forms.TextBox
-    Friend WithEvents txtHeight As System.Windows.Forms.TextBox
-    Friend WithEvents Label2 As System.Windows.Forms.Label
-    Friend WithEvents txt1x As System.Windows.Forms.TextBox
-    Friend WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents Label4 As System.Windows.Forms.Label
-    Friend WithEvents Label5 As System.Windows.Forms.Label
-    Friend WithEvents rdoPlayer2 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt1y As System.Windows.Forms.TextBox
-    Friend WithEvents txt2y As System.Windows.Forms.TextBox
-    Friend WithEvents txt2x As System.Windows.Forms.TextBox
-    Friend WithEvents txt3y As System.Windows.Forms.TextBox
-    Friend WithEvents txt3x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer3 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt4y As System.Windows.Forms.TextBox
-    Friend WithEvents txt4x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer4 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt5y As System.Windows.Forms.TextBox
-    Friend WithEvents txt5x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer5 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt6y As System.Windows.Forms.TextBox
-    Friend WithEvents txt6x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer6 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt7y As System.Windows.Forms.TextBox
-    Friend WithEvents txt7x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer7 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt8y As System.Windows.Forms.TextBox
-    Friend WithEvents txt8x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer8 As System.Windows.Forms.RadioButton
-    Friend WithEvents Label7 As System.Windows.Forms.Label
-    Friend WithEvents txtLevels As System.Windows.Forms.TextBox
-    Friend WithEvents txtLevelFrequency As System.Windows.Forms.TextBox
-    Friend WithEvents Label8 As System.Windows.Forms.Label
-    Friend WithEvents txtRampDistance As System.Windows.Forms.TextBox
-    Friend WithEvents Label9 As System.Windows.Forms.Label
-    Friend WithEvents txtBaseOil As System.Windows.Forms.TextBox
-    Friend WithEvents Label10 As System.Windows.Forms.Label
-    Friend WithEvents txtOilElsewhere As System.Windows.Forms.TextBox
-    Friend WithEvents Label11 As System.Windows.Forms.Label
-    Friend WithEvents txtOilClusterMin As System.Windows.Forms.TextBox
-    Friend WithEvents Label12 As System.Windows.Forms.Label
-    Friend WithEvents Label13 As System.Windows.Forms.Label
-    Friend WithEvents Label14 As System.Windows.Forms.Label
-    Friend WithEvents txtOilClusterMax As System.Windows.Forms.TextBox
-    Friend WithEvents lblProgress As System.Windows.Forms.Label
-    Friend WithEvents btnStop As System.Windows.Forms.Button
-    Friend WithEvents txtBaseLevel As System.Windows.Forms.TextBox
-    Friend WithEvents Label17 As System.Windows.Forms.Label
-    Friend WithEvents txtOilDispersion As System.Windows.Forms.TextBox
-    Friend WithEvents Label18 As System.Windows.Forms.Label
-    Friend WithEvents txtFScatterChance As System.Windows.Forms.TextBox
-    Friend WithEvents Label19 As System.Windows.Forms.Label
-    Friend WithEvents txtFClusterChance As System.Windows.Forms.TextBox
-    Friend WithEvents Label20 As System.Windows.Forms.Label
-    Friend WithEvents txtFClusterMin As System.Windows.Forms.TextBox
-    Friend WithEvents Label21 As System.Windows.Forms.Label
-    Friend WithEvents txtFClusterMax As System.Windows.Forms.TextBox
-    Friend WithEvents Label22 As System.Windows.Forms.Label
-    Friend WithEvents txtTrucks As System.Windows.Forms.TextBox
-    Friend WithEvents Label23 As System.Windows.Forms.Label
-    Friend WithEvents Label24 As System.Windows.Forms.Label
-    Friend WithEvents cboTileset As System.Windows.Forms.ComboBox
-    Friend WithEvents txtFlatness As System.Windows.Forms.TextBox
-    Friend WithEvents Label25 As System.Windows.Forms.Label
-    Friend WithEvents cbxFlatBases As System.Windows.Forms.CheckBox
-    Friend WithEvents txtWaterQuantity As System.Windows.Forms.TextBox
-    Friend WithEvents Label26 As System.Windows.Forms.Label
-    Friend WithEvents Label27 As System.Windows.Forms.Label
-    Friend WithEvents txtVariation As System.Windows.Forms.TextBox
-    Friend WithEvents Label28 As System.Windows.Forms.Label
-    Friend WithEvents txtRandom As System.Windows.Forms.TextBox
-    Friend WithEvents Label29 As System.Windows.Forms.Label
-    Friend WithEvents txtEqualize As System.Windows.Forms.TextBox
-    Friend WithEvents Label30 As System.Windows.Forms.Label
-    Friend WithEvents rdoPlayer1 As System.Windows.Forms.RadioButton
-    Friend WithEvents cboSymmetry As System.Windows.Forms.ComboBox
-    Friend WithEvents Label6 As System.Windows.Forms.Label
-    Friend WithEvents txtOilAtATime As System.Windows.Forms.TextBox
-    Friend WithEvents Label31 As System.Windows.Forms.Label
-    Friend WithEvents txtOilTolerance As System.Windows.Forms.TextBox
-    Friend WithEvents Label32 As System.Windows.Forms.Label
-    Friend WithEvents txtRampBase As System.Windows.Forms.TextBox
-    Friend WithEvents Label33 As System.Windows.Forms.Label
-    Friend WithEvents txtConnectedWater As System.Windows.Forms.TextBox
-    Friend WithEvents Label34 As System.Windows.Forms.Label
-    Friend WithEvents txt9y As System.Windows.Forms.TextBox
-    Friend WithEvents txt9x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer9 As System.Windows.Forms.RadioButton
-    Friend WithEvents txt10y As System.Windows.Forms.TextBox
-    Friend WithEvents txt10x As System.Windows.Forms.TextBox
-    Friend WithEvents rdoPlayer10 As System.Windows.Forms.RadioButton
-    Friend WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
-    Friend WithEvents cbxMasterTexture As System.Windows.Forms.CheckBox
+    Public WithEvents btnGenerate As System.Windows.Forms.Button
+    Public WithEvents Label1 As System.Windows.Forms.Label
+    Public WithEvents txtWidth As System.Windows.Forms.TextBox
+    Public WithEvents txtHeight As System.Windows.Forms.TextBox
+    Public WithEvents Label2 As System.Windows.Forms.Label
+    Public WithEvents txt1x As System.Windows.Forms.TextBox
+    Public WithEvents Label3 As System.Windows.Forms.Label
+    Public WithEvents Label4 As System.Windows.Forms.Label
+    Public WithEvents Label5 As System.Windows.Forms.Label
+    Public WithEvents rdoPlayer2 As System.Windows.Forms.RadioButton
+    Public WithEvents txt1y As System.Windows.Forms.TextBox
+    Public WithEvents txt2y As System.Windows.Forms.TextBox
+    Public WithEvents txt2x As System.Windows.Forms.TextBox
+    Public WithEvents txt3y As System.Windows.Forms.TextBox
+    Public WithEvents txt3x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer3 As System.Windows.Forms.RadioButton
+    Public WithEvents txt4y As System.Windows.Forms.TextBox
+    Public WithEvents txt4x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer4 As System.Windows.Forms.RadioButton
+    Public WithEvents txt5y As System.Windows.Forms.TextBox
+    Public WithEvents txt5x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer5 As System.Windows.Forms.RadioButton
+    Public WithEvents txt6y As System.Windows.Forms.TextBox
+    Public WithEvents txt6x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer6 As System.Windows.Forms.RadioButton
+    Public WithEvents txt7y As System.Windows.Forms.TextBox
+    Public WithEvents txt7x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer7 As System.Windows.Forms.RadioButton
+    Public WithEvents txt8y As System.Windows.Forms.TextBox
+    Public WithEvents txt8x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer8 As System.Windows.Forms.RadioButton
+    Public WithEvents Label7 As System.Windows.Forms.Label
+    Public WithEvents txtLevels As System.Windows.Forms.TextBox
+    Public WithEvents txtLevelFrequency As System.Windows.Forms.TextBox
+    Public WithEvents Label8 As System.Windows.Forms.Label
+    Public WithEvents txtRampDistance As System.Windows.Forms.TextBox
+    Public WithEvents Label9 As System.Windows.Forms.Label
+    Public WithEvents txtBaseOil As System.Windows.Forms.TextBox
+    Public WithEvents Label10 As System.Windows.Forms.Label
+    Public WithEvents txtOilElsewhere As System.Windows.Forms.TextBox
+    Public WithEvents Label11 As System.Windows.Forms.Label
+    Public WithEvents txtOilClusterMin As System.Windows.Forms.TextBox
+    Public WithEvents Label12 As System.Windows.Forms.Label
+    Public WithEvents Label13 As System.Windows.Forms.Label
+    Public WithEvents Label14 As System.Windows.Forms.Label
+    Public WithEvents txtOilClusterMax As System.Windows.Forms.TextBox
+    Public WithEvents lblProgress As System.Windows.Forms.Label
+    Public WithEvents btnStop As System.Windows.Forms.Button
+    Public WithEvents txtBaseLevel As System.Windows.Forms.TextBox
+    Public WithEvents Label17 As System.Windows.Forms.Label
+    Public WithEvents txtOilDispersion As System.Windows.Forms.TextBox
+    Public WithEvents Label18 As System.Windows.Forms.Label
+    Public WithEvents txtFScatterChance As System.Windows.Forms.TextBox
+    Public WithEvents Label19 As System.Windows.Forms.Label
+    Public WithEvents txtFClusterChance As System.Windows.Forms.TextBox
+    Public WithEvents Label20 As System.Windows.Forms.Label
+    Public WithEvents txtFClusterMin As System.Windows.Forms.TextBox
+    Public WithEvents Label21 As System.Windows.Forms.Label
+    Public WithEvents txtFClusterMax As System.Windows.Forms.TextBox
+    Public WithEvents Label22 As System.Windows.Forms.Label
+    Public WithEvents txtTrucks As System.Windows.Forms.TextBox
+    Public WithEvents Label23 As System.Windows.Forms.Label
+    Public WithEvents Label24 As System.Windows.Forms.Label
+    Public WithEvents cboTileset As System.Windows.Forms.ComboBox
+    Public WithEvents txtFlatness As System.Windows.Forms.TextBox
+    Public WithEvents Label25 As System.Windows.Forms.Label
+    Public WithEvents cbxFlatBases As System.Windows.Forms.CheckBox
+    Public WithEvents txtWaterQuantity As System.Windows.Forms.TextBox
+    Public WithEvents Label26 As System.Windows.Forms.Label
+    Public WithEvents Label27 As System.Windows.Forms.Label
+    Public WithEvents txtVariation As System.Windows.Forms.TextBox
+    Public WithEvents Label28 As System.Windows.Forms.Label
+    Public WithEvents txtRandom As System.Windows.Forms.TextBox
+    Public WithEvents Label29 As System.Windows.Forms.Label
+    Public WithEvents txtEqualize As System.Windows.Forms.TextBox
+    Public WithEvents Label30 As System.Windows.Forms.Label
+    Public WithEvents rdoPlayer1 As System.Windows.Forms.RadioButton
+    Public WithEvents cboSymmetry As System.Windows.Forms.ComboBox
+    Public WithEvents Label6 As System.Windows.Forms.Label
+    Public WithEvents txtOilAtATime As System.Windows.Forms.TextBox
+    Public WithEvents Label31 As System.Windows.Forms.Label
+    Public WithEvents txtRampBase As System.Windows.Forms.TextBox
+    Public WithEvents Label33 As System.Windows.Forms.Label
+    Public WithEvents txtConnectedWater As System.Windows.Forms.TextBox
+    Public WithEvents Label34 As System.Windows.Forms.Label
+    Public WithEvents txt9y As System.Windows.Forms.TextBox
+    Public WithEvents txt9x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer9 As System.Windows.Forms.RadioButton
+    Public WithEvents txt10y As System.Windows.Forms.TextBox
+    Public WithEvents txt10x As System.Windows.Forms.TextBox
+    Public WithEvents rdoPlayer10 As System.Windows.Forms.RadioButton
+    Public WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
+    Public WithEvents cbxMasterTexture As System.Windows.Forms.CheckBox
 #End If
 End Class

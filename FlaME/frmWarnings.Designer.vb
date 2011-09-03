@@ -42,10 +42,9 @@ Partial Class frmWarnings
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(324, 222)
         Me.Controls.Add(Me.lstWarnings)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow
         Me.Name = "frmWarnings"
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents lstWarnings As System.Windows.Forms.ListBox
+    Public WithEvents lstWarnings As System.Windows.Forms.ListBox
 End Class

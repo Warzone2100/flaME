@@ -23,9 +23,6 @@ Partial Class frmMain
 
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.components = New System.ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
-        Me.tmrKey = New System.Windows.Forms.Timer(Me.components)
         Me.SplitContainer1 = New System.Windows.Forms.SplitContainer()
         Me.TabControl = New System.Windows.Forms.TabControl()
         Me.tpTextures = New System.Windows.Forms.TabPage()
@@ -49,6 +46,7 @@ Partial Class frmMain
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cboTileType = New System.Windows.Forms.ComboBox()
         Me.tpAutoTexture = New System.Windows.Forms.TabPage()
+        Me.rdoCliffTriBrush = New System.Windows.Forms.RadioButton()
         Me.rdoRoadRemove = New System.Windows.Forms.RadioButton()
         Me.pnlCliffRemoveBrush = New System.Windows.Forms.Panel()
         Me.pnlTerrainBrush = New System.Windows.Forms.Panel()
@@ -208,7 +206,7 @@ Partial Class frmMain
         Me.menuSelPasteDeleteUnits = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSelPasteDeleteGateways = New System.Windows.Forms.ToolStripMenuItem()
         Me.tsbSelectionPaste = New System.Windows.Forms.ToolStripButton()
-        Me.tsbSelectionRotateAnticlockwise = New System.Windows.Forms.ToolStripButton()
+        Me.tsbSelectionRotateCounterClockwise = New System.Windows.Forms.ToolStripButton()
         Me.tsbSelectionRotateClockwise = New System.Windows.Forms.ToolStripButton()
         Me.tsbSelectionFlipX = New System.Windows.Forms.ToolStripButton()
         Me.tsbSelectionObjects = New System.Windows.Forms.ToolStripButton()
@@ -219,7 +217,6 @@ Partial Class frmMain
         Me.menuMiniShowCliffs = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMiniShowUnits = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuMiniShowGateways = New System.Windows.Forms.ToolStripMenuItem()
-        Me.MinimapSizeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.pnlView = New System.Windows.Forms.Panel()
         Me.menuMain = New System.Windows.Forms.MenuStrip()
         Me.menuFile = New System.Windows.Forms.ToolStripMenuItem()
@@ -249,21 +246,7 @@ Partial Class frmMain
         Me.MapWZToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
         Me.CloseToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.OptionsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.UndoLimitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.AutosaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuAutosaveEnabled = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuAutosaveInterval = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuAutosaveChanges = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuAutosaveCompress = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator8 = New System.Windows.Forms.ToolStripSeparator()
-        Me.menuAutosaveOpen = New System.Windows.Forms.ToolStripMenuItem()
-        Me.CursorModeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuPointerPlane = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuPointerDirect = New System.Windows.Forms.ToolStripMenuItem()
-        Me.DisplayToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.menuFont = New System.Windows.Forms.ToolStripMenuItem()
-        Me.tmrTool = New System.Windows.Forms.Timer(Me.components)
+        Me.menuOptions = New System.Windows.Forms.ToolStripMenuItem()
         Me.TableLayoutPanel5 = New System.Windows.Forms.TableLayoutPanel()
         Me.TabPage13 = New System.Windows.Forms.TabPage()
         Me.TabPage14 = New System.Windows.Forms.TabPage()
@@ -273,8 +256,6 @@ Partial Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
-        Me.FontDialog = New System.Windows.Forms.FontDialog()
-        Me.menuDirectoriesPrompt = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
@@ -318,11 +299,6 @@ Partial Class frmMain
         Me.menuMain.SuspendLayout()
         Me.TableLayoutPanel5.SuspendLayout()
         Me.SuspendLayout()
-        '
-        'tmrKey
-        '
-        Me.tmrKey.Enabled = True
-        Me.tmrKey.Interval = 30
         '
         'SplitContainer1
         '
@@ -475,7 +451,6 @@ Partial Class frmMain
         'btnTextureFlipX
         '
         Me.btnTextureFlipX.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureFlipX.Image = CType(resources.GetObject("btnTextureFlipX.Image"), System.Drawing.Image)
         Me.btnTextureFlipX.Location = New System.Drawing.Point(237, 103)
         Me.btnTextureFlipX.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureFlipX.Name = "btnTextureFlipX"
@@ -487,7 +462,6 @@ Partial Class frmMain
         'btnTextureClockwise
         '
         Me.btnTextureClockwise.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureClockwise.Image = CType(resources.GetObject("btnTextureClockwise.Image"), System.Drawing.Image)
         Me.btnTextureClockwise.Location = New System.Drawing.Point(197, 103)
         Me.btnTextureClockwise.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureClockwise.Name = "btnTextureClockwise"
@@ -499,7 +473,6 @@ Partial Class frmMain
         'btnTextureAnticlockwise
         '
         Me.btnTextureAnticlockwise.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnTextureAnticlockwise.Image = CType(resources.GetObject("btnTextureAnticlockwise.Image"), System.Drawing.Image)
         Me.btnTextureAnticlockwise.Location = New System.Drawing.Point(157, 103)
         Me.btnTextureAnticlockwise.Margin = New System.Windows.Forms.Padding(0)
         Me.btnTextureAnticlockwise.Name = "btnTextureAnticlockwise"
@@ -620,6 +593,7 @@ Partial Class frmMain
         'tpAutoTexture
         '
         Me.tpAutoTexture.AutoScroll = True
+        Me.tpAutoTexture.Controls.Add(Me.rdoCliffTriBrush)
         Me.tpAutoTexture.Controls.Add(Me.rdoRoadRemove)
         Me.tpAutoTexture.Controls.Add(Me.pnlCliffRemoveBrush)
         Me.tpAutoTexture.Controls.Add(Me.pnlTerrainBrush)
@@ -649,6 +623,18 @@ Partial Class frmMain
         Me.tpAutoTexture.Text = "Terrain Painter"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
         '
+        'rdoCliffTriBrush
+        '
+        Me.rdoCliffTriBrush.AutoSize = True
+        Me.rdoCliffTriBrush.Location = New System.Drawing.Point(11, 491)
+        Me.rdoCliffTriBrush.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoCliffTriBrush.Name = "rdoCliffTriBrush"
+        Me.rdoCliffTriBrush.Size = New System.Drawing.Size(101, 21)
+        Me.rdoCliffTriBrush.TabIndex = 49
+        Me.rdoCliffTriBrush.Text = "Cliff Triangle"
+        Me.rdoCliffTriBrush.UseCompatibleTextRendering = True
+        Me.rdoCliffTriBrush.UseVisualStyleBackColor = True
+        '
         'rdoRoadRemove
         '
         Me.rdoRoadRemove.AutoSize = True
@@ -663,7 +649,7 @@ Partial Class frmMain
         '
         'pnlCliffRemoveBrush
         '
-        Me.pnlCliffRemoveBrush.Location = New System.Drawing.Point(33, 573)
+        Me.pnlCliffRemoveBrush.Location = New System.Drawing.Point(32, 598)
         Me.pnlCliffRemoveBrush.Name = "pnlCliffRemoveBrush"
         Me.pnlCliffRemoveBrush.Size = New System.Drawing.Size(341, 38)
         Me.pnlCliffRemoveBrush.TabIndex = 47
@@ -703,7 +689,7 @@ Partial Class frmMain
         '
         Me.cbxCliffTris.Checked = True
         Me.cbxCliffTris.CheckState = System.Windows.Forms.CheckState.Checked
-        Me.cbxCliffTris.Location = New System.Drawing.Point(162, 518)
+        Me.cbxCliffTris.Location = New System.Drawing.Point(161, 543)
         Me.cbxCliffTris.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxCliffTris.Name = "cbxCliffTris"
         Me.cbxCliffTris.Size = New System.Drawing.Size(127, 21)
@@ -721,6 +707,7 @@ Partial Class frmMain
         Me.btnMapTexturer.TabIndex = 34
         Me.btnMapTexturer.Text = "Entire Map Painter"
         Me.btnMapTexturer.UseVisualStyleBackColor = True
+        Me.btnMapTexturer.Visible = False
         '
         'Label29
         '
@@ -816,7 +803,7 @@ Partial Class frmMain
         'rdoAutoCliffBrush
         '
         Me.rdoAutoCliffBrush.AutoSize = True
-        Me.rdoAutoCliffBrush.Location = New System.Drawing.Point(12, 515)
+        Me.rdoAutoCliffBrush.Location = New System.Drawing.Point(11, 540)
         Me.rdoAutoCliffBrush.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoAutoCliffBrush.Name = "rdoAutoCliffBrush"
         Me.rdoAutoCliffBrush.Size = New System.Drawing.Size(88, 21)
@@ -828,7 +815,7 @@ Partial Class frmMain
         'rdoAutoCliffRemove
         '
         Me.rdoAutoCliffRemove.AutoSize = True
-        Me.rdoAutoCliffRemove.Location = New System.Drawing.Point(12, 545)
+        Me.rdoAutoCliffRemove.Location = New System.Drawing.Point(11, 570)
         Me.rdoAutoCliffRemove.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoAutoCliffRemove.Name = "rdoAutoCliffRemove"
         Me.rdoAutoCliffRemove.Size = New System.Drawing.Size(102, 21)
@@ -839,7 +826,7 @@ Partial Class frmMain
         '
         'txtAutoCliffSlope
         '
-        Me.txtAutoCliffSlope.Location = New System.Drawing.Point(118, 491)
+        Me.txtAutoCliffSlope.Location = New System.Drawing.Point(117, 516)
         Me.txtAutoCliffSlope.Margin = New System.Windows.Forms.Padding(4)
         Me.txtAutoCliffSlope.Name = "txtAutoCliffSlope"
         Me.txtAutoCliffSlope.Size = New System.Drawing.Size(52, 22)
@@ -849,7 +836,7 @@ Partial Class frmMain
         '
         'Label1
         '
-        Me.Label1.Location = New System.Drawing.Point(12, 491)
+        Me.Label1.Location = New System.Drawing.Point(11, 516)
         Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label1.Name = "Label1"
         Me.Label1.Size = New System.Drawing.Size(96, 20)
@@ -2279,7 +2266,6 @@ Partial Class frmMain
         'tsbGateways
         '
         Me.tsbGateways.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbGateways.Image = CType(resources.GetObject("tsbGateways.Image"), System.Drawing.Image)
         Me.tsbGateways.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbGateways.Name = "tsbGateways"
         Me.tsbGateways.Size = New System.Drawing.Size(23, 22)
@@ -2289,7 +2275,6 @@ Partial Class frmMain
         '
         Me.tsbDrawAutotexture.CheckOnClick = True
         Me.tsbDrawAutotexture.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbDrawAutotexture.Image = CType(resources.GetObject("tsbDrawAutotexture.Image"), System.Drawing.Image)
         Me.tsbDrawAutotexture.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbDrawAutotexture.Name = "tsbDrawAutotexture"
         Me.tsbDrawAutotexture.Size = New System.Drawing.Size(23, 22)
@@ -2299,7 +2284,6 @@ Partial Class frmMain
         '
         Me.tsbDrawTileOrientation.CheckOnClick = True
         Me.tsbDrawTileOrientation.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbDrawTileOrientation.Image = CType(resources.GetObject("tsbDrawTileOrientation.Image"), System.Drawing.Image)
         Me.tsbDrawTileOrientation.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbDrawTileOrientation.Name = "tsbDrawTileOrientation"
         Me.tsbDrawTileOrientation.Size = New System.Drawing.Size(23, 22)
@@ -2319,7 +2303,6 @@ Partial Class frmMain
         '
         Me.tsbSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
         Me.tsbSave.Enabled = False
-        Me.tsbSave.Image = CType(resources.GetObject("tsbSave.Image"), System.Drawing.Image)
         Me.tsbSave.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSave.Name = "tsbSave"
         Me.tsbSave.Size = New System.Drawing.Size(23, 22)
@@ -2328,10 +2311,10 @@ Partial Class frmMain
         '
         Me.tsSelection.Dock = System.Windows.Forms.DockStyle.None
         Me.tsSelection.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden
-        Me.tsSelection.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripLabel1, Me.tsbSelection, Me.tsbSelectionCopy, Me.tsbSelectionPasteOptions, Me.tsbSelectionPaste, Me.tsbSelectionRotateAnticlockwise, Me.tsbSelectionRotateClockwise, Me.tsbSelectionFlipX, Me.tsbSelectionObjects})
+        Me.tsSelection.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripLabel1, Me.tsbSelection, Me.tsbSelectionCopy, Me.tsbSelectionPasteOptions, Me.tsbSelectionPaste, Me.tsbSelectionRotateCounterClockwise, Me.tsbSelectionRotateClockwise, Me.tsbSelectionFlipX, Me.tsbSelectionObjects})
         Me.tsSelection.Location = New System.Drawing.Point(98, 0)
         Me.tsSelection.Name = "tsSelection"
-        Me.tsSelection.Size = New System.Drawing.Size(266, 25)
+        Me.tsSelection.Size = New System.Drawing.Size(250, 25)
         Me.tsSelection.TabIndex = 0
         Me.tsSelection.Text = "ToolStrip1"
         '
@@ -2344,7 +2327,6 @@ Partial Class frmMain
         'tsbSelection
         '
         Me.tsbSelection.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelection.Image = CType(resources.GetObject("tsbSelection.Image"), System.Drawing.Image)
         Me.tsbSelection.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelection.Name = "tsbSelection"
         Me.tsbSelection.Size = New System.Drawing.Size(23, 22)
@@ -2353,7 +2335,6 @@ Partial Class frmMain
         'tsbSelectionCopy
         '
         Me.tsbSelectionCopy.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionCopy.Image = CType(resources.GetObject("tsbSelectionCopy.Image"), System.Drawing.Image)
         Me.tsbSelectionCopy.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionCopy.Name = "tsbSelectionCopy"
         Me.tsbSelectionCopy.Size = New System.Drawing.Size(23, 22)
@@ -2363,10 +2344,9 @@ Partial Class frmMain
         '
         Me.tsbSelectionPasteOptions.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
         Me.tsbSelectionPasteOptions.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuRotateUnits, Me.menuRotateWalls, Me.menuRotateNothing, Me.ToolStripSeparator10, Me.menuSelPasteHeights, Me.menuSelPasteTextures, Me.menuSelPasteUnits, Me.menuSelPasteGateways, Me.menuSelPasteDeleteUnits, Me.menuSelPasteDeleteGateways})
-        Me.tsbSelectionPasteOptions.Image = CType(resources.GetObject("tsbSelectionPasteOptions.Image"), System.Drawing.Image)
         Me.tsbSelectionPasteOptions.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPasteOptions.Name = "tsbSelectionPasteOptions"
-        Me.tsbSelectionPasteOptions.Size = New System.Drawing.Size(29, 22)
+        Me.tsbSelectionPasteOptions.Size = New System.Drawing.Size(13, 22)
         Me.tsbSelectionPasteOptions.Text = "Paste Options"
         '
         'menuRotateUnits
@@ -2443,25 +2423,22 @@ Partial Class frmMain
         'tsbSelectionPaste
         '
         Me.tsbSelectionPaste.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionPaste.Image = CType(resources.GetObject("tsbSelectionPaste.Image"), System.Drawing.Image)
         Me.tsbSelectionPaste.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionPaste.Name = "tsbSelectionPaste"
         Me.tsbSelectionPaste.Size = New System.Drawing.Size(23, 22)
         Me.tsbSelectionPaste.Text = "Paste To Selection"
         '
-        'tsbSelectionRotateAnticlockwise
+        'tsbSelectionRotateCounterClockwise
         '
-        Me.tsbSelectionRotateAnticlockwise.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionRotateAnticlockwise.Image = CType(resources.GetObject("tsbSelectionRotateAnticlockwise.Image"), System.Drawing.Image)
-        Me.tsbSelectionRotateAnticlockwise.ImageTransparentColor = System.Drawing.Color.Magenta
-        Me.tsbSelectionRotateAnticlockwise.Name = "tsbSelectionRotateAnticlockwise"
-        Me.tsbSelectionRotateAnticlockwise.Size = New System.Drawing.Size(23, 22)
-        Me.tsbSelectionRotateAnticlockwise.Text = "Rotate Copy Counter Clockwise"
+        Me.tsbSelectionRotateCounterClockwise.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+        Me.tsbSelectionRotateCounterClockwise.ImageTransparentColor = System.Drawing.Color.Magenta
+        Me.tsbSelectionRotateCounterClockwise.Name = "tsbSelectionRotateCounterClockwise"
+        Me.tsbSelectionRotateCounterClockwise.Size = New System.Drawing.Size(23, 22)
+        Me.tsbSelectionRotateCounterClockwise.Text = "Rotate Copy Counter Clockwise"
         '
         'tsbSelectionRotateClockwise
         '
         Me.tsbSelectionRotateClockwise.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionRotateClockwise.Image = CType(resources.GetObject("tsbSelectionRotateClockwise.Image"), System.Drawing.Image)
         Me.tsbSelectionRotateClockwise.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionRotateClockwise.Name = "tsbSelectionRotateClockwise"
         Me.tsbSelectionRotateClockwise.Size = New System.Drawing.Size(23, 22)
@@ -2470,7 +2447,6 @@ Partial Class frmMain
         'tsbSelectionFlipX
         '
         Me.tsbSelectionFlipX.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionFlipX.Image = CType(resources.GetObject("tsbSelectionFlipX.Image"), System.Drawing.Image)
         Me.tsbSelectionFlipX.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionFlipX.Name = "tsbSelectionFlipX"
         Me.tsbSelectionFlipX.Size = New System.Drawing.Size(23, 22)
@@ -2479,7 +2455,6 @@ Partial Class frmMain
         'tsbSelectionObjects
         '
         Me.tsbSelectionObjects.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-        Me.tsbSelectionObjects.Image = CType(resources.GetObject("tsbSelectionObjects.Image"), System.Drawing.Image)
         Me.tsbSelectionObjects.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionObjects.Name = "tsbSelectionObjects"
         Me.tsbSelectionObjects.Size = New System.Drawing.Size(23, 22)
@@ -2498,7 +2473,7 @@ Partial Class frmMain
         'menuMinimap
         '
         Me.menuMinimap.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.menuMinimap.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuMiniShowTex, Me.menuMiniShowHeight, Me.menuMiniShowCliffs, Me.menuMiniShowUnits, Me.menuMiniShowGateways, Me.MinimapSizeToolStripMenuItem})
+        Me.menuMinimap.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuMiniShowTex, Me.menuMiniShowHeight, Me.menuMiniShowCliffs, Me.menuMiniShowUnits, Me.menuMiniShowGateways})
         Me.menuMinimap.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.menuMinimap.Name = "menuMinimap"
         Me.menuMinimap.Size = New System.Drawing.Size(81, 24)
@@ -2545,12 +2520,6 @@ Partial Class frmMain
         Me.menuMiniShowGateways.Size = New System.Drawing.Size(181, 24)
         Me.menuMiniShowGateways.Text = "Show Gateways"
         '
-        'MinimapSizeToolStripMenuItem
-        '
-        Me.MinimapSizeToolStripMenuItem.Name = "MinimapSizeToolStripMenuItem"
-        Me.MinimapSizeToolStripMenuItem.Size = New System.Drawing.Size(181, 24)
-        Me.MinimapSizeToolStripMenuItem.Text = "Minimap Size..."
-        '
         'pnlView
         '
         Me.pnlView.Dock = System.Windows.Forms.DockStyle.Fill
@@ -2563,7 +2532,7 @@ Partial Class frmMain
         'menuMain
         '
         Me.menuMain.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.OptionsToolStripMenuItem})
+        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.menuOptions})
         Me.menuMain.Location = New System.Drawing.Point(0, 0)
         Me.menuMain.Name = "menuMain"
         Me.menuMain.Padding = New System.Windows.Forms.Padding(8, 2, 0, 2)
@@ -2725,100 +2694,11 @@ Partial Class frmMain
         Me.CloseToolStripMenuItem.Size = New System.Drawing.Size(177, 24)
         Me.CloseToolStripMenuItem.Text = "Close"
         '
-        'OptionsToolStripMenuItem
+        'menuOptions
         '
-        Me.OptionsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.UndoLimitToolStripMenuItem, Me.AutosaveToolStripMenuItem, Me.CursorModeToolStripMenuItem, Me.DisplayToolStripMenuItem, Me.menuDirectoriesPrompt})
-        Me.OptionsToolStripMenuItem.Name = "OptionsToolStripMenuItem"
-        Me.OptionsToolStripMenuItem.Size = New System.Drawing.Size(73, 27)
-        Me.OptionsToolStripMenuItem.Text = "Options"
-        '
-        'UndoLimitToolStripMenuItem
-        '
-        Me.UndoLimitToolStripMenuItem.Name = "UndoLimitToolStripMenuItem"
-        Me.UndoLimitToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
-        Me.UndoLimitToolStripMenuItem.Text = "Undo Limit..."
-        '
-        'AutosaveToolStripMenuItem
-        '
-        Me.AutosaveToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuAutosaveEnabled, Me.menuAutosaveInterval, Me.menuAutosaveChanges, Me.menuAutosaveCompress, Me.ToolStripSeparator8, Me.menuAutosaveOpen})
-        Me.AutosaveToolStripMenuItem.Name = "AutosaveToolStripMenuItem"
-        Me.AutosaveToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
-        Me.AutosaveToolStripMenuItem.Text = "Autosave"
-        '
-        'menuAutosaveEnabled
-        '
-        Me.menuAutosaveEnabled.Checked = True
-        Me.menuAutosaveEnabled.CheckOnClick = True
-        Me.menuAutosaveEnabled.CheckState = System.Windows.Forms.CheckState.Checked
-        Me.menuAutosaveEnabled.Name = "menuAutosaveEnabled"
-        Me.menuAutosaveEnabled.Size = New System.Drawing.Size(210, 24)
-        Me.menuAutosaveEnabled.Text = "Enabled"
-        '
-        'menuAutosaveInterval
-        '
-        Me.menuAutosaveInterval.Name = "menuAutosaveInterval"
-        Me.menuAutosaveInterval.Size = New System.Drawing.Size(210, 24)
-        Me.menuAutosaveInterval.Text = "Minimum Interval..."
-        '
-        'menuAutosaveChanges
-        '
-        Me.menuAutosaveChanges.Name = "menuAutosaveChanges"
-        Me.menuAutosaveChanges.Size = New System.Drawing.Size(210, 24)
-        Me.menuAutosaveChanges.Text = "Minimum Changes..."
-        '
-        'menuAutosaveCompress
-        '
-        Me.menuAutosaveCompress.CheckOnClick = True
-        Me.menuAutosaveCompress.Name = "menuAutosaveCompress"
-        Me.menuAutosaveCompress.Size = New System.Drawing.Size(210, 24)
-        Me.menuAutosaveCompress.Text = "Compress (Slow)"
-        '
-        'ToolStripSeparator8
-        '
-        Me.ToolStripSeparator8.Name = "ToolStripSeparator8"
-        Me.ToolStripSeparator8.Size = New System.Drawing.Size(207, 6)
-        '
-        'menuAutosaveOpen
-        '
-        Me.menuAutosaveOpen.Name = "menuAutosaveOpen"
-        Me.menuAutosaveOpen.Size = New System.Drawing.Size(210, 24)
-        Me.menuAutosaveOpen.Text = "Open Autosave..."
-        '
-        'CursorModeToolStripMenuItem
-        '
-        Me.CursorModeToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuPointerPlane, Me.menuPointerDirect})
-        Me.CursorModeToolStripMenuItem.Name = "CursorModeToolStripMenuItem"
-        Me.CursorModeToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
-        Me.CursorModeToolStripMenuItem.Text = "Pointer Mode"
-        '
-        'menuPointerPlane
-        '
-        Me.menuPointerPlane.Name = "menuPointerPlane"
-        Me.menuPointerPlane.Size = New System.Drawing.Size(152, 24)
-        Me.menuPointerPlane.Text = "Plane"
-        '
-        'menuPointerDirect
-        '
-        Me.menuPointerDirect.Name = "menuPointerDirect"
-        Me.menuPointerDirect.Size = New System.Drawing.Size(152, 24)
-        Me.menuPointerDirect.Text = "Direct"
-        '
-        'DisplayToolStripMenuItem
-        '
-        Me.DisplayToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFont})
-        Me.DisplayToolStripMenuItem.Name = "DisplayToolStripMenuItem"
-        Me.DisplayToolStripMenuItem.Size = New System.Drawing.Size(202, 24)
-        Me.DisplayToolStripMenuItem.Text = "Display"
-        '
-        'menuFont
-        '
-        Me.menuFont.Name = "menuFont"
-        Me.menuFont.Size = New System.Drawing.Size(152, 24)
-        Me.menuFont.Text = "Font..."
-        '
-        'tmrTool
-        '
-        Me.tmrTool.Enabled = True
+        Me.menuOptions.Name = "menuOptions"
+        Me.menuOptions.Size = New System.Drawing.Size(73, 27)
+        Me.menuOptions.Text = "Options"
         '
         'TableLayoutPanel5
         '
@@ -2910,19 +2790,6 @@ Partial Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
-        'FontDialog
-        '
-        Me.FontDialog.Font = New System.Drawing.Font("Arial", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        '
-        'menuDataPrompt
-        '
-        Me.menuDirectoriesPrompt.Checked = True
-        Me.menuDirectoriesPrompt.CheckOnClick = True
-        Me.menuDirectoriesPrompt.CheckState = System.Windows.Forms.CheckState.Checked
-        Me.menuDirectoriesPrompt.Name = "menuDataPrompt"
-        Me.menuDirectoriesPrompt.Size = New System.Drawing.Size(202, 24)
-        Me.menuDirectoriesPrompt.Text = "Ask For Directories"
-        '
         'frmMain
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -2993,255 +2860,238 @@ Partial Class frmMain
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents tmrKey As System.Windows.Forms.Timer
-    Friend WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
-    Friend WithEvents tpTextures As System.Windows.Forms.TabPage
-    Friend WithEvents tpHeight As System.Windows.Forms.TabPage
-    Friend WithEvents tpAutoTexture As System.Windows.Forms.TabPage
-    Friend WithEvents lstAutoTexture As System.Windows.Forms.ListBox
-    Friend WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents cboTileset As System.Windows.Forms.ComboBox
-    Friend WithEvents txtAutoCliffSlope As System.Windows.Forms.TextBox
-    Friend WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents tpAutoHeight As System.Windows.Forms.TabPage
-    Friend WithEvents btnAutoTri As System.Windows.Forms.Button
-    Friend WithEvents txtHeightSetL As System.Windows.Forms.TextBox
-    Friend WithEvents Label5 As System.Windows.Forms.Label
-    Friend WithEvents txtSmoothRate As System.Windows.Forms.TextBox
-    Friend WithEvents Label6 As System.Windows.Forms.Label
-    Friend WithEvents rdoHeightSmooth As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoHeightSet As System.Windows.Forms.RadioButton
-    Friend WithEvents tmrTool As System.Windows.Forms.Timer
-    Friend WithEvents tpResize As System.Windows.Forms.TabPage
-    Friend WithEvents txtOffsetY As System.Windows.Forms.TextBox
-    Friend WithEvents Label15 As System.Windows.Forms.Label
-    Friend WithEvents txtOffsetX As System.Windows.Forms.TextBox
-    Friend WithEvents Label14 As System.Windows.Forms.Label
-    Friend WithEvents txtSizeY As System.Windows.Forms.TextBox
-    Friend WithEvents Label13 As System.Windows.Forms.Label
-    Friend WithEvents txtSizeX As System.Windows.Forms.TextBox
-    Friend WithEvents Label12 As System.Windows.Forms.Label
-    Friend WithEvents btnResize As System.Windows.Forms.Button
-    Friend WithEvents Label16 As System.Windows.Forms.Label
-    Friend WithEvents rdoAutoCliffRemove As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoAutoCliffBrush As System.Windows.Forms.RadioButton
-    Friend WithEvents HeightmapBMPToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents rdoAutoTextureFill As System.Windows.Forms.RadioButton
-    Friend WithEvents txtHeightChangeRate As System.Windows.Forms.TextBox
-    Friend WithEvents Label18 As System.Windows.Forms.Label
-    Friend WithEvents rdoHeightChange As System.Windows.Forms.RadioButton
-    Friend WithEvents Label10 As System.Windows.Forms.Label
-    Friend WithEvents txtHeightOffset As System.Windows.Forms.TextBox
-    Friend WithEvents Label9 As System.Windows.Forms.Label
-    Friend WithEvents txtHeightMultiply As System.Windows.Forms.TextBox
-    Friend WithEvents rdoAutoTexturePlace As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoAutoRoadPlace As System.Windows.Forms.RadioButton
-    Friend WithEvents lstAutoRoad As System.Windows.Forms.ListBox
-    Friend WithEvents btnAutoRoadRemove As System.Windows.Forms.Button
-    Friend WithEvents btnAutoTextureRemove As System.Windows.Forms.Button
-    Friend WithEvents menuMain As System.Windows.Forms.MenuStrip
-    Friend WithEvents menuFile As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents NewMapToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents OpenToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents SaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents MapLNDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuSaveFMap As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripMenuItem1 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents MinimapBMPToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripMenuItem3 As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripMenuItem2 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents CloseToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents tpObjects As System.Windows.Forms.TabPage
-    Friend WithEvents lstDroids As System.Windows.Forms.ListBox
-    Friend WithEvents lstFeatures As System.Windows.Forms.ListBox
-    Friend WithEvents lstStructures As System.Windows.Forms.ListBox
-    Friend WithEvents txtPlayerNum As System.Windows.Forms.TextBox
-    Friend WithEvents Label22 As System.Windows.Forms.Label
-    Friend WithEvents tpObject As System.Windows.Forms.TabPage
-    Friend WithEvents lblObjectType As System.Windows.Forms.Label
-    Friend WithEvents Label24 As System.Windows.Forms.Label
-    Friend WithEvents txtObjectRotation As System.Windows.Forms.TextBox
-    Friend WithEvents Label23 As System.Windows.Forms.Label
-    Friend WithEvents Label28 As System.Windows.Forms.Label
-    Friend WithEvents rdoAutoRoadLine As System.Windows.Forms.RadioButton
-    Friend WithEvents Label29 As System.Windows.Forms.Label
-    Friend WithEvents btnMapTexturer As System.Windows.Forms.Button
-    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel4 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel3 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents Panel4 As System.Windows.Forms.Panel
-    Friend WithEvents Label31 As System.Windows.Forms.Label
-    Friend WithEvents Panel3 As System.Windows.Forms.Panel
-    Friend WithEvents Label30 As System.Windows.Forms.Label
-    Friend WithEvents Label19 As System.Windows.Forms.Label
-    Friend WithEvents ToolStripSeparator3 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents ToolStripSeparator2 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents ToolStripSeparator1 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents MapWZToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator4 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents OptionsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents UndoLimitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents btnSelResize As System.Windows.Forms.Button
-    Friend WithEvents tsSelection As System.Windows.Forms.ToolStrip
-    Friend WithEvents ToolStripLabel1 As System.Windows.Forms.ToolStripLabel
-    Friend WithEvents tsbSelection As System.Windows.Forms.ToolStripButton
-    Friend WithEvents tsbSelectionCopy As System.Windows.Forms.ToolStripButton
-    Friend WithEvents tsbSelectionPasteOptions As System.Windows.Forms.ToolStripDropDownButton
-    Friend WithEvents menuSelPasteHeights As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuSelPasteTextures As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuSelPasteUnits As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuSelPasteDeleteUnits As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents tsbSelectionPaste As System.Windows.Forms.ToolStripButton
-    Friend WithEvents tsbSelectionRotateAnticlockwise As System.Windows.Forms.ToolStripButton
-    Friend WithEvents tsbSelectionRotateClockwise As System.Windows.Forms.ToolStripButton
-    Friend WithEvents ToolStripSeparator5 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents tsMinimap As System.Windows.Forms.ToolStrip
-    Friend WithEvents menuMinimap As System.Windows.Forms.ToolStripDropDownButton
-    Friend WithEvents menuMiniShowTex As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuMiniShowHeight As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuMiniShowUnits As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents TableLayoutPanel5 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents menuMiniShowGateways As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents tsTools As System.Windows.Forms.ToolStrip
-    Friend WithEvents tsbGateways As System.Windows.Forms.ToolStripButton
-    Friend WithEvents TableLayoutPanel6 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents Panel5 As System.Windows.Forms.Panel
-    Friend WithEvents Panel6 As System.Windows.Forms.Panel
-    Friend WithEvents Label20 As System.Windows.Forms.Label
-    Friend WithEvents cboTileType As System.Windows.Forms.ComboBox
-    Friend WithEvents cbxTileTypes As System.Windows.Forms.CheckBox
-    Friend WithEvents ToolStripSeparator6 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents menuExportMapTileTypes As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripMenuItem4 As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ImportHeightmapToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuImportTileTypes As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator7 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents cbxCliffTris As System.Windows.Forms.CheckBox
-    Friend WithEvents AutosaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuAutosaveInterval As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuAutosaveChanges As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuAutosaveEnabled As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator8 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents menuAutosaveOpen As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents tsFile As System.Windows.Forms.ToolStrip
-    Friend WithEvents tsbSave As System.Windows.Forms.ToolStripButton
-    Friend WithEvents Label21 As System.Windows.Forms.Label
-    Friend WithEvents Panel1 As System.Windows.Forms.Panel
-    Friend WithEvents Panel2 As System.Windows.Forms.Panel
-    Friend WithEvents cbxAutoTexSetHeight As System.Windows.Forms.CheckBox
-    Friend WithEvents txtObjectID As System.Windows.Forms.TextBox
-    Friend WithEvents Label25 As System.Windows.Forms.Label
-    Friend WithEvents TableLayoutPanel7 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents Panel7 As System.Windows.Forms.Panel
-    Friend WithEvents pnlView As System.Windows.Forms.Panel
-    Friend WithEvents btnReinterpretTerrain As System.Windows.Forms.Button
-    Friend WithEvents Label26 As System.Windows.Forms.Label
-    Friend WithEvents txtHeightSetR As System.Windows.Forms.TextBox
-    Friend WithEvents Label27 As System.Windows.Forms.Label
-    Friend WithEvents tabHeightSetL As System.Windows.Forms.TabControl
-    Friend WithEvents TabPage9 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage10 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage11 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage12 As System.Windows.Forms.TabPage
-    Friend WithEvents tabHeightSetR As System.Windows.Forms.TabControl
-    Friend WithEvents TabPage25 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage26 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage27 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage28 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage29 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage30 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage31 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage32 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage17 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage18 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage19 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage20 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage13 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage14 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage15 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage16 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage21 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage22 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage23 As System.Windows.Forms.TabPage
-    Friend WithEvents TabPage24 As System.Windows.Forms.TabPage
+    Public WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
+    Public WithEvents tpTextures As System.Windows.Forms.TabPage
+    Public WithEvents tpHeight As System.Windows.Forms.TabPage
+    Public WithEvents tpAutoTexture As System.Windows.Forms.TabPage
+    Public WithEvents lstAutoTexture As System.Windows.Forms.ListBox
+    Public WithEvents Label3 As System.Windows.Forms.Label
+    Public WithEvents cboTileset As System.Windows.Forms.ComboBox
+    Public WithEvents txtAutoCliffSlope As System.Windows.Forms.TextBox
+    Public WithEvents Label1 As System.Windows.Forms.Label
+    Public WithEvents tpAutoHeight As System.Windows.Forms.TabPage
+    Public WithEvents btnAutoTri As System.Windows.Forms.Button
+    Public WithEvents txtHeightSetL As System.Windows.Forms.TextBox
+    Public WithEvents Label5 As System.Windows.Forms.Label
+    Public WithEvents txtSmoothRate As System.Windows.Forms.TextBox
+    Public WithEvents Label6 As System.Windows.Forms.Label
+    Public WithEvents rdoHeightSmooth As System.Windows.Forms.RadioButton
+    Public WithEvents rdoHeightSet As System.Windows.Forms.RadioButton
+    Public WithEvents tpResize As System.Windows.Forms.TabPage
+    Public WithEvents txtOffsetY As System.Windows.Forms.TextBox
+    Public WithEvents Label15 As System.Windows.Forms.Label
+    Public WithEvents txtOffsetX As System.Windows.Forms.TextBox
+    Public WithEvents Label14 As System.Windows.Forms.Label
+    Public WithEvents txtSizeY As System.Windows.Forms.TextBox
+    Public WithEvents Label13 As System.Windows.Forms.Label
+    Public WithEvents txtSizeX As System.Windows.Forms.TextBox
+    Public WithEvents Label12 As System.Windows.Forms.Label
+    Public WithEvents btnResize As System.Windows.Forms.Button
+    Public WithEvents Label16 As System.Windows.Forms.Label
+    Public WithEvents rdoAutoCliffRemove As System.Windows.Forms.RadioButton
+    Public WithEvents rdoAutoCliffBrush As System.Windows.Forms.RadioButton
+    Public WithEvents HeightmapBMPToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents rdoAutoTextureFill As System.Windows.Forms.RadioButton
+    Public WithEvents txtHeightChangeRate As System.Windows.Forms.TextBox
+    Public WithEvents Label18 As System.Windows.Forms.Label
+    Public WithEvents rdoHeightChange As System.Windows.Forms.RadioButton
+    Public WithEvents Label10 As System.Windows.Forms.Label
+    Public WithEvents txtHeightOffset As System.Windows.Forms.TextBox
+    Public WithEvents Label9 As System.Windows.Forms.Label
+    Public WithEvents txtHeightMultiply As System.Windows.Forms.TextBox
+    Public WithEvents rdoAutoTexturePlace As System.Windows.Forms.RadioButton
+    Public WithEvents rdoAutoRoadPlace As System.Windows.Forms.RadioButton
+    Public WithEvents lstAutoRoad As System.Windows.Forms.ListBox
+    Public WithEvents btnAutoRoadRemove As System.Windows.Forms.Button
+    Public WithEvents btnAutoTextureRemove As System.Windows.Forms.Button
+    Public WithEvents menuMain As System.Windows.Forms.MenuStrip
+    Public WithEvents menuFile As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents NewMapToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents OpenToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents SaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents MapLNDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuSaveFMap As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripMenuItem1 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents MinimapBMPToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripMenuItem3 As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripMenuItem2 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents CloseToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents tpObjects As System.Windows.Forms.TabPage
+    Public WithEvents lstDroids As System.Windows.Forms.ListBox
+    Public WithEvents lstFeatures As System.Windows.Forms.ListBox
+    Public WithEvents lstStructures As System.Windows.Forms.ListBox
+    Public WithEvents txtPlayerNum As System.Windows.Forms.TextBox
+    Public WithEvents Label22 As System.Windows.Forms.Label
+    Public WithEvents tpObject As System.Windows.Forms.TabPage
+    Public WithEvents lblObjectType As System.Windows.Forms.Label
+    Public WithEvents Label24 As System.Windows.Forms.Label
+    Public WithEvents txtObjectRotation As System.Windows.Forms.TextBox
+    Public WithEvents Label23 As System.Windows.Forms.Label
+    Public WithEvents Label28 As System.Windows.Forms.Label
+    Public WithEvents rdoAutoRoadLine As System.Windows.Forms.RadioButton
+    Public WithEvents Label29 As System.Windows.Forms.Label
+    Public WithEvents btnMapTexturer As System.Windows.Forms.Button
+    Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel4 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel3 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents Panel4 As System.Windows.Forms.Panel
+    Public WithEvents Label31 As System.Windows.Forms.Label
+    Public WithEvents Panel3 As System.Windows.Forms.Panel
+    Public WithEvents Label30 As System.Windows.Forms.Label
+    Public WithEvents Label19 As System.Windows.Forms.Label
+    Public WithEvents ToolStripSeparator3 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents ToolStripSeparator2 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents ToolStripSeparator1 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents MapWZToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripSeparator4 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents menuOptions As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents btnSelResize As System.Windows.Forms.Button
+    Public WithEvents tsSelection As System.Windows.Forms.ToolStrip
+    Public WithEvents ToolStripLabel1 As System.Windows.Forms.ToolStripLabel
+    Public WithEvents tsbSelection As System.Windows.Forms.ToolStripButton
+    Public WithEvents tsbSelectionCopy As System.Windows.Forms.ToolStripButton
+    Public WithEvents tsbSelectionPasteOptions As System.Windows.Forms.ToolStripDropDownButton
+    Public WithEvents menuSelPasteHeights As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuSelPasteTextures As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuSelPasteUnits As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuSelPasteDeleteUnits As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents tsbSelectionPaste As System.Windows.Forms.ToolStripButton
+    Public WithEvents tsbSelectionRotateCounterClockwise As System.Windows.Forms.ToolStripButton
+    Public WithEvents tsbSelectionRotateClockwise As System.Windows.Forms.ToolStripButton
+    Public WithEvents ToolStripSeparator5 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents tsMinimap As System.Windows.Forms.ToolStrip
+    Public WithEvents menuMinimap As System.Windows.Forms.ToolStripDropDownButton
+    Public WithEvents menuMiniShowTex As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuMiniShowHeight As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuMiniShowUnits As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents TableLayoutPanel5 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents menuMiniShowGateways As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents tsTools As System.Windows.Forms.ToolStrip
+    Public WithEvents tsbGateways As System.Windows.Forms.ToolStripButton
+    Public WithEvents TableLayoutPanel6 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents Panel5 As System.Windows.Forms.Panel
+    Public WithEvents Panel6 As System.Windows.Forms.Panel
+    Public WithEvents Label20 As System.Windows.Forms.Label
+    Public WithEvents cboTileType As System.Windows.Forms.ComboBox
+    Public WithEvents cbxTileTypes As System.Windows.Forms.CheckBox
+    Public WithEvents ToolStripSeparator6 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents menuExportMapTileTypes As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripMenuItem4 As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ImportHeightmapToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuImportTileTypes As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripSeparator7 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents cbxCliffTris As System.Windows.Forms.CheckBox
+    Public WithEvents tsFile As System.Windows.Forms.ToolStrip
+    Public WithEvents tsbSave As System.Windows.Forms.ToolStripButton
+    Public WithEvents Label21 As System.Windows.Forms.Label
+    Public WithEvents Panel1 As System.Windows.Forms.Panel
+    Public WithEvents Panel2 As System.Windows.Forms.Panel
+    Public WithEvents cbxAutoTexSetHeight As System.Windows.Forms.CheckBox
+    Public WithEvents txtObjectID As System.Windows.Forms.TextBox
+    Public WithEvents Label25 As System.Windows.Forms.Label
+    Public WithEvents TableLayoutPanel7 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents Panel7 As System.Windows.Forms.Panel
+    Public WithEvents pnlView As System.Windows.Forms.Panel
+    Public WithEvents btnReinterpretTerrain As System.Windows.Forms.Button
+    Public WithEvents Label26 As System.Windows.Forms.Label
+    Public WithEvents txtHeightSetR As System.Windows.Forms.TextBox
+    Public WithEvents Label27 As System.Windows.Forms.Label
+    Public WithEvents tabHeightSetL As System.Windows.Forms.TabControl
+    Public WithEvents TabPage9 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage10 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage11 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage12 As System.Windows.Forms.TabPage
+    Public WithEvents tabHeightSetR As System.Windows.Forms.TabControl
+    Public WithEvents TabPage25 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage26 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage27 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage28 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage29 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage30 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage31 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage32 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage17 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage18 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage19 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage20 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage13 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage14 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage15 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage16 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage21 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage22 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage23 As System.Windows.Forms.TabPage
+    Public WithEvents TabPage24 As System.Windows.Forms.TabPage
     Private WithEvents TabControl As System.Windows.Forms.TabControl
-    Friend WithEvents tsbSelectionObjects As System.Windows.Forms.ToolStripButton
-    Friend WithEvents ToolStripSeparator9 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents menuImportMapCopy As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents tsbDrawAutotexture As System.Windows.Forms.ToolStripButton
-    Friend WithEvents btnWaterTri As System.Windows.Forms.Button
-    Friend WithEvents tsbSelectionFlipX As System.Windows.Forms.ToolStripButton
-    Friend WithEvents CursorModeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuPointerPlane As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuPointerDirect As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents btnHeightOffsetSelection As System.Windows.Forms.Button
-    Friend WithEvents btnHeightsMultiplySelection As System.Windows.Forms.Button
-    Friend WithEvents tsbDrawTileOrientation As System.Windows.Forms.ToolStripButton
-    Friend WithEvents chkTextureOrientationRandomize As System.Windows.Forms.CheckBox
-    Friend WithEvents btnTextureFlipX As System.Windows.Forms.Button
-    Friend WithEvents btnTextureClockwise As System.Windows.Forms.Button
-    Friend WithEvents btnTextureAnticlockwise As System.Windows.Forms.Button
-    Friend WithEvents chkSetTextureOrientation As System.Windows.Forms.CheckBox
-    Friend WithEvents chkSetTexture As System.Windows.Forms.CheckBox
-    Friend WithEvents DisplayToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuFont As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents FontDialog As System.Windows.Forms.FontDialog
-    Friend WithEvents cbxTileNumbers As System.Windows.Forms.CheckBox
-    Friend WithEvents Label32 As System.Windows.Forms.Label
-    Friend WithEvents txtObjectPriority As System.Windows.Forms.TextBox
-    Friend WithEvents Label33 As System.Windows.Forms.Label
-    Friend WithEvents menuRotateUnits As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator10 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents menuSelPasteGateways As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents btnGenerator As System.Windows.Forms.Button
-    Friend WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents cbxInvalidTiles As System.Windows.Forms.CheckBox
-    Friend WithEvents menuRotateWalls As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents menuRotateNothing As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents txtObjectHealth As System.Windows.Forms.TextBox
-    Friend WithEvents Label34 As System.Windows.Forms.Label
-    Friend WithEvents Label39 As System.Windows.Forms.Label
-    Friend WithEvents cboDroidTurret1 As System.Windows.Forms.ComboBox
-    Friend WithEvents Label38 As System.Windows.Forms.Label
-    Friend WithEvents cboDroidPropulsion As System.Windows.Forms.ComboBox
-    Friend WithEvents Label37 As System.Windows.Forms.Label
-    Friend WithEvents cboDroidBody As System.Windows.Forms.ComboBox
-    Friend WithEvents btnDroidToDesign As System.Windows.Forms.Button
-    Friend WithEvents Label36 As System.Windows.Forms.Label
-    Friend WithEvents cboDroidTurret3 As System.Windows.Forms.ComboBox
-    Friend WithEvents cboDroidTurret2 As System.Windows.Forms.ComboBox
-    Friend WithEvents rdoDroidTurret3 As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoDroidTurret2 As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoDroidTurret1 As System.Windows.Forms.RadioButton
-    Friend WithEvents Label40 As System.Windows.Forms.Label
-    Friend WithEvents cboDroidType As System.Windows.Forms.ComboBox
-    Friend WithEvents rdoDroidTurret0 As System.Windows.Forms.RadioButton
-    Friend WithEvents TableLayoutPanel8 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TableLayoutPanel9 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents Panel13 As System.Windows.Forms.Panel
-    Friend WithEvents Panel12 As System.Windows.Forms.Panel
-    Friend WithEvents Panel11 As System.Windows.Forms.Panel
-    Friend WithEvents Panel10 As System.Windows.Forms.Panel
-    Friend WithEvents Panel9 As System.Windows.Forms.Panel
-    Friend WithEvents Panel8 As System.Windows.Forms.Panel
-    Friend WithEvents Panel14 As System.Windows.Forms.Panel
-    Friend WithEvents Label35 As System.Windows.Forms.Label
-    Friend WithEvents pnlTextureBrush As System.Windows.Forms.Panel
-    Friend WithEvents pnlCliffRemoveBrush As System.Windows.Forms.Panel
-    Friend WithEvents pnlTerrainBrush As System.Windows.Forms.Panel
-    Friend WithEvents pnlHeightSetBrush As System.Windows.Forms.Panel
-    Friend WithEvents rdoRoadRemove As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoTextureRemoveTerrain As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoTextureReinterpretTerrain As System.Windows.Forms.RadioButton
-    Friend WithEvents rdoTextureIgnoreTerrain As System.Windows.Forms.RadioButton
-    Friend WithEvents MinimapSizeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents cbxHeightChangeFade As System.Windows.Forms.CheckBox
-    Friend WithEvents btnPlayerSelectObjects As System.Windows.Forms.Button
-    Friend WithEvents menuAutosaveCompress As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents cbxObjectRandomRotation As System.Windows.Forms.CheckBox
-    Friend WithEvents menuSaveFME As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents menuDirectoriesPrompt As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents tsbSelectionObjects As System.Windows.Forms.ToolStripButton
+    Public WithEvents ToolStripSeparator9 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents menuImportMapCopy As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents tsbDrawAutotexture As System.Windows.Forms.ToolStripButton
+    Public WithEvents btnWaterTri As System.Windows.Forms.Button
+    Public WithEvents tsbSelectionFlipX As System.Windows.Forms.ToolStripButton
+    Public WithEvents btnHeightOffsetSelection As System.Windows.Forms.Button
+    Public WithEvents btnHeightsMultiplySelection As System.Windows.Forms.Button
+    Public WithEvents tsbDrawTileOrientation As System.Windows.Forms.ToolStripButton
+    Public WithEvents chkTextureOrientationRandomize As System.Windows.Forms.CheckBox
+    Public WithEvents btnTextureFlipX As System.Windows.Forms.Button
+    Public WithEvents btnTextureAnticlockwise As System.Windows.Forms.Button
+    Public WithEvents chkSetTextureOrientation As System.Windows.Forms.CheckBox
+    Public WithEvents chkSetTexture As System.Windows.Forms.CheckBox
+    Public WithEvents cbxTileNumbers As System.Windows.Forms.CheckBox
+    Public WithEvents Label32 As System.Windows.Forms.Label
+    Public WithEvents txtObjectPriority As System.Windows.Forms.TextBox
+    Public WithEvents Label33 As System.Windows.Forms.Label
+    Public WithEvents menuRotateUnits As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripSeparator10 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents menuSelPasteGateways As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents btnGenerator As System.Windows.Forms.Button
+    Public WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents cbxInvalidTiles As System.Windows.Forms.CheckBox
+    Public WithEvents menuRotateWalls As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents menuRotateNothing As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents txtObjectHealth As System.Windows.Forms.TextBox
+    Public WithEvents Label34 As System.Windows.Forms.Label
+    Public WithEvents Label39 As System.Windows.Forms.Label
+    Public WithEvents cboDroidTurret1 As System.Windows.Forms.ComboBox
+    Public WithEvents Label38 As System.Windows.Forms.Label
+    Public WithEvents cboDroidPropulsion As System.Windows.Forms.ComboBox
+    Public WithEvents Label37 As System.Windows.Forms.Label
+    Public WithEvents cboDroidBody As System.Windows.Forms.ComboBox
+    Public WithEvents btnDroidToDesign As System.Windows.Forms.Button
+    Public WithEvents Label36 As System.Windows.Forms.Label
+    Public WithEvents cboDroidTurret3 As System.Windows.Forms.ComboBox
+    Public WithEvents cboDroidTurret2 As System.Windows.Forms.ComboBox
+    Public WithEvents rdoDroidTurret3 As System.Windows.Forms.RadioButton
+    Public WithEvents rdoDroidTurret2 As System.Windows.Forms.RadioButton
+    Public WithEvents rdoDroidTurret1 As System.Windows.Forms.RadioButton
+    Public WithEvents Label40 As System.Windows.Forms.Label
+    Public WithEvents cboDroidType As System.Windows.Forms.ComboBox
+    Public WithEvents rdoDroidTurret0 As System.Windows.Forms.RadioButton
+    Public WithEvents TableLayoutPanel8 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TableLayoutPanel9 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents Panel13 As System.Windows.Forms.Panel
+    Public WithEvents Panel12 As System.Windows.Forms.Panel
+    Public WithEvents Panel11 As System.Windows.Forms.Panel
+    Public WithEvents Panel10 As System.Windows.Forms.Panel
+    Public WithEvents Panel9 As System.Windows.Forms.Panel
+    Public WithEvents Panel8 As System.Windows.Forms.Panel
+    Public WithEvents Panel14 As System.Windows.Forms.Panel
+    Public WithEvents Label35 As System.Windows.Forms.Label
+    Public WithEvents pnlTextureBrush As System.Windows.Forms.Panel
+    Public WithEvents pnlCliffRemoveBrush As System.Windows.Forms.Panel
+    Public WithEvents pnlTerrainBrush As System.Windows.Forms.Panel
+    Public WithEvents pnlHeightSetBrush As System.Windows.Forms.Panel
+    Public WithEvents rdoRoadRemove As System.Windows.Forms.RadioButton
+    Public WithEvents rdoTextureRemoveTerrain As System.Windows.Forms.RadioButton
+    Public WithEvents rdoTextureReinterpretTerrain As System.Windows.Forms.RadioButton
+    Public WithEvents rdoTextureIgnoreTerrain As System.Windows.Forms.RadioButton
+    Public WithEvents cbxHeightChangeFade As System.Windows.Forms.CheckBox
+    Public WithEvents btnPlayerSelectObjects As System.Windows.Forms.Button
+    Public WithEvents cbxObjectRandomRotation As System.Windows.Forms.CheckBox
+    Public WithEvents menuSaveFME As System.Windows.Forms.ToolStripMenuItem
+    Public WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents rdoCliffTriBrush As System.Windows.Forms.RadioButton
+    Public WithEvents btnTextureClockwise As System.Windows.Forms.Button
 End Class

@@ -2,25 +2,40 @@
 
 Partial Public Class clsMap
 
-    Structure sWZBJOUnit
-        Dim Code As String
-        Dim ID As UInteger
-        Dim Pos As sWorldPos
-        Dim Rotation As UInteger
-        Dim Player As UInteger
-        Dim Type As clsUnitType.enumType
-    End Structure
+    Public Class clsWZBJOUnits
+        Public Structure sUnit
+            Public Code As String
+            Public ID As UInteger
+            Public Pos As sWorldPos
+            Public Rotation As UInteger
+            Public Player As UInteger
+            Public ObjectType As clsUnitType.enumType
+        End Structure
+        Public Units(0) As sUnit
+        Public UnitCount As Integer = 0
 
-    Function Load_WZ(ByVal Path As String) As clsResult
+        Public Sub Unit_Add(ByVal NewUnit As sUnit)
+
+            If Units.GetUpperBound(0) < UnitCount Then
+                ReDim Preserve Units(UnitCount * 2 + 1)
+            End If
+            Units(UnitCount) = NewUnit
+            UnitCount += 1
+        End Sub
+    End Class
+   
+
+    Public Function Load_WZ(ByVal Path As String) As clsResult
         Dim ReturnResult As New clsResult
         Dim SubResult As sResult
         Dim Quote As String = ControlChars.Quote
         Dim ZipEntry As Zip.ZipEntry
-        Dim Bytes(-1) As Byte
-        Dim LineData(-1) As String
+        Dim Bytes As sBytes
+        Dim LineData As New sLines
         Dim GameFound As Boolean
         Dim DatasetFound As Boolean
-        Dim MapName(-1) As String
+        Dim MapName As frmWZLoad.sMapNameList
+        ReDim MapName.Names(-1)
         Dim MapTileset(-1) As clsTileset
         Dim GameTileset As clsTileset = Nothing
         Dim MapCount As Integer
@@ -50,32 +65,32 @@ Partial Public Class clsMap
                     ZipStream.Close()
                     Return ReturnResult
                 End If
-                ReDim Bytes(ZipEntry.Size - 1)
-                ZipStream.Read(Bytes, 0, ZipEntry.Size)
+                ReDim Bytes.Bytes(CInt(ZipEntry.Size - 1))
+                ZipStream.Read(Bytes.Bytes, 0, CInt(ZipEntry.Size))
                 BytesToLines(Bytes, LineData)
-                LinesRemoveComments(LineData)
+                LineData.RemoveComments()
                 'find each level block
-                For A = 0 To LineData.GetUpperBound(0)
-                    If Strings.LCase(Strings.Left(LineData(A), 5)) = "level" Then
+                For A = 0 To LineData.Lines.GetUpperBound(0)
+                    If Strings.LCase(Strings.Left(LineData.Lines(A), 5)) = "level" Then
                         'find each levels game file
                         GameFound = False
                         B = 1
-                        Do While A + B <= LineData.GetUpperBound(0)
-                            If Strings.LCase(Strings.Left(LineData(A + B), 4)) = "game" Then
-                                C = Strings.InStr(LineData(A + B), Quote)
-                                D = Strings.InStrRev(LineData(A + B), Quote)
+                        Do While A + B <= LineData.Lines.GetUpperBound(0)
+                            If Strings.LCase(Strings.Left(LineData.Lines(A + B), 4)) = "game" Then
+                                C = Strings.InStr(LineData.Lines(A + B), Quote)
+                                D = Strings.InStrRev(LineData.Lines(A + B), Quote)
                                 If C > 0 And D > 0 And D - C > 1 Then
-                                    GameName = Strings.LCase(Strings.Mid(LineData(A + B), C + 1, D - C - 1))
+                                    GameName = Strings.LCase(Strings.Mid(LineData.Lines(A + B), C + 1, D - C - 1))
                                     'see if map is already counted
                                     For C = 0 To MapCount - 1
-                                        If GameName = MapName(C) Then Exit For
+                                        If GameName = MapName.Names(C) Then Exit For
                                     Next
                                     If C = MapCount Then
                                         GameFound = True
                                     End If
                                 End If
                                 Exit Do
-                            ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
+                            ElseIf Strings.LCase(Strings.Left(LineData.Lines(A + B), 5)) = "level" Then
                                 Exit Do
                             End If
                             B += 1
@@ -84,9 +99,9 @@ Partial Public Class clsMap
                             'find the dataset (determines tileset)
                             DatasetFound = False
                             B = 1
-                            Do While A + B <= LineData.GetUpperBound(0)
-                                If Strings.LCase(Strings.Left(LineData(A + B), 7)) = "dataset" Then
-                                    strTemp = Strings.LCase(Strings.Right(LineData(A + B), 1))
+                            Do While A + B <= LineData.Lines.GetUpperBound(0)
+                                If Strings.LCase(Strings.Left(LineData.Lines(A + B), 7)) = "dataset" Then
+                                    strTemp = Strings.LCase(Strings.Right(LineData.Lines(A + B), 1))
                                     If strTemp = "1" Then
                                         GameTileset = Tileset_Arizona
                                         DatasetFound = True
@@ -98,15 +113,15 @@ Partial Public Class clsMap
                                         DatasetFound = True
                                     End If
                                     Exit Do
-                                ElseIf Strings.LCase(Strings.Left(LineData(A + B), 5)) = "level" Then
+                                ElseIf Strings.LCase(Strings.Left(LineData.Lines(A + B), 5)) = "level" Then
                                     Exit Do
                                 End If
                                 B += 1
                             Loop
                             If DatasetFound Then
-                                ReDim Preserve MapName(MapCount)
+                                ReDim Preserve MapName.Names(MapCount)
                                 ReDim Preserve MapTileset(MapCount)
-                                MapName(MapCount) = GameName
+                                MapName.Names(MapCount) = GameName
                                 MapTileset(MapCount) = GameTileset
                                 MapCount += 1
                             End If
@@ -124,7 +139,7 @@ Partial Public Class clsMap
             ReturnResult.Problem_Add("No maps found in file.")
             Return ReturnResult
         ElseIf MapCount = 1 Then
-            MapLoadName = MapName(0)
+            MapLoadName = MapName.Names(0)
             Tileset = MapTileset(0)
         Else
             Dim SelectToLoadResult As New frmWZLoad.clsOutput
@@ -134,7 +149,7 @@ Partial Public Class clsMap
                 ReturnResult.Problem_Add("No map selected.")
                 Return ReturnResult
             End If
-            MapLoadName = MapName(SelectToLoadResult.Result)
+            MapLoadName = MapName.Names(SelectToLoadResult.Result)
             Tileset = MapTileset(SelectToLoadResult.Result)
         End If
 
@@ -163,8 +178,7 @@ Partial Public Class clsMap
             End If
         End If
 
-        Dim BJOUnits(-1) As sWZBJOUnit
-        Dim BJOUnitCount As Integer = 0
+        Dim BJOUnits As New clsMap.clsWZBJOUnits
         Dim NewUnit As clsUnit
 
         Dim INIFeatures As clsINIFeatures = Nothing
@@ -177,7 +191,7 @@ Partial Public Class clsMap
             ReturnResult.AppendAsWarning(FeaturesINI.ReadFile(ZipSearchResult.BeginNewReadFile), "Features INI: ")
             ZipSearchResult.Stream.Close()
             INIFeatures = New clsINIFeatures(FeaturesINI.SectionCount)
-            ReturnResult.AppendAsWarning(FeaturesINI.Translate(AddressOf INIFeatures.Translate_INI), "Features INI: ")
+            ReturnResult.AppendAsWarning(FeaturesINI.Translate(INIFeatures), "Features INI: ")
         End If
 
         If INIFeatures Is Nothing Then
@@ -185,7 +199,7 @@ Partial Public Class clsMap
             If ZipSearchResult Is Nothing Then
                 ReturnResult.Warning_Add("feat.bjo file not found.")
             Else
-                SubResult = Read_WZ_Features(ZipSearchResult.BeginNewReadFile, BJOUnits, BJOUnitCount)
+                SubResult = Read_WZ_Features(ZipSearchResult.BeginNewReadFile, BJOUnits)
                 ZipSearchResult.Stream.Close()
                 If Not SubResult.Success Then
                     ReturnResult.Warning_Add(SubResult.Problem)
@@ -214,7 +228,7 @@ Partial Public Class clsMap
             ReturnResult.AppendAsWarning(StructuresINI.ReadFile(ZipSearchResult.BeginNewReadFile), "Structures INI: ")
             ZipSearchResult.Stream.Close()
             INIStructures = New clsINIStructures(StructuresINI.SectionCount, Me)
-            ReturnResult.AppendAsWarning(StructuresINI.Translate(AddressOf INIStructures.Translate_INI), "Structures INI: ")
+            ReturnResult.AppendAsWarning(StructuresINI.Translate(INIStructures), "Structures INI: ")
         End If
 
         If INIStructures Is Nothing Then
@@ -222,7 +236,7 @@ Partial Public Class clsMap
             If ZipSearchResult Is Nothing Then
                 ReturnResult.Warning_Add("struct.bjo file not found.")
             Else
-                SubResult = Read_WZ_Structures(ZipSearchResult.BeginNewReadFile, BJOUnits, BJOUnitCount)
+                SubResult = Read_WZ_Structures(ZipSearchResult.BeginNewReadFile, BJOUnits)
                 ZipSearchResult.Stream.Close()
                 If Not SubResult.Success Then
                     ReturnResult.Warning_Add(SubResult.Problem)
@@ -239,7 +253,7 @@ Partial Public Class clsMap
             Dim DroidsINI As New clsINIRead
             ReturnResult.AppendAsWarning(DroidsINI.ReadFile(ZipSearchResult.BeginNewReadFile), "Droids INI: ")
             INIDroids = New clsINIDroids(DroidsINI.SectionCount, Me)
-            ReturnResult.AppendAsWarning(DroidsINI.Translate(AddressOf INIDroids.Translate_INI), "Droids INI: ")
+            ReturnResult.AppendAsWarning(DroidsINI.Translate(INIDroids), "Droids INI: ")
         End If
 
         If INIDroids Is Nothing Then
@@ -247,7 +261,7 @@ Partial Public Class clsMap
             If ZipSearchResult Is Nothing Then
                 ReturnResult.Warning_Add("dinit.bjo file not found.")
             Else
-                SubResult = Read_WZ_Droids(ZipSearchResult.BeginNewReadFile, BJOUnits, BJOUnitCount)
+                SubResult = Read_WZ_Droids(ZipSearchResult.BeginNewReadFile, BJOUnits)
                 ZipSearchResult.Stream.Close()
                 If Not SubResult.Success Then
                     ReturnResult.Warning_Add(SubResult.Problem)
@@ -258,9 +272,9 @@ Partial Public Class clsMap
         Dim AvailableID As UInteger
 
         AvailableID = 1UI
-        For A = 0 To BJOUnitCount - 1
-            If BJOUnits(A).ID >= AvailableID Then
-                AvailableID = BJOUnits(A).ID + 1UI
+        For A = 0 To BJOUnits.UnitCount - 1
+            If BJOUnits.Units(A).ID >= AvailableID Then
+                AvailableID = BJOUnits.Units(A).ID + 1UI
             End If
         Next
         If INIStructures IsNot Nothing Then
@@ -285,28 +299,28 @@ Partial Public Class clsMap
             Next
         End If
 
-        For A = 0 To BJOUnitCount - 1
+        For A = 0 To BJOUnits.UnitCount - 1
             NewUnit = New clsUnit
-            NewUnit.ID = BJOUnits(A).ID
-            NewUnit.Type = FindOrCreateUnitType(BJOUnits(A).Code, BJOUnits(A).Type)
+            NewUnit.ID = BJOUnits.Units(A).ID
+            NewUnit.Type = FindOrCreateUnitType(BJOUnits.Units(A).Code, BJOUnits.Units(A).ObjectType)
             If Not SubResult.Success Then
                 ReturnResult.Problem_Add(SubResult.Problem)
                 Return ReturnResult
             End If
-            If BJOUnits(A).Player >= PlayerCountMax Then
+            If BJOUnits.Units(A).Player >= PlayerCountMax Then
                 NewUnit.UnitGroup = ScavengerUnitGroup
             Else
-                NewUnit.UnitGroup = UnitGroups(BJOUnits(A).Player)
+                NewUnit.UnitGroup = UnitGroups(CInt(BJOUnits.Units(A).Player))
             End If
-            NewUnit.Pos = BJOUnits(A).Pos
-            NewUnit.Rotation = Math.Min(BJOUnits(A).Rotation, 359UI)
-            If BJOUnits(A).ID = 0UI Then
-                BJOUnits(A).ID = AvailableID
-                ZeroIDWarning(NewUnit, BJOUnits(A).ID)
+            NewUnit.Pos = BJOUnits.Units(A).Pos
+            NewUnit.Rotation = CInt(Math.Min(BJOUnits.Units(A).Rotation, 359UI))
+            If BJOUnits.Units(A).ID = 0UI Then
+                BJOUnits.Units(A).ID = AvailableID
+                ZeroIDWarning(NewUnit, BJOUnits.Units(A).ID)
             End If
-            Unit_Add(NewUnit, BJOUnits(A).ID)
-            ErrorIDChange(BJOUnits(A).ID, NewUnit, "Load_WZ->BJOObjects")
-            If AvailableID = BJOUnits(A).ID Then
+            UnitID_Add(NewUnit, BJOUnits.Units(A).ID)
+            ErrorIDChange(BJOUnits.Units(A).ID, NewUnit, "Load_WZ->BJOObjects")
+            If AvailableID = BJOUnits.Units(A).ID Then
                 AvailableID = NewUnit.ID + 1UI
             End If
         Next
@@ -346,7 +360,7 @@ Partial Public Class clsMap
             For A = 0 To INIStructures.StructureCount - 1
                 If INIStructures.Structures(A).Pos Is Nothing Then
                     StructureBadPositionCount += 1
-                ElseIf Not PosIsWithinTileArea(INIStructures.Structures(A).Pos.WorldPos.Horizontal, ZeroPos, TerrainSize) Then
+                ElseIf Not PosIsWithinTileArea(INIStructures.Structures(A).Pos.WorldPos.Horizontal, ZeroPos, Terrain.TileSize) Then
                     StructureBadPositionCount += 1
                 Else
                     tmpUnitType = FindOrCreateUnitType(INIStructures.Structures(A).Code, clsUnitType.enumType.PlayerStructure)
@@ -371,13 +385,13 @@ Partial Public Class clsMap
                             NewUnit.Rotation = 0
                         End If
                         If INIStructures.Structures(A).HealthPercent >= 0 Then
-                            NewUnit.Health = Clamp(INIStructures.Structures(A).HealthPercent / 100.0#, 0.01#, 1.0#)
+                            NewUnit.Health = Clamp_dbl(INIStructures.Structures(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIStructures.Structures(A).ID = 0UI Then
                             INIStructures.Structures(A).ID = AvailableID
                             ZeroIDWarning(NewUnit, INIStructures.Structures(A).ID)
                         End If
-                        Unit_Add(NewUnit, INIStructures.Structures(A).ID)
+                        UnitID_Add(NewUnit, INIStructures.Structures(A).ID)
                         ErrorIDChange(INIStructures.Structures(A).ID, NewUnit, "Load_WZ->INIStructures")
                         If AvailableID = INIStructures.Structures(A).ID Then
                             AvailableID = NewUnit.ID + 1UI
@@ -411,7 +425,7 @@ Partial Public Class clsMap
                                 NewModule.UnitGroup = NewUnit.UnitGroup
                                 NewModule.Pos = NewUnit.Pos
                                 NewModule.Rotation = NewUnit.Rotation
-                                Unit_Add(NewModule, AvailableID)
+                                UnitID_Add(NewModule, AvailableID)
                                 AvailableID = NewModule.ID + 1UI
                             Next
                         End If
@@ -429,7 +443,7 @@ Partial Public Class clsMap
             For A = 0 To INIFeatures.FeatureCount - 1
                 If INIFeatures.Features(A).Pos Is Nothing Then
                     FeatureBadPositionCount += 1
-                ElseIf Not PosIsWithinTileArea(INIFeatures.Features(A).Pos.WorldPos.Horizontal, ZeroPos, TerrainSize) Then
+                ElseIf Not PosIsWithinTileArea(INIFeatures.Features(A).Pos.WorldPos.Horizontal, ZeroPos, Terrain.TileSize) Then
                     FeatureBadPositionCount += 1
                 Else
                     tmpUnitType = FindOrCreateUnitType(INIFeatures.Features(A).Code, clsUnitType.enumType.Feature)
@@ -450,13 +464,13 @@ Partial Public Class clsMap
                             NewUnit.Rotation = 0
                         End If
                         If INIFeatures.Features(A).HealthPercent >= 0 Then
-                            NewUnit.Health = Clamp(INIFeatures.Features(A).HealthPercent / 100.0#, 0.01#, 1.0#)
+                            NewUnit.Health = Clamp_dbl(INIFeatures.Features(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIFeatures.Features(A).ID = 0UI Then
                             INIFeatures.Features(A).ID = AvailableID
                             ZeroIDWarning(NewUnit, INIFeatures.Features(A).ID)
                         End If
-                        Unit_Add(NewUnit, INIFeatures.Features(A).ID)
+                        UnitID_Add(NewUnit, INIFeatures.Features(A).ID)
                         ErrorIDChange(INIFeatures.Features(A).ID, NewUnit, "Load_WZ->INIFeatures")
                         If AvailableID = INIFeatures.Features(A).ID Then
                             AvailableID = NewUnit.ID + 1UI
@@ -472,12 +486,12 @@ Partial Public Class clsMap
             For A = 0 To INIDroids.DroidCount - 1
                 If INIDroids.Droids(A).Pos Is Nothing Then
                     DroidBadPositionCount += 1
-                ElseIf Not PosIsWithinTileArea(INIDroids.Droids(A).Pos.WorldPos.Horizontal, ZeroPos, TerrainSize) Then
+                ElseIf Not PosIsWithinTileArea(INIDroids.Droids(A).Pos.WorldPos.Horizontal, ZeroPos, Terrain.TileSize) Then
                     DroidBadPositionCount += 1
                 Else
                     If INIDroids.Droids(A).Template = Nothing Or INIDroids.Droids(A).Template = "" Then
                         tmpDroidType = New clsDroidDesign
-                        If Not tmpDroidType.SetDroidType(INIDroids.Droids(A).DroidType) Then
+                        If Not tmpDroidType.SetDroidType(CType(INIDroids.Droids(A).DroidType, enumDroidType)) Then
                             UnknownDroidTypeCount += 1
                         End If
                         LoadPartsArgs.Body = FindOrCreateBody(INIDroids.Droids(A).Body)
@@ -589,13 +603,13 @@ Partial Public Class clsMap
                             NewUnit.Rotation = 0
                         End If
                         If INIDroids.Droids(A).HealthPercent >= 0 Then
-                            NewUnit.Health = Clamp(INIDroids.Droids(A).HealthPercent / 100.0#, 0.01#, 1.0#)
+                            NewUnit.Health = Clamp_dbl(INIDroids.Droids(A).HealthPercent / 100.0#, 0.01#, 1.0#)
                         End If
                         If INIDroids.Droids(A).ID = 0UI Then
                             INIDroids.Droids(A).ID = AvailableID
                             ZeroIDWarning(NewUnit, INIDroids.Droids(A).ID)
                         End If
-                        Unit_Add(NewUnit, INIDroids.Droids(A).ID)
+                        UnitID_Add(NewUnit, INIDroids.Droids(A).ID)
                         ErrorIDChange(INIDroids.Droids(A).ID, NewUnit, "Load_WZ->INIDroids")
                         If AvailableID = INIDroids.Droids(A).ID Then
                             AvailableID = NewUnit.ID + 1UI
@@ -618,12 +632,13 @@ Partial Public Class clsMap
             ReturnResult.Warning_Add("Object Create Error.")
         End If
 
-        AfterInitialized
+        AfterInitialized()
 
         Return ReturnResult
     End Function
 
     Public Class clsINIStructures
+        Inherits clsINIRead.clsSectionTranslator
 
         Private ParentMap As clsMap
 
@@ -651,7 +666,7 @@ Partial Public Class clsMap
             Next
         End Sub
 
-        Public Function Translate_INI(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "id"
@@ -691,7 +706,7 @@ Partial Public Class clsMap
                         VectorText(A) = VectorText(A).Trim()
                     Next
                     Try
-                        Structures(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(VectorText(0), VectorText(1)), VectorText(2)))
+                        Structures(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
@@ -744,6 +759,7 @@ Partial Public Class clsMap
     End Class
 
     Public Class clsINIDroids
+        Inherits clsINIRead.clsSectionTranslator
 
         Private ParentMap As clsMap
 
@@ -781,7 +797,7 @@ Partial Public Class clsMap
             Next
         End Sub
 
-        Public Function Translate_INI(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "id"
@@ -823,7 +839,7 @@ Partial Public Class clsMap
                         VectorText(A) = VectorText(A).Trim()
                     Next
                     Try
-                        Droids(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(VectorText(0), VectorText(1)), VectorText(2)))
+                        Droids(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
@@ -898,6 +914,8 @@ Partial Public Class clsMap
     End Class
 
     Public Class clsINIFeatures
+        Inherits clsINIRead.clsSectionTranslator
+
         Public Structure sFeatures
             Public ID As UInteger
             Public Code As String
@@ -914,8 +932,7 @@ Partial Public Class clsMap
             ReDim Features(FeatureCount - 1)
         End Sub
 
-        Public Function Translate_INI(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
-
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "id"
@@ -939,7 +956,7 @@ Partial Public Class clsMap
                         VectorText(A) = VectorText(A).Trim()
                     Next
                     Try
-                        Features(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(VectorText(0), VectorText(1)), VectorText(2)))
+                        Features(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
@@ -987,14 +1004,16 @@ Partial Public Class clsMap
     End Class
 
     Private Function Read_WZ_Game(ByVal File As clsReadFile) As sResult
-        Read_WZ_Game.Success = False
-        Read_WZ_Game.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = Nothing
         Dim Version As UInteger
         Dim MapWidth As UInteger
         Dim MapHeight As UInteger
         Dim uintTemp As UInteger
+        Dim byteTemp As Byte
         Dim Flip As Byte
         Dim FlipX As Boolean
         Dim FlipZ As Boolean
@@ -1004,123 +1023,212 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If strTemp <> "map " Then
-            Read_WZ_Game.Problem = "Unknown game.map identifier."
-            Exit Function
+            ReturnResult.Problem = "Unknown game.map identifier."
+            Return ReturnResult
         End If
 
-        If Not File.Get_U32(Version) Then Read_WZ_Game.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If Version <> 10UI Then
             'Load_WZ.Problem = "Unknown game.map version."
             'Exit Function
-            If MsgBox("game.map version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Game.Problem = "Aborted."
-                Exit Function
+            If MsgBox("game.map version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                ReturnResult.Problem = "Aborted."
+                Return ReturnResult
             End If
         End If
-        If Not File.Get_U32(MapWidth) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If Not File.Get_U32(MapHeight) Then Read_WZ_Game.Problem = "Read error." : Exit Function
-        If MapWidth < 1UI Or MapWidth > MapMaxSize Or MapHeight < 1UI Or MapHeight > MapMaxSize Then Read_WZ_Game.Problem = "Map size out of range." : Exit Function
+        If Not File.Get_U32(MapWidth) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
+        If Not File.Get_U32(MapHeight) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
+        If MapWidth < 1UI Or MapWidth > MapMaxSize Or MapHeight < 1UI Or MapHeight > MapMaxSize Then
+            ReturnResult.Problem = "Map size out of range."
+            Return ReturnResult
+        End If
 
-        Terrain_Blank(CInt(MapWidth), CInt(MapHeight))
+        Terrain_Blank(New sXY_int(CInt(MapWidth), CInt(MapHeight)))
 
-        For Y = 0 To TerrainSize.Y - 1
-            For X = 0 To TerrainSize.X - 1
-                If Not File.Get_U8(TextureNum) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                TerrainTiles(X, Y).Texture.TextureNum = TextureNum
-                If Not File.Get_U8(Flip) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
-                If Not File.Get_U8(TerrainVertex(X, Y).Height) Then Read_WZ_Game.Problem = "Tile data read error." : Exit Function
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                If Not File.Get_U8(TextureNum) Then
+                    ReturnResult.Problem = "Tile data read error."
+                    Return ReturnResult
+                End If
+                Terrain.Tiles(X, Y).Texture.TextureNum = TextureNum
+                If Not File.Get_U8(Flip) Then
+                    ReturnResult.Problem = "Tile data read error."
+                    Return ReturnResult
+                End If
+                If Not File.Get_U8(Terrain.Vertices(X, Y).Height) Then
+                    ReturnResult.Problem = "Tile data read error."
+                    Return ReturnResult
+                End If
                 'get flipx
-                A = Int(Flip / 128.0#)
-                Flip -= A * 128
+                A = CInt(Int(Flip / 128.0#))
+                Flip -= CByte(A * 128)
                 FlipX = (A = 1)
                 'get flipy
-                A = Int(Flip / 64.0#)
-                Flip -= A * 64
+                A = CInt(Int(Flip / 64.0#))
+                Flip -= CByte(A * 64)
                 FlipZ = (A = 1)
                 'get rotation
-                A = Int(Flip / 16.0#)
-                Flip -= A * 16
-                Rotate = A
-                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, TerrainTiles(X, Y).Texture.Orientation)
+                A = CInt(Int(Flip / 16.0#))
+                Flip -= CByte(A * 16)
+                Rotate = CByte(A)
+                OldOrientation_To_TileOrientation(Rotate, FlipX, FlipZ, Terrain.Tiles(X, Y).Texture.Orientation)
                 'get tri direction
-                A = Int(Flip / 8.0#)
-                Flip -= A * 8
-                TerrainTiles(X, Y).Tri = (A = 1)
+                A = CInt(Int(Flip / 8.0#))
+                Flip -= CByte(A * 8)
+                Terrain.Tiles(X, Y).Tri = (A = 1)
             Next
         Next
 
         If Version <> 2UI Then
-            If Not File.Get_U32(uintTemp) Then Read_WZ_Game.Problem = "Gateway version read error." : Exit Function
-            If uintTemp <> 1 Then Read_WZ_Game.Problem = "Bad gateway version number." : Exit Function
+            If Not File.Get_U32(uintTemp) Then
+                ReturnResult.Problem = "Gateway version read error."
+                Return ReturnResult
+            End If
+            If uintTemp <> 1 Then
+                ReturnResult.Problem = "Bad gateway version number."
+                Return ReturnResult
+            End If
 
-            If Not File.Get_U32(GatewayCount) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+            If Not File.Get_U32(uintTemp) Then
+                ReturnResult.Problem = "Gateway read error."
+                Return ReturnResult
+            End If
+            GatewayCount = CInt(uintTemp)
             ReDim Gateways(GatewayCount - 1)
 
             For A = 0 To GatewayCount - 1
-                If Not File.Get_U8(Gateways(A).PosA.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosA.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosB.X) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
-                If Not File.Get_U8(Gateways(A).PosB.Y) Then Read_WZ_Game.Problem = "Gateway read error." : Exit Function
+                If Not File.Get_U8(byteTemp) Then
+                    ReturnResult.Problem = "Gateway read error."
+                    Return ReturnResult
+                End If
+                Gateways(A).PosA.X = byteTemp
+                If Not File.Get_U8(byteTemp) Then
+                    ReturnResult.Problem = "Gateway read error."
+                    Return ReturnResult
+                End If
+                Gateways(A).PosA.Y = byteTemp
+                If Not File.Get_U8(byteTemp) Then
+                    ReturnResult.Problem = "Gateway read error."
+                    Return ReturnResult
+                End If
+                Gateways(A).PosB.X = byteTemp
+                If Not File.Get_U8(byteTemp) Then
+                    ReturnResult.Problem = "Gateway read error."
+                    Return ReturnResult
+                End If
+                Gateways(A).PosB.Y = byteTemp
             Next
         End If
 
-        Read_WZ_Game.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Features(ByVal File As clsReadFile, ByRef WZUnits() As sWZBJOUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Features.Success = False
-        Read_WZ_Features.Problem = ""
+    Private Function Read_WZ_Features(ByVal File As clsReadFile, ByRef WZUnits As clsMap.clsWZBJOUnits) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = Nothing
         Dim Version As UInteger
         Dim uintTemp As UInteger
+        Dim uintTemp2 As UInteger
         Dim A As Integer
         Dim B As Integer
+        Dim WZBJOUnit As clsMap.clsWZBJOUnits.sUnit
 
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If strTemp <> "feat" Then
-            Read_WZ_Features.Problem = "Unknown feat.bjo identifier."
-            Exit Function
+            ReturnResult.Problem = "Unknown feat.bjo identifier."
+            Return ReturnResult
         End If
 
-        If Not File.Get_U32(Version) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If Version <> 8UI Then
             'Load_WZ.Problem = "Unknown feat.bjo version."
             'Exit Function
-            If MsgBox("feat.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Features.Problem = "Aborted."
-                Exit Function
+            If MsgBox("feat.bjo version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                ReturnResult.Problem = "Aborted."
+                Return ReturnResult
             End If
         End If
 
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
 
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).Type = clsUnitType.enumType.Feature
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+        For A = 0 To CInt(uintTemp) - 1
+            WZBJOUnit = New clsMap.clsWZBJOUnits.sUnit
+            WZBJOUnit.ObjectType = clsUnitType.enumType.Feature
+            If Not File.Get_Text(40, WZBJOUnit.Code) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
             End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.X) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.Y) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Altitude) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Features.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Features.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZBJOUnit.Code, Chr(0))
+            If B > 0 Then
+                WZBJOUnit.Code = Strings.Left(WZBJOUnit.Code, B - 1)
+            End If
+            If Not File.Get_U32(WZBJOUnit.ID) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.X = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.Y = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Altitude = CInt(uintTemp2)
+            If Not File.Get_U32(WZBJOUnit.Rotation) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(WZBJOUnit.Player) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
             File.Seek(File.Position + 12L)
-            WZUnitCount += 1
+            WZUnits.Unit_Add(WZBJOUnit)
         Next
 
-        Read_WZ_Features.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
     Private Function Read_WZ_TileTypes(ByVal File As clsReadFile) As sResult
-        Read_WZ_TileTypes.Success = False
-        Read_WZ_TileTypes.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = Nothing
         Dim Version As UInteger
@@ -1128,134 +1236,222 @@ Partial Public Class clsMap
         Dim ushortTemp As UShort
         Dim A As Integer
 
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If strTemp <> "ttyp" Then
-            Read_WZ_TileTypes.Problem = "Unknown ttypes.ttp identifier."
-            Exit Function
+            ReturnResult.Problem = "Unknown ttypes.ttp identifier."
+            Return ReturnResult
         End If
 
-        If Not File.Get_U32(Version) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If Version <> 8UI Then
             'Load_WZ.Problem = "Unknown ttypes.ttp version."
             'Exit Function
-            If MsgBox("ttypes.ttp version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_TileTypes.Problem = "Aborted."
-                Exit Function
+            If MsgBox("ttypes.ttp version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                ReturnResult.Problem = "Aborted."
+                Return ReturnResult
             End If
         End If
 
-        If Not File.Get_U32(uintTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
 
         If Tileset IsNot Nothing Then
-            For A = 0 To Math.Min(uintTemp, Tileset.TileCount) - 1
-                If Not File.Get_U16(ushortTemp) Then Read_WZ_TileTypes.Problem = "Read error." : Exit Function
-                If ushortTemp > 11US Then
-                    Read_WZ_TileTypes.Problem = "Unknown tile type."
-                    Exit Function
+            For A = 0 To Math.Min(CInt(uintTemp), Tileset.TileCount) - 1
+                If Not File.Get_U16(ushortTemp) Then
+                    ReturnResult.Problem = "Read error."
+                    Return ReturnResult
                 End If
-                Tile_TypeNum(A) = ushortTemp
+                If ushortTemp > 11US Then
+                    ReturnResult.Problem = "Unknown tile type."
+                    Return ReturnResult
+                End If
+                Tile_TypeNum(A) = CByte(ushortTemp)
             Next
         End If
 
-        Read_WZ_TileTypes.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Structures(ByVal File As clsReadFile, ByRef WZUnits() As sWZBJOUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Structures.Success = False
-        Read_WZ_Structures.Problem = ""
+    Private Function Read_WZ_Structures(ByVal File As clsReadFile, ByRef WZUnits As clsMap.clsWZBJOUnits) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = Nothing
         Dim Version As UInteger
         Dim uintTemp As UInteger
+        Dim uintTemp2 As UInteger
         Dim A As Integer
         Dim B As Integer
+        Dim WZBJOUnit As clsMap.clsWZBJOUnits.sUnit
 
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If strTemp <> "stru" Then
-            Read_WZ_Structures.Problem = "Unknown struct.bjo identifier."
-            Exit Function
+            ReturnResult.Problem = "Unknown struct.bjo identifier."
+            Return ReturnResult
         End If
 
-        If Not File.Get_U32(Version) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(Version) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If Version <> 8UI Then
             'Load_WZ.Problem = "Unknown struct.bjo version."
             'Exit Function
-            If MsgBox("struct.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Structures.Problem = "Aborted."
-                Exit Function
+            If MsgBox("struct.bjo version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                ReturnResult.Problem = "Aborted."
+                Return ReturnResult
             End If
         End If
 
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
 
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).Type = clsUnitType.enumType.PlayerStructure
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+        For A = 0 To CInt(uintTemp) - 1
+            WZBJOUnit = New clsMap.clsWZBJOUnits.sUnit
+            WZBJOUnit.ObjectType = clsUnitType.enumType.PlayerStructure
+            If Not File.Get_Text(40, WZBJOUnit.Code) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
             End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.X) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.Y) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Altitude) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Structures.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZBJOUnit.Code, Chr(0))
+            If B > 0 Then
+                WZBJOUnit.Code = Strings.Left(WZBJOUnit.Code, B - 1)
+            End If
+            If Not File.Get_U32(WZBJOUnit.ID) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.X = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.Y = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Altitude = CInt(uintTemp2)
+            If Not File.Get_U32(WZBJOUnit.Rotation) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(WZBJOUnit.Player) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
             File.Seek(File.Position + 56L)
-            WZUnitCount += 1
+            WZUnits.Unit_Add(WZBJOUnit)
         Next
 
-        Read_WZ_Structures.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Droids(ByVal File As clsReadFile, ByRef WZUnits() As sWZBJOUnit, ByRef WZUnitCount As Integer) As sResult
-        Read_WZ_Droids.Success = False
-        Read_WZ_Droids.Problem = ""
+    Private Function Read_WZ_Droids(ByVal File As clsReadFile, ByVal WZUnits As clsMap.clsWZBJOUnits) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = Nothing
         Dim Version As UInteger
         Dim uintTemp As UInteger
+        Dim uintTemp2 As UInteger
         Dim A As Integer
         Dim B As Integer
+        Dim WZBJOUnit As clsMap.clsWZBJOUnits.sUnit
 
-        If Not File.Get_Text(4, strTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-        If strTemp <> "dint" Then
-            Read_WZ_Droids.Problem = "Unknown dinit.bjo identifier."
-            Exit Function
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
         End If
 
-        If Not File.Get_U32(Version) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If strTemp <> "dint" Then
+            ReturnResult.Problem = "Unknown dinit.bjo identifier."
+            Return ReturnResult
+        End If
+
+        If Not File.Get_U32(Version) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
         If Version > 19UI Then
             'Load_WZ.Problem = "Unknown dinit.bjo version."
             'Exit Function
-            If MsgBox("dinit.bjo version is unknown. Continue?", MsgBoxStyle.OkCancel + MsgBoxStyle.Question) <> MsgBoxResult.Ok Then
-                Read_WZ_Droids.Problem = "Aborted."
-                Exit Function
+            If MsgBox("dinit.bjo version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                ReturnResult.Problem = "Aborted."
+                Return ReturnResult
             End If
         End If
 
-        If Not File.Get_U32(uintTemp) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Read error."
+            Return ReturnResult
+        End If
 
-        ReDim Preserve WZUnits(WZUnitCount + uintTemp - 1)
-        For A = 0 To uintTemp - 1
-            WZUnits(WZUnitCount).Type = clsUnitType.enumType.PlayerDroid
-            If Not File.Get_Text(40, WZUnits(WZUnitCount).Code) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            B = Strings.InStr(WZUnits(WZUnitCount).Code, Chr(0))
-            If B > 0 Then
-                WZUnits(WZUnitCount).Code = Strings.Left(WZUnits(WZUnitCount).Code, B - 1)
+        For A = 0 To CInt(uintTemp) - 1
+            WZBJOUnit = New clsMap.clsWZBJOUnits.sUnit
+            WZBJOUnit.ObjectType = clsUnitType.enumType.PlayerDroid
+            If Not File.Get_Text(40, WZBJOUnit.Code) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
             End If
-            If Not File.Get_U32(WZUnits(WZUnitCount).ID) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.X) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Horizontal.Y) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Pos.Altitude) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Rotation) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
-            If Not File.Get_U32(WZUnits(WZUnitCount).Player) Then Read_WZ_Droids.Problem = "Read error." : Exit Function
+            B = Strings.InStr(WZBJOUnit.Code, Chr(0))
+            If B > 0 Then
+                WZBJOUnit.Code = Strings.Left(WZBJOUnit.Code, B - 1)
+            End If
+            If Not File.Get_U32(WZBJOUnit.ID) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.X = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Horizontal.Y = CInt(uintTemp2)
+            If Not File.Get_U32(uintTemp2) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            WZBJOUnit.Pos.Altitude = CInt(uintTemp2)
+            If Not File.Get_U32(WZBJOUnit.Rotation) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
+            If Not File.Get_U32(WZBJOUnit.Player) Then
+                ReturnResult.Problem = "Read error."
+                Return ReturnResult
+            End If
             File.Seek(File.Position + 12L)
-            WZUnitCount += 1
+            WZUnits.Unit_Add(WZBJOUnit)
         Next
 
-        Read_WZ_Droids.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
     Public Function Data_WZ_StructuresINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
@@ -1349,17 +1545,17 @@ Partial Public Class clsMap
                     ReturnResult.Warning_Add("Error. A structure's ID was zero. It was NOT saved. Delete and replace it to allow save.")
                 Else
                     File.SectionName_Append("structure_" & tmpUnit.ID)
-                    File.Property_Append("id", tmpUnit.ID)
+                    File.Property_Append("id", CStr(tmpUnit.ID))
                     If tmpUnit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount) Then
                         File.Property_Append("player", "scavenger")
                     Else
-                        File.Property_Append("startpos", tmpUnit.UnitGroup.WZ_StartPos)
+                        File.Property_Append("startpos", CStr(tmpUnit.UnitGroup.WZ_StartPos))
                     End If
                     File.Property_Append("name", tmpStructure.Code)
                     File.Property_Append("position", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y & ", 0")
                     File.Property_Append("rotation", tmpUnit.GetINIRotation)
                     If tmpUnit.Health < 1.0# Then
-                        File.Property_Append("health", CInt(Clamp(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
+                        File.Property_Append("health", CInt(Clamp_dbl(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
                     End If
                     Select Case tmpStructure.StructureType
                         Case clsStructureType.enumStructureType.Factory
@@ -1382,7 +1578,7 @@ Partial Public Class clsMap
                     Else
                         ModuleCount = UnitModuleCount(A)
                     End If
-                    File.Property_Append("modules", UnitModuleCount(A))
+                    File.Property_Append("modules", CStr(UnitModuleCount(A)))
                     File.Gap_Append()
                 End If
             End If
@@ -1448,11 +1644,11 @@ Partial Public Class clsMap
                 End If
                 If ValidDroid Then
                     File.SectionName_Append("droid_" & tmpUnit.ID)
-                    File.Property_Append("id", tmpUnit.ID)
+                    File.Property_Append("id", CStr(tmpUnit.ID))
                     If tmpUnit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount) Then
                         File.Property_Append("player", "scavenger")
                     Else
-                        File.Property_Append("startpos", tmpUnit.UnitGroup.WZ_StartPos)
+                        File.Property_Append("startpos", CStr(tmpUnit.UnitGroup.WZ_StartPos))
                     End If
                     If tmpDroid.IsTemplate Then
                         tmpTemplate = CType(tmpDroid, clsDroidTemplate)
@@ -1469,10 +1665,10 @@ Partial Public Class clsMap
                     File.Property_Append("position", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y & ", 0")
                     File.Property_Append("rotation", tmpUnit.GetINIRotation)
                     If tmpUnit.Health < 1.0# Then
-                        File.Property_Append("health", CInt(Clamp(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
+                        File.Property_Append("health", CInt(Clamp_dbl(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
                     End If
                     If AsPartsNotTemplate Then
-                        File.Property_Append("droidType", CInt(tmpDroid.GetDroidType))
+                        File.Property_Append("droidType", CStr(CInt(tmpDroid.GetDroidType)))
                         If tmpDroid.TurretCount = 0 Then
                             Text = "0"
                         Else
@@ -1484,7 +1680,7 @@ Partial Public Class clsMap
                                 End If
                             Else
                                 If tmpDroid.Turret1.TurretType = clsTurret.enumTurretType.Weapon Then
-                                    Text = tmpDroid.TurretCount
+                                    Text = CStr(tmpDroid.TurretCount)
                                 Else
                                     Text = "0"
                                 End If
@@ -1553,12 +1749,12 @@ Partial Public Class clsMap
                 End If
                 If Valid Then
                     File.SectionName_Append("feature_" & tmpUnit.ID)
-                    File.Property_Append("id", tmpUnit.ID)
+                    File.Property_Append("id", CStr(tmpUnit.ID))
                     File.Property_Append("position", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y & ", 0")
                     File.Property_Append("rotation", tmpUnit.GetINIRotation)
                     File.Property_Append("name", tmpFeature.Code)
                     If tmpUnit.Health < 1.0# Then
-                        File.Property_Append("health", CInt(Clamp(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
+                        File.Property_Append("health", CInt(Clamp_dbl(tmpUnit.Health * 100.0#, 1.0#, 100.0#)) & "%")
                     End If
                     File.Gap_Append()
                 End If
@@ -1593,7 +1789,7 @@ Partial Public Class clsMap
         Public CompileType As enumCompileType
     End Structure
 
-    Function Write_WZ(ByVal Args As sWrite_WZ_Args) As clsResult
+    Public Function Write_WZ(ByVal Args As sWrite_WZ_Args) As clsResult
         Dim ReturnResult As New clsResult
 
         Try
@@ -1758,47 +1954,47 @@ Partial Public Class clsMap
             File_MAP.U8_Append(Asc("p"c))
             File_MAP.U8_Append(Asc(" "c))
             File_MAP.U32_Append(10)
-            File_MAP.U32_Append(TerrainSize.X)
-            File_MAP.U32_Append(TerrainSize.Y)
+            File_MAP.U32_Append(CUInt(Terrain.TileSize.X))
+            File_MAP.U32_Append(CUInt(Terrain.TileSize.Y))
             Dim Flip As Byte
             Dim Rotation As Byte
             Dim DoFlipX As Boolean
             Dim InvalidTileCount As Integer
             Dim TextureNum As Integer
-            For Y = 0 To TerrainSize.Y - 1
-                For X = 0 To TerrainSize.X - 1
-                    TileOrientation_To_OldOrientation(TerrainTiles(X, Y).Texture.Orientation, Rotation, DoFlipX)
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    TileOrientation_To_OldOrientation(Terrain.Tiles(X, Y).Texture.Orientation, Rotation, DoFlipX)
                     Flip = 0
-                    If TerrainTiles(X, Y).Tri Then
-                        Flip += 8
+                    If Terrain.Tiles(X, Y).Tri Then
+                        Flip += CByte(8)
                     End If
-                    Flip += Rotation * 16
+                    Flip += CByte(Rotation * 16)
                     If DoFlipX Then
-                        Flip += 128
+                        Flip += CByte(128)
                     End If
-                    TextureNum = TerrainTiles(X, Y).Texture.TextureNum
+                    TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum
                     If TextureNum < 0 Or TextureNum > 255 Then
                         TextureNum = 0
                         If InvalidTileCount < 16 Then
-                            ReturnResult.Warning_Add("Tile texture number " & TerrainTiles(X, Y).Texture.TextureNum & " is invalid on tile " & X & ", " & Y & " and was compiled as texture number " & TextureNum & ".")
+                            ReturnResult.Warning_Add("Tile texture number " & Terrain.Tiles(X, Y).Texture.TextureNum & " is invalid on tile " & X & ", " & Y & " and was compiled as texture number " & TextureNum & ".")
                         End If
                         InvalidTileCount += 1
                     End If
-                    File_MAP.U8_Append(TextureNum)
+                    File_MAP.U8_Append(CByte(TextureNum))
                     File_MAP.U8_Append(Flip)
-                    File_MAP.U8_Append(TerrainVertex(X, Y).Height)
+                    File_MAP.U8_Append(Terrain.Vertices(X, Y).Height)
                 Next
             Next
             If InvalidTileCount > 0 Then
                 ReturnResult.Warning_Add(InvalidTileCount & " tile texture numbers were invalid.")
             End If
             File_MAP.U32_Append(1) 'gateway version
-            File_MAP.U32_Append(GatewayCount)
+            File_MAP.U32_Append(CUInt(GatewayCount))
             For A = 0 To GatewayCount - 1
-                File_MAP.U8_Append(Clamp(Gateways(A).PosA.X, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosA.Y, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosB.X, 0, 255))
-                File_MAP.U8_Append(Clamp(Gateways(A).PosB.Y, 0, 255))
+                File_MAP.U8_Append(CByte(Clamp_int(Gateways(A).PosA.X, 0, 255)))
+                File_MAP.U8_Append(CByte(Clamp_int(Gateways(A).PosA.Y, 0, 255)))
+                File_MAP.U8_Append(CByte(Clamp_int(Gateways(A).PosB.X, 0, 255)))
+                File_MAP.U8_Append(CByte(Clamp_int(Gateways(A).PosB.Y, 0, 255)))
             Next
 
             Dim tmpFeature As clsFeatureType
@@ -1828,27 +2024,27 @@ Partial Public Class clsMap
                     FeatureCount += 1
                 End If
             Next
-            File_featBJO.U32_Append(FeatureCount)
+            File_featBJO.U32_Append(CUInt(FeatureCount))
             For B = 0 To FeatureCount - 1
                 A = Features(B)
                 tmpFeature = CType(Units(A).Type, clsFeatureType)
                 File_featBJO.Text_Append(tmpFeature.Code, 40)
                 File_featBJO.U32_Append(Units(A).ID)
-                File_featBJO.U32_Append(Units(A).Pos.Horizontal.X)
-                File_featBJO.U32_Append(Units(A).Pos.Horizontal.Y)
-                File_featBJO.U32_Append(Units(A).Pos.Altitude)
-                File_featBJO.U32_Append(Units(A).Rotation)
+                File_featBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.X))
+                File_featBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.Y))
+                File_featBJO.U32_Append(CUInt(Units(A).Pos.Altitude))
+                File_featBJO.U32_Append(CUInt(Units(A).Rotation))
                 If Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
                     If Units(A).UnitGroup.WZ_StartPos >= 0 Then
-                        File_featBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_featBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     Else
                         File_featBJO.U32_Append(7UI)
                     End If
                 ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
                     If Units(A).UnitGroup Is ScavengerUnitGroup Or Units(A).UnitGroup.WZ_StartPos >= Args.Multiplayer.PlayerCount Then
-                        File_featBJO.U32_Append(Math.Max(7, Args.Multiplayer.PlayerCount))
+                        File_featBJO.U32_Append(CUInt(Math.Max(7, Args.Multiplayer.PlayerCount)))
                     Else
-                        File_featBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_featBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     End If
                 Else
                     Stop
@@ -1858,7 +2054,7 @@ Partial Public Class clsMap
 
             File_TTP.Text_Append("ttyp")
             File_TTP.U32_Append(8UI)
-            File_TTP.U32_Append(Tileset.TileCount)
+            File_TTP.U32_Append(CUInt(Tileset.TileCount))
             For A = 0 To Tileset.TileCount - 1
                 File_TTP.U16_Append(Tile_TypeNum(A))
             Next
@@ -1910,27 +2106,27 @@ Partial Public Class clsMap
                     End If
                 End If
             Next
-            File_structBJO.U32_Append(StructureCount)
+            File_structBJO.U32_Append(CUInt(StructureCount))
             For B = 0 To StructureCount - 1
                 A = StructureOrder(B)
                 tmpStructure = CType(Units(A).Type, clsStructureType)
                 File_structBJO.Text_Append(tmpStructure.Code, 40)
                 File_structBJO.U32_Append(Units(A).ID)
-                File_structBJO.U32_Append(Units(A).Pos.Horizontal.X)
-                File_structBJO.U32_Append(Units(A).Pos.Horizontal.Y)
-                File_structBJO.U32_Append(Units(A).Pos.Altitude)
-                File_structBJO.U32_Append(Units(A).Rotation)
+                File_structBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.X))
+                File_structBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.Y))
+                File_structBJO.U32_Append(CUInt(Units(A).Pos.Altitude))
+                File_structBJO.U32_Append(CUInt(Units(A).Rotation))
                 If Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
                     If Units(A).UnitGroup.WZ_StartPos >= 0 Then
-                        File_structBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_structBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     Else
                         File_structBJO.U32_Append(7UI)
                     End If
                 ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
                     If Units(A).UnitGroup Is ScavengerUnitGroup Or Units(A).UnitGroup.WZ_StartPos >= Args.Multiplayer.PlayerCount Then
-                        File_structBJO.U32_Append(Math.Max(7, Args.Multiplayer.PlayerCount))
+                        File_structBJO.U32_Append(CUInt(Math.Max(7, Args.Multiplayer.PlayerCount)))
                     Else
-                        File_structBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_structBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     End If
                 Else
                     Stop
@@ -1967,27 +2163,27 @@ Partial Public Class clsMap
                     End If
                 End If
             Next
-            File_droidBJO.U32_Append(DroidCount)
+            File_droidBJO.U32_Append(CUInt(DroidCount))
             For B = 0 To DroidCount - 1
                 A = Droids(B)
                 tmpTemplate = CType(Units(A).Type, clsDroidTemplate)
                 File_droidBJO.Text_Append(tmpTemplate.Code, 40)
                 File_droidBJO.U32_Append(Units(A).ID)
-                File_droidBJO.U32_Append(Units(A).Pos.Horizontal.X)
-                File_droidBJO.U32_Append(Units(A).Pos.Horizontal.Y)
-                File_droidBJO.U32_Append(Units(A).Pos.Altitude)
-                File_droidBJO.U32_Append(Units(A).Rotation)
+                File_droidBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.X))
+                File_droidBJO.U32_Append(CUInt(Units(A).Pos.Horizontal.Y))
+                File_droidBJO.U32_Append(CUInt(Units(A).Pos.Altitude))
+                File_droidBJO.U32_Append(CUInt(Units(A).Rotation))
                 If Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
                     If Units(A).UnitGroup.WZ_StartPos >= 0 Then
-                        File_droidBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_droidBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     Else
                         File_droidBJO.U32_Append(7UI)
                     End If
                 ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
                     If Units(A).UnitGroup Is ScavengerUnitGroup Or Units(A).UnitGroup.WZ_StartPos >= Args.Multiplayer.PlayerCount Then
-                        File_droidBJO.U32_Append(Math.Max(7, Args.Multiplayer.PlayerCount))
+                        File_droidBJO.U32_Append(CUInt(Math.Max(7, Args.Multiplayer.PlayerCount)))
                     Else
-                        File_droidBJO.U32_Append(Units(A).UnitGroup.WZ_StartPos)
+                        File_droidBJO.U32_Append(CUInt(Units(A).UnitGroup.WZ_StartPos))
                     End If
                 Else
                     Stop
@@ -2142,25 +2338,48 @@ Partial Public Class clsMap
     End Function
 
     Private Function Read_TTP(ByVal File As clsReadFile) As sResult
-        Read_TTP.Success = False
-        Read_TTP.Problem = ""
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim strTemp As String = ""
         Dim uintTemp As UInteger
         Dim ushortTemp As UShort
         Dim A As Integer
 
-        If Not File.Get_Text(4, strTemp) Then Read_TTP.Problem = "Unable to read identifier." : Exit Function
-        If strTemp <> "ttyp" Then Read_TTP.Problem = "Incorrect identifier." : Exit Function
-        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read version." : Exit Function
-        If uintTemp <> 8UI Then Read_TTP.Problem = "Unknown version." : Exit Function
-        If Not File.Get_U32(uintTemp) Then Read_TTP.Problem = "Unable to read tile count." : Exit Function
-        For A = 0 To Math.Min(uintTemp, CUInt(Tileset.TileCount)) - 1
-            If Not File.Get_U16(ushortTemp) Then Read_TTP.Problem = "Unable to read tile type number." : Exit Function
-            If ushortTemp > 11 Then Read_TTP.Problem = "Unknown tile type number." : Exit Function
-            Tile_TypeNum(A) = ushortTemp
+        If Not File.Get_Text(4, strTemp) Then
+            ReturnResult.Problem = "Unable to read identifier."
+            Return ReturnResult
+        End If
+        If strTemp <> "ttyp" Then
+            ReturnResult.Problem = "Incorrect identifier."
+            Return ReturnResult
+        End If
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Unable to read version."
+            Return ReturnResult
+        End If
+        If uintTemp <> 8UI Then
+            ReturnResult.Problem = "Unknown version."
+            Return ReturnResult
+        End If
+        If Not File.Get_U32(uintTemp) Then
+            ReturnResult.Problem = "Unable to read tile count."
+            Return ReturnResult
+        End If
+        For A = 0 To CInt(Math.Min(uintTemp, CUInt(Tileset.TileCount))) - 1
+            If Not File.Get_U16(ushortTemp) Then
+                ReturnResult.Problem = "Unable to read tile type number."
+                Return ReturnResult
+            End If
+            If ushortTemp > 11 Then
+                ReturnResult.Problem = "Unknown tile type number."
+                Return ReturnResult
+            End If
+            Tile_TypeNum(A) = CByte(ushortTemp)
         Next
 
-        Read_TTP.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 End Class

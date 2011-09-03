@@ -22,25 +22,14 @@ Partial Class ctrlMapView
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.components = New System.ComponentModel.Container()
-        Me.tmrDraw = New System.Windows.Forms.Timer(Me.components)
-        Me.tmrDraw_Delay = New System.Windows.Forms.Timer(Me.components)
         Me.ssStatus = New System.Windows.Forms.StatusStrip()
         Me.lblTile = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblVertex = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblPos = New System.Windows.Forms.ToolStripStatusLabel()
-        Me.pnlDraw = New System.Windows.Forms.Panel()
         Me.lblUndo = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.pnlDraw = New System.Windows.Forms.Panel()
         Me.ssStatus.SuspendLayout()
         Me.SuspendLayout()
-        '
-        'tmrDraw
-        '
-        Me.tmrDraw.Interval = 1
-        '
-        'tmrDraw_Delay
-        '
-        Me.tmrDraw_Delay.Interval = 40
         '
         'ssStatus
         '
@@ -78,6 +67,14 @@ Partial Class ctrlMapView
         Me.lblPos.Size = New System.Drawing.Size(320, 27)
         Me.lblPos.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
+        'lblUndo
+        '
+        Me.lblUndo.AutoSize = False
+        Me.lblUndo.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblUndo.Name = "lblUndo"
+        Me.lblUndo.Size = New System.Drawing.Size(256, 27)
+        Me.lblUndo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        '
         'pnlDraw
         '
         Me.pnlDraw.Dock = System.Windows.Forms.DockStyle.Fill
@@ -86,14 +83,6 @@ Partial Class ctrlMapView
         Me.pnlDraw.Name = "pnlDraw"
         Me.pnlDraw.Size = New System.Drawing.Size(1308, 392)
         Me.pnlDraw.TabIndex = 1
-        '
-        'lblUndo
-        '
-        Me.lblUndo.AutoSize = False
-        Me.lblUndo.Font = New System.Drawing.Font("Microsoft Sans Serif", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblUndo.Name = "lblUndo"
-        Me.lblUndo.Size = New System.Drawing.Size(256, 27)
-        Me.lblUndo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
         'ctrlMapView
         '
@@ -109,12 +98,10 @@ Partial Class ctrlMapView
         Me.PerformLayout()
 
     End Sub
-    Friend WithEvents tmrDraw_Delay As System.Windows.Forms.Timer
-    Friend WithEvents tmrDraw As System.Windows.Forms.Timer
-    Friend WithEvents ssStatus As System.Windows.Forms.StatusStrip
-    Friend WithEvents lblTile As System.Windows.Forms.ToolStripStatusLabel
-    Friend WithEvents lblVertex As System.Windows.Forms.ToolStripStatusLabel
-    Friend WithEvents lblPos As System.Windows.Forms.ToolStripStatusLabel
-    Friend WithEvents pnlDraw As System.Windows.Forms.Panel
-    Friend WithEvents lblUndo As System.Windows.Forms.ToolStripStatusLabel
+    Public WithEvents ssStatus As System.Windows.Forms.StatusStrip
+    Public WithEvents lblTile As System.Windows.Forms.ToolStripStatusLabel
+    Public WithEvents lblVertex As System.Windows.Forms.ToolStripStatusLabel
+    Public WithEvents lblPos As System.Windows.Forms.ToolStripStatusLabel
+    Public WithEvents pnlDraw As System.Windows.Forms.Panel
+    Public WithEvents lblUndo As System.Windows.Forms.ToolStripStatusLabel
 End Class

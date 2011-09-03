@@ -26,7 +26,10 @@ Public Class ctrlTextureView
     Private GLInitializeDelayTimer As Timer
     Public IsGLInitialized As Boolean = False
 
-    Sub New()
+    Private WithEvents tmrDraw As Timer
+    Private WithEvents tmrDrawDelay As Timer
+
+    Public Sub New()
         ' This call is required by the Windows Form Designer.
         InitializeComponent()
 
@@ -39,9 +42,15 @@ Public Class ctrlTextureView
         GLInitializeDelayTimer.Interval = 1
         AddHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
         GLInitializeDelayTimer.Enabled = True
+
+        tmrDraw = New Timer
+        tmrDraw.Interval = 1
+
+        tmrDrawDelay = New Timer
+        tmrDrawDelay.Interval = 30
     End Sub
 
-    Sub OpenGL_Size_Calc()
+    Public Sub OpenGL_Size_Calc()
 
         OpenGLControl.Width = pnlDraw.Width
         OpenGLControl.Height = pnlDraw.Height
@@ -49,7 +58,7 @@ Public Class ctrlTextureView
         Viewport_Resize()
     End Sub
 
-    Sub DrawView_SetEnabled(ByVal Value As Boolean)
+    Public Sub DrawView_SetEnabled(ByVal Value As Boolean)
 
         If Value Then
             If Not DrawView_Enabled Then
@@ -62,10 +71,10 @@ Public Class ctrlTextureView
         End If
     End Sub
 
-    Sub DrawViewLater()
+    Public Sub DrawViewLater()
 
         DrawPending = True
-        If Not tmrDraw_Delay.Enabled Then
+        If Not tmrDrawDelay.Enabled Then
             tmrDraw.Enabled = True
         End If
     End Sub
@@ -76,7 +85,7 @@ Public Class ctrlTextureView
         If DrawPending Then
             DrawPending = False
             DrawView()
-            tmrDraw_Delay.Enabled = True
+            tmrDrawDelay.Enabled = True
         End If
     End Sub
 
@@ -106,7 +115,7 @@ Public Class ctrlTextureView
         GL.Enable(EnableCap.CullFace)
     End Sub
 
-    Sub Viewport_Resize()
+    Public Sub Viewport_Resize()
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
@@ -209,15 +218,17 @@ EndOfTextures2:
             End If
 
             If DisplayTileOrientation Then
+                GL.Disable(EnableCap.CullFace)
+
                 UnrotatedPos.X = 0.25F
                 UnrotatedPos.Y = 0.25F
-                Vertex0 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
+                Vertex0 = GetTileRotatedPos_sng(TextureOrientation, UnrotatedPos)
                 UnrotatedPos.X = 0.5F
                 UnrotatedPos.Y = 0.25F
-                Vertex1 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
+                Vertex1 = GetTileRotatedPos_sng(TextureOrientation, UnrotatedPos)
                 UnrotatedPos.X = 0.5F
                 UnrotatedPos.Y = 0.5F
-                Vertex2 = GetTileRotatedPos(TextureOrientation, UnrotatedPos)
+                Vertex2 = GetTileRotatedPos_sng(TextureOrientation, UnrotatedPos)
 
                 GL.Begin(BeginMode.Triangles)
                 GL.Color3(1.0F, 1.0F, 0.0F)
@@ -234,10 +245,12 @@ EndOfTextures2:
                 Next
 EndOfTextures3:
                 GL.End()
+
+                GL.Enable(EnableCap.CullFace)
             End If
 
             If DisplayTileNumbers And TextureViewFont IsNot Nothing Then
-                Dim TextLabel As sTextLabel
+                Dim TextLabel As clsTextLabel
                 GL.Enable(EnableCap.Texture2D)
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
@@ -245,16 +258,16 @@ EndOfTextures3:
                         If Num >= Main_Map.Tileset.TileCount Then
                             GoTo EndOfTextures4
                         End If
-                        TextLabel = New sTextLabel
-                        TextLabel.Text = Num
+                        TextLabel = New clsTextLabel
+                        TextLabel.Text = CStr(Num)
                         TextLabel.SizeY = 24.0F
                         TextLabel.Colour.Red = 1.0F
                         TextLabel.Colour.Green = 1.0F
                         TextLabel.Colour.Blue = 0.0F
                         TextLabel.Colour.Alpha = 1.0F
-                        TextLabel.Pos.X = X * 64.0#
-                        TextLabel.Pos.Y = Y * 64.0#
-                        TextLabel.Font = TextureViewFont
+                        TextLabel.Pos.X = X * 64
+                        TextLabel.Pos.Y = Y * 64
+                        TextLabel.TextFont = TextureViewFont
                         Draw_TextLabel(TextLabel)
                     Next
                 Next
@@ -264,8 +277,8 @@ EndOfTextures4:
 
             If SelectedTextureNum >= 0 And TextureCount.X > 0 Then
                 A = SelectedTextureNum - TextureYOffset * TextureCount.X
-                XY_int.X = A - Int(A / TextureCount.X) * TextureCount.X
-                XY_int.Y = Int(A / TextureCount.X)
+                XY_int.X = A - CInt(Int(A / TextureCount.X)) * TextureCount.X
+                XY_int.Y = CInt(Int(A / TextureCount.X))
                 GL.Begin(BeginMode.LineLoop)
                 GL.Color3(1.0F, 1.0F, 0.0F)
                 GL.Vertex2(XY_int.X * 64.0#, XY_int.Y * 64.0#)
@@ -282,7 +295,7 @@ EndOfTextures4:
         Refresh()
     End Sub
 
-    Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+    Public Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
 
         If Main_Map Is Nothing Then
             SelectedTextureNum = -1
@@ -290,7 +303,7 @@ EndOfTextures4:
             SelectedTextureNum = -1
         ElseIf e.X >= 0 And e.X < TextureCount.X * 64 _
           And e.Y >= 0 And e.Y < TextureCount.Y * 64 Then
-            SelectedTextureNum = (TextureYOffset + Int(e.Y / 64.0#)) * TextureCount.X + Int(e.X / 64.0#)
+            SelectedTextureNum = (TextureYOffset + CInt(Int(e.Y / 64.0#))) * TextureCount.X + CInt(Int(e.X / 64.0#))
             If SelectedTextureNum >= Main_Map.Tileset.TileCount Then
                 SelectedTextureNum = -1
             Else
@@ -312,13 +325,13 @@ EndOfTextures4:
         DrawViewLater()
     End Sub
 
-    Private Sub tmrDraw_Delay_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDraw_Delay.Tick
+    Private Sub tmrDrawDelay_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDrawDelay.Tick
 
         If DrawPending Then
             DrawPending = False
             DrawView()
         Else
-            tmrDraw_Delay.Enabled = False
+            tmrDrawDelay.Enabled = False
         End If
     End Sub
 
@@ -326,8 +339,8 @@ EndOfTextures4:
 
         If OpenGLControl IsNot Nothing Then
             OpenGL_Size_Calc()
-            TextureCount.X = Math.Floor(GLSize.X / 64.0#)
-            TextureCount.Y = Math.Ceiling(GLSize.Y / 64.0#)
+            TextureCount.X = CInt(Math.Floor(GLSize.X / 64.0#))
+            TextureCount.Y = CInt(Math.Ceiling(GLSize.Y / 64.0#))
         Else
             TextureCount.X = 0
             TextureCount.Y = 0
@@ -336,7 +349,7 @@ EndOfTextures4:
         ScrollUpdate()
     End Sub
 
-    Sub ScrollUpdate()
+    Public Sub ScrollUpdate()
         Dim Flag As Boolean
 
         If TextureCount.X > 0 And TextureCount.Y > 0 Then
@@ -361,12 +374,12 @@ EndOfTextures4:
         End If
     End Sub
 
-    Sub OpenGL_Resize(ByVal sender As Object, ByVal e As System.EventArgs)
+    Public Sub OpenGL_Resize(ByVal sender As Object, ByVal e As System.EventArgs)
 
         GLSize.X = OpenGLControl.Width
         GLSize.Y = OpenGLControl.Height
         If GLSize.Y <> 0 Then
-        	GLSize_XPerY = GLSize.X / GLSize.Y
+            GLSize_XPerY = GLSize.X / GLSize.Y
         End If
         Viewport_Resize()
     End Sub
@@ -387,14 +400,14 @@ EndOfTextures4:
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
     End Function
 
-    Private Sub Draw_TextLabel(ByRef TextLabel As sTextLabel)
+    Private Sub Draw_TextLabel(ByRef TextLabel As clsTextLabel)
         If TextLabel.Text Is Nothing Then
             Exit Sub
         End If
         If TextLabel.Text.Length = 0 Then
             Exit Sub
         End If
-        If TextLabel.Font Is Nothing Then
+        If TextLabel.TextFont Is Nothing Then
             Exit Sub
         End If
 
@@ -417,11 +430,11 @@ EndOfTextures4:
         For A = 0 To TextLabel.Text.Length - 1
             CharCode = Asc(TextLabel.Text(A))
             If CharCode >= 0 And CharCode <= 255 Then
-                CharWidth = TextLabel.SizeY * TextLabel.Font.Character(CharCode).Width / TextLabel.Font.Height
-                TexRatio.X = TextLabel.Font.Character(CharCode).Width / TextLabel.Font.Character(CharCode).TexSize
-                TexRatio.Y = TextLabel.Font.Height / TextLabel.Font.Character(CharCode).TexSize
+                CharWidth = TextLabel.SizeY * TextLabel.TextFont.Character(CharCode).Width / TextLabel.TextFont.Height
+                TexRatio.X = CSng(TextLabel.TextFont.Character(CharCode).Width / TextLabel.TextFont.Character(CharCode).TexSize)
+                TexRatio.Y = CSng(TextLabel.TextFont.Height / TextLabel.TextFont.Character(CharCode).TexSize)
                 LetterPosB = LetterPosA + CharWidth
-                GL.BindTexture(TextureTarget.Texture2D, TextLabel.Font.Character(CharCode).GLTexture)
+                GL.BindTexture(TextureTarget.Texture2D, TextLabel.TextFont.Character(CharCode).GLTexture)
                 GL.Begin(BeginMode.Quads)
                 GL.TexCoord2(0.0F, 0.0F)
                 GL.Vertex2(LetterPosA, PosY1)
@@ -444,21 +457,11 @@ EndOfTextures4:
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()
-        Me.tmrDraw = New System.Windows.Forms.Timer
-        Me.tmrDraw_Delay = New System.Windows.Forms.Timer
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
         Me.TextureScroll = New System.Windows.Forms.VScrollBar()
         Me.pnlDraw = New System.Windows.Forms.Panel()
         Me.TableLayoutPanel1.SuspendLayout()
         Me.SuspendLayout()
-        '
-        'tmrDraw
-        '
-        Me.tmrDraw.Interval = 1
-        '
-        'tmrDraw_Delay
-        '
-        Me.tmrDraw_Delay.Interval = 40
         '
         'TableLayoutPanel1
         '
@@ -474,15 +477,15 @@ EndOfTextures4:
         Me.TableLayoutPanel1.RowCount = 1
         Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
         Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 25.0!))
-        Me.TableLayoutPanel1.Size = New System.Drawing.Size(284, 388)
+        Me.TableLayoutPanel1.Size = New System.Drawing.Size(280, 384)
         Me.TableLayoutPanel1.TabIndex = 0
         '
         'TextureScroll
         '
         Me.TextureScroll.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.TextureScroll.Location = New System.Drawing.Point(263, 0)
+        Me.TextureScroll.Location = New System.Drawing.Point(259, 0)
         Me.TextureScroll.Name = "TextureScroll"
-        Me.TextureScroll.Size = New System.Drawing.Size(21, 388)
+        Me.TextureScroll.Size = New System.Drawing.Size(21, 384)
         Me.TextureScroll.TabIndex = 1
         '
         'pnlDraw
@@ -491,24 +494,23 @@ EndOfTextures4:
         Me.pnlDraw.Location = New System.Drawing.Point(0, 0)
         Me.pnlDraw.Margin = New System.Windows.Forms.Padding(0)
         Me.pnlDraw.Name = "pnlDraw"
-        Me.pnlDraw.Size = New System.Drawing.Size(263, 388)
+        Me.pnlDraw.Size = New System.Drawing.Size(259, 384)
         Me.pnlDraw.TabIndex = 2
         '
         'ctrlTextureView
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
+        Me.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D
         Me.Controls.Add(Me.TableLayoutPanel1)
         Me.Margin = New System.Windows.Forms.Padding(0)
         Me.Name = "ctrlTextureView"
-        Me.Size = New System.Drawing.Size(284, 388)
+        Me.Size = New System.Drawing.Size(280, 384)
         Me.TableLayoutPanel1.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents tmrDraw As System.Windows.Forms.Timer
-    Friend WithEvents tmrDraw_Delay As System.Windows.Forms.Timer
-    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Friend WithEvents TextureScroll As System.Windows.Forms.VScrollBar
-    Friend WithEvents pnlDraw As System.Windows.Forms.Panel
+    Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents TextureScroll As System.Windows.Forms.VScrollBar
+    Public WithEvents pnlDraw As System.Windows.Forms.Panel
 #End If
 End Class

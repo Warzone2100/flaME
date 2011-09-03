@@ -17,13 +17,16 @@
 
 !define PROGRAMNAME "FlaME"
 
-!define EXESOURCELOC "FlaME\bin\VB 2010"
 !define SRCCODEDIR "${PROGRAMNAME}"
+!define EXESOURCELOC "${SRCCODEDIR}\bin\Debug"
+!define INTERFACEDIR "${EXESOURCELOC}\interface"
+
+!define INTERFACESUBDIR "interface"
 
 !define INSTALLERDATA "Windows Installer"
 
 !define PROGRAMVMAJOR "1"
-!define PROGRAMVMINOR "21"
+!define PROGRAMVMINOR "22"
 !define FLAMEVSHORT "${PROGRAMVMAJOR}.${PROGRAMVMINOR}"
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
 !define FLAMEFULLNAME "${PROGRAMNAME} ${FLAMEVSHORT}"
@@ -125,12 +128,27 @@ Section "Install ${PROGRAMNAME}" Main
 	SetOutPath "$INSTDIR"
 	File "${EXESOURCELOC}\OpenTK.GLControl.dll"
 	File "${EXESOURCELOC}\OpenTK.dll"
+	File "${EXESOURCELOC}\ICSharpCode.SharpZipLib.dll"
+	File "${EXESOURCELOC}\Matrix3D.dll"
 	File "${EXESOURCELOC}\notile.png"
 	File "${EXESOURCELOC}\overflow.png"
-	File "${EXESOURCELOC}\ICSharpCode.SharpZipLib.dll"
 	File "${EXESOURCELOC}\FlaME.exe"
 	File "${EXESOURCELOC}\flaME.ico"
 	File "${INSTALLERDATA}\map.ico"
+
+	SetOutPath "$INSTDIR\${INTERFACESUBDIR}"
+	File "${INTERFACEDIR}\displayautotexture.png"
+	File "${INTERFACEDIR}\drawtileorientation.png"
+	File "${INTERFACEDIR}\gateways.png"
+	File "${INTERFACEDIR}\objectsselect.png"
+	File "${INTERFACEDIR}\save.png"
+	File "${INTERFACEDIR}\selection.png"
+	File "${INTERFACEDIR}\selectioncopy.png"
+	File "${INTERFACEDIR}\selectionflipx.png"
+	File "${INTERFACEDIR}\selectionpaste.png"
+	File "${INTERFACEDIR}\selectionpasteoptions.png"
+	File "${INTERFACEDIR}\selectionrotateanticlockwise.png"
+	File "${INTERFACEDIR}\selectionrotateclockwise.png"
 	
 	;Startmenu shortcuts
 	!insertmacro MUI_STARTMENU_WRITE_BEGIN "${UNDERSCOREFULLNAME}"
@@ -219,6 +237,22 @@ Section "un.Uninstall ${PROGRAMNAME}" unMain
 	Delete "$INSTDIR\overflow.png"
 	Delete "$INSTDIR\OpenTK.dll"
 	Delete "$INSTDIR\OpenTK.GLControl.dll"
+	Delete "$INSTDIR\Matrix3D.dll"
+
+	Delete "$INSTDIR\${INTERFACESUBDIR}\displayautotexture.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\drawtileorientation.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\gateways.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\objectsselect.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\save.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selection.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectioncopy.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionflipx.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionpaste.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionpasteoptions.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionrotateanticlockwise.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionrotateclockwise.png"
+
+	RMDir "$INSTDIR\${INTERFACESUBDIR}"
 	RMDir "$INSTDIR"
 
 	!insertmacro MUI_STARTMENU_GETFOLDER "${UNDERSCOREFULLNAME}" $StartMenuFolder

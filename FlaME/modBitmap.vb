@@ -3,28 +3,31 @@ Imports OpenTK.Graphics.OpenGL
 
 Public Module modBitmap
 
-    Function LoadBitmap(ByVal Path As String, ByRef ResultBitmap As Bitmap) As sResult
-        LoadBitmap.Problem = ""
-        LoadBitmap.Success = False
+    Public Function LoadBitmap(ByVal Path As String, ByRef ResultBitmap As Bitmap) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Problem = ""
+        ReturnResult.Success = False
 
         Dim tmpBitmap As Bitmap
 
         Try
             tmpBitmap = New Bitmap(Path)
         Catch ex As Exception
-            LoadBitmap.Problem = ex.Message
+            ReturnResult.Problem = ex.Message
             ResultBitmap = Nothing
-            Exit Function
+            Return ReturnResult
         End Try
 
         ResultBitmap = New Bitmap(tmpBitmap) 'copying the bitmap is needed so it doesn't lock access to the file
 
-        LoadBitmap.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Function SaveBitmap(ByVal Path As String, ByVal Overwrite As Boolean, ByVal BitmapToSave As Bitmap) As sResult
-        SaveBitmap.Problem = ""
-        SaveBitmap.Success = False
+    Public Function SaveBitmap(ByVal Path As String, ByVal Overwrite As Boolean, ByVal BitmapToSave As Bitmap) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Problem = ""
+        ReturnResult.Success = False
 
         Try
 
@@ -32,21 +35,23 @@ Public Module modBitmap
                 If Overwrite Then
                     IO.File.Delete(Path)
                 Else
-                    SaveBitmap.Problem = "File already exists."
-                    Exit Function
+                    ReturnResult.Problem = "File already exists."
+                    Return ReturnResult
                 End If
             End If
             BitmapToSave.Save(Path)
 
         Catch ex As Exception
-            SaveBitmap.Problem = ex.Message
-            Exit Function
+            ReturnResult.Problem = ex.Message
+            Return ReturnResult
         End Try
 
-        SaveBitmap.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Function BitmapGLTexture(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal IsMipmapped As Boolean, ByVal Interpolation As Boolean) As Integer
+    Public Function BitmapGLTexture(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal IsMipmapped As Boolean, ByVal Interpolation As Boolean) As Integer
+        Dim ReturnResult As Integer
 
         Dim tmpData As Drawing.Imaging.BitmapData = Texture.LockBits(New Rectangle(0, 0, Texture.Width, Texture.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
 
@@ -55,9 +60,9 @@ Public Module modBitmap
         End If
 
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        BitmapGLTexture = 0
-        GL.GenTextures(1, BitmapGLTexture)
-        GL.BindTexture(TextureTarget.Texture2D, BitmapGLTexture)
+        ReturnResult = 0
+        GL.GenTextures(1, ReturnResult)
+        GL.BindTexture(TextureTarget.Texture2D, ReturnResult)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
         If Interpolation Then
@@ -73,9 +78,11 @@ Public Module modBitmap
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
 
         Texture.UnlockBits(tmpData)
+
+        Return ReturnResult
     End Function
 
-    Sub BitmapGLTexture(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal GLTextureNum As Integer, ByVal MipMapLevel As Integer)
+    Public Sub BitmapGLTexture_MipMap(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal GLTextureNum As Integer, ByVal MipMapLevel As Integer)
 
         Dim tmpData As Drawing.Imaging.BitmapData = Texture.LockBits(New Rectangle(0, 0, Texture.Width, Texture.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
 
@@ -94,7 +101,7 @@ Public Module modBitmap
         Texture.UnlockBits(tmpData)
     End Sub
 
-    Function BitmapIsGLCompatible(ByVal BitmapToCheck As Bitmap) As clsResult
+    Public Function BitmapIsGLCompatible(ByVal BitmapToCheck As Bitmap) As clsResult
         Dim ReturnResult As New clsResult
 
         If Not SizeIsPowerOf2(BitmapToCheck.Width) Then

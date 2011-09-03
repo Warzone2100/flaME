@@ -20,7 +20,7 @@
         Public Layers() As clsLayer
         Public LayerCount As Integer
 
-        Sub Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
+        Public Sub Layer_Insert(ByVal PositionNum As Integer, ByVal NewLayer As clsLayer)
             Dim A As Integer
             Dim B As Integer
 
@@ -28,7 +28,7 @@
             'shift the ones below down
             For A = LayerCount - 1 To PositionNum Step -1
                 Layers(A + 1) = Layers(A)
-            Next A
+            Next
             'insert the new entry
             Layers(PositionNum) = NewLayer
             LayerCount += 1
@@ -45,14 +45,14 @@
             Next
         End Sub
 
-        Sub Layer_Remove(ByVal Layer_Num As Integer)
+        Public Sub Layer_Remove(ByVal Layer_Num As Integer)
             Dim A As Integer
             Dim B As Integer
 
             LayerCount = LayerCount - 1
             For A = Layer_Num To LayerCount - 1
                 Layers(A) = Layers(A + 1)
-            Next A
+            Next
             ReDim Preserve Layers(LayerCount - 1)
 
             For A = 0 To LayerCount - 1
@@ -68,7 +68,7 @@
             Next
         End Sub
 
-        Sub Layer_Move(ByVal Layer_Num As Integer, ByVal Layer_Dest_Num As Integer)
+        Public Sub Layer_Move(ByVal Layer_Num As Integer, ByVal Layer_Dest_Num As Integer)
             Dim Layer_Temp As clsLayer
             Dim boolTemp As Boolean
             Dim A As Integer
@@ -79,7 +79,7 @@
                 Layer_Temp = Layers(Layer_Num)
                 For A = Layer_Num - 1 To Layer_Dest_Num Step -1
                     Layers(A + 1) = Layers(A)
-                Next A
+                Next
                 Layers(Layer_Dest_Num) = Layer_Temp
                 'update the layer nums
                 For A = 0 To LayerCount - 1
@@ -99,7 +99,7 @@
                 Layer_Temp = Layers(Layer_Num)
                 For A = Layer_Num To Layer_Dest_Num - 1
                     Layers(A) = Layers(A + 1)
-                Next A
+                Next
                 Layers(Layer_Dest_Num) = Layer_Temp
                 'update the layer nums
                 For A = 0 To LayerCount - 1
@@ -124,25 +124,25 @@
 
     End Sub
 
-    Sub Map_Size_Refresh()
+    Public Sub Map_Size_Refresh()
         Dim A As Integer
 
         For A = 0 To LayerList.LayerCount - 1
-            LayerList.Layers(A).Terrainmap.Blank(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1)
+            LayerList.Layers(A).Terrainmap.Blank(Main_Map.Terrain.TileSize.X + 1, Main_Map.Terrain.TileSize.Y + 1)
         Next
     End Sub
 
-    Sub cmbLayer_Terrain_Refresh(ByVal NewSelectedIndex As Integer)
+    Public Sub cmbLayer_Terrain_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
         cboLayer_Terrain.Items.Clear()
         For A = 0 To Main_Map.Painter.TerrainCount - 1
             cboLayer_Terrain.Items.Add(Main_Map.Painter.Terrains(A).Name)
-        Next A
+        Next
         cboLayer_Terrain.SelectedIndex = NewSelectedIndex
     End Sub
 
-    Sub cmbWithin_Refresh(ByVal NewSelectedIndex As Integer)
+    Public Sub cmbWithin_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
         cboWithin.Items.Clear()
@@ -152,11 +152,11 @@
             Else
                 cboWithin.Items.Add("Nothing")
             End If
-        Next A
+        Next
         cboWithin.SelectedIndex = NewSelectedIndex
     End Sub
 
-    Sub lstLayer_Refresh(ByVal NewSelectedIndex As Integer)
+    Public Sub lstLayer_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
         lstLayer.SelectedIndex = -1 'so that the items get disabled
@@ -167,13 +167,13 @@
             Else
                 lstLayer.Items.Add("Nothing")
             End If
-        Next A
+        Next
         lstLayer.SelectedIndex = NewSelectedIndex
 
         Layer_Items_Refresh()
     End Sub
 
-    Sub clstAvoid_Refresh(ByVal NewSelectedIndex As Integer)
+    Public Sub clstAvoid_Refresh(ByVal NewSelectedIndex As Integer)
         Dim A As Integer
 
         clstAvoid.Items.Clear()
@@ -183,11 +183,11 @@
             Else
                 clstAvoid.Items.Add("Nothing", LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(A))
             End If
-        Next A
+        Next
         clstAvoid.SelectedIndex = NewSelectedIndex
     End Sub
 
-    Sub Layer_Items_Refresh()
+    Public Sub Layer_Items_Refresh()
 
         If lstLayer.SelectedIndex = -1 Then
             cboLayer_Terrain.Enabled = False
@@ -265,8 +265,7 @@
 
         Main_Map.MapTexturer(LayerList)
 
-        Main_Map.SectorAll_Set_Changed()
-        Main_Map.SectorAll_GL_Update()
+        Main_Map.Update()
 
         Main_Map.UndoStepCreate("Entire Map Painter")
 
@@ -290,7 +289,7 @@
             Exit Sub
         End If
 
-        If Not (hmA.HeightData.SizeX = Main_Map.TerrainSize.X + 1 And hmA.HeightData.SizeY = Main_Map.TerrainSize.Y + 1) Then
+        If Not (hmA.HeightData.SizeX = Main_Map.Terrain.TileSize.X + 1 And hmA.HeightData.SizeY = Main_Map.Terrain.TileSize.Y + 1) Then
             MsgBox("Heightmap sizes do not equal map size + 1.", MsgBoxStyle.OkOnly, "Error")
             Exit Sub
         End If
@@ -333,7 +332,7 @@
             NewLayer.SlopeMin = 0
             NewLayer.SlopeMax = RadOf90Deg
             NewLayer.Terrainmap = New clsBooleanMap
-            NewLayer.Terrainmap.Blank(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1)
+            NewLayer.Terrainmap.Blank(Main_Map.Terrain.TileSize.X + 1, Main_Map.Terrain.TileSize.Y + 1)
             LayerList.Layer_Insert(Position_Num, NewLayer)
             lstLayer_Refresh(Position_Num)
         ElseIf eventArgs.KeyCode = System.Windows.Forms.Keys.Delete And eventArgs.Shift Then
@@ -347,34 +346,34 @@
     Private Sub txtLayer_HeightMax_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_HeightMax.TextChanged
         If Not txtLayer_HeightMax.Enabled Then Exit Sub
 
-        LayerList.Layers(lstLayer.SelectedIndex).HeightMax = Val(txtLayer_HeightMax.Text)
+        LayerList.Layers(lstLayer.SelectedIndex).HeightMax = CSng(Val(txtLayer_HeightMax.Text))
     End Sub
 
     Private Sub txtLayer_HeightMin_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_HeightMin.TextChanged
         If Not txtLayer_HeightMin.Enabled Then Exit Sub
 
-        LayerList.Layers(lstLayer.SelectedIndex).HeightMin = Val(txtLayer_HeightMin.Text)
+        LayerList.Layers(lstLayer.SelectedIndex).HeightMin = CSng(Val(txtLayer_HeightMin.Text))
     End Sub
 
     Private Sub txtLayer_SlopeMax_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_SlopeMax.TextChanged
         If Not txtLayer_SlopeMax.Enabled Then Exit Sub
 
-        LayerList.Layers(lstLayer.SelectedIndex).SlopeMax = Val(txtLayer_SlopeMax.Text) * RadOf1Deg
+        LayerList.Layers(lstLayer.SelectedIndex).SlopeMax = CSng(Val(txtLayer_SlopeMax.Text) * RadOf1Deg)
     End Sub
 
     Private Sub txtLayer_SlopeMin_TextChanged(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs) Handles txtLayer_SlopeMin.TextChanged
         If Not txtLayer_SlopeMin.Enabled Then Exit Sub
 
-        LayerList.Layers(lstLayer.SelectedIndex).SlopeMin = Val(txtLayer_SlopeMin.Text) * RadOf1Deg
+        LayerList.Layers(lstLayer.SelectedIndex).SlopeMin = CSng(Val(txtLayer_SlopeMin.Text) * RadOf1Deg)
     End Sub
 
-    Sub bmDisplay()
+    Public Sub bmDisplay()
         Dim X As Integer
         Dim Y As Integer
-        Dim tmpBitmap As Bitmap = New Bitmap(Main_Map.TerrainSize.X + 1, Main_Map.TerrainSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
+        Dim tmpBitmap As Bitmap = New Bitmap(Main_Map.Terrain.TileSize.X + 1, Main_Map.Terrain.TileSize.Y + 1, Imaging.PixelFormat.Format24bppRgb)
 
-        For Y = 0 To Main_Map.TerrainSize.Y
-            For X = 0 To Main_Map.TerrainSize.X
+        For Y = 0 To Main_Map.Terrain.TileSize.Y
+            For X = 0 To Main_Map.Terrain.TileSize.X
                 If LayerList.Layers(lstLayer.SelectedIndex).Terrainmap.ValueData.Value(Y, X) Then
                     tmpBitmap.SetPixel(X, Y, Color.White)
                 Else
@@ -395,9 +394,9 @@
         Dim Scale As Single
         Dim Density As Single
 
-        Scale = Clamp(CSng(Val(txtScale.Text)), 0.0F, 8.0F)
+        Scale = Clamp_sng(CSng(Val(txtScale.Text)), 0.0F, 8.0F)
         txtScale.Text = CStr(Scale)
-        Density = Clamp(Val(txtDensity.Text) / 100.0#, 0.0#, 1.0#)
+        Density = CSng(Clamp_dbl(Val(txtDensity.Text) / 100.0#, 0.0#, 1.0#))
         txtDensity.Text = CStr(Density * 100.0#)
         LayerList.Layers(lstLayer.SelectedIndex).Terrainmap = Main_Map.GenerateTerrainMap(Scale, Density)
 
@@ -416,7 +415,7 @@
 
     Private Sub clstAvoid_ItemCheck(ByVal sender As Object, ByVal e As System.Windows.Forms.ItemCheckEventArgs) Handles clstAvoid.ItemCheck
 
-        LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(e.Index) = e.NewValue
+        LayerList.Layers(lstLayer.SelectedIndex).AvoidLayers(e.Index) = (e.NewValue = CheckState.Checked)
     End Sub
 
     Private Sub cmbWithin_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cboWithin.SelectedIndexChanged
@@ -916,8 +915,9 @@
         Me.Controls.Add(Me.lstLayer)
         Me.Controls.Add(Me.btnDo)
         Me.Controls.Add(Me.Label2)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.Margin = New System.Windows.Forms.Padding(4)
+        Me.MaximizeBox = False
         Me.Name = "frmMapTexturer"
         Me.Text = "Entire Map Painter"
         CType(Me.picHeightmap, System.ComponentModel.ISupportInitialize).EndInit()
@@ -928,7 +928,7 @@
     Public WithEvents lstLayer As System.Windows.Forms.ListBox
     Public WithEvents btnDo As System.Windows.Forms.Button
     Public WithEvents Label2 As System.Windows.Forms.Label
-    Friend WithEvents btnTerrain_Rem As System.Windows.Forms.Button
+    Public WithEvents btnTerrain_Rem As System.Windows.Forms.Button
     Public WithEvents txtDensity As System.Windows.Forms.TextBox
     Public WithEvents txtScale As System.Windows.Forms.TextBox
     Public WithEvents btnGen As System.Windows.Forms.Button
@@ -949,10 +949,10 @@
     Public WithEvents Label8 As System.Windows.Forms.Label
     Public WithEvents Label4 As System.Windows.Forms.Label
     Public WithEvents Label1 As System.Windows.Forms.Label
-    Friend WithEvents clstAvoid As System.Windows.Forms.CheckedListBox
+    Public WithEvents clstAvoid As System.Windows.Forms.CheckedListBox
     Public WithEvents cboWithin As System.Windows.Forms.ComboBox
     Public WithEvents Label3 As System.Windows.Forms.Label
-    Friend WithEvents btnWithinClear As System.Windows.Forms.Button
-    Friend WithEvents OpenFileDialog As System.Windows.Forms.OpenFileDialog
+    Public WithEvents btnWithinClear As System.Windows.Forms.Button
+    Public WithEvents OpenFileDialog As System.Windows.Forms.OpenFileDialog
 #End If
 End Class

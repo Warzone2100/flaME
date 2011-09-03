@@ -2,39 +2,39 @@
 
     Public HeightScale As Double = 0.0001#
 
-    Structure sMinMax
+    Public Structure sMinMax
         Public Min As Long
         Public Max As Long
     End Structure
 
-    Class clsHeightData
+    Public Class clsHeightData
         Public SizeX As Integer
         Public SizeY As Integer
         Public Height(,) As Long
     End Class
     Public HeightData As New clsHeightData
 
-    Sub Blank(ByVal SizeY As Integer, ByVal SizeX As Integer)
+    Public Sub Blank(ByVal SizeY As Integer, ByVal SizeX As Integer)
 
         HeightData.SizeX = SizeX
         HeightData.SizeY = SizeY
         ReDim HeightData.Height(SizeY - 1, SizeX - 1)
     End Sub
 
-    Sub Randomize(ByVal HeightMultiplier As Double)
+    Public Sub Randomize(ByVal HeightMultiplier As Double)
         Dim X As Integer
         Dim Y As Integer
         Dim HeightMultiplierHalved As Long
 
-        HeightMultiplierHalved = HeightMultiplier / 2.0#
+        HeightMultiplierHalved = CLng(HeightMultiplier / 2.0#)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = Rnd() * HeightMultiplier - HeightMultiplierHalved
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(Rnd() * HeightMultiplier - HeightMultiplierHalved)
+            Next
+        Next
     End Sub
 
-    Sub GenerateNew(ByVal SizeY As Integer, ByVal SizeX As Integer, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
+    Public Sub GenerateNew(ByVal SizeY As Integer, ByVal SizeX As Integer, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
         Dim Temp As New clsHeightmap
 
         Blank(SizeY, SizeX)
@@ -44,7 +44,7 @@
         HeightData = Temp.HeightData 'steal the temporary heightmap's data
     End Sub
 
-    Sub Generate(ByVal Source As clsHeightmap, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
+    Public Sub Generate(ByVal Source As clsHeightmap, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
         Dim Temp As New clsHeightmap
         Dim A As Integer
 
@@ -56,7 +56,7 @@
                 Temp.Inflate(Me, NoiseFactor, HeightMultiplier, A)
                 HeightData = Temp.HeightData
                 Temp.HeightData = New clsHeightmap.clsHeightData
-            Next A
+            Next
         ElseIf Inflations = 0 Then
             Copy(Source)
         Else
@@ -64,7 +64,7 @@
         End If
     End Sub
 
-    Sub Inflate(ByVal Source As clsHeightmap, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double, ByVal VariationReduction As Integer)
+    Public Sub Inflate(ByVal Source As clsHeightmap, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double, ByVal VariationReduction As Integer)
 
         Dim A As Integer
         Dim Y As Integer
@@ -84,8 +84,8 @@
         For Y = 0 To Source.HeightData.SizeY - 1
             For X = 0 To Source.HeightData.SizeX - 1
                 HeightData.Height((Y + 1) * 2 - 2, (X + 1) * 2 - 2) = Source.HeightData.Height(Y, X)
-            Next X
-        Next Y
+            Next
+        Next
 
         If NoiseFactor = 0.0# Then
             LayerFactor = 0.0#
@@ -96,53 +96,53 @@
         'centre points
         Dist = RootTwo
         Variation = Dist * LayerFactor * HeightMultiplier
-        VariationHalved = Variation / 2.0#
+        VariationHalved = CLng(Variation / 2.0#)
         For Y = 1 To HeightData.SizeY - 2 Step 2
             For X = 1 To HeightData.SizeX - 2 Step 2
-                Mean = (HeightData.Height(Y - 1, X - 1) + HeightData.Height(Y - 1, X + 1) + HeightData.Height(Y + 1, X - 1) + HeightData.Height(Y + 1, X + 1)) / 4.0#
-                HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-            Next X
-        Next Y
+                Mean = CLng((HeightData.Height(Y - 1, X - 1) + HeightData.Height(Y - 1, X + 1) + HeightData.Height(Y + 1, X - 1) + HeightData.Height(Y + 1, X + 1)) / 4.0#)
+                HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+            Next
+        Next
 
         'side points
         Dist = 1.0#
         Variation = Dist * LayerFactor * HeightMultiplier
-        VariationHalved = Variation / 2.0#
+        VariationHalved = CLng(Variation / 2.0#)
         'inner side points
         For Y = 1 To HeightData.SizeY - 2
-            A = Y - (Int(Y / 2) * 2)
+            A = Y - CInt(Int(Y / 2.0#)) * 2
             For X = 1 + A To HeightData.SizeX - 2 - A Step 2
-                Mean = (HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 4
-                HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-            Next X
-        Next Y
+                Mean = CLng((HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 4.0#)
+                HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+            Next
+        Next
         'top side points
         Y = 0
         For X = 1 To HeightData.SizeX - 2 Step 2
-            Mean = (HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 3
-            HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-        Next X
+            Mean = CLng((HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 3.0#)
+            HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+        Next
         'left side points
         X = 0
         For Y = 1 To HeightData.SizeY - 2 Step 2
-            Mean = (HeightData.Height(Y - 1, X) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 3
-            HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-        Next Y
+            Mean = CLng((HeightData.Height(Y - 1, X) + HeightData.Height(Y, X + 1) + HeightData.Height(Y + 1, X)) / 3.0#)
+            HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+        Next
         'right side points
         X = HeightData.SizeX - 1
         For Y = 1 To HeightData.SizeY - 2 Step 2
-            Mean = (HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y + 1, X)) / 3
-            HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-        Next Y
+            Mean = CLng((HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y + 1, X)) / 3.0#)
+            HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+        Next
         'bottom side points
         Y = HeightData.SizeY - 1
         For X = 1 To HeightData.SizeX - 2 Step 2
-            Mean = (HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1)) / 3
-            HeightData.Height(Y, X) = Mean + Rnd() * Variation - VariationHalved
-        Next X
+            Mean = CLng((HeightData.Height(Y - 1, X) + HeightData.Height(Y, X - 1) + HeightData.Height(Y, X + 1)) / 3.0#)
+            HeightData.Height(Y, X) = Mean + CLng(Rnd() * Variation) - VariationHalved
+        Next
     End Sub
 
-    Sub MinMaxGet(ByRef MinMax_Output As sMinMax)
+    Public Sub MinMaxGet(ByRef MinMax_Output As sMinMax)
 
         Dim HeightMin As Long
         Dim HeightMax As Long
@@ -158,79 +158,14 @@
                     lngTemp = HeightData.Height(Y, X)
                     If lngTemp < HeightMin Then HeightMin = lngTemp
                     If lngTemp > HeightMax Then HeightMax = lngTemp
-                Next X
-            Next Y
+                Next
+            Next
         End If
         MinMax_Output.Min = HeightMin
         MinMax_Output.Max = HeightMax
     End Sub
 
-    Sub Smooth2(ByVal Source As clsHeightmap, ByVal Radius As Integer, ByVal Ratio As Double)
-        Dim Y As Integer
-        Dim X As Integer
-        Dim Y2 As Integer
-        Dim X2 As Integer
-        Dim HorzRadius As Double
-        Dim Samples As Double
-        Dim Y3 As Integer
-        Dim X3 As Integer
-        Dim Y4 As Integer
-        Dim X4 As Integer
-        Dim DistFactor As Double
-        Dim XInt1() As Integer
-        Dim XInt2() As Integer
-        Dim CircDist(,) As Double
-        Dim CircDistFactor(,) As Double
-        Dim TempHeight As Long
-        Dim AntiRatio As Double = 1.0# - Ratio
-
-        ReDim XInt1(2 * Radius)
-        ReDim XInt2(2 * Radius)
-        For Y2 = -Radius To Radius
-            HorzRadius = Math.Sqrt(Radius * Radius - Y2 * Y2)
-            XInt1(Y2 + Radius) = Int(-HorzRadius)
-            XInt2(Y2 + Radius) = -Int(-HorzRadius)
-        Next Y2
-        ReDim CircDist(2 * Radius, 2 * Radius)
-        ReDim CircDistFactor(2 * Radius, 2 * Radius)
-        For Y2 = -Radius To Radius
-            For X2 = XInt1(Y2 + Radius) To XInt2(Y2 + Radius)
-                CircDist(Y2 + Radius, X2 + Radius) = Math.Sqrt(Y2 * Y2 + X2 * X2)
-                If CircDist(Y2 + Radius, X2 + Radius) <= Radius Then
-                    CircDistFactor(Y2 + Radius, X2 + Radius) = 1.0# - CircDist(Y2 + Radius, X2 + Radius) / Radius
-                Else
-                    CircDistFactor(Y2 + Radius, X2 + Radius) = -1.0#
-                End If
-            Next X2
-        Next Y2
-        SizeCopy(Source)
-        For Y = 0 To Source.HeightData.SizeY - 1
-            For X = 0 To Source.HeightData.SizeX - 1
-                TempHeight = 0
-                Samples = 0
-                For Y2 = -Radius To Radius
-                    Y4 = Y2 + Radius
-                    Y3 = Y + Y2
-                    If Y3 >= 0 And Y3 <= Source.HeightData.SizeY - 1 Then
-                        For X2 = XInt1(Y4) To XInt2(Y4)
-                            X4 = X2 + Radius
-                            X3 = X + X2
-                            If X3 >= 0 And X3 <= Source.HeightData.SizeX - 1 Then
-                                DistFactor = CircDistFactor(Y4, X4)
-                                If DistFactor > 0 Then
-                                    TempHeight = TempHeight + Source.HeightData.Height(Y3, X3)
-                                    Samples = Samples + 1
-                                End If
-                            End If
-                        Next X2
-                    End If
-                Next Y2
-                HeightData.Height(Y, X) = Source.HeightData.Height(Y, X) * AntiRatio + TempHeight / Samples * Ratio
-            Next X
-        Next Y
-    End Sub
-
-    Sub Copy(ByVal Source As clsHeightmap)
+    Public Sub Copy(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
 
@@ -243,12 +178,12 @@
         Next
     End Sub
 
-    Function IsSizeSame(ByVal Source As clsHeightmap) As Boolean
+    Public Function IsSizeSame(ByVal Source As clsHeightmap) As Boolean
 
-        IsSizeSame = ((HeightData.SizeX = Source.HeightData.SizeX) And (HeightData.SizeY = Source.HeightData.SizeY))
+        Return ((HeightData.SizeX = Source.HeightData.SizeX) And (HeightData.SizeY = Source.HeightData.SizeY))
     End Function
 
-    Sub Multiply2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Multiply2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
 
@@ -256,12 +191,12 @@
         SizeCopy(SourceA)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = SourceA.HeightData.Height(Y, X) * SourceA.HeightScale * SourceB.HeightData.Height(Y, X) * SourceB.HeightScale / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(SourceA.HeightData.Height(Y, X) * SourceA.HeightScale * SourceB.HeightData.Height(Y, X) * SourceB.HeightScale / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub Multiply(ByVal Source As clsHeightmap, ByVal Multiplier As Double)
+    Public Sub Multiply(ByVal Source As clsHeightmap, ByVal Multiplier As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale * Multiplier / HeightScale
@@ -269,12 +204,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = Source.HeightData.Height(Y, X) * dblTemp
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(Source.HeightData.Height(Y, X) * dblTemp)
+            Next
+        Next
     End Sub
 
-    Sub Divide2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Divide2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = SourceA.HeightScale / (SourceB.HeightScale * HeightScale)
@@ -283,12 +218,12 @@
         SizeCopy(SourceA)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = SourceA.HeightData.Height(Y, X) / SourceB.HeightData.Height(Y, X) * dblTemp
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(SourceA.HeightData.Height(Y, X) / SourceB.HeightData.Height(Y, X) * dblTemp)
+            Next
+        Next
     End Sub
 
-    Sub Divide(ByVal Source As clsHeightmap, ByVal Denominator As Double)
+    Public Sub Divide(ByVal Source As clsHeightmap, ByVal Denominator As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / (Denominator * HeightScale)
@@ -296,12 +231,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = Source.HeightData.Height(Y, X) * dblTemp
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(Source.HeightData.Height(Y, X) * dblTemp)
+            Next
+        Next
     End Sub
 
-    Sub Intervalise(ByVal Source As clsHeightmap, ByVal Interval As Double)
+    Public Sub Intervalise(ByVal Source As clsHeightmap, ByVal Interval As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / Interval
@@ -310,12 +245,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = Int(Source.HeightData.Height(Y, X) * dblTemp) * dblTemp2
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(Int(Source.HeightData.Height(Y, X) * dblTemp) * dblTemp2)
+            Next
+        Next
     End Sub
 
-    Sub Add2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Add2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double = SourceA.HeightScale / HeightScale
@@ -325,24 +260,24 @@
         SizeCopy(SourceA)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = SourceA.HeightData.Height(Y, X) * dblTempA + SourceB.HeightData.Height(Y, X) * dblTempB
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(SourceA.HeightData.Height(Y, X) * dblTempA + SourceB.HeightData.Height(Y, X) * dblTempB)
+            Next
+        Next
     End Sub
 
-    Sub Add(ByVal Source As clsHeightmap, ByVal Amount As Double)
+    Public Sub Add(ByVal Source As clsHeightmap, ByVal Amount As Double)
         Dim Y As Integer
         Dim X As Integer
 
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = (Source.HeightData.Height(Y, X) * Source.HeightScale + Amount) / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng((Source.HeightData.Height(Y, X) * Source.HeightScale + Amount) / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub Subtract2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Subtract2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double = SourceA.HeightScale / HeightScale
@@ -352,24 +287,24 @@
         SizeCopy(SourceA)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = SourceA.HeightData.Height(Y, X) * dblTempA - SourceB.HeightData.Height(Y, X) * dblTempB
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(SourceA.HeightData.Height(Y, X) * dblTempA - SourceB.HeightData.Height(Y, X) * dblTempB)
+            Next
+        Next
     End Sub
 
-    Sub Subtract(ByVal Source As clsHeightmap, ByVal Amount As Double)
+    Public Sub Subtract(ByVal Source As clsHeightmap, ByVal Amount As Double)
         Dim Y As Integer
         Dim X As Integer
 
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = (Source.HeightData.Height(Y, X) * Source.HeightScale - Amount) / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng((Source.HeightData.Height(Y, X) * Source.HeightScale - Amount) / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub Highest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Highest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double
@@ -384,15 +319,15 @@
                 dblTempA = SourceA.HeightData.Height(Y, X) * dblTempC
                 dblTempB = SourceB.HeightData.Height(Y, X) * dblTempD
                 If dblTempA >= dblTempB Then
-                    HeightData.Height(Y, X) = dblTempA
+                    HeightData.Height(Y, X) = CLng(dblTempA)
                 Else
-                    HeightData.Height(Y, X) = dblTempB
+                    HeightData.Height(Y, X) = CLng(dblTempB)
                 End If
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub Highest(ByVal Source As clsHeightmap, ByVal Value As Double)
+    Public Sub Highest(ByVal Source As clsHeightmap, ByVal Value As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / HeightScale
@@ -404,15 +339,15 @@
             For X = 0 To HeightData.SizeX - 1
                 dblTemp3 = Source.HeightData.Height(Y, X) * dblTemp
                 If dblTemp3 >= dblTemp2 Then
-                    HeightData.Height(Y, X) = dblTemp3
+                    HeightData.Height(Y, X) = CLng(dblTemp3)
                 Else
-                    HeightData.Height(Y, X) = dblTemp2
+                    HeightData.Height(Y, X) = CLng(dblTemp2)
                 End If
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub Lowest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Lowest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double
@@ -427,15 +362,15 @@
                 dblTempA = SourceA.HeightData.Height(Y, X) * dblTempC
                 dblTempB = SourceB.HeightData.Height(Y, X) * dblTempD
                 If dblTempA <= dblTempB Then
-                    HeightData.Height(Y, X) = dblTempA
+                    HeightData.Height(Y, X) = CLng(dblTempA)
                 Else
-                    HeightData.Height(Y, X) = dblTempB
+                    HeightData.Height(Y, X) = CLng(dblTempB)
                 End If
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub Lowest(ByVal Source As clsHeightmap, ByVal Value As Double)
+    Public Sub Lowest(ByVal Source As clsHeightmap, ByVal Value As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / HeightScale
@@ -447,15 +382,15 @@
             For X = 0 To HeightData.SizeX - 1
                 dblTemp3 = Source.HeightData.Height(Y, X) * dblTemp
                 If dblTemp3 <= dblTemp2 Then
-                    HeightData.Height(Y, X) = dblTemp3
+                    HeightData.Height(Y, X) = CLng(dblTemp3)
                 Else
-                    HeightData.Height(Y, X) = dblTemp2
+                    HeightData.Height(Y, X) = CLng(dblTemp2)
                 End If
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub Swap3(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap, ByVal Swapper As clsHeightmap)
+    Public Sub Swap3(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap, ByVal Swapper As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim Ratio As Double
@@ -467,12 +402,12 @@
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
                 Ratio = Swapper.HeightData.Height(Y, X) * Swapper.HeightScale
-                HeightData.Height(Y, X) = (SourceA.HeightData.Height(Y, X) * SourceA.HeightScale * (1.0# - Ratio) + SourceB.HeightData.Height(Y, X) * Ratio * SourceB.HeightScale) / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng((SourceA.HeightData.Height(Y, X) * SourceA.HeightScale * (1.0# - Ratio) + SourceB.HeightData.Height(Y, X) * Ratio * SourceB.HeightScale) / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub Clamp(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
+    Public Sub Clamp(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double
@@ -482,17 +417,17 @@
             For X = 0 To HeightData.SizeX - 1
                 dblTemp = Source.HeightData.Height(Y, X) * Source.HeightScale
                 If dblTemp < HeightMin Then
-                    HeightData.Height(Y, X) = HeightMin / HeightScale
+                    HeightData.Height(Y, X) = CLng(HeightMin / HeightScale)
                 ElseIf dblTemp > HeightMax Then
-                    HeightData.Height(Y, X) = HeightMax / HeightScale
+                    HeightData.Height(Y, X) = CLng(HeightMax / HeightScale)
                 Else
-                    HeightData.Height(Y, X) = dblTemp / HeightScale
+                    HeightData.Height(Y, X) = CLng(dblTemp / HeightScale)
                 End If
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub Invert(ByVal Source As clsHeightmap)
+    Public Sub Invert(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = -Source.HeightScale / HeightScale
@@ -500,12 +435,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = Source.HeightData.Height(Y, X) * dblTemp
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(Source.HeightData.Height(Y, X) * dblTemp)
+            Next
+        Next
     End Sub
 
-    Sub WaveLow(ByVal Source As clsHeightmap)
+    Public Sub WaveLow(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim HeightRange As Long
@@ -521,12 +456,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = ((1.0# - Math.Sin((1.0# - (Source.HeightData.Height(Y, X) - HeightMin) / HeightRange) * RadOf90Deg)) * HeightRange + HeightMin) * Source.HeightScale / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng(((1.0# - Math.Sin((1.0# - (Source.HeightData.Height(Y, X) - HeightMin) / HeightRange) * RadOf90Deg)) * HeightRange + HeightMin) * Source.HeightScale / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub WaveHigh(ByVal Source As clsHeightmap)
+    Public Sub WaveHigh(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim HeightRange As Long
@@ -542,12 +477,12 @@
         SizeCopy(Source)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = (Math.Sin((Source.HeightData.Height(Y, X) - HeightMin) / HeightRange * RadOf90Deg) * HeightRange + HeightMin) * Source.HeightScale / HeightScale
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng((Math.Sin((Source.HeightData.Height(Y, X) - HeightMin) / HeightRange * RadOf90Deg) * HeightRange + HeightMin) * Source.HeightScale / HeightScale)
+            Next
+        Next
     End Sub
 
-    Sub Rescale(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
+    Public Sub Rescale(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim MinMax As New sMinMax
@@ -564,23 +499,23 @@
         Offset = 0L - MinMax.Min
         If HeightRange > 0L Then
             Ratio = (HeightMax - HeightMin) / (HeightRange * HeightScale)
-            lngTemp = HeightMin / HeightScale
+            lngTemp = CLng(HeightMin / HeightScale)
             For Y = 0 To HeightData.SizeY - 1
                 For X = 0 To HeightData.SizeX - 1
-                    HeightData.Height(Y, X) = lngTemp + (Offset + Source.HeightData.Height(Y, X)) * Ratio
-                Next X
-            Next Y
+                    HeightData.Height(Y, X) = lngTemp + CLng((Offset + Source.HeightData.Height(Y, X)) * Ratio)
+                Next
+            Next
         Else
-            lngTemp = (HeightMin + HeightMax) / 2.0#
+            lngTemp = CLng((HeightMin + HeightMax) / 2.0#)
             For Y = 0 To HeightData.SizeY - 1
                 For X = 0 To HeightData.SizeX - 1
                     HeightData.Height(Y, X) = lngTemp
-                Next X
-            Next Y
+                Next
+            Next
         End If
     End Sub
 
-    Sub ShiftToZero(ByVal Source As clsHeightmap)
+    Public Sub ShiftToZero(ByVal Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim MinMax As New sMinMax
@@ -593,12 +528,12 @@
         Offset = 0L - MinMax.Min
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                HeightData.Height(Y, X) = (Offset + Source.HeightData.Height(Y, X)) * dblTemp
-            Next X
-        Next Y
+                HeightData.Height(Y, X) = CLng((Offset + Source.HeightData.Height(Y, X)) * dblTemp)
+            Next
+        Next
     End Sub
 
-    Sub Resize(ByVal Source As clsHeightmap, ByVal OffsetY As Integer, ByVal OffsetX As Integer, ByVal SizeY As Integer, ByVal SizeX As Integer)
+    Public Sub Resize(ByVal Source As clsHeightmap, ByVal OffsetY As Integer, ByVal OffsetX As Integer, ByVal SizeY As Integer, ByVal SizeX As Integer)
         Dim StartY As Integer
         Dim StartX As Integer
         Dim EndY As Integer
@@ -614,39 +549,40 @@
         For Y = StartY To EndY
             For X = StartX To EndX
                 HeightData.Height(Y, X) = Source.HeightData.Height(OffsetY + Y, OffsetX + X)
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Sub SizeCopy(ByVal Source As clsHeightmap)
+    Public Sub SizeCopy(ByVal Source As clsHeightmap)
 
         HeightData.SizeX = Source.HeightData.SizeX
         HeightData.SizeY = Source.HeightData.SizeY
         ReDim HeightData.Height(HeightData.SizeY - 1, HeightData.SizeX - 1)
     End Sub
 
-    Sub Insert(ByVal Source As clsHeightmap, ByVal Y1 As Integer, ByVal X1 As Integer)
+    Public Sub Insert(ByVal Source As clsHeightmap, ByVal Y1 As Integer, ByVal X1 As Integer)
         Dim Y As Integer
         Dim X As Integer
 
         For Y = 0 To Source.HeightData.SizeY - 1
             For X = 0 To Source.HeightData.SizeX - 1
                 HeightData.Height(Y1 + Y, X1 + X) = Source.HeightData.Height(Y, X)
-            Next X
-        Next Y
+            Next
+        Next
     End Sub
 
-    Function Load_Image(ByVal Path As String) As sResult
-        Load_Image.Success = False
-        Load_Image.Problem = ""
+    Public Function Load_Image(ByVal Path As String) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
 
         Dim HeightmapBitmap As Bitmap = Nothing
         Dim Result As sResult
 
         Result = LoadBitmap(Path, HeightmapBitmap)
         If Not Result.Success Then
-            Load_Image.Problem = Result.Problem
-            Exit Function
+            ReturnResult.Problem = Result.Problem
+            Return ReturnResult
         End If
 
         Blank(HeightmapBitmap.Height, HeightmapBitmap.Width)
@@ -655,15 +591,16 @@
         For Y = 0 To HeightmapBitmap.Height - 1
             For X = 0 To HeightmapBitmap.Width - 1
                 With HeightmapBitmap.GetPixel(X, Y)
-                    HeightData.Height(Y, X) = (CShort(.R) + .G + .B) / (3.0# * HeightScale)
+                    HeightData.Height(Y, X) = CLng((CShort(.R) + .G + .B) / (3.0# * HeightScale))
                 End With
             Next
         Next
 
-        Load_Image.Success = True
+        ReturnResult.Success = True
+        Return ReturnResult
     End Function
 
-    Friend Sub GenerateNewOfSize(ByVal Final_SizeY As Integer, ByVal Final_SizeX As Integer, ByVal Scale As Single, ByVal HeightMultiplier As Double)
+    Public Sub GenerateNewOfSize(ByVal Final_SizeY As Integer, ByVal Final_SizeX As Integer, ByVal Scale As Single, ByVal HeightMultiplier As Double)
         Dim Inflations As Integer
         Dim SizeY As Integer
         Dim SizeX As Integer
@@ -678,7 +615,7 @@
         Else
             Inflations = CInt(Math.Ceiling(Math.Log(Final_SizeY - 1) / Log2))
         End If
-        Inflations = Math.Ceiling(Scale)
+        Inflations = CInt(Math.Ceiling(Scale))
         If Inflations < 0 Then Stop
         Ratio = 2.0# ^ (Scale - Inflations)
         intTemp = CInt(2.0# ^ Inflations)
@@ -687,7 +624,7 @@
 
         GenerateNew(SizeY, SizeX, Inflations, 1.0#, HeightMultiplier)
         If Inflations > Scale Then
-            hmTemp.Stretch(Me, HeightData.SizeX * Ratio, HeightData.SizeY * Ratio)
+            hmTemp.Stretch(Me, CInt(HeightData.SizeX * Ratio), CInt(HeightData.SizeY * Ratio))
             HeightData = hmTemp.HeightData
             hmTemp.HeightData = New clsHeightData
         End If
@@ -703,7 +640,7 @@
         End If
     End Sub
 
-    Friend Sub Stretch(ByVal hmSource As clsHeightmap, ByVal SizeX As Integer, ByVal SizeY As Integer)
+    Public Sub Stretch(ByVal hmSource As clsHeightmap, ByVal SizeX As Integer, ByVal SizeY As Integer)
         Dim OldSizeX As Integer
         Dim OldSizeY As Integer
         Dim New_Per_OldX As Single
@@ -719,15 +656,15 @@
         Dim OldPixelY As Integer
         Dim XTemp As Single
         Dim YTemp As Single
-        Dim Temp As Single = hmSource.HeightScale / HeightScale
+        Dim Temp As Single = CSng(hmSource.HeightScale / HeightScale)
 
         OldSizeX = hmSource.HeightData.SizeX
         OldSizeY = hmSource.HeightData.SizeY
 
         Blank(SizeY, SizeX)
         'new ratios convert original image positions into new image positions
-        New_Per_OldX = SizeX / OldSizeX
-        New_Per_OldY = SizeY / OldSizeY
+        New_Per_OldX = CSng(SizeX / OldSizeX)
+        New_Per_OldY = CSng(SizeY / OldSizeY)
         'cycles through each pixel in the new image
         For OldPixelY = 0 To OldSizeY - 1
             For OldPixelX = 0 To OldSizeX - 1
@@ -737,9 +674,9 @@
                 OldPixEndX = (OldPixelX + 1) * New_Per_OldX
                 OldPixEndY = (OldPixelY + 1) * New_Per_OldY
                 'cycles through each new image pixel that is to be influenced
-                For NewPixelY = Int(OldPixStartY) To -Int(-OldPixEndY)
+                For NewPixelY = CInt(Int(OldPixStartY)) To CInt(-Int(-OldPixEndY))
                     If NewPixelY >= SizeY Then Exit For
-                    For NewPixelX = Int(OldPixStartX) To -Int(-OldPixEndX)
+                    For NewPixelX = CInt(Int(OldPixStartX)) To CInt(-Int(-OldPixEndX))
                         If NewPixelX >= SizeX Then Exit For
                         'ensure that the original pixel imposes on the new pixel
                         If Not (OldPixEndY > NewPixelY And OldPixStartY < NewPixelY + 1 And OldPixEndX > NewPixelX And OldPixStartX < NewPixelX + 1) Then
@@ -754,21 +691,25 @@
                             If OldPixEndX < NewPixelX + 1 Then XTemp -= (NewPixelX + 1) - OldPixEndX
                             Ratio = XTemp * YTemp
                             'add the neccessary fraction of the original pixel's color into the new pixel
-                            HeightData.Height(NewPixelY, NewPixelX) = HeightData.Height(NewPixelY, NewPixelX) + hmSource.HeightData.Height(OldPixelY, OldPixelX) * Ratio * Temp
+                            HeightData.Height(NewPixelY, NewPixelX) = CLng(HeightData.Height(NewPixelY, NewPixelX) + hmSource.HeightData.Height(OldPixelY, OldPixelX) * Ratio * Temp)
                         End If
-                    Next NewPixelX
-                Next NewPixelY
-            Next OldPixelX
-        Next OldPixelY
+                    Next
+                Next
+            Next
+        Next
     End Sub
 
-    Friend Sub FadeMultiple(ByRef hmSource As clsHeightmap, ByRef hmAlteration() As clsHeightmap, ByRef AlterationHeight() As Double)
+    Public Structure sHeights
+        Public Heights() As Single
+    End Structure
+
+    Public Sub FadeMultiple(ByVal hmSource As clsHeightmap, ByRef AlterationMaps As sHeightmaps, ByRef AlterationHeights As sHeights)
         Dim Level As Integer
         Dim Y As Integer
         Dim X As Integer
         Dim srcHeight As Single
         Dim Ratio As Single
-        Dim AlterationHeight_Ubound As Integer = AlterationHeight.GetUpperBound(0)
+        Dim AlterationHeight_Ubound As Integer = AlterationHeights.Heights.GetUpperBound(0)
         Dim intTemp As Integer
         Dim TempA As Single
         Dim TempB As Single
@@ -776,24 +717,28 @@
         SizeCopy(hmSource)
         For Y = 0 To HeightData.SizeY - 1
             For X = 0 To HeightData.SizeX - 1
-                srcHeight = hmSource.HeightData.Height(Y, X) * hmSource.HeightScale
+                srcHeight = CSng(hmSource.HeightData.Height(Y, X) * hmSource.HeightScale)
                 For Level = 0 To AlterationHeight_Ubound
-                    If srcHeight <= AlterationHeight(Level) Then
+                    If srcHeight <= AlterationHeights.Heights(Level) Then
                         Exit For
                     End If
                 Next
                 If Level = 0 Then
-                    HeightData.Height(Y, X) = hmAlteration(Level).HeightData.Height(Y, X) * hmAlteration(Level).HeightScale / HeightScale
+                    HeightData.Height(Y, X) = CLng(AlterationMaps.Heightmaps(Level).HeightData.Height(Y, X) * AlterationMaps.Heightmaps(Level).HeightScale / HeightScale)
                 ElseIf Level > AlterationHeight_Ubound Then
-                    HeightData.Height(Y, X) = hmAlteration(AlterationHeight_Ubound).HeightData.Height(Y, X) * hmAlteration(AlterationHeight_Ubound).HeightScale / HeightScale
+                    HeightData.Height(Y, X) = CLng(AlterationMaps.Heightmaps(AlterationHeight_Ubound).HeightData.Height(Y, X) * AlterationMaps.Heightmaps(AlterationHeight_Ubound).HeightScale / HeightScale)
                 Else
                     intTemp = Level - 1
-                    TempA = AlterationHeight(intTemp)
-                    TempB = AlterationHeight(Level)
+                    TempA = CSng(AlterationHeights.Heights(intTemp))
+                    TempB = CSng(AlterationHeights.Heights(Level))
                     Ratio = (srcHeight - TempA) / (TempB - TempA)
-                    HeightData.Height(Y, X) = (hmAlteration(intTemp).HeightData.Height(Y, X) * hmAlteration(intTemp).HeightScale * (1.0F - Ratio) + hmAlteration(Level).HeightData.Height(Y, X) * hmAlteration(Level).HeightScale * Ratio) / HeightScale
+                    HeightData.Height(Y, X) = CLng((AlterationMaps.Heightmaps(intTemp).HeightData.Height(Y, X) * AlterationMaps.Heightmaps(intTemp).HeightScale * (1.0F - Ratio) + AlterationMaps.Heightmaps(Level).HeightData.Height(Y, X) * AlterationMaps.Heightmaps(Level).HeightScale * Ratio) / HeightScale)
                 End If
             Next
         Next
     End Sub
 End Class
+
+Public Structure sHeightmaps
+    Public Heightmaps() As clsHeightmap
+End Structure
