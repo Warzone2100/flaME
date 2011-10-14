@@ -21,7 +21,7 @@
 
     Public BorderTextureNum As Integer = -1
 
-    Public OldTextureLayers As frmMapTexturer.sLayerList
+    Public OldTextureLayers As sLayerList
 
     Public Sub ScatteredUnit_Add(ByVal NewUnit As sUnitChance)
 

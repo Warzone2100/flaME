@@ -3,21 +3,28 @@ Imports OpenTK.Graphics.OpenGL
 
 Partial Public Class clsMap
 
+    Public LoadedMap_Num As Integer = -1
+
     Public Class clsTerrain
 
 #If Mono267 = 0.0# Then
         Public Structure Vertex
+#Else
+        Public Class Vertex
+#End If
             Public Height As Byte
             Public Terrain As clsPainter.clsTerrain
+#If Mono267 = 0.0# Then
         End Structure
 #Else
-    Public Class Vertex
-        Public Height As Byte
-        Public Terrain As clsPainter.clsTerrain
-    End Class
+        End Class
 #End If
+
 #If Mono267 = 0.0# Then
         Public Structure Tile
+#Else
+        Public Class Tile
+#End If
             Public Structure sTexture
                 Public TextureNum As Integer
                 Public Orientation As sTileOrientation
@@ -42,42 +49,45 @@ Partial Public Class clsMap
                 Terrain_IsCliff = TileToCopy.Terrain_IsCliff
                 DownSide = TileToCopy.DownSide
             End Sub
+
+            Public Sub TriCliffAddDirection(ByVal Direction As sTileDirection)
+
+                If Direction.X = 0 Then
+                    If Direction.Y = 0 Then
+                        TriTopLeftIsCliff = True
+                    ElseIf Direction.Y = 2 Then
+                        TriBottomLeftIsCliff = True
+                    Else
+                        Stop
+                    End If
+                ElseIf Direction.X = 2 Then
+                    If Direction.Y = 0 Then
+                        TriTopRightIsCliff = True
+                    ElseIf Direction.Y = 2 Then
+                        TriBottomRightIsCliff = True
+                    Else
+                        Stop
+                    End If
+                Else
+                    Stop
+                End If
+            End Sub
+#If Mono267 = 0.0# Then
         End Structure
 #Else
-    Public Class Tile
-        Public Structure sTexture
-            Public TextureNum As Integer
-            Public Orientation As sTileOrientation
-        End Structure
-        Public Texture As sTexture
-        Public Tri As Boolean
-        Public TriTopLeftIsCliff As Boolean
-        Public TriTopRightIsCliff As Boolean
-        Public TriBottomLeftIsCliff As Boolean
-        Public TriBottomRightIsCliff As Boolean
-        Public Terrain_IsCliff As Boolean
-        Public DownSide As sTileDirection
-
-        Public Sub Copy(ByVal TileToCopy As Tile)
-                Texture = TileToCopy.Texture
-                Tri = TileToCopy.Tri
-                TriTopLeftIsCliff = TileToCopy.TriTopLeftIsCliff
-                TriTopRightIsCliff = TileToCopy.TriTopRightIsCliff
-                TriBottomLeftIsCliff = TileToCopy.TriBottomLeftIsCliff
-                TriBottomRightIsCliff = TileToCopy.TriBottomRightIsCliff
-                Terrain_IsCliff = TileToCopy.Terrain_IsCliff
-                DownSide = TileToCopy.DownSide
-            End Sub
-    End Class
+        End Class
 #End If
+
 #If Mono267 = 0.0# Then
         Public Structure Side
+#Else
+        Public Class Side
+#End If
             Public Road As clsPainter.clsRoad
+#If Mono267 = 0.0# Then
         End Structure
 #Else
-    Public Class Side
-        Public Road As clsPainter.clsRoad
-    End Class
+        End Class
 #End If
 
         Public TileSize As sXY_int
@@ -96,28 +106,28 @@ Partial Public Class clsMap
             ReDim SideH(TileSize.X - 1, TileSize.Y)
             ReDim SideV(TileSize.X, TileSize.Y - 1)
             Dim X As Integer
-			Dim Y As Integer
+            Dim Y As Integer
 #If Mono267 <> 0.0# Then
-            For Y = 0 To TileSize.Y - 1
-                For X = 0 To TileSize.X - 1
-                    Tiles(X, Y) = New Tile
+                For Y = 0 To TileSize.Y - 1
+                    For X = 0 To TileSize.X - 1
+                        Tiles(X, Y) = New Tile
+                    Next
                 Next
-            Next
-            For Y = 0 To TileSize.Y
-                For X = 0 To TileSize.X
-                    Vertices(X, Y) = New Vertex
+                For Y = 0 To TileSize.Y
+                    For X = 0 To TileSize.X
+                        Vertices(X, Y) = New Vertex
+                    Next
                 Next
-            Next
-            For Y = 0 To TileSize.Y
-                For X = 0 To TileSize.X - 1
-                    SideH(X, Y) = New Side
+                For Y = 0 To TileSize.Y
+                    For X = 0 To TileSize.X - 1
+                        SideH(X, Y) = New Side
+                    Next
                 Next
-            Next
-            For Y = 0 To TileSize.Y - 1
-                For X = 0 To TileSize.X
-                    SideV(X, Y) = New Side
+                For Y = 0 To TileSize.Y - 1
+                    For X = 0 To TileSize.X
+                        SideV(X, Y) = New Side
+                    Next
                 Next
-            Next
 #End If
             For Y = 0 To TileSize.Y - 1
                 For X = 0 To TileSize.X - 1
@@ -195,12 +205,23 @@ Partial Public Class clsMap
         Public Unit As clsUnit
     End Structure
 
+    Public Structure sGatewayChange
+        Public Enum enumType As Byte
+            Added
+            Deleted
+        End Enum
+        Public Type As enumType
+        Public Gateway As clsGateway
+    End Structure
+
     Public Class clsUndo
         Public Name As String
         Public ChangedSectors() As clsShadowSector
         Public ChangedSectorCount As Integer
         Public UnitChanges() As sUnitChange
         Public UnitChangeCount As Integer
+        Public GatewayChanges() As sGatewayChange
+        Public GatewayChangeCount As Integer
     End Class
     Public Undos() As clsUndo
     Public UndoCount As Integer
@@ -209,10 +230,12 @@ Partial Public Class clsMap
     Public UnitChanges(-1) As sUnitChange
     Public UnitChangeCount As Integer
 
+    Public GatewayChanges(-1) As sGatewayChange
+    Public GatewayChangeCount As Integer
+
     Public HeightMultiplier As Integer = DefaultHeightMultiplier
 
-    Public SelectedUnits() As clsUnit
-    Public SelectedUnitCount As Integer
+    Public SelectedUnits As clsSelectedUnits
     Public Selected_Tile_A As clsXY_int
     Public Selected_Tile_B As clsXY_int
     Public Selected_Area_VertexA As clsXY_int
@@ -220,6 +243,7 @@ Partial Public Class clsMap
     Public Unit_Selected_Area_VertexA As clsXY_int
 
     Public Class clsUnit
+        Public Map As clsMap
         Public Map_UnitNum As Integer = -1
         Public Map_SelectedUnitNum As Integer = -1
         Public Sectors(-1) As clsSector
@@ -240,28 +264,28 @@ Partial Public Class clsMap
 
         End Sub
 
-        Public Sub New(ByVal Unit_To_Copy As clsUnit)
+        Public Sub New(ByVal UnitToCopy As clsUnit)
             Dim IsDesign As Boolean
 
-            If Unit_To_Copy.Type.Type = clsUnitType.enumType.PlayerDroid Then
-                IsDesign = Not CType(Unit_To_Copy.Type, clsDroidDesign).IsTemplate
+            If UnitToCopy.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                IsDesign = Not CType(UnitToCopy.Type, clsDroidDesign).IsTemplate
             Else
                 IsDesign = False
             End If
             If IsDesign Then
                 Dim tmpDroidDesign As New clsDroidDesign
                 Type = tmpDroidDesign
-                tmpDroidDesign.CopyDesign(CType(Unit_To_Copy.Type, clsDroidDesign))
+                tmpDroidDesign.CopyDesign(CType(UnitToCopy.Type, clsDroidDesign))
                 tmpDroidDesign.UpdateAttachments()
             Else
-                Type = Unit_To_Copy.Type
+                Type = UnitToCopy.Type
             End If
-            Pos = Unit_To_Copy.Pos
-            Rotation = Unit_To_Copy.Rotation
-            UnitGroup = Unit_To_Copy.UnitGroup
-            SavePriority = Unit_To_Copy.SavePriority
-            Health = Unit_To_Copy.Health
-            PreferPartsOutput = Unit_To_Copy.PreferPartsOutput
+            Pos = UnitToCopy.Pos
+            Rotation = UnitToCopy.Rotation
+            UnitGroup = UnitToCopy.UnitGroup
+            SavePriority = UnitToCopy.SavePriority
+            Health = UnitToCopy.Health
+            PreferPartsOutput = UnitToCopy.PreferPartsOutput
         End Sub
 
         Public Sub Sectors_Remove()
@@ -271,6 +295,11 @@ Partial Public Class clsMap
             ReDim Sectors_UnitNum(-1)
         End Sub
 
+        Public Function GetINIPosition() As String
+
+            Return InvariantToString_int(Pos.Horizontal.X) & ", " & InvariantToString_int(Pos.Horizontal.Y) & ", 0"
+        End Function
+
         Public Function GetINIRotation() As String
             Dim Rotation16 As Integer
 
@@ -279,13 +308,30 @@ Partial Public Class clsMap
                 Rotation16 -= 65536
             End If
 
-            Return Rotation16 & ", 0, 0"
+            Return InvariantToString_int(Rotation16) & ", 0, 0"
+        End Function
+
+        Public Function GetINIHealthPercent() As String
+
+            Return InvariantToString_int(CInt(Clamp_dbl(Health * 100.0#, 1.0#, 100.0#))) & "%"
         End Function
 
         Public Function GetPosText() As String
 
-            Return Pos.Horizontal.X & ", " & Pos.Horizontal.Y
+            Return InvariantToString_int(Pos.Horizontal.X) & ", " & InvariantToString_int(Pos.Horizontal.Y)
         End Function
+
+        Public Sub MapSelect()
+
+            Map.SelectedUnits.Add(Me)
+        End Sub
+
+        Public Sub MapDeselect()
+
+            If Map_SelectedUnitNum >= 0 Then
+                Map.SelectedUnits.Remove(Map_SelectedUnitNum)
+            End If
+        End Sub
     End Class
     Public Units(-1) As clsUnit
     Public UnitCount As Integer
@@ -300,9 +346,9 @@ Partial Public Class clsMap
         Public Function GetLNDPlayerText() As String
 
             If WZ_StartPos < 0 Or WZ_StartPos >= PlayerCountMax Then
-                Return "7"
+                Return InvariantToString_int(7)
             Else
-                Return CStr(WZ_StartPos)
+                Return InvariantToString_int(WZ_StartPos)
             End If
         End Function
     End Class
@@ -315,7 +361,40 @@ Partial Public Class clsMap
 
     Public ReceivingUserChanges As Boolean = False
 
-    Public Tileset As clsTileset
+    Public Event TilesetChanged(ByVal sender As clsMap)
+
+    Private Sub RaiseTilesetChanged()
+
+        RaiseEvent TilesetChanged(Me)
+    End Sub
+
+    Private Structure sTileset
+        Private Item As clsTileset
+
+        Public Function GetItem() As clsTileset
+
+            Return Item
+        End Function
+
+        Public Sub SetItem(ByVal Map As clsMap, ByVal Item As clsTileset)
+
+            If Item Is Me.Item Then
+                Exit Sub
+            End If
+            Me.Item = Item
+            Map.RaiseTilesetChanged()
+        End Sub
+    End Structure
+    Private _Tileset As sTileset
+
+    Public Property Tileset As clsTileset
+        Get
+            Return _Tileset.GetItem
+        End Get
+        Set(value As clsTileset)
+            _Tileset.SetItem(Me, value)
+        End Set
+    End Property
 
     Public Class clsPathInfo
         Private _Path As String
@@ -333,16 +412,19 @@ Partial Public Class clsMap
             End Get
         End Property
 
-        Public Sub New(ByVal NewPath As String, ByVal NewIsFMap As Boolean)
+        Public Sub New(ByVal Path As String, ByVal IsFMap As Boolean)
 
-            _Path = NewPath
-            _IsFMap = NewIsFMap
+            _Path = Path
+            _IsFMap = IsFMap
         End Sub
     End Class
     Public PathInfo As clsPathInfo
 
+    Public ChangedSinceSave As Boolean = False
+    Public Event Changed()
+
     Public Class clsAutoSave
-        Public ChangeCount As UInteger
+        Public ChangeCount As Integer
         Public SavedDate As Date
 
         Public Sub New()
@@ -356,11 +438,12 @@ Partial Public Class clsMap
 
     Public Tile_TypeNum(-1) As Byte
 
-    Public Structure sGateway
+    Public Class clsGateway
+        Public Map_GatewayNum As Integer = -1
         Public PosA As sXY_int
         Public PosB As sXY_int
-    End Structure
-    Public Gateways(-1) As sGateway
+    End Class
+    Public Gateways(-1) As clsGateway
     Public GatewayCount As Integer
 
     Public Class clsPointChanges
@@ -417,7 +500,7 @@ Partial Public Class clsMap
         End Sub
     End Class
 
-    Public MustInherit Class clsMapChanges
+    Public MustInherit Class clsMapTileChanges
         Inherits clsPointChanges
 
         Public Map As clsMap
@@ -527,7 +610,7 @@ Partial Public Class clsMap
     End Class
 
     Public Class clsSectorChanges
-        Inherits clsMap.clsMapChanges
+        Inherits clsMap.clsMapTileChanges
 
         Public Sub New(ByVal Map As clsMap)
             MyBase.New(Map, Map.SectorCount)
@@ -543,7 +626,7 @@ Partial Public Class clsMap
     End Class
 
     Public Class clsAutoTextureChanges
-        Inherits clsMap.clsMapChanges
+        Inherits clsMap.clsMapTileChanges
 
         Public Sub New(ByVal Map As clsMap)
             MyBase.New(Map, Map.Terrain.TileSize)
@@ -617,7 +700,8 @@ Partial Public Class clsMap
 
         Terrain_Blank(TileSize)
         TileType_Reset()
-        AfterInitialized()
+
+        InitializeForUserInput()
     End Sub
 
     Public Sub New(ByVal Map_To_Copy As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int)
@@ -686,7 +770,7 @@ Partial Public Class clsMap
               Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
               (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
               Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
-                Gateway_Add(New sXY_int(Map_To_Copy.Gateways(A).PosA.X - Offset.X, Map_To_Copy.Gateways(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways(A).PosB.X - Offset.X, Map_To_Copy.Gateways(A).PosB.Y - Offset.Y))
+                Gateway_Create(New sXY_int(Map_To_Copy.Gateways(A).PosA.X - Offset.X, Map_To_Copy.Gateways(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways(A).PosB.X - Offset.X, Map_To_Copy.Gateways(A).PosB.Y - Offset.Y))
             End If
         Next
 
@@ -709,7 +793,7 @@ Partial Public Class clsMap
             End If
         Next
 
-        AfterInitialized()
+        InitializeForUserInput()
     End Sub
 
     Protected Sub Terrain_Blank(ByVal TileSize As sXY_int)
@@ -945,9 +1029,7 @@ Partial Public Class clsMap
             Unit_Remove(UnitCount - 1)
         Loop
         SectorAll_GLLists_Delete()
-        If Minimap_GLTexture > 0 Then
-            GL.DeleteTextures(1, Minimap_GLTexture)
-        End If
+        Minimap_GLDelete()
         If SectorGraphicsChanges IsNot Nothing Then
             SectorGraphicsChanges.Deallocate()
         End If
@@ -975,6 +1057,9 @@ Partial Public Class clsMap
         Dim Y As Integer
         Dim NewTerrain As New clsTerrain(Size)
 
+        If ViewInfo IsNot Nothing Then
+            ViewInfo.MouseOver = Nothing
+        End If
         Undo_Clear()
         SectorAll_GLLists_Delete()
 
@@ -1123,7 +1208,7 @@ Partial Public Class clsMap
 
         Terrain = NewTerrain
 
-        AfterInitialized()
+        InitializeForUserInput()
     End Sub
 
     Public Sub Sector_GLList_Make(ByVal X As Integer, ByVal Y As Integer)
@@ -1156,7 +1241,7 @@ Partial Public Class clsMap
         Sectors(X, Y).GLList_Textured = GL.GenLists(1)
         GL.NewList(Sectors(X, Y).GLList_Textured, ListMode.Compile)
 
-        If frmMainInstance.View.Draw_Units Then
+        If Draw_Units Then
             Dim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1) As Boolean
             Dim tmpUnit As clsUnit
             Dim BaseOffset As sXY_int
@@ -1392,36 +1477,6 @@ Partial Public Class clsMap
         GL.End()
     End Sub
 
-    Public Class clsInterfaceOptions
-        Public CompileName As String
-        Public CompileMultiPlayers As String
-        Public CompileMultiXPlayers As Boolean
-        Public CompileMultiAuthor As String
-        Public CompileMultiLicense As String
-        Public AutoScrollLimits As Boolean
-        Public ScrollMin As sXY_int
-        Public ScrollMax As sXY_uint
-        Public CampaignGameTime As String
-        Public CampaignGameType As Integer
-
-        Public Sub New()
-
-            'set to default
-            CompileName = ""
-            CompileMultiPlayers = CStr(2)
-            CompileMultiXPlayers = False
-            CompileMultiAuthor = ""
-            CompileMultiLicense = ""
-            AutoScrollLimits = True
-            ScrollMin.X = 0
-            ScrollMin.Y = 0
-            ScrollMax.X = 0UI
-            ScrollMax.Y = 0UI
-            CampaignGameTime = CStr(2)
-            CampaignGameType = -1
-        End Sub
-    End Class
-
     Public Class clsMinimapTexture
         Public Pixels(,,) As Byte
 
@@ -1431,7 +1486,7 @@ Partial Public Class clsMap
         End Sub
     End Class
 
-    Private Sub MinimapTextureFill(ByVal Texture As clsMinimapTexture)
+    Protected Sub MinimapTextureFill(ByVal Texture As clsMinimapTexture)
         Dim X As Integer
         Dim Y As Integer
         Dim A As Integer
@@ -1439,64 +1494,65 @@ Partial Public Class clsMap
         Dim High As sXY_int
         Dim Footprint As sXY_int
         Dim Flag As Boolean
-        Dim RGB_sng As sRGB_sng
         Dim UnitMap(Texture.Pixels.GetUpperBound(0), Texture.Pixels.GetUpperBound(1)) As Boolean
+        Dim sngTexture(Texture.Pixels.GetUpperBound(0), Texture.Pixels.GetUpperBound(1), 2) As Single
+        Dim Alpha As Single
+        Dim AntiAlpha As Single
+        Dim RGB_sng As sRGB_sng
 
-        For Y = 0 To Texture.Pixels.GetUpperBound(0)
-            For X = 0 To Texture.Pixels.GetUpperBound(1)
-                Texture.Pixels(Y, X, 3) = 255
-            Next
-        Next
         If frmMainInstance.menuMiniShowTex.Checked Then
             If Tileset IsNot Nothing Then
                 For Y = 0 To Terrain.TileSize.Y - 1
                     For X = 0 To Terrain.TileSize.X - 1
                         If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Terrain.Tiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
-                            RGB_sng = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color
-                            Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt(RGB_sng.Red * 255.0F), 255))
-                            Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt(RGB_sng.Green * 255.0F), 255))
-                            Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt(RGB_sng.Blue * 255.0F), 255))
+                            sngTexture(Y, X, 0) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Red
+                            sngTexture(Y, X, 1) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Green
+                            sngTexture(Y, X, 2) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Blue
                         End If
                     Next
                 Next
             End If
             If frmMainInstance.menuMiniShowHeight.Checked Then
-                Dim Height As Short
+                Dim Height As Single
                 For Y = 0 To Terrain.TileSize.Y - 1
                     For X = 0 To Terrain.TileSize.X - 1
-                        Height = CShort((CShort(Terrain.Vertices(X, Y).Height) + Terrain.Vertices(X + 1, Y).Height + Terrain.Vertices(X, Y + 1).Height + Terrain.Vertices(X + 1, Y + 1).Height) / 4.0F)
-                        Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt((Texture.Pixels(Y, X, 0) * 2S + Height) / 3.0F), 255))
-                        Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt((Texture.Pixels(Y, X, 1) * 2S + Height) / 3.0F), 255))
-                        Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt((Texture.Pixels(Y, X, 2) * 2S + Height) / 3.0F), 255))
+                        Height = (CInt(Terrain.Vertices(X, Y).Height) + Terrain.Vertices(X + 1, Y).Height + Terrain.Vertices(X, Y + 1).Height + Terrain.Vertices(X + 1, Y + 1).Height) / 1020.0F
+                        sngTexture(Y, X, 0) = (sngTexture(Y, X, 0) * 2.0F + Height) / 3.0F
+                        sngTexture(Y, X, 1) = (sngTexture(Y, X, 1) * 2.0F + Height) / 3.0F
+                        sngTexture(Y, X, 2) = (sngTexture(Y, X, 2) * 2.0F + Height) / 3.0F
                     Next
                 Next
             End If
         ElseIf frmMainInstance.menuMiniShowHeight.Checked Then
-            Dim Height As Byte
+            Dim Height As Single
             For Y = 0 To Terrain.TileSize.Y - 1
                 For X = 0 To Terrain.TileSize.X - 1
-                    Height = CByte((CShort(Terrain.Vertices(X, Y).Height) + Terrain.Vertices(X + 1, Y).Height + Terrain.Vertices(X, Y + 1).Height + Terrain.Vertices(X + 1, Y + 1).Height) / 4.0F)
-                    Texture.Pixels(Y, X, 0) = Height
-                    Texture.Pixels(Y, X, 1) = Height
-                    Texture.Pixels(Y, X, 2) = Height
+                    Height = (CInt(Terrain.Vertices(X, Y).Height) + Terrain.Vertices(X + 1, Y).Height + Terrain.Vertices(X, Y + 1).Height + Terrain.Vertices(X + 1, Y + 1).Height) / 1020.0F
+                    sngTexture(Y, X, 0) = Height
+                    sngTexture(Y, X, 1) = Height
+                    sngTexture(Y, X, 2) = Height
                 Next
             Next
         Else
             For Y = 0 To Terrain.TileSize.Y - 1
                 For X = 0 To Terrain.TileSize.X - 1
-                    Texture.Pixels(Y, X, 0) = CByte(0)
-                    Texture.Pixels(Y, X, 1) = CByte(0)
-                    Texture.Pixels(Y, X, 2) = CByte(0)
+                    sngTexture(Y, X, 0) = 0.0F
+                    sngTexture(Y, X, 1) = 0.0F
+                    sngTexture(Y, X, 2) = 0.0F
                 Next
             Next
         End If
         If frmMainInstance.menuMiniShowCliffs.Checked Then
             If Tileset IsNot Nothing Then
+                Alpha = Settings.MinimapCliffColour.Alpha
+                AntiAlpha = 1.0F - Alpha
                 For Y = 0 To Terrain.TileSize.Y - 1
                     For X = 0 To Terrain.TileSize.X - 1
                         If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Terrain.Tiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
                             If Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Then
-                                Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 0)) + 255S) / 2.0F), 255))
+                                sngTexture(Y, X, 0) = sngTexture(Y, X, 0) * AntiAlpha + Settings.MinimapCliffColour.Red * Alpha
+                                sngTexture(Y, X, 1) = sngTexture(Y, X, 1) * AntiAlpha + Settings.MinimapCliffColour.Green * Alpha
+                                sngTexture(Y, X, 2) = sngTexture(Y, X, 2) * AntiAlpha + Settings.MinimapCliffColour.Blue * Alpha
                             End If
                         End If
                     Next
@@ -1508,9 +1564,9 @@ Partial Public Class clsMap
                 XY_Reorder(Gateways(A).PosA, Gateways(A).PosB, Low, High)
                 For Y = Low.Y To High.Y
                     For X = Low.X To High.X
-                        Texture.Pixels(Y, X, 0) = CByte(255)
-                        Texture.Pixels(Y, X, 1) = CByte(255)
-                        Texture.Pixels(Y, X, 2) = CByte(0)
+                        sngTexture(Y, X, 0) = 1.0F
+                        sngTexture(Y, X, 1) = 1.0F
+                        sngTexture(Y, X, 2) = 0.0F
                     Next
                 Next
             Next
@@ -1532,19 +1588,19 @@ Partial Public Class clsMap
                                 UnitMap(Y, X) = True
                                 If Settings.MinimapTeamColours Then
                                     If Settings.MinimapTeamColoursExceptFeatures And Units(A).Type.Type = clsUnitType.enumType.Feature Then
-                                        Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt(MinimapFeatureColour.Red * 255.0F), 255))
-                                        Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt(MinimapFeatureColour.Green * 255.0F), 255))
-                                        Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt(MinimapFeatureColour.Blue * 255.0F), 255))
+                                        sngTexture(Y, X, 0) = MinimapFeatureColour.Red
+                                        sngTexture(Y, X, 1) = MinimapFeatureColour.Green
+                                        sngTexture(Y, X, 2) = MinimapFeatureColour.Blue
                                     Else
                                         RGB_sng = GetUnitGroupMinimapColour(Units(A).UnitGroup)
-                                        Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt(RGB_sng.Red * 255.0F), 255))
-                                        Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt(RGB_sng.Green * 255.0F), 255))
-                                        Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt(RGB_sng.Blue * 255.0F), 255))
+                                        sngTexture(Y, X, 0) = RGB_sng.Red
+                                        sngTexture(Y, X, 1) = RGB_sng.Green
+                                        sngTexture(Y, X, 2) = RGB_sng.Blue
                                     End If
                                 Else
-                                    Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 0)) + 510S) / 3.0F), 255))
-                                    Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 1)) + 0S) / 3.0F), 255))
-                                    Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 2)) + 0S) / 3.0F), 255))
+                                    sngTexture(Y, X, 0) = sngTexture(Y, X, 0) * 0.6666667F + 0.333333343F
+                                    sngTexture(Y, X, 1) = sngTexture(Y, X, 1) * 0.6666667F
+                                    sngTexture(Y, X, 2) = sngTexture(Y, X, 2) * 0.6666667F
                                 End If
                             End If
                         Next
@@ -1558,6 +1614,8 @@ Partial Public Class clsMap
                 Next
             Next
             'units that are selected and highlighted
+            Alpha = Settings.MinimapSelectedObjectsColour.Alpha
+            AntiAlpha = 1.0F - Alpha
             For A = 0 To UnitCount - 1
                 Flag = False
                 If frmMainInstance.SelectedObjectType Is Units(A).Type Then
@@ -1572,19 +1630,27 @@ Partial Public Class clsMap
                         For X = Low.X To High.X
                             If Not UnitMap(Y, X) Then
                                 UnitMap(Y, X) = True
-                                Texture.Pixels(Y, X, 0) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 0)) + 510S) / 3.0F), 255))
-                                Texture.Pixels(Y, X, 1) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 1)) + 510S) / 3.0F), 255))
-                                Texture.Pixels(Y, X, 2) = CByte(Math.Min(CInt((CShort(Texture.Pixels(Y, X, 2)) + 510S) / 3.0F), 255))
+                                sngTexture(Y, X, 0) = sngTexture(Y, X, 0) * AntiAlpha + Settings.MinimapSelectedObjectsColour.Red * Alpha
+                                sngTexture(Y, X, 1) = sngTexture(Y, X, 1) * AntiAlpha + Settings.MinimapSelectedObjectsColour.Green * Alpha
+                                sngTexture(Y, X, 2) = sngTexture(Y, X, 2) * AntiAlpha + Settings.MinimapSelectedObjectsColour.Blue * Alpha
                             End If
                         Next
                     Next
                 End If
             Next
         End If
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                Texture.Pixels(Y, X, 0) = CByte(Clamp_dbl(sngTexture(Y, X, 0) * 255.0F, 0.0#, 255.0#))
+                Texture.Pixels(Y, X, 1) = CByte(Clamp_dbl(sngTexture(Y, X, 1) * 255.0F, 0.0#, 255.0#))
+                Texture.Pixels(Y, X, 2) = CByte(Clamp_dbl(sngTexture(Y, X, 2) * 255.0F, 0.0#, 255.0#))
+                Texture.Pixels(Y, X, 3) = CByte(255)
+            Next
+        Next
     End Sub
 
 #If Mono <> 0.0# Then
-        Private MinimapBitmap As Bitmap
+            Private MinimapBitmap As Bitmap
 #End If
     Private MinimapPending As Boolean
     Private WithEvents MakeMinimapTimer As Timer
@@ -1592,6 +1658,9 @@ Partial Public Class clsMap
 
     Private Sub MinimapTimer_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles MakeMinimapTimer.Tick
 
+        If MainMap IsNot Me Then
+            MinimapPending = False
+        End If
         If MinimapPending Then
             If SuppressMinimap Then
                 'should restart the timer here, but i cant find a good way to
@@ -1606,6 +1675,11 @@ Partial Public Class clsMap
 
     Public Sub MinimapMakeLater()
 
+        If MainMap IsNot Me Then
+            MsgBox("Error: Hidden minimap is redrawing")
+            Exit Sub
+        End If
+
         If MakeMinimapTimer.Enabled Then
             MinimapPending = True
         Else
@@ -1618,14 +1692,14 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Sub MinimapMake()
+    Private Sub MinimapMake()
 
         Dim NewTextureSize As Integer = CInt(Math.Round(2.0# ^ Math.Ceiling(Math.Log(Math.Max(Terrain.TileSize.X, Terrain.TileSize.Y)) / Math.Log(2.0#))))
 
         If NewTextureSize <> Minimap_Texture_Size Then
             Minimap_Texture_Size = NewTextureSize
 #If Mono <> 0.0# Then
-                MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
+                    MinimapBitmap = New Bitmap(Minimap_Texture_Size, Minimap_Texture_Size)
 #End If
         End If
 
@@ -1634,28 +1708,25 @@ Partial Public Class clsMap
         MinimapTextureFill(Texture)
 
 #If Mono <> 0.0# Then
-        Dim TextureB As Bitmap
+            Dim TextureB As Bitmap
 
-        TextureB = MinimapBitmap
+            TextureB = MinimapBitmap
 
-        Dim X As Integer
-        Dim Y As Integer
+            Dim X As Integer
+            Dim Y As Integer
 
-        For Y = 0 To Minimap_Texture_Size - 1
-            For X = 0 To Minimap_Texture_Size - 1
-                TextureB.SetPixel(X, Y, ColorTranslator.FromOle(OSRGB(Texture.Pixels(Y, X, 0), Texture.Pixels(Y, X, 1), Texture.Pixels(Y, X, 2))))
+            For Y = 0 To Minimap_Texture_Size - 1
+                For X = 0 To Minimap_Texture_Size - 1
+                    TextureB.SetPixel(X, Y, ColorTranslator.FromOle(OSRGB(Texture.Pixels(Y, X, 0), Texture.Pixels(Y, X, 1), Texture.Pixels(Y, X, 2))))
+                Next
             Next
-        Next
 #End If
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
             frmMainInstance.View.OpenGLControl.MakeCurrent()
         End If
 
-        If Minimap_GLTexture > 0 Then
-            GL.DeleteTextures(1, Minimap_GLTexture)
-            Minimap_GLTexture = 0
-        End If
+        Minimap_GLDelete()
 
 #If Mono = 0.0# Then
         GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
@@ -1671,6 +1742,14 @@ Partial Public Class clsMap
 #End If
 
         frmMainInstance.View_DrawViewLater()
+    End Sub
+
+    Public Sub Minimap_GLDelete()
+
+        If Minimap_GLTexture > 0 Then
+            GL.DeleteTextures(1, Minimap_GLTexture)
+            Minimap_GLTexture = 0
+        End If
     End Sub
 
     Public Function Unit_Add_StoreChange(ByVal NewUnit As clsUnit) As Integer
@@ -1720,6 +1799,10 @@ Partial Public Class clsMap
         Dim ReturnResult As Integer
         Dim A As Integer
 
+        If NewUnit.Map IsNot Me And NewUnit.Map IsNot Nothing Then
+            MsgBox("Error: Added object already has a map assigned.")
+            Return -1
+        End If
         If NewUnit.UnitGroup Is Nothing Then
             MsgBox("Error: Added object has no group.")
             NewUnit.UnitGroup = ScavengerUnitGroup
@@ -1745,15 +1828,12 @@ Partial Public Class clsMap
 
         NewUnit.ID = ID
 
+        NewUnit.Map = Me
         NewUnit.Map_UnitNum = UnitCount
 
         NewUnit.Pos.Horizontal.X = Clamp_int(NewUnit.Pos.Horizontal.X, 0, Terrain.TileSize.X * TerrainGridSpacing - 1)
         NewUnit.Pos.Horizontal.Y = Clamp_int(NewUnit.Pos.Horizontal.Y, 0, Terrain.TileSize.Y * TerrainGridSpacing - 1)
         NewUnit.Pos.Altitude = CInt(Math.Ceiling(GetTerrainHeight(NewUnit.Pos.Horizontal)))
-
-        If NewUnit.UnitGroup Is Nothing Then
-            NewUnit.UnitGroup = ScavengerUnitGroup
-        End If
 
         If Units.GetUpperBound(0) < UnitCount Then
             ReDim Preserve Units(UnitCount * 2 + 1)
@@ -1784,19 +1864,14 @@ Partial Public Class clsMap
 
         UnitSectors_GLList(Units(Num))
 
-        Dim MouseOverTerrain As ctrlMapView.clsMouseOver.clsOverTerrain = frmMainInstance.View.GetMouseOverTerrain
+        Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
         If MouseOverTerrain IsNot Nothing Then
             MouseOverTerrain.Unit_FindRemove(Units(Num))
         End If
 
-        A = 0
-        Do While A < SelectedUnitCount
-            If SelectedUnits(A) Is Units(Num) Then
-                SelectedUnit_Remove(A)
-            Else
-                A += 1
-            End If
-        Loop
+        If Units(Num).Map_SelectedUnitNum >= 0 Then
+            SelectedUnits.Remove(Units(Num).Map_SelectedUnitNum)
+        End If
 
         If Units(Num).SectorCount > 0 Then
             For A = 0 To Units(Num).SectorCount - 1
@@ -1876,16 +1951,50 @@ Partial Public Class clsMap
         Next
     End Sub
 
-    Public Sub UndoStepCreate(ByVal StepName As String)
+    Public Sub AutoSave_Test()
+
+        If Not Settings.AutoSaveEnabled Then
+            Exit Sub
+        End If
+        If AutoSave.ChangeCount < Settings.AutoSave_MinChanges Then
+            Exit Sub
+        End If
+        If DateDiff("s", AutoSave.SavedDate, Now) < Settings.AutoSave_MinInterval_s Then
+            Exit Sub
+        End If
+
+        AutoSave.ChangeCount = 0
+        AutoSave.SavedDate = Now
+
+        AutoSave_Perform()
+    End Sub
+
+    Public Sub AutoSave_Perform()
+
+        If Not IO.Directory.Exists(AutoSavePath) Then
+            Try
+                IO.Directory.CreateDirectory(AutoSavePath)
+            Catch ex As Exception
+                MsgBox("Failed to create autosave directory during autosave.", CType(MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation, MsgBoxStyle), "")
+            End Try
+        End If
+
+        Dim DateNow As Date = Now
+        Dim Path As String
+
+        Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
+
+        Dim Result As clsResult = Write_FMap(Path, False, Settings.AutoSaveCompress)
+
+        ShowWarnings(Result, "Autosave")
+    End Sub
+
+    Public Overridable Sub UndoStepCreate(ByVal StepName As String)
         Dim A As Integer
         Dim SectorNum As sXY_int
         Dim NewUndo As New clsUndo
 
         NewUndo.Name = StepName
-
-        AutoSave.ChangeCount += 1UI
-        AutoSave_Test()
-        frmMainInstance.tsbSave.Enabled = True
 
         NewUndo.ChangedSectorCount = SectorTerrainUndoChanges.ChangedPointCount
         ReDim NewUndo.ChangedSectors(NewUndo.ChangedSectorCount - 1)
@@ -1905,12 +2014,23 @@ Partial Public Class clsMap
         UnitChangeCount = 0
         ReDim UnitChanges(-1)
 
-        If NewUndo.ChangedSectorCount + NewUndo.UnitChangeCount > 0 Then
+        ReDim NewUndo.GatewayChanges(GatewayChanges.GetUpperBound(0))
+        For A = 0 To GatewayChanges.GetUpperBound(0)
+            NewUndo.GatewayChanges(A) = GatewayChanges(A)
+        Next
+        NewUndo.GatewayChangeCount = GatewayChangeCount
+
+        GatewayChangeCount = 0
+        ReDim GatewayChanges(-1)
+
+        If NewUndo.ChangedSectorCount + NewUndo.UnitChangeCount + NewUndo.GatewayChangeCount > 0 Then
             UndoCount = Undo_Pos
             ReDim Preserve Undos(UndoCount - 1) 'a new line has been started so remove redos
 
             Undo_Append(NewUndo)
             Undo_Pos = UndoCount
+
+            SetChanged()
         End If
     End Sub
 
@@ -1976,6 +2096,7 @@ Partial Public Class clsMap
 
     Public Sub Undo_Clear()
 
+        UndoStepCreate("") 'absorb current changes
         UndoCount = 0
         ReDim Undos(-1)
         Undo_Pos = UndoCount
@@ -2039,6 +2160,19 @@ Partial Public Class clsMap
             End Select
         Next
 
+        For A = Undos(Undo_Pos).GatewayChangeCount - 1 To 0 Step -1
+            Select Case Undos(Undo_Pos).GatewayChanges(A).Type
+                Case sGatewayChange.enumType.Added
+                    'remove the unit from the map
+                    Gateway_Remove(Undos(Undo_Pos).GatewayChanges(A).Gateway.Map_GatewayNum)
+                Case sGatewayChange.enumType.Deleted
+                    'add the unit back on to the map
+                    Gateway_Add(Undos(Undo_Pos).GatewayChanges(A).Gateway)
+                Case Else
+                    Stop
+            End Select
+        Next
+
         SectorsUpdateGraphics()
         MinimapMakeLater()
         frmMainInstance.SelectedObject_Changed()
@@ -2092,6 +2226,19 @@ Partial Public Class clsMap
                 Case sUnitChange.enumType.Deleted
                     'remove the unit from the map
                     Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Map_UnitNum)
+                Case Else
+                    Stop
+            End Select
+        Next
+
+        For A = 0 To Undos(Undo_Pos).GatewayChangeCount - 1
+            Select Case Undos(Undo_Pos).GatewayChanges(A).Type
+                Case sGatewayChange.enumType.Added
+                    'add the unit back on to the map
+                    Gateway_Add(Undos(Undo_Pos).GatewayChanges(A).Gateway)
+                Case sGatewayChange.enumType.Deleted
+                    'remove the unit from the map
+                    Gateway_Remove(Undos(Undo_Pos).GatewayChanges(A).Gateway.Map_GatewayNum)
                 Case Else
                     Stop
             End Select
@@ -2242,7 +2389,7 @@ Partial Public Class clsMap
                     Gateways(A).PosA.X < Offset.X + AreaAdjusted.X And Gateways(A).PosA.Y < Offset.Y + AreaAdjusted.Y) Or _
                     (Gateways(A).PosB.X >= Offset.X And Gateways(A).PosB.Y >= Offset.Y And _
                     Gateways(A).PosB.X < Offset.X + AreaAdjusted.X And Gateways(A).PosB.Y < Offset.Y + AreaAdjusted.Y) Then
-                    Gateway_Remove(A)
+                    Gateway_Remove_StoreChange(A)
                 Else
                     A += 1
                 End If
@@ -2261,7 +2408,7 @@ Partial Public Class clsMap
                     GateStart.X < Offset.X + AreaAdjusted.X And GateStart.Y < Offset.Y + AreaAdjusted.Y) Or _
                     (GateFinish.X >= Offset.X And GateFinish.Y >= Offset.Y And _
                     GateFinish.X < Offset.X + AreaAdjusted.X And GateFinish.Y < Offset.Y + AreaAdjusted.Y) Then
-                    Gateway_Add(GateStart, GateFinish)
+                    Gateway_Create_StoreChange(GateStart, GateFinish)
                 End If
             Next
         End If
@@ -2321,14 +2468,17 @@ Partial Public Class clsMap
 
     Public Sub Gateway_Remove(ByVal Num As Integer)
 
+        Gateways(Num).Map_GatewayNum = -1
+
         GatewayCount -= 1
         If Num <> GatewayCount Then
             Gateways(Num) = Gateways(GatewayCount)
+            Gateways(Num).Map_GatewayNum = Num
         End If
         ReDim Preserve Gateways(GatewayCount - 1)
     End Sub
 
-    Public Function Gateway_Add(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Boolean
+    Public Function Gateway_Create(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As clsGateway
 
         If PosA.X >= 0 And PosA.X < Terrain.TileSize.X And _
             PosA.Y >= 0 And PosA.Y < Terrain.TileSize.Y And _
@@ -2336,19 +2486,53 @@ Partial Public Class clsMap
             PosB.Y >= 0 And PosB.Y < Terrain.TileSize.Y Then 'is on map
             If PosA.X = PosB.X Or PosA.Y = PosB.Y Then 'is straight
 
-                ReDim Preserve Gateways(GatewayCount)
-                Gateways(GatewayCount).PosA = PosA
-                Gateways(GatewayCount).PosB = PosB
-                GatewayCount += 1
+                Dim tmpGateway As New clsGateway
 
-                Return True
+                tmpGateway.PosA = PosA
+                tmpGateway.PosB = PosB
+
+                Gateway_Add(tmpGateway)
+
+                Return tmpGateway
             Else
-                Return False
+                Return Nothing
             End If
         Else
-            Return False
+            Return Nothing
         End If
     End Function
+
+    Protected Sub Gateway_Add(ByVal NewGateway As clsGateway)
+
+        NewGateway.Map_GatewayNum = GatewayCount
+
+        ReDim Preserve Gateways(GatewayCount)
+        Gateways(GatewayCount) = NewGateway
+        GatewayCount += 1
+    End Sub
+
+    Public Function Gateway_Create_StoreChange(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As clsGateway
+        Dim tmpGateway As clsGateway
+
+        tmpGateway = Gateway_Create(PosA, PosB)
+
+        ReDim Preserve GatewayChanges(GatewayChangeCount)
+        GatewayChanges(GatewayChangeCount).Type = sGatewayChange.enumType.Added
+        GatewayChanges(GatewayChangeCount).Gateway = tmpGateway
+        GatewayChangeCount += 1
+
+        Return tmpGateway
+    End Function
+
+    Public Sub Gateway_Remove_StoreChange(ByVal Num As Integer)
+
+        ReDim Preserve GatewayChanges(GatewayChangeCount)
+        GatewayChanges(GatewayChangeCount).Type = sGatewayChange.enumType.Deleted
+        GatewayChanges(GatewayChangeCount).Gateway = Gateways(Num)
+        GatewayChangeCount += 1
+
+        Gateway_Remove(Num)
+    End Sub
 
     Public Sub Sectors_Deallocate()
         Dim X As Integer
@@ -2375,109 +2559,93 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Sub AutoSave_Test()
+    Public Class clsUnitArray
+        Public Units(-1) As clsMap.clsUnit
+        Public UnitCount As Integer
 
-        If Not Settings.AutoSaveEnabled Then
-            Exit Sub
-        End If
-        If AutoSave.ChangeCount < Settings.AutoSave_MinChanges Then
-            Exit Sub
-        End If
-        If DateDiff("s", AutoSave.SavedDate, Now) < Settings.AutoSave_MinInterval_s Then
-            Exit Sub
-        End If
+        Public Function GetCopy() As clsUnitArray
+            Dim NewArray As New clsUnitArray
+            Dim A As Integer
 
-        AutoSave.ChangeCount = 0UI
-        AutoSave.SavedDate = Now
+            NewArray.UnitCount = UnitCount
+            ReDim NewArray.Units(NewArray.UnitCount - 1)
+            For A = 0 To UnitCount - 1
+                NewArray.Units(A) = Units(A)
+            Next
+            Return NewArray
+        End Function
 
-        AutoSave_Perform()
-    End Sub
+        Public Overridable Sub Add(ByVal NewUnit As clsUnit)
 
-    Public Sub AutoSave_Perform()
-
-        If Not IO.Directory.Exists(AutoSavePath) Then
-            If Not IO.Directory.CreateDirectory(AutoSavePath).Exists Then
-                MsgBox("Failed to create autosave directory during autosave.", CType(MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation, MsgBoxStyle), "")
+            If Units.GetUpperBound(0) < UnitCount Then
+                ReDim Preserve Units(UnitCount * 2 + 1)
             End If
-        End If
+            Units(UnitCount) = NewUnit
+            UnitCount += 1
+        End Sub
 
-        Dim DateNow As Date = Now
-        Dim Path As String
+        Public Overridable Sub AddArray(ByVal NewUnits As clsUnitArray)
+            Dim A As Integer
 
-        Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
-
-        Dim Result As clsResult = Write_FMap(Path, False, Settings.AutoSaveCompress)
-
-        ShowWarnings(Result, "Autosave")
-    End Sub
-
-    Public Sub SelectedUnit_Add(ByVal NewSelectedUnit As clsUnit)
-
-        If NewSelectedUnit.Map_SelectedUnitNum >= 0 Then
-            Exit Sub
-        End If
-
-        NewSelectedUnit.Map_SelectedUnitNum = SelectedUnitCount
-
-        ReDim Preserve SelectedUnits(SelectedUnitCount)
-        SelectedUnits(SelectedUnitCount) = NewSelectedUnit
-        SelectedUnitCount += 1
-    End Sub
-
-    Public Sub SelectedUnits_Add(ByVal NewSelectedUnits() As clsUnit)
-        Dim A As Integer
-        Dim Count As Integer
-
-        ReDim Preserve SelectedUnits(SelectedUnitCount + NewSelectedUnits.GetUpperBound(0))
-
-        Count = 0
-        For A = 0 To NewSelectedUnits.GetUpperBound(0)
-            If NewSelectedUnits(A).Map_SelectedUnitNum < 0 Then
-                NewSelectedUnits(A).Map_SelectedUnitNum = SelectedUnitCount + Count
-                SelectedUnits(SelectedUnitCount + Count) = NewSelectedUnits(A)
-                Count += 1
+            If Units.GetUpperBound(0) < UnitCount + NewUnits.UnitCount Then
+                ReDim Preserve Units(UnitCount * 2 + 1)
             End If
-        Next
+            For A = 0 To NewUnits.UnitCount - 1
+                Add(NewUnits.Units(A))
+            Next
+        End Sub
 
-        SelectedUnitCount += Count
-        ReDim Preserve SelectedUnits(SelectedUnitCount - 1)
-    End Sub
+        Public Overridable Sub Remove(ByVal Num As Integer)
 
-    Public Sub SelectedUnit_Remove(ByVal Num As Integer)
+            UnitCount -= 1
+            If Num < UnitCount Then
+                Move(UnitCount, Num)
+            End If
+            Units(UnitCount) = Nothing
+            If UnitCount < (Units.GetUpperBound(0) + 1) * 3 Then
+                ReDim Preserve Units(UnitCount * 2 - 1)
+            End If
+        End Sub
 
-        SelectedUnits(Num).Map_SelectedUnitNum = -1
+        Protected Overridable Sub Move(ByVal Source As Integer, ByVal Destination As Integer)
 
-        SelectedUnitCount -= 1
-        If Num <> SelectedUnitCount Then
-            SelectedUnits(Num) = SelectedUnits(SelectedUnitCount)
-            SelectedUnits(Num).Map_SelectedUnitNum = Num
-        End If
-        ReDim Preserve SelectedUnits(SelectedUnitCount - 1)
-    End Sub
+            Units(Destination) = Units(Source)
+        End Sub
 
-    Public Sub SelectedUnits_Clear()
-        Dim A As Integer
+        Public Sub Clear()
 
-        For A = 0 To SelectedUnitCount - 1
-            SelectedUnits(A).Map_SelectedUnitNum = -1
-        Next
+            Do While UnitCount > 0
+                Remove(UnitCount - 1)
+            Loop
+        End Sub
 
-        ReDim SelectedUnits(-1)
-        SelectedUnitCount = 0
-    End Sub
+        Public Function PerformTool(ByVal Tool As clsMap.clsObjectAction) As clsUnitArray
+            Dim ReturnResult As New clsUnitArray
+            Dim A As Integer
 
-    Public Structure sUnitArray
-        Public Units() As clsMap.clsUnit
-    End Structure
+            For A = 0 To UnitCount - 1
+                Tool.Unit = Units(A)
+                Tool.ActionPerform()
+                ReturnResult.Add(Tool.ResultUnit)
+            Next
 
-    Public Sub SelectedUnits_Copy(ByRef NewArray As sUnitArray)
-        Dim A As Integer
+            Return ReturnResult
+        End Function
 
-        ReDim NewArray.Units(SelectedUnitCount - 1)
-        For A = 0 To SelectedUnitCount - 1
-            NewArray.Units(A) = SelectedUnits(A)
-        Next
-    End Sub
+        Public Function GetCentrePos() As sXY_dbl
+            Dim Result As sXY_dbl
+            Dim A As Integer
+
+            For A = 0 To UnitCount - 1
+                Result.X += Units(A).Pos.Horizontal.X
+                Result.Y += Units(A).Pos.Horizontal.Y
+            Next
+            Result.X /= UnitCount
+            Result.Y /= UnitCount
+
+            Return Result
+        End Function
+    End Class
 
     Public Sub SetPainterToDefaults()
 
@@ -2491,6 +2659,49 @@ Partial Public Class clsMap
             Painter = New clsPainter
         End If
     End Sub
+
+    Public Class clsSelectedUnits
+        Inherits clsUnitArray
+
+        Public Overrides Sub Add(ByVal NewUnit As clsUnit)
+
+            If NewUnit.Map_SelectedUnitNum >= 0 Then
+                Exit Sub
+            End If
+            NewUnit.Map_SelectedUnitNum = UnitCount
+
+            MyBase.Add(NewUnit)
+        End Sub
+
+        Public Overrides Sub AddArray(ByVal NewUnits As clsUnitArray)
+            Dim NewArray As clsUnitArray = NewUnits.GetCopy
+            Dim A As Integer
+
+            A = 0
+            Do While A < NewArray.UnitCount
+                If NewArray.Units(A).Map_SelectedUnitNum >= 0 Then
+                    NewArray.Remove(A)
+                Else
+                    A += 1
+                End If
+            Loop
+
+            MyBase.AddArray(NewArray)
+        End Sub
+
+        Public Overrides Sub Remove(ByVal Num As Integer)
+
+            Units(Num).Map_SelectedUnitNum = -1
+
+            MyBase.Remove(Num)
+        End Sub
+
+        Protected Overrides Sub Move(Source As Integer, Destination As Integer)
+            MyBase.Move(Source, Destination)
+
+            Units(Destination).Map_SelectedUnitNum = Destination
+        End Sub
+    End Class
 
     Private Sub UnitSectors_GLList(ByVal UnitToUpdateFor As clsUnit)
 
@@ -2623,7 +2834,7 @@ Partial Public Class clsMap
         End If
     End Function
 
-    Public Sub AfterInitialized()
+    Public Sub InitializeForUserInput()
 
         ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
         ShadowSectors_CreateAll()
@@ -2655,6 +2866,13 @@ Partial Public Class clsMap
 
         Undo_Clear()
 
+        SelectedUnits = New clsSelectedUnits
+
+        If InterfaceOptions Is Nothing Then
+            InterfaceOptions = New clsInterfaceOptions
+        End If
+        ViewInfo = New clsViewInfo(Me, frmMainInstance.View)
+
         ReceivingUserChanges = True
     End Sub
 
@@ -2663,7 +2881,7 @@ Partial Public Class clsMap
         If PathInfo Is Nothing Then
             Return My.Computer.FileSystem.SpecialDirectories.MyDocuments
         Else
-            Dim SplitPath As New sSplitPath(Main_Map.PathInfo.Path)
+            Dim SplitPath As New sSplitPath(PathInfo.Path)
             Return SplitPath.FilePath
         End If
     End Function
@@ -2679,11 +2897,14 @@ Partial Public Class clsMap
     End Class
 
     Public Sub Update()
+        Dim PrevSuppress As Boolean = SuppressMinimap
 
+        SuppressMinimap = True
         UpdateAutoTextures()
         TerrainInterpretUpdate()
         SectorsUpdateGraphics()
         SectorsUpdateUnitHeights()
+        SuppressMinimap = PrevSuppress
     End Sub
 
     Public Sub SectorsUpdateUnitHeights()
@@ -2700,7 +2921,9 @@ Partial Public Class clsMap
         Dim UpdateSectorGraphics As New clsUpdateSectorGraphics
         UpdateSectorGraphics.Map = Me
 
-        SectorGraphicsChanges.PerformTool(UpdateSectorGraphics)
+        If MainMap Is Me Then
+            SectorGraphicsChanges.PerformTool(UpdateSectorGraphics)
+        End If
         SectorGraphicsChanges.Clear()
     End Sub
 
@@ -2714,10 +2937,10 @@ Partial Public Class clsMap
     End Sub
 
     Public Sub TerrainInterpretUpdate()
-        Dim ApplyVertexInterpret As New clsMap.clsAction.clsApplyVertexTerrainInterpret
-        Dim ApplyTileInterpret As New clsMap.clsAction.clsApplyTileTerrainInterpret
-        Dim ApplySideHInterpret As New clsMap.clsAction.clsApplySideHTerrainInterpret
-        Dim ApplySideVInterpret As New clsMap.clsAction.clsApplySideVTerrainInterpret
+        Dim ApplyVertexInterpret As New clsMap.clsApplyVertexTerrainInterpret
+        Dim ApplyTileInterpret As New clsMap.clsApplyTileTerrainInterpret
+        Dim ApplySideHInterpret As New clsMap.clsApplySideHTerrainInterpret
+        Dim ApplySideVInterpret As New clsMap.clsApplySideVTerrainInterpret
         ApplyVertexInterpret.Map = Me
         ApplyTileInterpret.Map = Me
         ApplySideHInterpret.Map = Me
@@ -3411,8 +3634,8 @@ Partial Public Class clsMap
             Dim Y As Integer
             Dim A As Integer
 
-            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y - 1)
-                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X - 1)
+            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y)
+                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X)
                     If Map.Terrain.Vertices(X, Y).Terrain IsNot Nothing Then
                         A = Map.Terrain.Vertices(X, Y).Terrain.Num
                         If A < Map.Painter.TerrainCount Then
@@ -3505,14 +3728,9 @@ Partial Public Class clsMap
     Public Class clsDrawSectorObjects
         Inherits clsMap.clsAction
 
-        Public MapView As ctrlMapView
         Public UnitTextLabels As clsTextLabels
 
-        Private TextLabel As clsTextLabel
         Private UnitDrawn() As Boolean
-        Private XYZ_dbl As Matrix3D.XYZ_dbl
-        Private XYZ_dbl2 As Matrix3D.XYZ_dbl
-        Private ScreenPos As sXY_int
         Private Started As Boolean
 
         Public Sub Start()
@@ -3533,15 +3751,20 @@ Partial Public Class clsMap
             Dim tmpUnit As clsUnit
             Dim tmpSector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
             Dim DrawUnitLabel As Boolean
-            Dim MouseOverTerrain As ctrlMapView.clsMouseOver.clsOverTerrain = MapView.GetMouseOverTerrain
+            Dim ViewInfo As clsViewInfo = Map.ViewInfo
+            Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
+            Dim TextLabel As clsTextLabel
+            Dim XYZ_dbl As Matrix3D.XYZ_dbl
+            Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
+            Dim ScreenPos As sXY_int
 
             For A = 0 To tmpSector.UnitCount - 1
                 tmpUnit = tmpSector.Units(A)
                 If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
                     UnitDrawn(tmpUnit.Map_UnitNum) = True
-                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - MapView.ViewPos.X
-                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - MapView.ViewPos.Y
-                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - MapView.ViewPos.Z
+                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
+                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
+                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
                     DrawUnitLabel = False
                     If tmpUnit.Type.IsUnknown Then
                         DrawUnitLabel = True
@@ -3564,9 +3787,9 @@ Partial Public Class clsMap
                         End If
                     End If
                     If DrawUnitLabel And Not UnitTextLabels.AtMaxCount Then
-                        Matrix3D.VectorRotationByMatrix(MapView.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
-                        If MapView.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
-                            If ScreenPos.X >= 0 And ScreenPos.X <= MapView.GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= MapView.GLSize.Y Then
+                        Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                        If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                            If ScreenPos.X >= 0 And ScreenPos.X <= ViewInfo.MapView.GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= ViewInfo.MapView.GLSize.Y Then
                                 TextLabel = New clsTextLabel
                                 With TextLabel
                                     .TextFont = UnitLabelFont
@@ -3587,4 +3810,73 @@ Partial Public Class clsMap
             Next
         End Sub
     End Class
+
+    Public Class clsInterfaceOptions
+        Public CompileName As String
+        Public CompileMultiPlayers As String
+        Public CompileMultiXPlayers As Boolean
+        Public CompileMultiAuthor As String
+        Public CompileMultiLicense As String
+        Public AutoScrollLimits As Boolean
+        Public ScrollMin As sXY_int
+        Public ScrollMax As sXY_uint
+        Public CampaignGameTime As Integer
+        Public CampaignGameType As Integer
+
+        Public Sub New()
+
+            'set to default
+            CompileName = ""
+            CompileMultiPlayers = InvariantToString_int(2)
+            CompileMultiXPlayers = False
+            CompileMultiAuthor = ""
+            CompileMultiLicense = ""
+            AutoScrollLimits = True
+            ScrollMin.X = 0
+            ScrollMin.Y = 0
+            ScrollMax.X = 0UI
+            ScrollMax.Y = 0UI
+            CampaignGameTime = 2
+            CampaignGameType = -1
+        End Sub
+    End Class
+    Public InterfaceOptions As clsInterfaceOptions
+
+    Public Function GetTitle() As String
+        Dim ReturnResult As String
+
+        If PathInfo Is Nothing Then
+            ReturnResult = "Unsaved map"
+        Else
+            Dim SplitPath As New sSplitPath(PathInfo.Path)
+            If PathInfo.IsFMap Then
+                ReturnResult = SplitPath.FileTitleWithoutExtension
+            Else
+                ReturnResult = SplitPath.FileTitle
+            End If
+        End If
+        Return ReturnResult
+    End Function
+
+    Public Sub SetChanged()
+
+        ChangedSinceSave = True
+        RaiseEvent Changed()
+
+        AutoSave.ChangeCount += 1
+        AutoSave_Test()
+    End Sub
+
+    Public MapView_TabPage As TabPage
+
+    Public Sub SetTabText()
+        Const MaxLength As Integer = 24
+
+        Dim Result As String
+        Result = GetTitle()
+        If Result.Length > MaxLength Then
+            Result = Strings.Left(Result, MaxLength - 3) & "..."
+        End If
+        MapView_TabPage.Text = Result
+    End Sub
 End Class

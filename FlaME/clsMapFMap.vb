@@ -86,11 +86,9 @@ Partial Public Class clsMap
                     Objects(INISectionNum).PropulsionCode = INIProperty.Value
                 Case "turretcount"
                     Dim NewTurretCount As Integer
-                    Try
-                        NewTurretCount = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, NewTurretCount) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If NewTurretCount < 0 Or NewTurretCount > MaxDroidWeapons Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
@@ -150,17 +148,13 @@ Partial Public Class clsMap
                         Objects(INISectionNum).TurretCodes(2) = CommaText(1)
                     End If
                 Case "id"
-                    Try
-                        Objects(INISectionNum).ID = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, Objects(INISectionNum).ID) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "priority"
-                    Try
-                        Objects(INISectionNum).Priority = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Objects(INISectionNum).Priority) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "pos"
                     Dim CommaText() As String
                     Dim CommaTextCount As Integer
@@ -173,18 +167,23 @@ Partial Public Class clsMap
                     For A = 0 To CommaTextCount - 1
                         CommaText(A) = CommaText(A).Trim()
                     Next
+                    Dim tmpXY As sXY_int
+                    If Not InvariantParse_int(CommaText(0), tmpXY.X) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    If Not InvariantParse_int(CommaText(1), tmpXY.Y) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                     Try
-                        Objects(INISectionNum).Pos = New clsXY_int(New sXY_int(CInt(CommaText(0)), CInt(CommaText(1))))
+                        Objects(INISectionNum).Pos = New clsXY_int(tmpXY)
                     Catch ex As Exception
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End Try
                 Case "heading"
                     Dim dblTemp As Double
-                    Try
-                        dblTemp = CDbl(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_dbl(INIProperty.Value, dblTemp) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If dblTemp < 0.0# Or dblTemp >= 360.0# Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
@@ -193,11 +192,9 @@ Partial Public Class clsMap
                     Objects(INISectionNum).UnitGroup = INIProperty.Value
                 Case "health"
                     Dim NewHealth As Double
-                    Try
-                        NewHealth = CDbl(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_dbl(INIProperty.Value, NewHealth) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If NewHealth < 0.0# Or NewHealth >= 1.0# Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
@@ -219,42 +216,7 @@ Partial Public Class clsMap
             End If
         End If
 
-        Dim INI_Info As clsINIWrite = CreateINIWriteFile()
-        Data_FMap_Info(INI_Info)
-
-        Dim File_VertexHeight As New clsWriteFile
-        Data_FMap_VertexHeight(File_VertexHeight)
-
-        Dim File_VertexTerrain As New clsWriteFile
-        ReturnResult.Append(Data_FMap_VertexTerrain(File_VertexTerrain), "Vertex terrain file: ")
-
-        Dim File_TileTexture As New clsWriteFile
-        ReturnResult.Append(Data_FMap_TileTexture(File_TileTexture), "Tile textures file: ")
-
-        Dim File_TileOrientation As New clsWriteFile
-        Data_FMap_TileOrientation(File_TileOrientation)
-
-        Dim File_TileCliff As New clsWriteFile
-        ReturnResult.Append(Data_FMap_TileCliff(File_TileCliff), "Tile cliffs file: ")
-
-        Dim File_Roads As New clsWriteFile
-        ReturnResult.Append(Data_FMap_Roads(File_Roads), "Roads file: ")
-
-        Dim INI_Objects As clsINIWrite = CreateINIWriteFile()
-        ReturnResult.Append(Data_FMap_Objects(INI_Objects), "Objects file: ")
-
-        Dim INI_Gateways As clsINIWrite = CreateINIWriteFile()
-        Data_FMap_Gateways(INI_Gateways)
-
-        Dim File_TileTypes As New clsWriteFile
-        Data_FMap_TileTypes(File_TileTypes)
-
-        If ReturnResult.HasProblems Then
-            Return ReturnResult
-        End If
-
         Dim FileStream As IO.FileStream
-
         Try
             FileStream = IO.File.Create(Path)
         Catch ex As Exception
@@ -262,99 +224,178 @@ Partial Public Class clsMap
             Return ReturnResult
         End Try
 
-        Dim WZStream As Zip.ZipOutputStream = New Zip.ZipOutputStream(FileStream)
-        Dim ZipPath As String
-
+        Dim WZStream As New Zip.ZipOutputStream(FileStream)
+        WZStream.UseZip64 = Zip.UseZip64.Off
         If Compress Then
             WZStream.SetLevel(9)
         Else
             WZStream.SetLevel(0)
         End If
 
+        Dim Encoding As New System.Text.UTF8Encoding(False, False)
+        Dim BinaryWriter As New IO.BinaryWriter(WZStream, Encoding)
+        Dim StreamWriter As New IO.StreamWriter(WZStream, Encoding)
+        Dim ZipEntry As Zip.ZipEntry
+        Dim ZipPath As String
+
         ZipPath = "Info.ini"
-        ReturnResult.Append(INI_Info.File.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            Dim INI_Info As New clsINIWrite
+            INI_Info.File = StreamWriter
+            ReturnResult.Append(Data_FMap_Info(INI_Info), "Serialising: " & ZipPath)
+
+            StreamWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "VertexHeight.dat"
-        ReturnResult.Append(File_VertexHeight.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_VertexHeight(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "VertexTerrain.dat"
-        ReturnResult.Append(File_VertexTerrain.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_VertexTerrain(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "TileTexture.dat"
-        ReturnResult.Append(File_TileTexture.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_TileTexture(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "TileOrientation.dat"
-        ReturnResult.Append(File_TileOrientation.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_TileOrientation(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "TileCliff.dat"
-        ReturnResult.Append(File_TileCliff.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_TileCliff(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "Roads.dat"
-        ReturnResult.Append(File_Roads.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_Roads(BinaryWriter), "Serialising: " & ZipPath)
+
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "Objects.ini"
-        ReturnResult.Append(INI_Objects.File.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            Dim INI_Objects As New clsINIWrite
+            INI_Objects.File = StreamWriter
+            ReturnResult.Append(Data_FMap_Objects(INI_Objects), "Serialising: " & ZipPath)
+
+            StreamWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "Gateways.ini"
-        ReturnResult.Append(INI_Gateways.File.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            Dim INI_Gateways As New clsINIWrite
+            INI_Gateways.File = StreamWriter
+            ReturnResult.Append(Data_FMap_Gateways(INI_Gateways), "Serialising: " & ZipPath)
+
+            StreamWriter.Flush()
+            WZStream.CloseEntry()
+        End If
 
         ZipPath = "TileTypes.dat"
-        ReturnResult.Append(File_TileTypes.WriteToZip(WZStream, ZipPath), "Zipping file " & ZipPath)
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            ReturnResult.Append(Data_FMap_TileTypes(BinaryWriter), "Serialising: " & ZipPath)
 
-        If ReturnResult.HasProblems Then
-            WZStream.Close()
-            Return ReturnResult
+            BinaryWriter.Flush()
+            WZStream.CloseEntry()
         End If
 
         WZStream.Finish()
         WZStream.Close()
+        Return ReturnResult
+    End Function
+
+    Public Function Data_FMap_Info(ByVal File As clsINIWrite) As clsResult
+        Dim ReturnResult As New clsResult
+
+        Try
+            If Tileset Is Nothing Then
+
+            ElseIf Tileset Is Tileset_Arizona Then
+                File.Property_Append("Tileset", "Arizona")
+            ElseIf Tileset Is Tileset_Urban Then
+                File.Property_Append("Tileset", "Urban")
+            ElseIf Tileset Is Tileset_Rockies Then
+                File.Property_Append("Tileset", "Rockies")
+            End If
+
+            File.Property_Append("Size", Terrain.TileSize.X & ", " & Terrain.TileSize.Y)
+
+            File.Property_Append("AutoScrollLimits", InvariantToString_bool(InterfaceOptions.AutoScrollLimits))
+            File.Property_Append("ScrollMinX", InvariantToString_int(InterfaceOptions.ScrollMin.X))
+            File.Property_Append("ScrollMinY", InvariantToString_int(InterfaceOptions.ScrollMin.Y))
+            File.Property_Append("ScrollMaxX", InvariantToString_sng(InterfaceOptions.ScrollMax.X))
+            File.Property_Append("ScrollMaxY", InvariantToString_sng(InterfaceOptions.ScrollMax.Y))
+
+            File.Property_Append("Name", InterfaceOptions.CompileName)
+            File.Property_Append("Players", InterfaceOptions.CompileMultiPlayers)
+            File.Property_Append("XPlayerLev", InvariantToString_bool(InterfaceOptions.CompileMultiXPlayers))
+            File.Property_Append("Author", InterfaceOptions.CompileMultiAuthor)
+            File.Property_Append("License", InterfaceOptions.CompileMultiLicense)
+            File.Property_Append("CampTime", InvariantToString_int(InterfaceOptions.CampaignGameTime))
+            If InterfaceOptions.CampaignGameType >= 0 Then
+                File.Property_Append("CampType", InvariantToString_int(InterfaceOptions.CampaignGameType))
+            End If
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         Return ReturnResult
     End Function
 
-    Public Sub Data_FMap_Info(ByVal File As clsINIWrite)
-
-        If Tileset Is Nothing Then
-
-        ElseIf Tileset Is Tileset_Arizona Then
-            File.Property_Append("Tileset", "Arizona")
-        ElseIf Tileset Is Tileset_Urban Then
-            File.Property_Append("Tileset", "Urban")
-        ElseIf Tileset Is Tileset_Rockies Then
-            File.Property_Append("Tileset", "Rockies")
-        End If
-
-        File.Property_Append("Size", Terrain.TileSize.X & ", " & Terrain.TileSize.Y)
-
-        File.Property_Append("AutoScrollLimits", CStr(frmCompileInstance.cbxAutoScrollLimits.Checked))
-        File.Property_Append("ScrollMinX", frmCompileInstance.txtScrollMinX.Text)
-        File.Property_Append("ScrollMinY", frmCompileInstance.txtScrollMinY.Text)
-        File.Property_Append("ScrollMaxX", frmCompileInstance.txtScrollMaxX.Text)
-        File.Property_Append("ScrollMaxY", frmCompileInstance.txtScrollMaxY.Text)
-
-        File.Property_Append("Name", frmCompileInstance.txtName.Text)
-        File.Property_Append("Players", frmCompileInstance.txtMultiPlayers.Text)
-        File.Property_Append("XPlayerLev", CStr(frmCompileInstance.cbxNewPlayerFormat.Checked))
-        File.Property_Append("Author", frmCompileInstance.txtAuthor.Text)
-        File.Property_Append("License", frmCompileInstance.cboLicense.Text)
-        File.Property_Append("CampTime", frmCompileInstance.txtCampTime.Text)
-        If frmCompileInstance.cboCampType.SelectedIndex >= 0 Then
-            File.Property_Append("CampType", CStr(frmCompileInstance.cboCampType.SelectedIndex))
-        End If
-    End Sub
-
-    Public Sub Data_FMap_VertexHeight(ByVal File As clsWriteFile)
+    Public Function Data_FMap_VertexHeight(ByVal File As IO.BinaryWriter) As clsResult
+        Dim ReturnResult As New clsResult
         Dim X As Integer
         Dim Y As Integer
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X
-                File.U8_Append(Terrain.Vertices(X, Y).Height)
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X
+                    File.Write(CByte(Terrain.Vertices(X, Y).Height))
+                Next
             Next
-        Next
-    End Sub
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
-    Public Function Data_FMap_VertexTerrain(ByVal File As clsWriteFile) As clsResult
+        Return ReturnResult
+    End Function
+
+    Public Function Data_FMap_VertexTerrain(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -362,23 +403,27 @@ Partial Public Class clsMap
         Dim ErrorCount As Integer
         Dim Value As Integer
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X
-                If Terrain.Vertices(X, Y).Terrain Is Nothing Then
-                    Value = 0
-                ElseIf Terrain.Vertices(X, Y).Terrain.Num < 0 Then
-                    ErrorCount += 1
-                    Value = 0
-                Else
-                    Value = Terrain.Vertices(X, Y).Terrain.Num + 1
-                    If Value > 255 Then
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X
+                    If Terrain.Vertices(X, Y).Terrain Is Nothing Then
+                        Value = 0
+                    ElseIf Terrain.Vertices(X, Y).Terrain.Num < 0 Then
                         ErrorCount += 1
                         Value = 0
+                    Else
+                        Value = Terrain.Vertices(X, Y).Terrain.Num + 1
+                        If Value > 255 Then
+                            ErrorCount += 1
+                            Value = 0
+                        End If
                     End If
-                End If
-                File.U8_Append(CByte(Value))
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         If ErrorCount > 0 Then
             ReturnResult.Warning_Add(ErrorCount & " vertices had an invalid painted terrain number.")
@@ -387,7 +432,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_TileTexture(ByVal File As clsWriteFile) As clsResult
+    Public Function Data_FMap_TileTexture(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -395,16 +440,20 @@ Partial Public Class clsMap
         Dim ErrorCount As Integer
         Dim Value As Integer
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                Value = Terrain.Tiles(X, Y).Texture.TextureNum + 1
-                If Value < 0 Or Value > 255 Then
-                    ErrorCount += 1
-                    Value = 0
-                End If
-                File.U8_Append(CByte(Value))
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    Value = Terrain.Tiles(X, Y).Texture.TextureNum + 1
+                    If Value < 0 Or Value > 255 Then
+                        ErrorCount += 1
+                        Value = 0
+                    End If
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         If ErrorCount > 0 Then
             ReturnResult.Warning_Add(ErrorCount & " tiles had an invalid texture number.")
@@ -413,32 +462,39 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Sub Data_FMap_TileOrientation(ByVal File As clsWriteFile)
+    Public Function Data_FMap_TileOrientation(ByVal File As IO.BinaryWriter) As clsResult
+        Dim ReturnResult As New clsResult
         Dim X As Integer
         Dim Y As Integer
         Dim Value As Integer
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                Value = 0
-                If Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes Then
-                    Value += 8
-                End If
-                If Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip Then
-                    Value += 4
-                End If
-                If Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip Then
-                    Value += 2
-                End If
-                If Terrain.Tiles(X, Y).Tri Then
-                    Value += 1
-                End If
-                File.U8_Append(CByte(Value))
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    Value = 0
+                    If Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes Then
+                        Value += 8
+                    End If
+                    If Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip Then
+                        Value += 4
+                    End If
+                    If Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip Then
+                        Value += 2
+                    End If
+                    If Terrain.Tiles(X, Y).Tri Then
+                        Value += 1
+                    End If
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
-    End Sub
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
-    Public Function Data_FMap_TileCliff(ByVal File As clsWriteFile) As clsResult
+        Return ReturnResult
+    End Function
+
+    Public Function Data_FMap_TileCliff(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -447,45 +503,49 @@ Partial Public Class clsMap
         Dim DownSideValue As Integer
         Dim ErrorCount As Integer
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                Value = 0
-                If Terrain.Tiles(X, Y).Tri Then
-                    If Terrain.Tiles(X, Y).TriTopLeftIsCliff Then
-                        Value += 2
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    Value = 0
+                    If Terrain.Tiles(X, Y).Tri Then
+                        If Terrain.Tiles(X, Y).TriTopLeftIsCliff Then
+                            Value += 2
+                        End If
+                        If Terrain.Tiles(X, Y).TriBottomRightIsCliff Then
+                            Value += 1
+                        End If
+                    Else
+                        If Terrain.Tiles(X, Y).TriBottomLeftIsCliff Then
+                            Value += 2
+                        End If
+                        If Terrain.Tiles(X, Y).TriTopRightIsCliff Then
+                            Value += 1
+                        End If
                     End If
-                    If Terrain.Tiles(X, Y).TriBottomRightIsCliff Then
-                        Value += 1
+                    If Terrain.Tiles(X, Y).Terrain_IsCliff Then
+                        Value += 4
                     End If
-                Else
-                    If Terrain.Tiles(X, Y).TriBottomLeftIsCliff Then
-                        Value += 2
+                    If IdenticalTileDirections(Terrain.Tiles(X, Y).DownSide, TileDirection_None) Then
+                        DownSideValue = 0
+                    ElseIf IdenticalTileDirections(Terrain.Tiles(X, Y).DownSide, TileDirection_Top) Then
+                        DownSideValue = 1
+                    ElseIf IdenticalTileDirections(Terrain.Tiles(X, Y).DownSide, TileDirection_Left) Then
+                        DownSideValue = 2
+                    ElseIf IdenticalTileDirections(Terrain.Tiles(X, Y).DownSide, TileDirection_Right) Then
+                        DownSideValue = 3
+                    ElseIf IdenticalTileDirections(Terrain.Tiles(X, Y).DownSide, TileDirection_Bottom) Then
+                        DownSideValue = 4
+                    Else
+                        ErrorCount += 1
+                        DownSideValue = 0
                     End If
-                    If Terrain.Tiles(X, Y).TriTopRightIsCliff Then
-                        Value += 1
-                    End If
-                End If
-                If Terrain.Tiles(X, Y).Terrain_IsCliff Then
-                    Value += 4
-                End If
-                If IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_None) Then
-                    DownSideValue = 0
-                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Top) Then
-                    DownSideValue = 1
-                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Left) Then
-                    DownSideValue = 2
-                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Right) Then
-                    DownSideValue = 3
-                ElseIf IdenticalTileOrientations(Terrain.Tiles(X, Y).DownSide, TileDirection_Bottom) Then
-                    DownSideValue = 4
-                Else
-                    ErrorCount += 1
-                    DownSideValue = 0
-                End If
-                Value += DownSideValue * 8
-                File.U8_Append(CByte(Value))
+                    Value += DownSideValue * 8
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         If ErrorCount > 0 Then
             ReturnResult.Warning_Add(ErrorCount & " tiles had an invalid cliff down side.")
@@ -494,7 +554,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_Roads(ByVal File As clsWriteFile) As clsResult
+    Public Function Data_FMap_Roads(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -502,40 +562,44 @@ Partial Public Class clsMap
         Dim Value As Integer
         Dim ErrorCount As Integer
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X - 1
-                If Terrain.SideH(X, Y).Road Is Nothing Then
-                    Value = 0
-                ElseIf Terrain.SideH(X, Y).Road.Num < 0 Then
-                    ErrorCount += 1
-                    Value = 0
-                Else
-                    Value = Terrain.SideH(X, Y).Road.Num + 1
-                    If Value > 255 Then
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X - 1
+                    If Terrain.SideH(X, Y).Road Is Nothing Then
+                        Value = 0
+                    ElseIf Terrain.SideH(X, Y).Road.Num < 0 Then
                         ErrorCount += 1
                         Value = 0
+                    Else
+                        Value = Terrain.SideH(X, Y).Road.Num + 1
+                        If Value > 255 Then
+                            ErrorCount += 1
+                            Value = 0
+                        End If
                     End If
-                End If
-                File.U8_Append(CByte(Value))
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X
-                If Terrain.SideV(X, Y).Road Is Nothing Then
-                    Value = 0
-                ElseIf Terrain.SideV(X, Y).Road.Num < 0 Then
-                    ErrorCount += 1
-                    Value = 0
-                Else
-                    Value = Terrain.SideV(X, Y).Road.Num + 1
-                    If Value > 255 Then
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X
+                    If Terrain.SideV(X, Y).Road Is Nothing Then
+                        Value = 0
+                    ElseIf Terrain.SideV(X, Y).Road.Num < 0 Then
                         ErrorCount += 1
                         Value = 0
+                    Else
+                        Value = Terrain.SideV(X, Y).Road.Num + 1
+                        If Value > 255 Then
+                            ErrorCount += 1
+                            Value = 0
+                        End If
                     End If
-                End If
-                File.U8_Append(CByte(Value))
+                    File.Write(CByte(Value))
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         If ErrorCount > 0 Then
             ReturnResult.Warning_Add(ErrorCount & " sides had an invalid road number.")
@@ -553,64 +617,68 @@ Partial Public Class clsMap
         Dim WarningCount As Integer
         Dim strTemp As String = Nothing
 
-        For A = 0 To UnitCount - 1
-            tmpUnit = Units(A)
-            File.SectionName_Append(CStr(A))
-            Select Case tmpUnit.Type.Type
-                Case clsUnitType.enumType.Feature
-                    File.Property_Append("Type", "Feature, " & CType(tmpUnit.Type, clsFeatureType).Code)
-                Case clsUnitType.enumType.PlayerStructure
-                    File.Property_Append("Type", "Structure, " & CType(tmpUnit.Type, clsStructureType).Code)
-                Case clsUnitType.enumType.PlayerDroid
-                    tmpDroid = CType(tmpUnit.Type, clsDroidDesign)
-                    If tmpDroid.IsTemplate Then
-                        File.Property_Append("Type", "DroidTemplate, " & CType(tmpUnit.Type, clsDroidTemplate).Code)
-                    Else
-                        File.Property_Append("Type", "DroidDesign")
-                        If tmpDroid.TemplateDroidType IsNot Nothing Then
-                            File.Property_Append("DroidType", tmpDroid.TemplateDroidType.TemplateCode)
-                        End If
-                        If tmpDroid.Body IsNot Nothing Then
-                            File.Property_Append("Body", tmpDroid.Body.Code)
-                        End If
-                        If tmpDroid.Propulsion IsNot Nothing Then
-                            File.Property_Append("Propulsion", tmpDroid.Propulsion.Code)
-                        End If
-                        File.Property_Append("TurretCount", CStr(tmpDroid.TurretCount))
-                        If tmpDroid.Turret1 IsNot Nothing Then
-                            If tmpDroid.Turret1.GetTurretTypeName(strTemp) Then
-                                File.Property_Append("Turret1", strTemp & ", " & tmpDroid.Turret1.Code)
+        Try
+            For A = 0 To UnitCount - 1
+                tmpUnit = Units(A)
+                File.SectionName_Append(InvariantToString_int(A))
+                Select Case tmpUnit.Type.Type
+                    Case clsUnitType.enumType.Feature
+                        File.Property_Append("Type", "Feature, " & CType(tmpUnit.Type, clsFeatureType).Code)
+                    Case clsUnitType.enumType.PlayerStructure
+                        File.Property_Append("Type", "Structure, " & CType(tmpUnit.Type, clsStructureType).Code)
+                    Case clsUnitType.enumType.PlayerDroid
+                        tmpDroid = CType(tmpUnit.Type, clsDroidDesign)
+                        If tmpDroid.IsTemplate Then
+                            File.Property_Append("Type", "DroidTemplate, " & CType(tmpUnit.Type, clsDroidTemplate).Code)
+                        Else
+                            File.Property_Append("Type", "DroidDesign")
+                            If tmpDroid.TemplateDroidType IsNot Nothing Then
+                                File.Property_Append("DroidType", tmpDroid.TemplateDroidType.TemplateCode)
+                            End If
+                            If tmpDroid.Body IsNot Nothing Then
+                                File.Property_Append("Body", tmpDroid.Body.Code)
+                            End If
+                            If tmpDroid.Propulsion IsNot Nothing Then
+                                File.Property_Append("Propulsion", tmpDroid.Propulsion.Code)
+                            End If
+                            File.Property_Append("TurretCount", InvariantToString_byte(tmpDroid.TurretCount))
+                            If tmpDroid.Turret1 IsNot Nothing Then
+                                If tmpDroid.Turret1.GetTurretTypeName(strTemp) Then
+                                    File.Property_Append("Turret1", strTemp & ", " & tmpDroid.Turret1.Code)
+                                End If
+                            End If
+                            If tmpDroid.Turret2 IsNot Nothing Then
+                                If tmpDroid.Turret2.GetTurretTypeName(strTemp) Then
+                                    File.Property_Append("Turret2", strTemp & ", " & tmpDroid.Turret2.Code)
+                                End If
+                            End If
+                            If tmpDroid.Turret3 IsNot Nothing Then
+                                If tmpDroid.Turret3.GetTurretTypeName(strTemp) Then
+                                    File.Property_Append("Turret3", strTemp & ", " & tmpDroid.Turret3.Code)
+                                End If
                             End If
                         End If
-                        If tmpDroid.Turret2 IsNot Nothing Then
-                            If tmpDroid.Turret2.GetTurretTypeName(strTemp) Then
-                                File.Property_Append("Turret2", strTemp & ", " & tmpDroid.Turret2.Code)
-                            End If
-                        End If
-                        If tmpDroid.Turret3 IsNot Nothing Then
-                            If tmpDroid.Turret3.GetTurretTypeName(strTemp) Then
-                                File.Property_Append("Turret3", strTemp & ", " & tmpDroid.Turret3.Code)
-                            End If
-                        End If
-                    End If
-                Case Else
-                    WarningCount += 1
-            End Select
-            File.Property_Append("ID", CStr(tmpUnit.ID))
-            File.Property_Append("Priority", CStr(tmpUnit.SavePriority))
-            File.Property_Append("Pos", tmpUnit.Pos.Horizontal.X & ", " & tmpUnit.Pos.Horizontal.Y)
-            File.Property_Append("Heading", CStr(tmpUnit.Rotation))
-            If tmpUnit.UnitGroup.Map_UnitGroupNum < 0 Then
-                strTemp = "scavenger"
-            Else
-                strTemp = CStr(tmpUnit.UnitGroup.Map_UnitGroupNum)
-            End If
-            File.Property_Append("UnitGroup", strTemp)
-            If tmpUnit.Health < 1.0# Then
-                File.Property_Append("Health", CStr(tmpUnit.Health))
-            End If
-            File.Gap_Append()
-        Next
+                    Case Else
+                        WarningCount += 1
+                End Select
+                File.Property_Append("ID", InvariantToString_sng(tmpUnit.ID))
+                File.Property_Append("Priority", InvariantToString_int(tmpUnit.SavePriority))
+                File.Property_Append("Pos", InvariantToString_int(tmpUnit.Pos.Horizontal.X) & ", " & InvariantToString_int(tmpUnit.Pos.Horizontal.Y))
+                File.Property_Append("Heading", InvariantToString_int(tmpUnit.Rotation))
+                If tmpUnit.UnitGroup.Map_UnitGroupNum < 0 Then
+                    strTemp = "scavenger"
+                Else
+                    strTemp = InvariantToString_int(tmpUnit.UnitGroup.Map_UnitGroupNum)
+                End If
+                File.Property_Append("UnitGroup", strTemp)
+                If tmpUnit.Health < 1.0# Then
+                    File.Property_Append("Health", InvariantToString_dbl(tmpUnit.Health))
+                End If
+                File.Gap_Append()
+            Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
         If WarningCount > 0 Then
             ReturnResult.Warning_Add("Error: " & WarningCount & " units were of an unhandled type.")
@@ -619,35 +687,46 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Sub Data_FMap_Gateways(ByVal File As clsINIWrite)
+    Public Function Data_FMap_Gateways(ByVal File As clsINIWrite) As clsResult
+        Dim ReturnResult As New clsResult
         Dim A As Integer
 
-        For A = 0 To GatewayCount - 1
-            File.SectionName_Append(CStr(A))
-            File.Property_Append("AX", CStr(Gateways(A).PosA.X))
-            File.Property_Append("AY", CStr(Gateways(A).PosA.Y))
-            File.Property_Append("BX", CStr(Gateways(A).PosB.X))
-            File.Property_Append("BY", CStr(Gateways(A).PosB.Y))
-            File.Gap_Append()
-        Next
-    End Sub
-
-    Public Sub Data_FMap_TileTypes(ByVal File As clsWriteFile)
-        Dim A As Integer
-
-        If Tileset IsNot Nothing Then
-            For A = 0 To Tileset.TileCount - 1
-                File.U8_Append(Tile_TypeNum(A))
+        Try
+            For A = 0 To GatewayCount - 1
+                File.SectionName_Append(InvariantToString_int(A))
+                File.Property_Append("AX", InvariantToString_int(Gateways(A).PosA.X))
+                File.Property_Append("AY", InvariantToString_int(Gateways(A).PosA.Y))
+                File.Property_Append("BX", InvariantToString_int(Gateways(A).PosB.X))
+                File.Property_Append("BY", InvariantToString_int(Gateways(A).PosB.Y))
+                File.Gap_Append()
             Next
-        End If
-    End Sub
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
 
-    Public Function Load_FMap(ByVal Path As String, ByRef InterfaceOptions As clsInterfaceOptions) As clsResult
+        Return ReturnResult
+    End Function
+
+    Public Function Data_FMap_TileTypes(ByVal File As IO.BinaryWriter) As clsResult
+        Dim ReturnResult As New clsResult
+        Dim A As Integer
+
+        Try
+            If Tileset IsNot Nothing Then
+                For A = 0 To Tileset.TileCount - 1
+                    File.Write(CByte(Tile_TypeNum(A)))
+                Next
+            End If
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+        End Try
+
+        Return ReturnResult
+    End Function
+
+    Public Function Load_FMap(ByVal Path As String) As clsResult
         Dim ReturnResult As New clsResult
 
-        InterfaceOptions = Nothing
-
-        Dim File As New clsReadFile
         Dim ZipSearchResult As clsZipStreamEntry
         Dim FindPath As String
 
@@ -659,8 +738,9 @@ Partial Public Class clsMap
             ReturnResult.Problem_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
             Return ReturnResult
         Else
-            ReturnResult.Append(Read_FMap_Info(ZipSearchResult.BeginNewReadFile, ResultInfo), "Read info: ")
-            ZipSearchResult.Stream.Close()
+            Dim Info_StreamReader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.Append(Read_FMap_Info(Info_StreamReader, ResultInfo), "Read info: ")
+            Info_StreamReader.Close()
             If ReturnResult.HasProblems Then
                 Return ReturnResult
             End If
@@ -688,8 +768,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_VertexHeight(ZipSearchResult.BeginNewReadFile), "Read vertex height: ")
-            ZipSearchResult.Stream.Close()
+            Dim VertexHeight_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_VertexHeight(VertexHeight_Reader), "Read vertex height: ")
+            VertexHeight_Reader.Close()
         End If
 
         FindPath = "vertexterrain.dat"
@@ -697,8 +778,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_VertexTerrain(ZipSearchResult.BeginNewReadFile), "Read vertex terrain: ")
-            ZipSearchResult.Stream.Close()
+            Dim VertexTerrain_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_VertexTerrain(VertexTerrain_Reader), "Read vertex terrain: ")
+            VertexTerrain_Reader.Close()
         End If
 
         FindPath = "tiletexture.dat"
@@ -706,8 +788,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_TileTexture(ZipSearchResult.BeginNewReadFile), "Read tile texture: ")
-            ZipSearchResult.Stream.Close()
+            Dim TileTexture_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_TileTexture(TileTexture_Reader), "Read tile texture: ")
+            TileTexture_Reader.Close()
         End If
 
         FindPath = "tileorientation.dat"
@@ -715,8 +798,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_TileOrientation(ZipSearchResult.BeginNewReadFile), "Read tile orientation: ")
-            ZipSearchResult.Stream.Close()
+            Dim TileOrientation_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_TileOrientation(TileOrientation_Reader), "Read tile orientation: ")
+            TileOrientation_Reader.Close()
         End If
 
         FindPath = "tilecliff.dat"
@@ -724,8 +808,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_TileCliff(ZipSearchResult.BeginNewReadFile), "Read tile cliff: ")
-            ZipSearchResult.Stream.Close()
+            Dim TileCliff_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_TileCliff(TileCliff_Reader), "Read tile cliff: ")
+            TileCliff_Reader.Close()
         End If
 
         FindPath = "roads.dat"
@@ -733,8 +818,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_Roads(ZipSearchResult.BeginNewReadFile), "Read roads: ")
-            ZipSearchResult.Stream.Close()
+            Dim Roads_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_Roads(Roads_Reader), "Read roads: ")
+            Roads_Reader.Close()
         End If
 
         FindPath = "objects.ini"
@@ -742,8 +828,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_Objects(ZipSearchResult.BeginNewReadFile), "Read objects: ")
-            ZipSearchResult.Stream.Close()
+            Dim Objects_Reader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_Objects(Objects_Reader), "Read objects: ")
+            Objects_Reader.Close()
         End If
 
         FindPath = "gateways.ini"
@@ -751,8 +838,9 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_Gateways(ZipSearchResult.BeginNewReadFile), "Read gateways: ")
-            ZipSearchResult.Stream.Close()
+            Dim Gateway_Reader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_Gateways(Gateway_Reader), "Read gateways: ")
+            Gateway_Reader.Close()
         End If
 
         FindPath = "tiletypes.dat"
@@ -760,13 +848,12 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
             ReturnResult.Warning_Add("Unable to find file " & ControlChars.Quote & FindPath & ControlChars.Quote & ".")
         Else
-            ReturnResult.AppendAsWarning(Read_FMap_TileTypes(ZipSearchResult.BeginNewReadFile), "Read tile types: ")
-            ZipSearchResult.Stream.Close()
+            Dim TileTypes_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(Read_FMap_TileTypes(TileTypes_Reader), "Read tile types: ")
+            TileTypes_Reader.Close()
         End If
 
         InterfaceOptions = ResultInfo.InterfaceOptions
-
-        AfterInitialized()
 
         Return ReturnResult
     End Function
@@ -775,7 +862,7 @@ Partial Public Class clsMap
         Inherits clsINIRead.clsTranslator
 
         Public TerrainSize As sXY_int = New sXY_int(-1, -1)
-        Public InterfaceOptions As New clsInterfaceOptions
+        Public InterfaceOptions As New clsMap.clsInterfaceOptions
         Public Tileset As clsTileset
 
         Public Overrides Function Translate(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
@@ -802,68 +889,56 @@ Partial Public Class clsMap
                         CommaText(A) = CommaText(A).Trim
                     Next
                     Dim NewSize As sXY_int
-                    Try
-                        NewSize.X = CInt(CommaText(0))
-                    Catch ex As Exception
+                    If Not InvariantParse_int(CommaText(0), NewSize.X) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    Try
-                        NewSize.Y = CInt(CommaText(1))
-                    Catch ex As Exception
+                    End If
+                    If Not InvariantParse_int(CommaText(1), NewSize.Y) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If NewSize.X < 1 Or NewSize.Y < 1 Or NewSize.X > MapMaxSize Or NewSize.Y > MapMaxSize Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     TerrainSize = NewSize
                 Case "autoscrolllimits"
-                    Try
-                        InterfaceOptions.AutoScrollLimits = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, InterfaceOptions.AutoScrollLimits) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "scrollminx"
-                    Try
-                        InterfaceOptions.ScrollMin.X = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.ScrollMin.X) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "scrollminy"
-                    Try
-                        InterfaceOptions.ScrollMin.Y = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.ScrollMin.Y) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "scrollmaxx"
-                    Try
-                        InterfaceOptions.ScrollMax.X = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, InterfaceOptions.ScrollMax.X) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "scrollmaxy"
-                    Try
-                        InterfaceOptions.ScrollMax.Y = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, InterfaceOptions.ScrollMax.Y) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "name"
                     InterfaceOptions.CompileName = INIProperty.Value
                 Case "players"
                     InterfaceOptions.CompileMultiPlayers = INIProperty.Value
                 Case "xplayerlev"
-                    Try
-                        InterfaceOptions.CompileMultiXPlayers = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, InterfaceOptions.CompileMultiXPlayers) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "author"
                     InterfaceOptions.CompileMultiAuthor = INIProperty.Value
                 Case "license"
                     InterfaceOptions.CompileMultiLicense = INIProperty.Value
                 Case "camptime"
-                    InterfaceOptions.CampaignGameTime = INIProperty.Value
+                    If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.CampaignGameTime) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                 Case "camptype"
-                    InterfaceOptions.CampaignGameType = CInt(INIProperty.Value)
+                    If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.CampaignGameType) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -871,7 +946,7 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Private Function Read_FMap_Info(ByVal File As clsReadFile, ByRef ResultInfo As clsFMapInfo) As clsResult
+    Private Function Read_FMap_Info(ByVal File As IO.StreamReader, ByRef ResultInfo As clsFMapInfo) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim InfoINI As New clsINIRead.clsSection
@@ -887,29 +962,31 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Private Function Read_FMap_VertexHeight(ByVal File As clsReadFile) As clsResult
+    Private Function Read_FMap_VertexHeight(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
         Dim Y As Integer
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X
-                If Not File.Get_U8(Terrain.Vertices(X, Y).Height) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X
+                    Terrain.Vertices(X, Y).Height = File.ReadByte
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Private Function Read_FMap_VertexTerrain(ByVal File As clsReadFile) As clsResult
+    Private Function Read_FMap_VertexTerrain(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -918,188 +995,191 @@ Partial Public Class clsMap
         Dim byteTemp As Byte
         Dim WarningCount As Integer
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
-                Value = CInt(byteTemp) - 1
-                If Value < 0 Then
-                    Terrain.Vertices(X, Y).Terrain = Nothing
-                ElseIf Value >= Painter.TerrainCount Then
-                    If WarningCount < 16 Then
-                        ReturnResult.Warning_Add("Painted terrain at vertex " & X & ", " & Y & " was invalid.")
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X
+                    byteTemp = File.ReadByte
+                    Value = CInt(byteTemp) - 1
+                    If Value < 0 Then
+                        Terrain.Vertices(X, Y).Terrain = Nothing
+                    ElseIf Value >= Painter.TerrainCount Then
+                        If WarningCount < 16 Then
+                            ReturnResult.Warning_Add("Painted terrain at vertex " & X & ", " & Y & " was invalid.")
+                        End If
+                        WarningCount += 1
+                        Terrain.Vertices(X, Y).Terrain = Nothing
+                    Else
+                        Terrain.Vertices(X, Y).Terrain = Painter.Terrains(Value)
                     End If
-                    WarningCount += 1
-                    Terrain.Vertices(X, Y).Terrain = Nothing
-                Else
-                    Terrain.Vertices(X, Y).Terrain = Painter.Terrains(Value)
-                End If
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         If WarningCount > 0 Then
             ReturnResult.Warning_Add(WarningCount & " painted terrain vertices were invalid.")
         End If
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Public Function Read_FMap_TileTexture(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_TileTexture(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
         Dim Y As Integer
         Dim byteTemp As Byte
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
-                Terrain.Tiles(X, Y).Texture.TextureNum = CInt(byteTemp) - 1
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    byteTemp = File.ReadByte
+                    Terrain.Tiles(X, Y).Texture.TextureNum = CInt(byteTemp) - 1
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Public Function Read_FMap_TileOrientation(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_TileOrientation(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
         Dim Y As Integer
-        Dim byteTemp As Byte
         Dim Value As Integer
         Dim PartValue As Integer
         Dim WarningCount As Integer
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
+                    Value = File.ReadByte
 
-                Value = byteTemp
-
-                PartValue = CInt(Math.Floor(Value / 16))
-                If PartValue > 0 Then
-                    If WarningCount < 16 Then
-                        ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
+                    PartValue = CInt(Math.Floor(Value / 16))
+                    If PartValue > 0 Then
+                        If WarningCount < 16 Then
+                            ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
+                        End If
+                        WarningCount += 1
                     End If
-                    WarningCount += 1
-                End If
-                Value -= PartValue * 16
+                    Value -= PartValue * 16
 
-                PartValue = CInt(Int(Value / 8.0#))
-                Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes = (PartValue > 0)
-                Value -= PartValue * 8
+                    PartValue = CInt(Int(Value / 8.0#))
+                    Terrain.Tiles(X, Y).Texture.Orientation.SwitchedAxes = (PartValue > 0)
+                    Value -= PartValue * 8
 
-                PartValue = CInt(Int(Value / 4.0#))
-                Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip = (PartValue > 0)
-                Value -= PartValue * 4
+                    PartValue = CInt(Int(Value / 4.0#))
+                    Terrain.Tiles(X, Y).Texture.Orientation.ResultXFlip = (PartValue > 0)
+                    Value -= PartValue * 4
 
-                PartValue = CInt(Int(Value / 2.0#))
-                Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip = (PartValue > 0)
-                Value -= PartValue * 2
+                    PartValue = CInt(Int(Value / 2.0#))
+                    Terrain.Tiles(X, Y).Texture.Orientation.ResultYFlip = (PartValue > 0)
+                    Value -= PartValue * 2
 
-                PartValue = Value
-                Terrain.Tiles(X, Y).Tri = (PartValue > 0)
+                    PartValue = Value
+                    Terrain.Tiles(X, Y).Tri = (PartValue > 0)
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         If WarningCount > 0 Then
             ReturnResult.Warning_Add(WarningCount & " tiles had unknown bits used.")
         End If
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Public Function Read_FMap_TileCliff(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_TileCliff(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
         Dim Y As Integer
         Dim Value As Integer
-        Dim byteTemp As Byte
         Dim PartValue As Integer
         Dim DownSideWarningCount As Integer
         Dim WarningCount As Integer
 
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X - 1
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
+        Try
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X - 1
 
-                Value = byteTemp
+                    Value = File.ReadByte
 
-                PartValue = CInt(Int(Value / 64.0#))
-                If PartValue > 0 Then
-                    If WarningCount < 16 Then
-                        ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
-                    End If
-                    WarningCount += 1
-                End If
-                Value -= PartValue * 64
-
-                PartValue = CInt(Int(Value / 8.0#))
-                Select Case PartValue
-                    Case 0
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_None
-                    Case 1
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_Top
-                    Case 2
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_Left
-                    Case 3
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_Right
-                    Case 4
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_Bottom
-                    Case Else
-                        Terrain.Tiles(X, Y).DownSide = TileDirection_None
-                        If DownSideWarningCount < 16 Then
-                            ReturnResult.Warning_Add("Down side value for tile " & X & ", " & Y & " was invalid.")
+                    PartValue = CInt(Int(Value / 64.0#))
+                    If PartValue > 0 Then
+                        If WarningCount < 16 Then
+                            ReturnResult.Warning_Add("Unknown bits used for tile " & X & ", " & Y & ".")
                         End If
-                        DownSideWarningCount += 1
-                End Select
-                Value -= PartValue * 8
+                        WarningCount += 1
+                    End If
+                    Value -= PartValue * 64
 
-                PartValue = CInt(Int(Value / 4.0#))
-                Terrain.Tiles(X, Y).Terrain_IsCliff = (PartValue > 0)
-                Value -= PartValue * 4
+                    PartValue = CInt(Int(Value / 8.0#))
+                    Select Case PartValue
+                        Case 0
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_None
+                        Case 1
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_Top
+                        Case 2
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_Left
+                        Case 3
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_Right
+                        Case 4
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_Bottom
+                        Case Else
+                            Terrain.Tiles(X, Y).DownSide = TileDirection_None
+                            If DownSideWarningCount < 16 Then
+                                ReturnResult.Warning_Add("Down side value for tile " & X & ", " & Y & " was invalid.")
+                            End If
+                            DownSideWarningCount += 1
+                    End Select
+                    Value -= PartValue * 8
 
-                PartValue = CInt(Int(Value / 2.0#))
-                If Terrain.Tiles(X, Y).Tri Then
-                    Terrain.Tiles(X, Y).TriTopLeftIsCliff = (PartValue > 0)
-                Else
-                    Terrain.Tiles(X, Y).TriBottomLeftIsCliff = (PartValue > 0)
-                End If
-                Value -= PartValue * 2
+                    PartValue = CInt(Int(Value / 4.0#))
+                    Terrain.Tiles(X, Y).Terrain_IsCliff = (PartValue > 0)
+                    Value -= PartValue * 4
 
-                PartValue = Value
-                If Terrain.Tiles(X, Y).Tri Then
-                    Terrain.Tiles(X, Y).TriBottomRightIsCliff = (PartValue > 0)
-                Else
-                    Terrain.Tiles(X, Y).TriTopRightIsCliff = (PartValue > 0)
-                End If
+                    PartValue = CInt(Int(Value / 2.0#))
+                    If Terrain.Tiles(X, Y).Tri Then
+                        Terrain.Tiles(X, Y).TriTopLeftIsCliff = (PartValue > 0)
+                    Else
+                        Terrain.Tiles(X, Y).TriBottomLeftIsCliff = (PartValue > 0)
+                    End If
+                    Value -= PartValue * 2
+
+                    PartValue = Value
+                    If Terrain.Tiles(X, Y).Tri Then
+                        Terrain.Tiles(X, Y).TriBottomRightIsCliff = (PartValue > 0)
+                    Else
+                        Terrain.Tiles(X, Y).TriTopRightIsCliff = (PartValue > 0)
+                    End If
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         If WarningCount > 0 Then
             ReturnResult.Warning_Add(WarningCount & " tiles had unknown bits used.")
@@ -1108,75 +1188,71 @@ Partial Public Class clsMap
             ReturnResult.Warning_Add(DownSideWarningCount & " tiles had invalid down side values.")
         End If
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Public Function Read_FMap_Roads(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_Roads(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
         Dim Y As Integer
         Dim Value As Integer
         Dim WarningCount As Integer
-        Dim byteTemp As Byte
 
-        For Y = 0 To Terrain.TileSize.Y
-            For X = 0 To Terrain.TileSize.X - 1
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
-                Value = CInt(byteTemp) - 1
-                If Value < 0 Then
-                    Terrain.SideH(X, Y).Road = Nothing
-                ElseIf Value >= Painter.RoadCount Then
-                    If WarningCount < 16 Then
-                        ReturnResult.Warning_Add("Invalid road value for horizontal side " & X & ", " & Y & ".")
+        Try
+            For Y = 0 To Terrain.TileSize.Y
+                For X = 0 To Terrain.TileSize.X - 1
+                    Value = File.ReadByte - 1
+                    If Value < 0 Then
+                        Terrain.SideH(X, Y).Road = Nothing
+                    ElseIf Value >= Painter.RoadCount Then
+                        If WarningCount < 16 Then
+                            ReturnResult.Warning_Add("Invalid road value for horizontal side " & X & ", " & Y & ".")
+                        End If
+                        WarningCount += 1
+                        Terrain.SideH(X, Y).Road = Nothing
+                    Else
+                        Terrain.SideH(X, Y).Road = Painter.Roads(Value)
                     End If
-                    WarningCount += 1
-                    Terrain.SideH(X, Y).Road = Nothing
-                Else
-                    Terrain.SideH(X, Y).Road = Painter.Roads(Value)
-                End If
+                Next
             Next
-        Next
-        For Y = 0 To Terrain.TileSize.Y - 1
-            For X = 0 To Terrain.TileSize.X
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
-                Value = CInt(byteTemp) - 1
-                If Value < 0 Then
-                    Terrain.SideV(X, Y).Road = Nothing
-                ElseIf Value >= Painter.RoadCount Then
-                    If WarningCount < 16 Then
-                        ReturnResult.Warning_Add("Invalid road value for vertical side " & X & ", " & Y & ".")
+            For Y = 0 To Terrain.TileSize.Y - 1
+                For X = 0 To Terrain.TileSize.X
+                    Value = File.ReadByte - 1
+                    If Value < 0 Then
+                        Terrain.SideV(X, Y).Road = Nothing
+                    ElseIf Value >= Painter.RoadCount Then
+                        If WarningCount < 16 Then
+                            ReturnResult.Warning_Add("Invalid road value for vertical side " & X & ", " & Y & ".")
+                        End If
+                        WarningCount += 1
+                        Terrain.SideV(X, Y).Road = Nothing
+                    Else
+                        Terrain.SideV(X, Y).Road = Painter.Roads(Value)
                     End If
-                    WarningCount += 1
-                    Terrain.SideV(X, Y).Road = Nothing
-                Else
-                    Terrain.SideV(X, Y).Road = Painter.Roads(Value)
-                End If
+                Next
             Next
-        Next
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         If WarningCount > 0 Then
             ReturnResult.Warning_Add(WarningCount & " sides had an invalid road value.")
         End If
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 
         Return ReturnResult
     End Function
 
-    Private Function Read_FMap_Objects(ByVal File As clsReadFile) As clsResult
+    Private Function Read_FMap_Objects(ByVal File As IO.StreamReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim A As Integer
@@ -1297,7 +1373,9 @@ Partial Public Class clsMap
                         Else
                             Dim PlayerNum As UInteger
                             Try
-                                PlayerNum = CUInt(INIObjects.Objects(A).UnitGroup)
+                                If Not InvariantParse_uint(INIObjects.Objects(A).UnitGroup, PlayerNum) Then
+                                    Throw New Exception
+                                End If
                                 If PlayerNum < PlayerCountMax Then
                                     tmpUnitGroup = UnitGroups(CInt(PlayerNum))
                                 Else
@@ -1373,29 +1451,21 @@ Partial Public Class clsMap
 
             Select Case INIProperty.Name
                 Case "ax"
-                    Try
-                        Gateways(INISectionNum).PosA.X = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Gateways(INISectionNum).PosA.X) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "ay"
-                    Try
-                        Gateways(INISectionNum).PosA.Y = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Gateways(INISectionNum).PosA.Y) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "bx"
-                    Try
-                        Gateways(INISectionNum).PosB.X = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Gateways(INISectionNum).PosB.X) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "by"
-                    Try
-                        Gateways(INISectionNum).PosB.Y = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Gateways(INISectionNum).PosB.Y) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -1403,7 +1473,7 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Public Function Read_FMap_Gateways(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_Gateways(ByVal File As IO.StreamReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim GatewaysINI As New clsINIRead
@@ -1416,7 +1486,7 @@ Partial Public Class clsMap
         Dim InvalidGatewayCount As Integer = 0
 
         For A = 0 To INIGateways.GatewayCount - 1
-            If Not Gateway_Add(INIGateways.Gateways(A).PosA, INIGateways.Gateways(A).PosB) Then
+            If Gateway_Create(INIGateways.Gateways(A).PosA, INIGateways.Gateways(A).PosB) Is Nothing Then
                 InvalidGatewayCount += 1
             End If
         Next
@@ -1428,32 +1498,34 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Read_FMap_TileTypes(ByVal File As clsReadFile) As clsResult
+    Public Function Read_FMap_TileTypes(ByVal File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim A As Integer
         Dim byteTemp As Byte
         Dim InvalidTypeCount As Integer
 
-        If Tileset IsNot Nothing Then
-            For A = 0 To Tileset.TileCount - 1
-                If Not File.Get_U8(byteTemp) Then
-                    ReturnResult.Problem_Add("Read error.")
-                    Return ReturnResult
-                End If
-                If byteTemp >= TileTypeCount Then
-                    InvalidTypeCount += 1
-                Else
-                    Tile_TypeNum(A) = byteTemp
-                End If
-            Next
-        End If
+        Try
+            If Tileset IsNot Nothing Then
+                For A = 0 To Tileset.TileCount - 1
+                    byteTemp = File.ReadByte()
+                    If byteTemp >= TileTypeCount Then
+                        InvalidTypeCount += 1
+                    Else
+                        Tile_TypeNum(A) = byteTemp
+                    End If
+                Next
+            End If
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         If InvalidTypeCount > 0 Then
             ReturnResult.Warning_Add(InvalidTypeCount & " tile types were invalid.")
         End If
 
-        If Not File.IsEOF Then
+        If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
         End If
 

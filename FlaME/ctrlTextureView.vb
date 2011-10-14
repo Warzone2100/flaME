@@ -136,6 +136,21 @@ Public Class ctrlTextureView
             Exit Sub
         End If
 
+        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
+            OpenGLControl.MakeCurrent()
+        End If
+
+        GL.Clear(ClearBufferMask.ColorBufferBit)
+
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            GL.Flush()
+            OpenGLControl.SwapBuffers()
+            Refresh()
+            Exit Sub
+        End If
+
         Dim X As Integer
         Dim Y As Integer
         Dim Num As Integer
@@ -150,17 +165,12 @@ Public Class ctrlTextureView
         Dim TexCoord2 As sXY_sng
         Dim TexCoord3 As sXY_sng
 
-        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
-            OpenGLControl.MakeCurrent()
-        End If
-
-        GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.MatrixMode(MatrixMode.Projection)
         GL.LoadMatrix(OpenTK.Matrix4.CreateOrthographicOffCenter(0.0F, CSng(GLSize.X), CSng(GLSize.Y), 0.0F, -1.0F, 1.0F))
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        If Main_Map.Tileset IsNot Nothing Then
+        If Map.Tileset IsNot Nothing Then
 
             GetTileRotatedTexCoords(TextureOrientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
@@ -171,10 +181,10 @@ Public Class ctrlTextureView
             For Y = 0 To TextureCount.Y - 1
                 For X = 0 To TextureCount.X - 1
                     Num = (TextureYOffset + Y) * TextureCount.X + X
-                    If Num >= Main_Map.Tileset.TileCount Then
+                    If Num >= Map.Tileset.TileCount Then
                         GoTo EndOfTextures1
                     End If
-                    A = Main_Map.Tileset.Tiles(Num).TextureView_GL_Texture_Num
+                    A = Map.Tileset.Tiles(Num).TextureView_GL_Texture_Num
                     If A = 0 Then
                         GL.BindTexture(TextureTarget.Texture2D, 0)
                     Else
@@ -202,10 +212,10 @@ EndOfTextures1:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Main_Map.Tileset.TileCount Then
+                        If Num >= Map.Tileset.TileCount Then
                             GoTo EndOfTextures2
                         End If
-                        A = Main_Map.Tile_TypeNum(Num)
+                        A = Map.Tile_TypeNum(Num)
                         GL.Color3(TileTypes(A).DisplayColour.Red, TileTypes(A).DisplayColour.Green, TileTypes(A).DisplayColour.Blue)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 24.0#)
                         GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 40.0#)
@@ -235,7 +245,7 @@ EndOfTextures2:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Main_Map.Tileset.TileCount Then
+                        If Num >= Map.Tileset.TileCount Then
                             GoTo EndOfTextures3
                         End If
                         GL.Vertex2(X * 64.0# + Vertex0.X * 64.0#, Y * 64.0# + Vertex0.Y * 64.0#)
@@ -255,11 +265,11 @@ EndOfTextures3:
                 For Y = 0 To TextureCount.Y - 1
                     For X = 0 To TextureCount.X - 1
                         Num = (TextureYOffset + Y) * TextureCount.X + X
-                        If Num >= Main_Map.Tileset.TileCount Then
+                        If Num >= Map.Tileset.TileCount Then
                             GoTo EndOfTextures4
                         End If
                         TextLabel = New clsTextLabel
-                        TextLabel.Text = CStr(Num)
+                        TextLabel.Text = InvariantToString_int(Num)
                         TextLabel.SizeY = 24.0F
                         TextLabel.Colour.Red = 1.0F
                         TextLabel.Colour.Green = 1.0F
@@ -268,7 +278,7 @@ EndOfTextures3:
                         TextLabel.Pos.X = X * 64
                         TextLabel.Pos.Y = Y * 64
                         TextLabel.TextFont = TextureViewFont
-                        Draw_TextLabel(TextLabel)
+                        TextLabel.Draw()
                     Next
                 Next
 EndOfTextures4:
@@ -296,15 +306,20 @@ EndOfTextures4:
     End Sub
 
     Public Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Dim Map As clsMap = MainMap
 
-        If Main_Map Is Nothing Then
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        If Map Is Nothing Then
             SelectedTextureNum = -1
-        ElseIf Main_Map.Tileset Is Nothing Then
+        ElseIf Map.Tileset Is Nothing Then
             SelectedTextureNum = -1
         ElseIf e.X >= 0 And e.X < TextureCount.X * 64 _
           And e.Y >= 0 And e.Y < TextureCount.Y * 64 Then
             SelectedTextureNum = (TextureYOffset + CInt(Int(e.Y / 64.0#))) * TextureCount.X + CInt(Int(e.X / 64.0#))
-            If SelectedTextureNum >= Main_Map.Tileset.TileCount Then
+            If SelectedTextureNum >= Map.Tileset.TileCount Then
                 SelectedTextureNum = -1
             Else
                 Tool = enumTool.Texture_Brush
@@ -315,7 +330,7 @@ EndOfTextures4:
 
         If SelectedTextureNum >= 0 Then
             frmMainInstance.cboTileType.Enabled = False
-            frmMainInstance.cboTileType.SelectedIndex = Main_Map.Tile_TypeNum(SelectedTextureNum)
+            frmMainInstance.cboTileType.SelectedIndex = Map.Tile_TypeNum(SelectedTextureNum)
             frmMainInstance.cboTileType.Enabled = True
         Else
             frmMainInstance.cboTileType.Enabled = False
@@ -350,12 +365,18 @@ EndOfTextures4:
     End Sub
 
     Public Sub ScrollUpdate()
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
         Dim Flag As Boolean
 
         If TextureCount.X > 0 And TextureCount.Y > 0 Then
-            If Main_Map Is Nothing Then
+            If Map Is Nothing Then
                 Flag = True
-            ElseIf Main_Map.Tileset Is Nothing Then
+            ElseIf Map.Tileset Is Nothing Then
                 Flag = True
             Else
                 Flag = False
@@ -368,7 +389,7 @@ EndOfTextures4:
             TextureScroll.LargeChange = 0
             TextureScroll.Enabled = False
         Else
-            TextureScroll.Maximum = CInt(Math.Ceiling(Main_Map.Tileset.TileCount / TextureCount.X))
+            TextureScroll.Maximum = CInt(Math.Ceiling(Map.Tileset.TileCount / TextureCount.X))
             TextureScroll.LargeChange = TextureCount.Y
             TextureScroll.Enabled = True
         End If
@@ -399,56 +420,6 @@ EndOfTextures4:
 
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
     End Function
-
-    Private Sub Draw_TextLabel(ByRef TextLabel As clsTextLabel)
-        If TextLabel.Text Is Nothing Then
-            Exit Sub
-        End If
-        If TextLabel.Text.Length = 0 Then
-            Exit Sub
-        End If
-        If TextLabel.TextFont Is Nothing Then
-            Exit Sub
-        End If
-
-        Dim CharCode As Integer
-        Dim CharWidth As Single
-        Dim TexRatio As sXY_sng
-        Dim LetterPosA As Single
-        Dim LetterPosB As Single
-        Dim PosY1 As Single
-        Dim PosY2 As Single
-        Dim CharSpacing As Single
-        Dim A As Integer
-
-        GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
-        GL.Color4(TextLabel.Colour.Red, TextLabel.Colour.Green, TextLabel.Colour.Blue, TextLabel.Colour.Alpha)
-        PosY1 = TextLabel.Pos.Y
-        PosY2 = TextLabel.Pos.Y + TextLabel.SizeY
-        CharSpacing = TextLabel.SizeY / 10.0F
-        LetterPosA = TextLabel.Pos.X
-        For A = 0 To TextLabel.Text.Length - 1
-            CharCode = Asc(TextLabel.Text(A))
-            If CharCode >= 0 And CharCode <= 255 Then
-                CharWidth = TextLabel.SizeY * TextLabel.TextFont.Character(CharCode).Width / TextLabel.TextFont.Height
-                TexRatio.X = CSng(TextLabel.TextFont.Character(CharCode).Width / TextLabel.TextFont.Character(CharCode).TexSize)
-                TexRatio.Y = CSng(TextLabel.TextFont.Height / TextLabel.TextFont.Character(CharCode).TexSize)
-                LetterPosB = LetterPosA + CharWidth
-                GL.BindTexture(TextureTarget.Texture2D, TextLabel.TextFont.Character(CharCode).GLTexture)
-                GL.Begin(BeginMode.Quads)
-                GL.TexCoord2(0.0F, 0.0F)
-                GL.Vertex2(LetterPosA, PosY1)
-                GL.TexCoord2(0.0F, TexRatio.Y)
-                GL.Vertex2(LetterPosA, PosY2)
-                GL.TexCoord2(TexRatio.X, TexRatio.Y)
-                GL.Vertex2(LetterPosB, PosY2)
-                GL.TexCoord2(TexRatio.X, 0.0F)
-                GL.Vertex2(LetterPosB, PosY1)
-                GL.End()
-                LetterPosA = LetterPosB + CharSpacing
-            End If
-        Next
-    End Sub
 
     Private Sub OpenGL_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
 

@@ -13,6 +13,8 @@
         Public MinimapSize As Integer = 160
         Public MinimapTeamColours As Boolean = True
         Public MinimapTeamColoursExceptFeatures As Boolean = True
+        Public MinimapCliffColour As New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F)
+        Public MinimapSelectedObjectsColour As New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F)
         Public FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
     End Class
 
@@ -38,89 +40,73 @@
 
             Select Case INIProperty.Name
                 Case "directpointer"
-                    Try
-                        NewSettings.DirectPointer = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.DirectPointer) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "fontfamily"
                     FontFamily = INIProperty.Value
                 Case "fontbold"
-                    Try
-                        FontBold = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, FontBold) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "fontitalic"
-                    Try
-                        FontItalic = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, FontItalic) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "fontsize"
                     Dim sngTemp As Single
-                    Try
-                        sngTemp = CSng(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_sng(INIProperty.Value, sngTemp) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If sngTemp <= 0.0F Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     FontSize = sngTemp
                 Case "minimapsize"
                     Dim Size As Integer
-                    Try
-                        Size = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Size) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If Size < 0 Or Size > MinimapMaxSize Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     NewSettings.MinimapSize = Size
                 Case "minimapteamcolours"
-                    Try
-                        NewSettings.MinimapTeamColours = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MinimapTeamColours) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "minimapteamcoloursexceptfeatures"
-                    Try
-                        NewSettings.MinimapTeamColoursExceptFeatures = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MinimapTeamColoursExceptFeatures) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
+                Case "minimapcliffcolour"
+                    If Not NewSettings.MinimapCliffColour.ReadINIText(New clsSplitCommaText(INIProperty.Value)) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "minimapselectedobjectscolour"
+                    If Not NewSettings.MinimapSelectedObjectsColour.ReadINIText(New clsSplitCommaText(INIProperty.Value)) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                 Case "undolimit"
-                    Try
-                        NewSettings.Undo_Limit = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.Undo_Limit) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "autosave"
-                    Try
-                        NewSettings.AutoSaveEnabled = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.AutoSaveEnabled) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "autosavemininterval"
-                    Try
-                        NewSettings.AutoSave_MinInterval_s = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSave_MinInterval_s) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "autosaveminchanges"
-                    Try
-                        NewSettings.AutoSave_MinChanges = CUInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSave_MinChanges) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "autosavecompress"
-                    Try
-                        NewSettings.AutoSaveCompress = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.AutoSaveCompress) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "tilesetspath"
                     ReDim Preserve TilesetsPaths(TilesetsPathCount)
                     TilesetsPaths(TilesetsPathCount) = INIProperty.Value
@@ -130,29 +116,21 @@
                     ObjectDataPaths(ObjectDataPathCount) = INIProperty.Value
                     ObjectDataPathCount += 1
                 Case "defaulttilesetspathnum"
-                    Try
-                        DefaultTilesetPathNum = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, DefaultTilesetPathNum) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "defaultobjectdatapathnum"
-                    Try
-                        DefaultObjectDataPathNum = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, DefaultObjectDataPathNum) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "directoriesprompt"
-                    Try
-                        NewSettings.DirectoriesPrompt = CBool(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.DirectoriesPrompt) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "fovdefault"
-                    Try
-                        NewSettings.FOVDefault = CDbl(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_dbl(INIProperty.Value, NewSettings.FOVDefault) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -160,7 +138,7 @@
         End Function
     End Class
 
-    Public Function Read_Settings(ByVal File As clsReadFile) As clsResult
+    Public Function Read_Settings(ByVal File As IO.StreamReader) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim INISection As New clsINIRead.clsSection
@@ -229,71 +207,6 @@
         Settings = NewSettings
     End Sub
 
-    Public Function Read_OldSettings(ByVal File As clsReadFile) As Boolean
-        Dim ReturnResult As Boolean = False
-
-        Dim NewSettingsINI As New clsINISettings
-        Dim uintTemp As UInteger
-        Dim byteTemp As Byte
-        Dim strTemp As String = ""
-        Dim Version As UInteger
-        Dim sngTemp As Single
-
-        If Not File.Get_U32(Version) Then
-            Return ReturnResult
-        End If
-        If Version <> 4UI And Version <> 5UI Then
-            Return ReturnResult
-        End If
-        If Not File.Get_U32(uintTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.Undo_Limit = uintTemp
-        If Not File.Get_U32(uintTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.AutoSave_MinInterval_s = uintTemp
-        If Not File.Get_U32(uintTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.AutoSave_MinChanges = uintTemp
-        If Not File.Get_U8(byteTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.AutoSaveEnabled = (byteTemp > 0)
-        If Not File.Get_U8(byteTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.DirectPointer = (byteTemp > 0)
-        If Not File.Get_Text_VariableLength(strTemp) Then
-            Return ReturnResult
-        End If
-        Dim BoldByte As Byte
-        Dim ItalicByte As Byte
-        If Version = 5UI Then
-            If Not File.Get_U8(BoldByte) Then
-                Return ReturnResult
-            End If
-            If Not File.Get_U8(ItalicByte) Then
-                Return ReturnResult
-            End If
-        End If
-        Dim tmpFontStyle As Drawing.FontStyle = FontStyle.Regular
-        If BoldByte > 0 Then
-            tmpFontStyle = CType(tmpFontStyle + FontStyle.Bold, FontStyle)
-        End If
-        If ItalicByte > 0 Then
-            tmpFontStyle = CType(tmpFontStyle + FontStyle.Italic, FontStyle)
-        End If
-        If Not File.Get_F32(sngTemp) Then
-            Return ReturnResult
-        End If
-        NewSettingsINI.NewSettings.DisplayFont = New Font(strTemp, Math.Max(sngTemp, 1.0F), tmpFontStyle)
-
-        ReturnResult = True
-        Return ReturnResult
-    End Function
-
     Private Sub SetFont(ByVal NewFont As Font)
 
         If UnitLabelFont IsNot Nothing Then
@@ -320,15 +233,17 @@
         End If
 #End If
 
-        Dim INI_Settings As clsINIWrite = CreateINIWriteFile()
+        Dim INI_Settings As clsINIWrite
+
+        Try
+            INI_Settings = CreateINIWriteFile(IO.File.Create(SettingsPath))
+        Catch ex As Exception
+            ReturnResult.Problem_Add(ex.Message)
+            Return ReturnResult
+        End Try
 
         ReturnResult.Append(Data_Settings(INI_Settings), "Compile settings.ini: ")
-
-        If ReturnResult.HasProblems Then
-            Return ReturnResult
-        End If
-
-        ReturnResult.Append(INI_Settings.File.WriteFile(SettingsPath, True), "Write settings.ini: ")
+        INI_Settings.File.Close()
 
         Return ReturnResult
     End Function
@@ -336,23 +251,25 @@
     Private Function Data_Settings(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
 
-        File.Property_Append("DirectPointer", CStr(Settings.DirectPointer))
+        File.Property_Append("DirectPointer", InvariantToString_bool(Settings.DirectPointer))
         If UnitLabelFont IsNot Nothing Then
             File.Property_Append("FontFamily", Settings.DisplayFont.FontFamily.Name)
-            File.Property_Append("FontBold", CStr(Settings.DisplayFont.Bold))
-            File.Property_Append("FontItalic", CStr(Settings.DisplayFont.Italic))
-            File.Property_Append("FontSize", CStr(Settings.DisplayFont.SizeInPoints))
+            File.Property_Append("FontBold", InvariantToString_bool(Settings.DisplayFont.Bold))
+            File.Property_Append("FontItalic", InvariantToString_bool(Settings.DisplayFont.Italic))
+            File.Property_Append("FontSize", InvariantToString_sng(Settings.DisplayFont.SizeInPoints))
         End If
-        File.Property_Append("MinimapSize", CStr(Settings.MinimapSize))
-        File.Property_Append("MinimapTeamColours", CStr(Settings.MinimapTeamColours))
-        File.Property_Append("MinimapTeamColoursExceptFeatures", CStr(Settings.MinimapTeamColoursExceptFeatures))
-        File.Property_Append("UndoLimit", CStr(Settings.Undo_Limit))
-        File.Property_Append("AutoSave", CStr(Settings.AutoSaveEnabled))
-        File.Property_Append("AutoSaveMinInterval", CStr(Settings.AutoSave_MinInterval_s))
-        File.Property_Append("AutoSaveMinChanges", CStr(Settings.AutoSave_MinChanges))
-        File.Property_Append("AutoSaveCompress", CStr(Settings.AutoSaveCompress))
-        File.Property_Append("DirectoriesPrompt", CStr(Settings.DirectoriesPrompt))
-        File.Property_Append("FOVDefault", CStr(Settings.FOVDefault))
+        File.Property_Append("MinimapSize", InvariantToString_int(Settings.MinimapSize))
+        File.Property_Append("MinimapTeamColours", InvariantToString_bool(Settings.MinimapTeamColours))
+        File.Property_Append("MinimapTeamColoursExceptFeatures", InvariantToString_bool(Settings.MinimapTeamColoursExceptFeatures))
+        File.Property_Append("MinimapCliffColour", Settings.MinimapCliffColour.GetINIOutput)
+        File.Property_Append("MinimapSelectedObjectsColour", Settings.MinimapSelectedObjectsColour.GetINIOutput)
+        File.Property_Append("UndoLimit", InvariantToString_sng(Settings.Undo_Limit))
+        File.Property_Append("AutoSave", InvariantToString_bool(Settings.AutoSaveEnabled))
+        File.Property_Append("AutoSaveMinInterval", InvariantToString_sng(Settings.AutoSave_MinInterval_s))
+        File.Property_Append("AutoSaveMinChanges", InvariantToString_sng(Settings.AutoSave_MinChanges))
+        File.Property_Append("AutoSaveCompress", InvariantToString_bool(Settings.AutoSaveCompress))
+        File.Property_Append("DirectoriesPrompt", InvariantToString_bool(Settings.DirectoriesPrompt))
+        File.Property_Append("FOVDefault", InvariantToString_dbl(Settings.FOVDefault))
         Dim A As Integer
         Dim Paths() As String
         Paths = frmDataInstance.TilesetsPathSet.GetPaths
@@ -361,7 +278,7 @@
         Next
         A = frmDataInstance.TilesetsPathSet.SelectedNum
         If A >= 0 Then
-            File.Property_Append("DefaultTilesetsPathNum", CStr(A))
+            File.Property_Append("DefaultTilesetsPathNum", InvariantToString_int(A))
         End If
         Paths = frmDataInstance.ObjectDataPathSet.GetPaths
         For A = 0 To Paths.GetUpperBound(0)
@@ -369,7 +286,7 @@
         Next
         A = frmDataInstance.ObjectDataPathSet.SelectedNum
         If A >= 0 Then
-            File.Property_Append("DefaultObjectDataPathNum", CStr(A))
+            File.Property_Append("DefaultObjectDataPathNum", InvariantToString_int(A))
         End If
 
         Return ReturnResult
@@ -378,25 +295,16 @@
     Public Function Settings_Load() As clsResult
         Dim ReturnResult As New clsResult
 
-        Dim File_Settings As New clsReadFile
-        If File_Settings.Begin(SettingsPath).Success Then
-            ReturnResult.Append(Read_Settings(File_Settings), "Read settings.ini: ")
-            File_Settings.Close()
-        Else
-#If Portable = 0.0# Then
-            Dim File_OldSettings As New clsReadFile
-            If File_OldSettings.Begin(OldSettingsPath).Success Then
-                Read_OldSettings(File_OldSettings)
-                File_OldSettings.Close()
-            Else
-                Dim NewINISettings As New clsINISettings
-                UpdateINISettings(NewINISettings)
-            End If
-#Else
+        Dim File_Settings As IO.StreamReader
+        Try
+            File_Settings = New IO.StreamReader(SettingsPath)
+        Catch ex As Exception
             Dim NewINISettings As New clsINISettings
             UpdateINISettings(NewINISettings)
-#End If
-        End If
+            Return ReturnResult
+        End Try
+
+        ReturnResult.Append(Read_Settings(File_Settings), "Read settings.ini: ")
 
         Return ReturnResult
     End Function

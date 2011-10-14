@@ -5,58 +5,86 @@
 
     Private DisplayFont As Font
 
+    Private MinimapCliffColour As clsRGBA_sng
+    Private clrMinimapCliffs As ctrlColour
+    Private MinimapSelectedObjectColour As clsRGBA_sng
+    Private clrMinimapSelectedObjects As ctrlColour
+
     Public Sub New()
         InitializeComponent()
 
         Icon = ProgramIcon
 
-        txtAutosaveChanges.Text = CStr(Settings.AutoSave_MinChanges)
-        txtAutosaveInterval.Text = CStr(Settings.AutoSave_MinInterval_s)
+        txtAutosaveChanges.Text = InvariantToString_sng(Settings.AutoSave_MinChanges)
+        txtAutosaveInterval.Text = InvariantToString_sng(Settings.AutoSave_MinInterval_s)
         cbxAutosaveCompression.Checked = Settings.AutoSaveCompress
         cbxAutosaveEnabled.Checked = Settings.AutoSaveEnabled
         cbxAskDirectories.Checked = Settings.DirectoriesPrompt
         cbxPointerDirect.Checked = Settings.DirectPointer
         DisplayFont = Settings.DisplayFont
         UpdateDisplayFontLabel()
-        txtFOV.Text = CStr(Settings.FOVDefault)
-        txtMinimapSize.Text = CStr(Settings.MinimapSize)
+        txtFOV.Text = InvariantToString_dbl(Settings.FOVDefault)
+
+        MinimapCliffColour = New clsRGBA_sng(Settings.MinimapCliffColour)
+        clrMinimapCliffs = New ctrlColour(MinimapCliffColour)
+        pnlMinimapCliffColour.Controls.Add(clrMinimapCliffs)
+
+        MinimapSelectedObjectColour = New clsRGBA_sng(Settings.MinimapSelectedObjectsColour)
+        clrMinimapSelectedObjects = New ctrlColour(MinimapSelectedObjectColour)
+        pnlMinimapSelectedObjectColour.Controls.Add(clrMinimapSelectedObjects)
+
+        txtMinimapSize.Text = InvariantToString_int(Settings.MinimapSize)
         cbxMinimapObjectColours.Checked = Settings.MinimapTeamColours
         cbxMinimapTeamColourFeatures.Checked = Settings.MinimapTeamColoursExceptFeatures
-        txtUndoSteps.Text = CStr(Settings.Undo_Limit)
+        txtUndoSteps.Text = InvariantToString_sng(Settings.Undo_Limit)
     End Sub
 
     Private Sub btnSave_Click(sender As System.Object, e As System.EventArgs) Handles btnSave.Click
 
         Dim NewSettings As New clsSettings
+        Dim dblTemp As Double
 
-        NewSettings.AutoSave_MinChanges = CUInt(Clamp_dbl(Val(txtAutosaveChanges.Text), 1.0#, CDbl(UInteger.MaxValue) - 1.0#))
-        NewSettings.AutoSave_MinInterval_s = CUInt(Clamp_dbl(Val(txtAutosaveInterval.Text), 1.0#, CDbl(UInteger.MaxValue) - 1.0#))
+        If InvariantParse_dbl(txtAutosaveChanges.Text, dblTemp) Then
+            NewSettings.AutoSave_MinChanges = CUInt(Clamp_dbl(dblTemp, 1.0#, CDbl(UInteger.MaxValue) - 1.0#))
+        End If
+        If InvariantParse_dbl(txtAutosaveInterval.Text, dblTemp) Then
+            NewSettings.AutoSave_MinInterval_s = CUInt(Clamp_dbl(dblTemp, 1.0#, CDbl(UInteger.MaxValue) - 1.0#))
+        End If
         NewSettings.AutoSaveCompress = cbxAutosaveCompression.Checked
         NewSettings.AutoSaveEnabled = cbxAutosaveEnabled.Checked
         NewSettings.DirectoriesPrompt = cbxAskDirectories.Checked
         NewSettings.DirectPointer = cbxPointerDirect.Checked
         NewSettings.DisplayFont = DisplayFont
-        NewSettings.FOVDefault = Clamp_dbl(Val(txtFOV.Text), 0.00005#, 0.005#)
-        NewSettings.MinimapSize = CInt(Clamp_dbl(Val(txtMinimapSize.Text), 0.0#, 512.0#))
+        If InvariantParse_dbl(txtFOV.Text, dblTemp) Then
+            NewSettings.FOVDefault = Clamp_dbl(dblTemp, 0.00005#, 0.005#)
+        End If
+        NewSettings.MinimapCliffColour = MinimapCliffColour
+        NewSettings.MinimapSelectedObjectsColour = MinimapSelectedObjectColour
+        If InvariantParse_dbl(txtMinimapSize.Text, dblTemp) Then
+            NewSettings.MinimapSize = CInt(Clamp_dbl(dblTemp, 0.0#, 512.0#))
+        End If
         NewSettings.MinimapTeamColours = cbxMinimapObjectColours.Checked
         NewSettings.MinimapTeamColoursExceptFeatures = cbxMinimapTeamColourFeatures.Checked
-        NewSettings.Undo_Limit = CUInt(Clamp_dbl(Val(txtUndoSteps.Text), 0.0#, 8192.0#))
+        If InvariantParse_dbl(txtUndoSteps.Text, dblTemp) Then
+            NewSettings.Undo_Limit = CUInt(Clamp_dbl(dblTemp, 0.0#, 8192.0#))
+        End If
 
         UpdateSettings(NewSettings)
 
-        Main_Map.MinimapMakeLater()
+        Dim Map As clsMap = MainMap
+        If Map IsNot Nothing Then
+            Map.MinimapMakeLater()
+        End If
         frmMainInstance.View_DrawViewLater()
 
         AllowClose = True
         Close()
-        frmOptionsInstance = Nothing
     End Sub
 
     Private Sub btnCancel_Click(sender As System.Object, e As System.EventArgs) Handles btnCancel.Click
 
         AllowClose = True
         Close()
-        frmOptionsInstance = Nothing
     End Sub
 
     Private Sub btnFont_Click(sender As System.Object, e As System.EventArgs) Handles btnFont.Click
@@ -90,7 +118,11 @@
 
     Private Sub frmOptions_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
-        e.Cancel = Not AllowClose
+        If AllowClose Then
+            frmOptionsInstance = Nothing
+        Else
+            e.Cancel = True
+        End If
     End Sub
 
     Private Sub UpdateDisplayFontLabel()
@@ -137,6 +169,10 @@
         Me.cbxAskDirectories = New System.Windows.Forms.CheckBox()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.btnSave = New System.Windows.Forms.Button()
+        Me.pnlMinimapCliffColour = New System.Windows.Forms.Panel()
+        Me.Label5 = New System.Windows.Forms.Label()
+        Me.Label6 = New System.Windows.Forms.Label()
+        Me.pnlMinimapSelectedObjectColour = New System.Windows.Forms.Panel()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         Me.GroupBox7.SuspendLayout()
@@ -178,12 +214,13 @@
         '
         Me.GroupBox7.Controls.Add(Me.txtFOV)
         Me.GroupBox7.Controls.Add(Me.Label4)
-        Me.GroupBox7.Location = New System.Drawing.Point(316, 143)
+        Me.GroupBox7.Location = New System.Drawing.Point(316, 232)
         Me.GroupBox7.Name = "GroupBox7"
         Me.GroupBox7.Size = New System.Drawing.Size(304, 50)
         Me.GroupBox7.TabIndex = 44
         Me.GroupBox7.TabStop = False
         Me.GroupBox7.Text = "Field Of View"
+        Me.GroupBox7.UseCompatibleTextRendering = True
         '
         'txtFOV
         '
@@ -207,12 +244,13 @@
         'GroupBox6
         '
         Me.GroupBox6.Controls.Add(Me.cbxPointerDirect)
-        Me.GroupBox6.Location = New System.Drawing.Point(316, 87)
+        Me.GroupBox6.Location = New System.Drawing.Point(316, 176)
         Me.GroupBox6.Name = "GroupBox6"
         Me.GroupBox6.Size = New System.Drawing.Size(304, 50)
         Me.GroupBox6.TabIndex = 43
         Me.GroupBox6.TabStop = False
         Me.GroupBox6.Text = "Pointer"
+        Me.GroupBox6.UseCompatibleTextRendering = True
         '
         'cbxPointerDirect
         '
@@ -228,16 +266,21 @@
         '
         'GroupBox5
         '
+        Me.GroupBox5.Controls.Add(Me.Label6)
+        Me.GroupBox5.Controls.Add(Me.pnlMinimapSelectedObjectColour)
+        Me.GroupBox5.Controls.Add(Me.Label5)
+        Me.GroupBox5.Controls.Add(Me.pnlMinimapCliffColour)
         Me.GroupBox5.Controls.Add(Me.txtMinimapSize)
         Me.GroupBox5.Controls.Add(Me.cbxMinimapTeamColourFeatures)
         Me.GroupBox5.Controls.Add(Me.cbxMinimapObjectColours)
         Me.GroupBox5.Controls.Add(Me.Label3)
         Me.GroupBox5.Location = New System.Drawing.Point(316, 7)
         Me.GroupBox5.Name = "GroupBox5"
-        Me.GroupBox5.Size = New System.Drawing.Size(304, 72)
+        Me.GroupBox5.Size = New System.Drawing.Size(304, 163)
         Me.GroupBox5.TabIndex = 42
         Me.GroupBox5.TabStop = False
         Me.GroupBox5.Text = "Minimap"
+        Me.GroupBox5.UseCompatibleTextRendering = True
         '
         'txtMinimapSize
         '
@@ -250,7 +293,7 @@
         'cbxMinimapTeamColourFeatures
         '
         Me.cbxMinimapTeamColourFeatures.AutoSize = True
-        Me.cbxMinimapTeamColourFeatures.Location = New System.Drawing.Point(146, 42)
+        Me.cbxMinimapTeamColourFeatures.Location = New System.Drawing.Point(147, 42)
         Me.cbxMinimapTeamColourFeatures.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxMinimapTeamColourFeatures.Name = "cbxMinimapTeamColourFeatures"
         Me.cbxMinimapTeamColourFeatures.Size = New System.Drawing.Size(120, 21)
@@ -262,7 +305,7 @@
         'cbxMinimapObjectColours
         '
         Me.cbxMinimapObjectColours.AutoSize = True
-        Me.cbxMinimapObjectColours.Location = New System.Drawing.Point(7, 42)
+        Me.cbxMinimapObjectColours.Location = New System.Drawing.Point(8, 42)
         Me.cbxMinimapObjectColours.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxMinimapObjectColours.Name = "cbxMinimapObjectColours"
         Me.cbxMinimapObjectColours.Size = New System.Drawing.Size(131, 21)
@@ -292,6 +335,7 @@
         Me.GroupBox4.TabIndex = 41
         Me.GroupBox4.TabStop = False
         Me.GroupBox4.Text = "Display Font"
+        Me.GroupBox4.UseCompatibleTextRendering = True
         '
         'lblFont
         '
@@ -327,6 +371,7 @@
         Me.GroupBox2.TabIndex = 37
         Me.GroupBox2.TabStop = False
         Me.GroupBox2.Text = "Autosave"
+        Me.GroupBox2.UseCompatibleTextRendering = True
         '
         'txtAutosaveInterval
         '
@@ -410,6 +455,7 @@
         Me.GroupBox1.TabIndex = 36
         Me.GroupBox1.TabStop = False
         Me.GroupBox1.Text = "Undo"
+        Me.GroupBox1.UseCompatibleTextRendering = True
         '
         'txtUndoSteps
         '
@@ -440,6 +486,7 @@
         Me.GroupBox3.TabIndex = 40
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "Warzone Data"
+        Me.GroupBox3.UseCompatibleTextRendering = True
         '
         'btnDirectories
         '
@@ -479,6 +526,42 @@
         Me.btnSave.TabIndex = 40
         Me.btnSave.Text = "Accept"
         Me.btnSave.UseVisualStyleBackColor = True
+        '
+        'pnlMinimapCliffColour
+        '
+        Me.pnlMinimapCliffColour.Location = New System.Drawing.Point(132, 67)
+        Me.pnlMinimapCliffColour.Name = "pnlMinimapCliffColour"
+        Me.pnlMinimapCliffColour.Size = New System.Drawing.Size(164, 29)
+        Me.pnlMinimapCliffColour.TabIndex = 42
+        '
+        'Label5
+        '
+        Me.Label5.AutoSize = True
+        Me.Label5.Location = New System.Drawing.Point(8, 67)
+        Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label5.Name = "Label5"
+        Me.Label5.Size = New System.Drawing.Size(71, 20)
+        Me.Label5.TabIndex = 43
+        Me.Label5.Text = "Cliff Colour"
+        Me.Label5.UseCompatibleTextRendering = True
+        '
+        'Label6
+        '
+        Me.Label6.AutoSize = True
+        Me.Label6.Location = New System.Drawing.Point(8, 100)
+        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label6.Name = "Label6"
+        Me.Label6.Size = New System.Drawing.Size(99, 20)
+        Me.Label6.TabIndex = 45
+        Me.Label6.Text = "Object Highlight"
+        Me.Label6.UseCompatibleTextRendering = True
+        '
+        'pnlMinimapSelectedObjectColour
+        '
+        Me.pnlMinimapSelectedObjectColour.Location = New System.Drawing.Point(132, 100)
+        Me.pnlMinimapSelectedObjectColour.Name = "pnlMinimapSelectedObjectColour"
+        Me.pnlMinimapSelectedObjectColour.Size = New System.Drawing.Size(164, 29)
+        Me.pnlMinimapSelectedObjectColour.TabIndex = 44
         '
         'frmOptions
         '
@@ -541,5 +624,9 @@
     Public WithEvents btnAutosaveOpen As System.Windows.Forms.Button
     Public WithEvents btnDirectories As System.Windows.Forms.Button
     Public WithEvents cbxMinimapTeamColourFeatures As System.Windows.Forms.CheckBox
+    Friend WithEvents pnlMinimapCliffColour As System.Windows.Forms.Panel
+    Public WithEvents Label5 As System.Windows.Forms.Label
+    Public WithEvents Label6 As System.Windows.Forms.Label
+    Friend WithEvents pnlMinimapSelectedObjectColour As System.Windows.Forms.Panel
 #End If
 End Class

@@ -24,6 +24,11 @@
 
             Return Math.Atan2(Y, X)
         End Function
+
+        Public Function GetMagnitude() As Double
+
+            Return Math.Sqrt(X * X + Y * Y)
+        End Function
     End Structure
 
     Public Structure sXY_int
@@ -124,13 +129,15 @@
     End Structure
 
     Public Function AngleClamp(ByVal Angle As Double) As Double
+        Dim ReturnResult As Double
 
-        AngleClamp = Angle
-        If AngleClamp < -Math.PI Then
-            AngleClamp += RadOf360Deg
-        ElseIf AngleClamp >= Math.PI Then
-            AngleClamp -= RadOf360Deg
+        ReturnResult = Angle
+        If ReturnResult < -Math.PI Then
+            ReturnResult += RadOf360Deg
+        ElseIf ReturnResult >= Math.PI Then
+            ReturnResult -= RadOf360Deg
         End If
+        Return ReturnResult
     End Function
 
     Public Function GetDist_XY_int(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Double
@@ -159,33 +166,39 @@
     End Function
 
     Public Function Clamp_dbl(ByVal Amount As Double, ByVal Minimum As Double, ByVal Maximum As Double) As Double
+        Dim ReturnResult As Double
 
-        Clamp_dbl = Amount
-        If Clamp_dbl < Minimum Then
-            Clamp_dbl = Minimum
-        ElseIf Clamp_dbl > Maximum Then
-            Clamp_dbl = Maximum
+        ReturnResult = Amount
+        If ReturnResult < Minimum Then
+            ReturnResult = Minimum
+        ElseIf ReturnResult > Maximum Then
+            ReturnResult = Maximum
         End If
+        Return ReturnResult
     End Function
 
     Public Function Clamp_sng(ByVal Amount As Single, ByVal Minimum As Single, ByVal Maximum As Single) As Single
+        Dim ReturnResult As Single
 
-        Clamp_sng = Amount
-        If Clamp_sng < Minimum Then
-            Clamp_sng = Minimum
-        ElseIf Clamp_sng > Maximum Then
-            Clamp_sng = Maximum
+        ReturnResult = Amount
+        If ReturnResult < Minimum Then
+            ReturnResult = Minimum
+        ElseIf ReturnResult > Maximum Then
+            ReturnResult = Maximum
         End If
+        Return ReturnResult
     End Function
 
     Public Function Clamp_int(ByVal Amount As Integer, ByVal Minimum As Integer, ByVal Maximum As Integer) As Integer
+        Dim ReturnResult As Integer
 
-        Clamp_int = Amount
-        If Clamp_int < Minimum Then
-            Clamp_int = Minimum
-        ElseIf Clamp_int > Maximum Then
-            Clamp_int = Maximum
+        ReturnResult = Amount
+        If ReturnResult < Minimum Then
+            ReturnResult = Minimum
+        ElseIf ReturnResult > Maximum Then
+            ReturnResult = Maximum
         End If
+        Return ReturnResult
     End Function
 
     Public Structure sIntersectPos

@@ -34,7 +34,7 @@
         For A = 0 To ButtonsPerRow - 1
             tsbNumber(A) = New ToolStripButton
             tsbNumber(A).DisplayStyle = ToolStripItemDisplayStyle.Text
-            tsbNumber(A).Text = CStr(A)
+            tsbNumber(A).Text = InvariantToString_int(A)
             tsbNumber(A).AutoToolTip = False
             AddHandler tsbNumber(A).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum1.Items.Add(tsbNumber(A))
@@ -42,7 +42,7 @@
             B = A + ButtonsPerRow
             tsbNumber(B) = New ToolStripButton
             tsbNumber(B).DisplayStyle = ToolStripItemDisplayStyle.Text
-            tsbNumber(B).Text = CStr(B)
+            tsbNumber(B).Text = InvariantToString_int(B)
             tsbNumber(B).AutoToolTip = False
             AddHandler tsbNumber(B).Click, AddressOf tsbNumber_Clicked
             tsPlayerNum2.Items.Add(tsbNumber(B))
@@ -75,9 +75,15 @@
         Dim A As Integer
 
         _SelectedUnitGroup = NewSelectedUnitGroup
-        For A = 0 To 10
-            tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is NewSelectedUnitGroup)
-        Next
+        If NewSelectedUnitGroup Is Nothing Then
+            For A = 0 To 10
+                tsbNumber(A).Checked = False
+            Next
+        Else
+            For A = 0 To 10
+                tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is NewSelectedUnitGroup)
+            Next
+        End If
 
         RaiseEvent SelectedUnitGroupChanged()
     End Sub
@@ -85,12 +91,21 @@
     Public Sub SetButtonUnitGroups(ByVal NewMap As clsMap)
         Dim A As Integer
 
-        For A = 0 To PlayerCountMax - 1
-            tsbNumber(A).Tag = NewMap.UnitGroups(A)
-        Next
-        tsbNumber(ScavButtonNum).Tag = NewMap.ScavengerUnitGroup
+        If NewMap Is Nothing Then
+            For A = 0 To PlayerCountMax - 1
+                tsbNumber(A).Tag = Nothing
+            Next
+            tsbNumber(ScavButtonNum).Tag = Nothing
 
-        SelectedUnitGroup = NewMap.ScavengerUnitGroup
+            SelectedUnitGroup = Nothing
+        Else
+            For A = 0 To PlayerCountMax - 1
+                tsbNumber(A).Tag = NewMap.UnitGroups(A)
+            Next
+            tsbNumber(ScavButtonNum).Tag = NewMap.ScavengerUnitGroup
+
+            SelectedUnitGroup = NewMap.ScavengerUnitGroup
+        End If
     End Sub
 
 #If MonoDevelop <> 0.0# Then

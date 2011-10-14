@@ -78,7 +78,8 @@
     <ApplicationIcon>flaME.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib">
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>.\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Matrix3D, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -116,6 +117,7 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApplicationEvents.vb" />
     <Compile Include="clsBooleanMap.vb" />
     <Compile Include="clsComponent.vb" />
     <Compile Include="clsGeneratorMap.vb" />
@@ -123,21 +125,27 @@
     <Compile Include="clsHeightmap.vb" />
     <Compile Include="clsInputControl.vb" />
     <Compile Include="clsMap.vb" />
+    <Compile Include="clsMapDraw.vb" />
     <Compile Include="clsMapFMap.vb" />
     <Compile Include="clsMapOtherIO.vb" />
     <Compile Include="clsMapTools.vb" />
     <Compile Include="clsMapWZ.vb" />
     <Compile Include="clsModel.vb" />
     <Compile Include="clsPainter.vb" />
-    <Compile Include="clsReadFile.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="clsTileset.vb" />
     <Compile Include="clsUnitType.vb" />
-    <Compile Include="clsWriteFile.vb" />
+    <Compile Include="clsViewInfo.vb" />
     <Compile Include="ctrlBrush.Designer.vb">
       <DependentUpon>ctrlBrush.vb</DependentUpon>
     </Compile>
     <Compile Include="ctrlBrush.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ctrlColour.Designer.vb">
+      <DependentUpon>ctrlColour.vb</DependentUpon>
+    </Compile>
+    <Compile Include="ctrlColour.vb">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ctrlMapView.Designer.vb">
@@ -182,6 +190,9 @@
     <Compile Include="frmGenerator.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmGeneratorIC.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmMain.Designer.vb">
       <DependentUpon>frmMain.vb</DependentUpon>
     </Compile>
@@ -189,12 +200,6 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmMainIC.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmMapTexturer.Designer.vb">
-      <DependentUpon>frmMapTexturer.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmMapTexturer.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmOptions.Designer.vb">
@@ -226,7 +231,9 @@
     <Compile Include="modData.vb" />
     <Compile Include="modGenerator.vb" />
     <Compile Include="modINI.vb" />
+    <Compile Include="modMaps.vb" />
     <Compile Include="modMath.vb" />
+    <Compile Include="modPainters.vb" />
     <Compile Include="modProgram.vb" />
     <Compile Include="modSettings.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
@@ -254,6 +261,9 @@
     <EmbeddedResource Include="ctrlBrush.resx">
       <DependentUpon>ctrlBrush.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ctrlColour.resx">
+      <DependentUpon>ctrlColour.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="ctrlMapView.resx">
       <DependentUpon>ctrlMapView.vb</DependentUpon>
     </EmbeddedResource>
@@ -277,9 +287,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="frmMapTexturer.resx">
-      <DependentUpon>frmMapTexturer.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmOptions.resx">
       <DependentUpon>frmOptions.vb</DependentUpon>

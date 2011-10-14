@@ -1,15 +1,62 @@
 ﻿Public Module TileOrientation
 
+    Public Orientation_Clockwise As New sTileOrientation(True, False, True)
+    Public Orientation_CounterClockwise As New sTileOrientation(False, True, True)
+    Public Orientation_FlipX As New sTileOrientation(True, False, False)
+    Public Orientation_FlipY As New sTileOrientation(False, True, False)
+
     Public Structure sTileOrientation
         Public ResultXFlip As Boolean
         Public ResultYFlip As Boolean
         Public SwitchedAxes As Boolean
 
-        Public Sub New(ByVal New_ResultXFlip As Boolean, ByVal New_ResultZFlip As Boolean, ByVal New_SwitchedAxes As Boolean)
+        Public Sub New(ByVal ResultXFlip As Boolean, ByVal ResultZFlip As Boolean, ByVal SwitchedAxes As Boolean)
 
-            ResultXFlip = New_ResultXFlip
-            ResultYFlip = New_ResultZFlip
-            SwitchedAxes = New_SwitchedAxes
+            Me.ResultXFlip = ResultXFlip
+            Me.ResultYFlip = ResultZFlip
+            Me.SwitchedAxes = SwitchedAxes
+        End Sub
+
+        Public Function GetRotated(ByVal Orientation As sTileOrientation) As sTileOrientation
+            Dim ReturnResult As sTileOrientation
+
+            ReturnResult.SwitchedAxes = (SwitchedAxes Xor Orientation.SwitchedAxes)
+           
+            If Orientation.SwitchedAxes Then
+                If Orientation.ResultXFlip Then
+                    ReturnResult.ResultXFlip = Not ResultYFlip
+                Else
+                    ReturnResult.ResultXFlip = ResultYFlip
+                End If
+                If Orientation.ResultYFlip Then
+                    ReturnResult.ResultYFlip = Not ResultXFlip
+                Else
+                    ReturnResult.ResultYFlip = ResultXFlip
+                End If
+            Else
+                If Orientation.ResultXFlip Then
+                    ReturnResult.ResultXFlip = Not ResultXFlip
+                Else
+                    ReturnResult.ResultXFlip = ResultXFlip
+                End If
+                If Orientation.ResultYFlip Then
+                    ReturnResult.ResultYFlip = Not ResultYFlip
+                Else
+                    ReturnResult.ResultYFlip = ResultYFlip
+                End If
+            End If
+
+            Return ReturnResult
+        End Function
+
+        Public Sub Reverse()
+
+            If SwitchedAxes Then
+                If ResultXFlip Xor ResultYFlip Then
+                    ResultXFlip = Not ResultXFlip
+                    ResultYFlip = Not ResultYFlip
+                End If
+            End If
         End Sub
 
         Public Sub RotateClockwise()
@@ -31,16 +78,6 @@
                 ResultYFlip = Not ResultYFlip
             End If
         End Sub
-
-        Public Sub Reverse()
-
-            If SwitchedAxes Then
-                If ResultXFlip Xor ResultYFlip Then
-                    ResultXFlip = Not ResultXFlip
-                    ResultYFlip = Not ResultYFlip
-                End If
-            End If
-        End Sub
     End Structure
 
     Public Structure sTileDirection
@@ -52,6 +89,36 @@
             X = NewX
             Y = NewY
         End Sub
+
+        Public Function GetRotated(ByVal Orientation As sTileOrientation) As sTileDirection
+            Dim ReturnResult As sTileDirection
+
+            If Orientation.SwitchedAxes Then
+                If Orientation.ResultXFlip Then
+                    ReturnResult.X = CByte(2) - Y
+                Else
+                    ReturnResult.X = Y
+                End If
+                If Orientation.ResultYFlip Then
+                    ReturnResult.Y = CByte(2) - X
+                Else
+                    ReturnResult.Y = X
+                End If
+            Else
+                If Orientation.ResultXFlip Then
+                    ReturnResult.X = CByte(2) - X
+                Else
+                    ReturnResult.X = X
+                End If
+                If Orientation.ResultYFlip Then
+                    ReturnResult.Y = CByte(2) - Y
+                Else
+                    ReturnResult.Y = Y
+                End If
+            End If
+
+            Return ReturnResult
+        End Function
 
         Public Sub FlipX()
 
@@ -298,23 +365,53 @@
         Return ReturnResult
     End Function
 
-    Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
-        Dim XFlip As Boolean
-        Dim ZFlip As Boolean
+    Public Function GetRotatedPos(ByVal Orientation As sTileOrientation, ByVal Pos As sXY_int, ByVal Limits As sXY_int) As sXY_int
+        Dim Result As sXY_int
 
-        XFlip = TileOrientation.ResultXFlip
-        ZFlip = TileOrientation.ResultYFlip
-
-        'texcoords are reverse of normal
-        If TileOrientation.SwitchedAxes Then
-            If XFlip Xor ZFlip Then
-                XFlip = Not XFlip
-                ZFlip = Not ZFlip
+        If Orientation.SwitchedAxes Then
+            If Orientation.ResultXFlip Then
+                Result.X = Limits.Y - Pos.Y
+            Else
+                Result.X = Pos.Y
+            End If
+            If Orientation.ResultYFlip Then
+                Result.Y = Limits.X - Pos.X
+            Else
+                Result.Y = Pos.X
+            End If
+        Else
+            If Orientation.ResultXFlip Then
+                Result.X = Limits.X - Pos.X
+            Else
+                Result.X = Pos.X
+            End If
+            If Orientation.ResultYFlip Then
+                Result.Y = Limits.Y - Pos.Y
+            Else
+                Result.Y = Pos.Y
             End If
         End If
 
-        If TileOrientation.SwitchedAxes Then
-            If XFlip Then
+        Return Result
+    End Function
+
+    Public Function GetRotatedAngle(ByVal Orientation As sTileOrientation, ByVal Angle As Double) As Double
+        Dim XY_dbl As sXY_dbl
+
+        XY_dbl = GetTileRotatedPos_dbl(Orientation, New sXY_dbl((Math.Cos(Angle) + 1.0#) / 2.0#, (Math.Sin(Angle) + 1.0#) / 2.0#))
+        XY_dbl.X = XY_dbl.X * 2.0# - 1.0#
+        XY_dbl.Y = XY_dbl.Y * 2.0# - 1.0#
+        Return XY_dbl.GetAngle
+    End Function
+
+    Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
+        Dim ReverseOrientation As sTileOrientation
+
+        ReverseOrientation = TileOrientation
+        ReverseOrientation.Reverse()
+
+        If ReverseOrientation.SwitchedAxes Then
+            If ReverseOrientation.ResultXFlip Then
                 CoordA.X = 1.0F
                 CoordB.X = 1.0F
                 CoordC.X = 0.0F
@@ -325,7 +422,7 @@
                 CoordC.X = 1.0F
                 CoordD.X = 1.0F
             End If
-            If ZFlip Then
+            If ReverseOrientation.ResultYFlip Then
                 CoordA.Y = 1.0F
                 CoordB.Y = 0.0F
                 CoordC.Y = 1.0F
@@ -337,7 +434,7 @@
                 CoordD.Y = 1.0F
             End If
         Else
-            If XFlip Then
+            If ReverseOrientation.ResultXFlip Then
                 CoordA.X = 1.0F
                 CoordB.X = 0.0F
                 CoordC.X = 1.0F
@@ -348,7 +445,7 @@
                 CoordC.X = 0.0F
                 CoordD.X = 1.0F
             End If
-            If ZFlip Then
+            If ReverseOrientation.ResultYFlip Then
                 CoordA.Y = 1.0F
                 CoordB.Y = 1.0F
                 CoordC.Y = 0.0F
@@ -416,7 +513,7 @@
         End If
     End Sub
 
-    Public Function IdenticalTileOrientations(ByVal TileOrientationA As sTileDirection, ByVal TileOrientationB As sTileDirection) As Boolean
+    Public Function IdenticalTileDirections(ByVal TileOrientationA As sTileDirection, ByVal TileOrientationB As sTileDirection) As Boolean
 
         Return (TileOrientationA.X = TileOrientationB.X And TileOrientationA.Y = TileOrientationB.Y)
     End Function

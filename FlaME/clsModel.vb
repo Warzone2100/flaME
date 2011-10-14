@@ -92,12 +92,8 @@ Public Class clsModel
         Public PointCount As Integer
     End Structure
 
-    Public Function LoadPIE(ByVal File As clsReadFile) As clsResult
+    Public Function LoadPIE(ByVal File As IO.StreamReader) As clsResult
         Dim ReturnResult As New clsResult
-
-        Dim TerminatorChars(1) As Char
-        TerminatorChars(0) = Chr(10)
-        TerminatorChars(1) = Chr(13)
 
         Dim A As Integer
         Dim B As Integer
@@ -119,8 +115,8 @@ Public Class clsModel
         ReDim Levels(-1)
         LevelNum = -1
         Do
-            strTemp = Nothing
-            If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+            strTemp = File.ReadLine
+            If strTemp Is Nothing Then
                 GoTo FileFinished
             End If
 Reeval:
@@ -160,8 +156,8 @@ Reeval:
                 ReDim Levels(LevelNum).Point(Levels(LevelNum).PointCount - 1)
                 A = 0
                 Do
-                    strTemp = Nothing
-                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                    strTemp = File.ReadLine
+                    If strTemp Is Nothing Then
                         GoTo FileFinished
                     End If
 
@@ -208,8 +204,8 @@ Reeval:
                 ReDim Levels(LevelNum).Polygon(Levels(LevelNum).PolygonCount - 1)
                 A = 0
                 Do
-                    strTemp = Nothing
-                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                    strTemp = File.ReadLine
+                    If strTemp Is Nothing Then
                         GoTo FileFinished
                     End If
 
@@ -324,8 +320,8 @@ Reeval:
                 ReDim Connectors(ConnectorCount - 1)
                 A = 0
                 Do
-                    strTemp = Nothing
-                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, strTemp) Then
+                    strTemp = File.ReadLine
+                    If strTemp Is Nothing Then
                         GoTo FileFinished
                     End If
 

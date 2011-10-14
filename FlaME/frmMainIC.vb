@@ -1,7 +1,7 @@
 ﻿#If MonoDevelop <> 0.0# Then
 Partial Public Class frmMain
 
-    Public Sub InitializeComponent()
+    Private Sub InitializeComponent()
         Me.SplitContainer1 = New System.Windows.Forms.SplitContainer()
         Me.TabControl = New System.Windows.Forms.TabControl()
         Me.tpTextures = New System.Windows.Forms.TabPage()
@@ -219,8 +219,6 @@ Partial Public Class frmMain
         Me.ImportHeightmapToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuImportTileTypes = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
-        Me.menuImportMapCopy = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem2 = New System.Windows.Forms.ToolStripSeparator()
         Me.MapWZToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
@@ -235,6 +233,7 @@ Partial Public Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
+        Me.btnFlatOil = New System.Windows.Forms.Button()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
         Me.SplitContainer1.SuspendLayout()
@@ -1303,6 +1302,7 @@ Partial Public Class frmMain
         '
         'tpAutoHeight
         '
+        Me.tpAutoHeight.Controls.Add(Me.btnFlatOil)
         Me.tpAutoHeight.Controls.Add(Me.btnGenerator)
         Me.tpAutoHeight.Controls.Add(Me.btnWaterTri)
         Me.tpAutoHeight.Controls.Add(Me.btnReinterpretTerrain)
@@ -1317,7 +1317,7 @@ Partial Public Class frmMain
         '
         'btnGenerator
         '
-        Me.btnGenerator.Location = New System.Drawing.Point(11, 122)
+        Me.btnGenerator.Location = New System.Drawing.Point(4, 156)
         Me.btnGenerator.Margin = New System.Windows.Forms.Padding(4)
         Me.btnGenerator.Name = "btnGenerator"
         Me.btnGenerator.Size = New System.Drawing.Size(223, 30)
@@ -1328,7 +1328,7 @@ Partial Public Class frmMain
         '
         'btnWaterTri
         '
-        Me.btnWaterTri.Location = New System.Drawing.Point(11, 47)
+        Me.btnWaterTri.Location = New System.Drawing.Point(4, 42)
         Me.btnWaterTri.Margin = New System.Windows.Forms.Padding(4)
         Me.btnWaterTri.Name = "btnWaterTri"
         Me.btnWaterTri.Size = New System.Drawing.Size(223, 30)
@@ -1339,7 +1339,7 @@ Partial Public Class frmMain
         '
         'btnReinterpretTerrain
         '
-        Me.btnReinterpretTerrain.Location = New System.Drawing.Point(11, 84)
+        Me.btnReinterpretTerrain.Location = New System.Drawing.Point(4, 4)
         Me.btnReinterpretTerrain.Margin = New System.Windows.Forms.Padding(4)
         Me.btnReinterpretTerrain.Name = "btnReinterpretTerrain"
         Me.btnReinterpretTerrain.Size = New System.Drawing.Size(223, 30)
@@ -1350,7 +1350,7 @@ Partial Public Class frmMain
         '
         'btnAutoTri
         '
-        Me.btnAutoTri.Location = New System.Drawing.Point(11, 10)
+        Me.btnAutoTri.Location = New System.Drawing.Point(4, 118)
         Me.btnAutoTri.Margin = New System.Windows.Forms.Padding(4)
         Me.btnAutoTri.Name = "btnAutoTri"
         Me.btnAutoTri.Size = New System.Drawing.Size(223, 30)
@@ -2617,7 +2617,7 @@ Partial Public Class frmMain
         '
         'ToolStripMenuItem4
         '
-        Me.ToolStripMenuItem4.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ImportHeightmapToolStripMenuItem, Me.ToolStripSeparator7, Me.menuImportTileTypes, Me.ToolStripSeparator9, Me.menuImportMapCopy})
+        Me.ToolStripMenuItem4.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ImportHeightmapToolStripMenuItem, Me.ToolStripSeparator7, Me.menuImportTileTypes})
         Me.ToolStripMenuItem4.Name = "ToolStripMenuItem4"
         Me.ToolStripMenuItem4.Size = New System.Drawing.Size(177, 24)
         Me.ToolStripMenuItem4.Text = "Import"
@@ -2625,30 +2625,19 @@ Partial Public Class frmMain
         'ImportHeightmapToolStripMenuItem
         '
         Me.ImportHeightmapToolStripMenuItem.Name = "ImportHeightmapToolStripMenuItem"
-        Me.ImportHeightmapToolStripMenuItem.Size = New System.Drawing.Size(250, 24)
+        Me.ImportHeightmapToolStripMenuItem.Size = New System.Drawing.Size(162, 24)
         Me.ImportHeightmapToolStripMenuItem.Text = "Heightmap..."
         '
         'ToolStripSeparator7
         '
         Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
-        Me.ToolStripSeparator7.Size = New System.Drawing.Size(247, 6)
+        Me.ToolStripSeparator7.Size = New System.Drawing.Size(159, 6)
         '
         'menuImportTileTypes
         '
         Me.menuImportTileTypes.Name = "menuImportTileTypes"
-        Me.menuImportTileTypes.Size = New System.Drawing.Size(250, 24)
+        Me.menuImportTileTypes.Size = New System.Drawing.Size(162, 24)
         Me.menuImportTileTypes.Text = "Tile Types..."
-        '
-        'ToolStripSeparator9
-        '
-        Me.ToolStripSeparator9.Name = "ToolStripSeparator9"
-        Me.ToolStripSeparator9.Size = New System.Drawing.Size(247, 6)
-        '
-        'menuImportMapCopy
-        '
-        Me.menuImportMapCopy.Name = "menuImportMapCopy"
-        Me.menuImportMapCopy.Size = New System.Drawing.Size(250, 24)
-        Me.menuImportMapCopy.Text = "Map as Copied Segment..."
         '
         'ToolStripMenuItem2
         '
@@ -2768,8 +2757,20 @@ Partial Public Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
+        'btnFlatOil
+        '
+        Me.btnFlatOil.Location = New System.Drawing.Point(4, 80)
+        Me.btnFlatOil.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnFlatOil.Name = "btnFlatOil"
+        Me.btnFlatOil.Size = New System.Drawing.Size(223, 30)
+        Me.btnFlatOil.TabIndex = 4
+        Me.btnFlatOil.Text = "Flatten Under Oils"
+        Me.btnFlatOil.UseCompatibleTextRendering = True
+        Me.btnFlatOil.UseVisualStyleBackColor = True
+        '
         'frmMain
         '
+        Me.AllowDrop = true
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.ClientSize = New System.Drawing.Size(1296, 655)
         Me.Controls.Add(Me.TableLayoutPanel5)
@@ -2777,66 +2778,66 @@ Partial Public Class frmMain
         Me.Margin = New System.Windows.Forms.Padding(4)
         Me.Name = "frmMain"
         Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
-        Me.SplitContainer1.Panel1.ResumeLayout(False)
-        Me.SplitContainer1.Panel2.ResumeLayout(False)
-        Me.SplitContainer1.ResumeLayout(False)
-        Me.TabControl.ResumeLayout(False)
-        Me.tpTextures.ResumeLayout(False)
-        Me.TableLayoutPanel6.ResumeLayout(False)
-        Me.Panel5.ResumeLayout(False)
-        Me.Panel5.PerformLayout()
-        Me.Panel6.ResumeLayout(False)
-        Me.tpAutoTexture.ResumeLayout(False)
-        Me.tpAutoTexture.PerformLayout()
-        Me.tpHeight.ResumeLayout(False)
-        Me.tpHeight.PerformLayout()
-        Me.tabHeightSetR.ResumeLayout(False)
-        Me.tabHeightSetL.ResumeLayout(False)
-        Me.tpAutoHeight.ResumeLayout(False)
-        Me.tpResize.ResumeLayout(False)
-        Me.tpResize.PerformLayout()
-        Me.tpObjects.ResumeLayout(False)
-        Me.TableLayoutPanel1.ResumeLayout(False)
-        Me.TableLayoutPanel4.ResumeLayout(False)
-        Me.Panel4.ResumeLayout(False)
-        Me.TableLayoutPanel3.ResumeLayout(False)
-        Me.Panel3.ResumeLayout(False)
-        Me.Panel1.ResumeLayout(False)
-        Me.Panel1.PerformLayout()
-        Me.TableLayoutPanel2.ResumeLayout(False)
-        Me.Panel2.ResumeLayout(False)
-        Me.tpObject.ResumeLayout(False)
-        Me.TableLayoutPanel8.ResumeLayout(False)
-        Me.TableLayoutPanel9.ResumeLayout(False)
-        Me.Panel13.ResumeLayout(False)
-        Me.Panel13.PerformLayout()
-        Me.Panel12.ResumeLayout(False)
-        Me.Panel12.PerformLayout()
-        Me.Panel11.ResumeLayout(False)
-        Me.Panel11.PerformLayout()
-        Me.Panel10.ResumeLayout(False)
-        Me.Panel9.ResumeLayout(False)
-        Me.Panel8.ResumeLayout(False)
-        Me.Panel14.ResumeLayout(False)
-        Me.Panel14.PerformLayout()
-        Me.TableLayoutPanel7.ResumeLayout(False)
-        Me.Panel7.ResumeLayout(False)
-        Me.Panel7.PerformLayout()
-        Me.tsTools.ResumeLayout(False)
-        Me.tsTools.PerformLayout()
-        Me.tsFile.ResumeLayout(False)
-        Me.tsFile.PerformLayout()
-        Me.tsSelection.ResumeLayout(False)
-        Me.tsSelection.PerformLayout()
-        Me.tsMinimap.ResumeLayout(False)
-        Me.tsMinimap.PerformLayout()
-        Me.menuMain.ResumeLayout(False)
-        Me.menuMain.PerformLayout()
-        Me.TableLayoutPanel5.ResumeLayout(False)
-        Me.TableLayoutPanel5.PerformLayout()
-        Me.ResumeLayout(False)
+        Me.SplitContainer1.Panel1.ResumeLayout(false)
+        Me.SplitContainer1.Panel2.ResumeLayout(false)
+        Me.SplitContainer1.ResumeLayout(false)
+        Me.TabControl.ResumeLayout(false)
+        Me.tpTextures.ResumeLayout(false)
+        Me.TableLayoutPanel6.ResumeLayout(false)
+        Me.Panel5.ResumeLayout(false)
+        Me.Panel5.PerformLayout
+        Me.Panel6.ResumeLayout(false)
+        Me.tpAutoTexture.ResumeLayout(false)
+        Me.tpAutoTexture.PerformLayout
+        Me.tpHeight.ResumeLayout(false)
+        Me.tpHeight.PerformLayout
+        Me.tabHeightSetR.ResumeLayout(false)
+        Me.tabHeightSetL.ResumeLayout(false)
+        Me.tpAutoHeight.ResumeLayout(false)
+        Me.tpResize.ResumeLayout(false)
+        Me.tpResize.PerformLayout
+        Me.tpObjects.ResumeLayout(false)
+        Me.TableLayoutPanel1.ResumeLayout(false)
+        Me.TableLayoutPanel4.ResumeLayout(false)
+        Me.Panel4.ResumeLayout(false)
+        Me.TableLayoutPanel3.ResumeLayout(false)
+        Me.Panel3.ResumeLayout(false)
+        Me.Panel1.ResumeLayout(false)
+        Me.Panel1.PerformLayout
+        Me.TableLayoutPanel2.ResumeLayout(false)
+        Me.Panel2.ResumeLayout(false)
+        Me.tpObject.ResumeLayout(false)
+        Me.TableLayoutPanel8.ResumeLayout(false)
+        Me.TableLayoutPanel9.ResumeLayout(false)
+        Me.Panel13.ResumeLayout(false)
+        Me.Panel13.PerformLayout
+        Me.Panel12.ResumeLayout(false)
+        Me.Panel12.PerformLayout
+        Me.Panel11.ResumeLayout(false)
+        Me.Panel11.PerformLayout
+        Me.Panel10.ResumeLayout(false)
+        Me.Panel9.ResumeLayout(false)
+        Me.Panel8.ResumeLayout(false)
+        Me.Panel14.ResumeLayout(false)
+        Me.Panel14.PerformLayout
+        Me.TableLayoutPanel7.ResumeLayout(false)
+        Me.Panel7.ResumeLayout(false)
+        Me.Panel7.PerformLayout
+        Me.tsTools.ResumeLayout(false)
+        Me.tsTools.PerformLayout
+        Me.tsFile.ResumeLayout(false)
+        Me.tsFile.PerformLayout
+        Me.tsSelection.ResumeLayout(false)
+        Me.tsSelection.PerformLayout
+        Me.tsMinimap.ResumeLayout(false)
+        Me.tsMinimap.PerformLayout
+        Me.menuMain.ResumeLayout(false)
+        Me.menuMain.PerformLayout
+        Me.TableLayoutPanel5.ResumeLayout(false)
+        Me.TableLayoutPanel5.PerformLayout
+        Me.ResumeLayout(false)
 
-    End Sub
+End Sub
     Public WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
     Public WithEvents tpTextures As System.Windows.Forms.TabPage
     Public WithEvents tpHeight As System.Windows.Forms.TabPage
@@ -3002,8 +3003,6 @@ Partial Public Class frmMain
     Public WithEvents TabPage24 As System.Windows.Forms.TabPage
     Private WithEvents TabControl As System.Windows.Forms.TabControl
     Public WithEvents tsbSelectionObjects As System.Windows.Forms.ToolStripButton
-    Public WithEvents ToolStripSeparator9 As System.Windows.Forms.ToolStripSeparator
-    Public WithEvents menuImportMapCopy As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents tsbDrawAutotexture As System.Windows.Forms.ToolStripButton
     Public WithEvents btnWaterTri As System.Windows.Forms.Button
     Public WithEvents tsbSelectionFlipX As System.Windows.Forms.ToolStripButton
@@ -3071,5 +3070,6 @@ Partial Public Class frmMain
     Public WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents rdoCliffTriBrush As System.Windows.Forms.RadioButton
     Public WithEvents btnTextureClockwise As System.Windows.Forms.Button
+    Public WithEvents btnFlatOil As System.Windows.Forms.Button
 End Class
 #End If

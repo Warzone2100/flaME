@@ -18,20 +18,24 @@ Public Class clsTileset
     Public Tiles() As sTile
     Public TileCount As Integer
 
+    Public BGColour As New sRGB_sng(0.5F, 0.5F, 0.5F)
+
     Public Function Default_TileTypes_Load(ByVal Path As String) As sResult
         Dim ReturnResult As sResult
-        Dim File As New clsReadFile
+        Dim File As IO.BinaryReader
 
-        ReturnResult = File.Begin(Path)
-        If Not ReturnResult.Success Then
+        Try
+            File = New IO.BinaryReader(New IO.FileStream(Path, IO.FileMode.Open))
+        Catch ex As Exception
+            ReturnResult.Problem = ex.Message
             Return ReturnResult
-        End If
+        End Try
         ReturnResult = Default_TileTypes_Read(File)
         File.Close()
         Return ReturnResult
     End Function
 
-    Private Function Default_TileTypes_Read(ByVal File As clsReadFile) As sResult
+    Private Function Default_TileTypes_Read(ByVal File As IO.BinaryReader) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -41,43 +45,36 @@ Public Class clsTileset
         Dim ushortTemp As UShort
         Dim strTemp As String = ""
 
-        If Not File.Get_Text(4, strTemp) Then
-            ReturnResult.Problem = "Read error."
-            Return ReturnResult
-        End If
-        If strTemp <> "ttyp" Then
-            ReturnResult.Problem = "Bad identifier."
-            Return ReturnResult
-        End If
-
-        If Not File.Get_U32(uintTemp) Then
-            ReturnResult.Problem = "Read error."
-            Return ReturnResult
-        End If
-        If Not uintTemp = 8UI Then
-            ReturnResult.Problem = "Unknown version."
-            Return ReturnResult
-        End If
-
-        If Not File.Get_U32(uintTemp) Then
-            ReturnResult.Problem = "Read error."
-            Return ReturnResult
-        End If
-        TileCount = CInt(uintTemp)
-        ReDim Tiles(TileCount - 1)
-
-        For A = 0 To Math.Min(CInt(uintTemp), TileCount) - 1
-            If Not File.Get_U16(ushortTemp) Then
-                ReturnResult.Problem = "Read error."
+        Try
+            strTemp = ReadOldTextOfLength(File, 4)
+            If strTemp <> "ttyp" Then
+                ReturnResult.Problem = "Bad identifier."
                 Return ReturnResult
             End If
-            If ushortTemp > 11US Then
-                ReturnResult.Problem = "Unknown tile type."
+
+            uintTemp = File.ReadUInt32
+            If Not uintTemp = 8UI Then
+                ReturnResult.Problem = "Unknown version."
                 Return ReturnResult
             End If
-            Tiles(A).Default_Type = CByte(ushortTemp)
-        Next
 
+            uintTemp = File.ReadUInt32
+            TileCount = CInt(uintTemp)
+            ReDim Tiles(TileCount - 1)
+
+            For A = 0 To Math.Min(CInt(uintTemp), TileCount) - 1
+                ushortTemp = File.ReadUInt16
+                If ushortTemp > TileTypeCount Then
+                    ReturnResult.Problem = "Unknown tile type."
+                    Return ReturnResult
+                End If
+                Tiles(A).Default_Type = CByte(ushortTemp)
+            Next
+        Catch ex As Exception
+            ReturnResult.Problem = ex.Message
+            Return ReturnResult
+        End Try
+        
         ReturnResult.Success = True
         Return ReturnResult
     End Function

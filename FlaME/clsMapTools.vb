@@ -1,69 +1,134 @@
 ﻿Partial Public Class clsMap
 
-    Public Sub Rotate_Clockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
+    Public Sub Rotate(ByVal Orientation As sTileOrientation, ByVal ObjectRotateMode As enumObjectRotateMode)
         Dim X As Integer
         Dim Y As Integer
-        Dim NewTerrain As New clsTerrain(New sXY_int(Terrain.TileSize.Y, Terrain.TileSize.X))
-        Dim tmpGateways() As sGateway
-        Dim X2 As Integer
+        Dim Pos As sXY_int
+        Dim RotatedPos As sXY_int
+        Dim NewTerrainPosA As sXY_int = GetRotatedPos(Orientation, New sXY_int(0, 0), Terrain.TileSize)
+        Dim NewTerrainPosB As sXY_int = GetRotatedPos(Orientation, Terrain.TileSize, Terrain.TileSize)
+        Dim VertexLimits As New sXY_int(Math.Max(NewTerrainPosA.x, NewTerrainPosB.x), Math.Max(NewTerrainPosA.y, NewTerrainPosB.y))
+        Dim NewTerrain As New clsTerrain(VertexLimits)
+        Dim NewTileLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y - 1)
+        Dim NewSideHLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y)
+        Dim NewSideVLimits As New sXY_int(NewTerrain.TileSize.X, NewTerrain.TileSize.Y - 1)
+        Dim NewPosLimits As New sXY_int(NewTerrain.TileSize.X * TerrainGridSpacing - 1, NewTerrain.TileSize.Y * TerrainGridSpacing - 1)
+        Dim OldTileLimits As New sXY_int(Terrain.TileSize.X - 1, Terrain.TileSize.Y - 1)
+        Dim OldPosLimits As New sXY_int(Terrain.TileSize.X * TerrainGridSpacing - 1, Terrain.TileSize.Y * TerrainGridSpacing - 1)
+        Dim tmpGateways() As clsGateway
+        Dim tmpGatewayCount As Integer
+        Dim ReverseOrientation As sTileOrientation
+        Dim TriDirection As sTileDirection
+        ReverseOrientation = Orientation
+        ReverseOrientation.Reverse()
 
         Undo_Clear()
         SectorAll_GLLists_Delete()
 
         For Y = 0 To NewTerrain.TileSize.Y
+            Pos.Y = Y
             For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Y, Terrain.TileSize.Y - X).Height
-                NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Y, Terrain.TileSize.Y - X).Terrain
+                Pos.X = X
+                RotatedPos = GetRotatedPos(ReverseOrientation, Pos, VertexLimits)
+                NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(RotatedPos.X, RotatedPos.Y).Height
+                NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(RotatedPos.X, RotatedPos.Y).Terrain
             Next
         Next
         For Y = 0 To NewTerrain.TileSize.Y - 1
+            Pos.Y = Y
             For X = 0 To NewTerrain.TileSize.X - 1
-                X2 = Terrain.TileSize.Y - X - 1
-                NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(Y, X2).Texture
-                NewTerrain.Tiles(X, Y).Texture.Orientation.RotateClockwise()
-                NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(Y, X2).DownSide
-                NewTerrain.Tiles(X, Y).DownSide.RotateClockwise()
-                NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(Y, X2).Tri
-                NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(Y, X2).TriBottomLeftIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(Y, X2).TriBottomRightIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(Y, X2).TriTopRightIsCliff
-                NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(Y, X2).TriTopLeftIsCliff
+                Pos.X = X
+                RotatedPos = GetRotatedPos(ReverseOrientation, Pos, NewTileLimits)
+                NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(RotatedPos.X, RotatedPos.Y).Texture
+                NewTerrain.Tiles(X, Y).Texture.Orientation = NewTerrain.Tiles(X, Y).Texture.Orientation.GetRotated(Orientation)
+                NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(RotatedPos.X, RotatedPos.Y).DownSide
+                NewTerrain.Tiles(X, Y).DownSide = NewTerrain.Tiles(X, Y).DownSide.GetRotated(Orientation)
+                If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).Tri Then
+                    TriDirection = TileDirection_TopLeft
+                Else
+                    TriDirection = TileDirection_TopRight
+                End If
+                TriDirection = TriDirection.GetRotated(Orientation)
+                NewTerrain.Tiles(X, Y).Tri = (IdenticalTileDirections(TriDirection, TileDirection_TopLeft) Or IdenticalTileDirections(TriDirection, TileDirection_BottomRight))
+                If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).Tri Then
+                    If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).TriTopLeftIsCliff Then
+                        RotateDirection(TileDirection_TopLeft, Orientation, TriDirection)
+                        NewTerrain.Tiles(X, Y).TriCliffAddDirection(TriDirection)
+                    End If
+                    If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).TriBottomRightIsCliff Then
+                        RotateDirection(TileDirection_BottomRight, Orientation, TriDirection)
+                        NewTerrain.Tiles(X, Y).TriCliffAddDirection(TriDirection)
+                    End If
+                Else
+                    If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).TriTopRightIsCliff Then
+                        RotateDirection(TileDirection_TopRight, Orientation, TriDirection)
+                        NewTerrain.Tiles(X, Y).TriCliffAddDirection(TriDirection)
+                    End If
+                    If Terrain.Tiles(RotatedPos.X, RotatedPos.Y).TriBottomLeftIsCliff Then
+                        RotateDirection(TileDirection_BottomLeft, Orientation, TriDirection)
+                        NewTerrain.Tiles(X, Y).TriCliffAddDirection(TriDirection)
+                    End If
+                End If
+                NewTerrain.Tiles(X, Y).Terrain_IsCliff = Terrain.Tiles(RotatedPos.X, RotatedPos.Y).Terrain_IsCliff
             Next
         Next
-        For Y = 0 To NewTerrain.TileSize.Y
-            For X = 0 To NewTerrain.TileSize.X - 1
-                NewTerrain.SideH(X, Y).Road = Terrain.SideV(Y, Terrain.TileSize.Y - X - 1).Road
+        If Orientation.SwitchedAxes Then
+            For Y = 0 To NewTerrain.TileSize.Y
+                Pos.Y = Y
+                For X = 0 To NewTerrain.TileSize.X - 1
+                    Pos.X = X
+                    RotatedPos = GetRotatedPos(ReverseOrientation, Pos, NewSideHLimits)
+                    NewTerrain.SideH(X, Y).Road = Terrain.SideV(RotatedPos.X, RotatedPos.Y).Road
+                Next
             Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y - 1
-            For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.SideV(X, Y).Road = Terrain.SideH(Y, Terrain.TileSize.Y - X).Road
+            For Y = 0 To NewTerrain.TileSize.Y - 1
+                Pos.Y = Y
+                For X = 0 To NewTerrain.TileSize.X
+                    Pos.X = X
+                    RotatedPos = GetRotatedPos(ReverseOrientation, Pos, NewSideVLimits)
+                    NewTerrain.SideV(X, Y).Road = Terrain.SideH(RotatedPos.X, RotatedPos.Y).Road
+                Next
             Next
-        Next
+        Else
+            For Y = 0 To NewTerrain.TileSize.Y
+                Pos.Y = Y
+                For X = 0 To NewTerrain.TileSize.X - 1
+                    Pos.X = X
+                    RotatedPos = GetRotatedPos(ReverseOrientation, Pos, NewSideHLimits)
+                    NewTerrain.SideH(X, Y).Road = Terrain.SideH(RotatedPos.X, RotatedPos.Y).Road
+                Next
+            Next
+            For Y = 0 To NewTerrain.TileSize.Y - 1
+                Pos.Y = Y
+                For X = 0 To NewTerrain.TileSize.X
+                    Pos.X = X
+                    RotatedPos = GetRotatedPos(ReverseOrientation, Pos, NewSideVLimits)
+                    NewTerrain.SideV(X, Y).Road = Terrain.SideV(RotatedPos.X, RotatedPos.Y).Road
+                Next
+            Next
+        End If
 
         Dim A As Integer
-        Dim intTemp As Integer
 
-        ReDim tmpGateways(GatewayCount - 1)
-
+        tmpGatewayCount = GatewayCount
+        ReDim tmpGateways(tmpGatewayCount - 1)
         For A = 0 To GatewayCount - 1
-            tmpGateways(A).PosA.X = Terrain.TileSize.Y - Gateways(A).PosA.Y - 1
-            tmpGateways(A).PosA.Y = Gateways(A).PosA.X
-            tmpGateways(A).PosB.X = Terrain.TileSize.Y - Gateways(A).PosB.Y - 1
-            tmpGateways(A).PosB.Y = Gateways(A).PosB.X
+            tmpGateways(A) = New clsGateway
+            tmpGateways(A).PosA = GetRotatedPos(Orientation, Gateways(A).PosA, OldTileLimits)
+            tmpGateways(A).PosB = GetRotatedPos(Orientation, Gateways(A).PosB, OldTileLimits)
         Next
 
         For A = 0 To UnitCount - 1
             Units(A).Sectors_Remove()
             If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation -= 90
+                Units(A).Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - Units(A).Rotation * RadOf1Deg))) / RadOf1Deg)
                 If Units(A).Rotation < 0 Then
                     Units(A).Rotation += 360
                 End If
             ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
                 If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
                     If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
-                        Units(A).Rotation -= 90
+                        Units(A).Rotation = CInt(GetRotatedAngle(Orientation, Units(A).Rotation * RadOf1Deg) / RadOf1Deg)
                         If Units(A).Rotation < 0 Then
                             Units(A).Rotation += 360
                         End If
@@ -75,9 +140,7 @@
                     End If
                 End If
             End If
-            intTemp = Units(A).Pos.Horizontal.X
-            Units(A).Pos.Horizontal.X = Terrain.TileSize.Y * TerrainGridSpacing - Units(A).Pos.Horizontal.Y
-            Units(A).Pos.Horizontal.Y = intTemp
+            Units(A).Pos.Horizontal = GetRotatedPos(Orientation, Units(A).Pos.Horizontal, OldPosLimits)
         Next
         Selected_Tile_A = Nothing
         Selected_Tile_B = Nothing
@@ -107,231 +170,369 @@
         Loop
 
         Terrain = NewTerrain
-        Gateways = tmpGateways
-
-        AfterInitialized()
-    End Sub
-
-    Public Sub Rotate_CounterClockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim X As Integer
-        Dim Y As Integer
-        Dim NewTerrain As New clsTerrain(New sXY_int(Terrain.TileSize.Y, Terrain.TileSize.X))
-        Dim tmpGateways() As sGateway
-        Dim Y2 As Integer
-
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
-
-        For Y = 0 To NewTerrain.TileSize.Y
-            For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Terrain.TileSize.X - Y, X).Height
-                NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Terrain.TileSize.X - Y, X).Terrain
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y - 1
-            Y2 = Terrain.TileSize.X - Y - 1
-            For X = 0 To NewTerrain.TileSize.X - 1
-                NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(Y2, X).Texture
-                NewTerrain.Tiles(X, Y).Texture.Orientation.RotateAnticlockwise()
-                NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(Y2, X).DownSide
-                NewTerrain.Tiles(X, Y).DownSide.RotateAnticlockwise()
-                NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(Y2, X).Tri
-                NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(Y2, X).TriTopRightIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(Y2, X).TriTopLeftIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(Y2, X).TriBottomLeftIsCliff
-                NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(Y2, X).TriBottomRightIsCliff
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y
-            For X = 0 To NewTerrain.TileSize.X - 1
-                NewTerrain.SideH(X, Y).Road = Terrain.SideV(Terrain.TileSize.X - Y, X).Road
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y - 1
-            For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.SideV(X, Y).Road = Terrain.SideH(Terrain.TileSize.X - Y - 1, X).Road
-            Next
-        Next
-
-        Dim A As Integer
-        Dim intTemp As Integer
-
-        ReDim tmpGateways(GatewayCount - 1)
-
-        For A = 0 To GatewayCount - 1
-            tmpGateways(A).PosA.Y = Terrain.TileSize.X - Gateways(A).PosA.X - 1
-            tmpGateways(A).PosA.X = Gateways(A).PosA.Y
-            tmpGateways(A).PosB.Y = Terrain.TileSize.X - Gateways(A).PosB.X - 1
-            tmpGateways(A).PosB.X = Gateways(A).PosB.Y
-        Next
-
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation += 90
-                If Units(A).Rotation >= 360 Then
-                    Units(A).Rotation -= 360
-                End If
-            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
-                        Units(A).Rotation += 90
-                        If Units(A).Rotation >= 360 Then
-                            Units(A).Rotation -= 360
-                        End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
-                        End If
-                    End If
-                End If
-            End If
-            intTemp = Units(A).Pos.Horizontal.Y
-            Units(A).Pos.Horizontal.Y = Terrain.TileSize.X * TerrainGridSpacing - Units(A).Pos.Horizontal.X
-            Units(A).Pos.Horizontal.X = intTemp
-        Next
-        Selected_Tile_A = Nothing
-        Selected_Tile_B = Nothing
-        Selected_Area_VertexA = Nothing
-        Selected_Area_VertexB = Nothing
-
-        Sectors_Deallocate()
-        SectorCount.X = CInt(Math.Ceiling(NewTerrain.TileSize.X / SectorTileSize))
-        SectorCount.Y = CInt(Math.Ceiling(NewTerrain.TileSize.Y / SectorTileSize))
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
-            Next
-        Next
-
-        Dim ZeroPos As New sXY_int(0, 0)
-
-        A = 0
-        Do While A < UnitCount
-            If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
-                Unit_Sectors_Calc(Units(A))
-                A += 1
-            Else
-                Unit_Remove(A)
-            End If
+        Do While GatewayCount > 0
+            Gateway_Remove(GatewayCount - 1)
         Loop
+        For A = 0 To tmpGatewayCount - 1
+            Gateway_Create(tmpGateways(A).PosA, tmpGateways(A).PosB)
+        Next
 
-        Terrain = NewTerrain
-        Gateways = tmpGateways
-
-        AfterInitialized()
+        InitializeForUserInput()
     End Sub
 
-    Public Sub Rotate_FlipX(ByVal ObjectRotateMode As enumObjectRotateMode)
-        Dim X As Integer
-        Dim Y As Integer
-        Dim NewTerrain As New clsTerrain(Terrain.TileSize)
-        Dim tmpGateways() As sGateway
-        Dim X2 As Integer
+    'Public Sub Rotate_Clockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
+    '    Dim X As Integer
+    '    Dim Y As Integer
+    '    Dim NewTerrain As New clsTerrain(New sXY_int(Terrain.TileSize.Y, Terrain.TileSize.X))
+    '    Dim tmpGateways() As clsGateway
+    '    Dim tmpGatewayCount As Integer
+    '    Dim X2 As Integer
 
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
+    '    Undo_Clear()
+    '    SectorAll_GLLists_Delete()
 
-        For Y = 0 To NewTerrain.TileSize.Y
-            For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Terrain.TileSize.X - X, Y).Height
-                NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Terrain.TileSize.X - X, Y).Terrain
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y - 1
-            For X = 0 To NewTerrain.TileSize.X - 1
-                X2 = Terrain.TileSize.X - X - 1
-                NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(X2, Y).Texture
-                NewTerrain.Tiles(X, Y).Texture.Orientation.ResultXFlip = Not NewTerrain.Tiles(X, Y).Texture.Orientation.ResultXFlip
-                NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(X2, Y).DownSide
-                NewTerrain.Tiles(X2, Y).DownSide.FlipX()
-                NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(X2, Y).Tri
-                NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(X2, Y).TriTopRightIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(X2, Y).TriBottomRightIsCliff
-                NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(X2, Y).TriBottomLeftIsCliff
-                NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(X2, Y).TriTopLeftIsCliff
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y
-            For X = 0 To NewTerrain.TileSize.X - 1
-                NewTerrain.SideH(X, Y).Road = Terrain.SideH(Terrain.TileSize.X - X - 1, Y).Road
-            Next
-        Next
-        For Y = 0 To NewTerrain.TileSize.Y - 1
-            For X = 0 To NewTerrain.TileSize.X
-                NewTerrain.SideV(X, Y).Road = Terrain.SideV(Terrain.TileSize.X - X, Y).Road
-            Next
-        Next
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Y, Terrain.TileSize.Y - X).Height
+    '            NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Y, Terrain.TileSize.Y - X).Terrain
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            X2 = Terrain.TileSize.Y - X - 1
+    '            NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(Y, X2).Texture
+    '            NewTerrain.Tiles(X, Y).Texture.Orientation.RotateClockwise()
+    '            NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(Y, X2).DownSide
+    '            NewTerrain.Tiles(X, Y).DownSide.RotateClockwise()
+    '            NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(Y, X2).Tri
+    '            NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(Y, X2).TriBottomLeftIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(Y, X2).TriBottomRightIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(Y, X2).TriTopRightIsCliff
+    '            NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(Y, X2).TriTopLeftIsCliff
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            NewTerrain.SideH(X, Y).Road = Terrain.SideV(Y, Terrain.TileSize.Y - X - 1).Road
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.SideV(X, Y).Road = Terrain.SideH(Y, Terrain.TileSize.Y - X).Road
+    '        Next
+    '    Next
 
-        Dim A As Integer
+    '    Dim A As Integer
+    '    Dim intTemp As Integer
 
-        ReDim tmpGateways(GatewayCount - 1)
+    '    tmpGatewayCount = GatewayCount
+    '    ReDim tmpGateways(tmpGatewayCount - 1)
+    '    For A = 0 To GatewayCount - 1
+    '        tmpGateways(A) = New clsGateway
+    '        tmpGateways(A).PosA.X = Terrain.TileSize.Y - Gateways(A).PosA.Y - 1
+    '        tmpGateways(A).PosA.Y = Gateways(A).PosA.X
+    '        tmpGateways(A).PosB.X = Terrain.TileSize.Y - Gateways(A).PosB.Y - 1
+    '        tmpGateways(A).PosB.Y = Gateways(A).PosB.X
+    '    Next
 
-        For A = 0 To GatewayCount - 1
-            tmpGateways(A).PosA.X = NewTerrain.TileSize.X - Gateways(A).PosA.X - 1
-            tmpGateways(A).PosA.Y = Gateways(A).PosA.Y
-            tmpGateways(A).PosB.X = NewTerrain.TileSize.X - Gateways(A).PosB.X - 1
-            tmpGateways(A).PosB.Y = Gateways(A).PosB.Y
-        Next
+    '    For A = 0 To UnitCount - 1
+    '        Units(A).Sectors_Remove()
+    '        If ObjectRotateMode = enumObjectRotateMode.All Then
+    '            Units(A).Rotation -= 90
+    '            If Units(A).Rotation < 0 Then
+    '                Units(A).Rotation += 360
+    '            End If
+    '        ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+    '            If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
+    '                If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
+    '                    Units(A).Rotation -= 90
+    '                    If Units(A).Rotation < 0 Then
+    '                        Units(A).Rotation += 360
+    '                    End If
+    '                    If Units(A).Rotation = 180 Then
+    '                        Units(A).Rotation = 0
+    '                    ElseIf Units(A).Rotation = 270 Then
+    '                        Units(A).Rotation = 90
+    '                    End If
+    '                End If
+    '            End If
+    '        End If
+    '        intTemp = Units(A).Pos.Horizontal.X
+    '        Units(A).Pos.Horizontal.X = Terrain.TileSize.Y * TerrainGridSpacing - Units(A).Pos.Horizontal.Y
+    '        Units(A).Pos.Horizontal.Y = intTemp
+    '    Next
+    '    Selected_Tile_A = Nothing
+    '    Selected_Tile_B = Nothing
+    '    Selected_Area_VertexA = Nothing
+    '    Selected_Area_VertexB = Nothing
 
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation -= 180
-                If Units(A).Rotation < 0 Then
-                    Units(A).Rotation += 360
-                End If
-            ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
-                        Units(A).Rotation -= 180
-                        If Units(A).Rotation < 0 Then
-                            Units(A).Rotation += 360
-                        End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
-                        End If
-                    End If
-                End If
-            End If
-            Units(A).Pos.Horizontal.X = Terrain.TileSize.X * TerrainGridSpacing - Units(A).Pos.Horizontal.X
-        Next
-        Selected_Tile_A = Nothing
-        Selected_Tile_B = Nothing
-        Selected_Area_VertexA = Nothing
-        Selected_Area_VertexB = Nothing
+    '    Sectors_Deallocate()
+    '    SectorCount.X = CInt(Math.Ceiling(Terrain.TileSize.X / SectorTileSize))
+    '    SectorCount.Y = CInt(Math.Ceiling(Terrain.TileSize.Y / SectorTileSize))
+    '    ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
+    '    For Y = 0 To SectorCount.Y - 1
+    '        For X = 0 To SectorCount.X - 1
+    '            Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
+    '        Next
+    '    Next
 
-        Sectors_Deallocate()
-        SectorCount.X = CInt(Math.Ceiling(NewTerrain.TileSize.X / SectorTileSize))
-        SectorCount.Y = CInt(Math.Ceiling(NewTerrain.TileSize.Y / SectorTileSize))
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
-            Next
-        Next
+    '    Dim ZeroPos As New sXY_int(0, 0)
 
-        Dim ZeroPos As New sXY_int(0, 0)
+    '    A = 0
+    '    Do While A < UnitCount
+    '        If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+    '            Unit_Sectors_Calc(Units(A))
+    '            A += 1
+    '        Else
+    '            Unit_Remove(A)
+    '        End If
+    '    Loop
 
-        A = 0
-        Do While A < UnitCount
-            If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
-                Unit_Sectors_Calc(Units(A))
-                A += 1
-            Else
-                Unit_Remove(A)
-            End If
-        Loop
+    '    Terrain = NewTerrain
+    '    Do While GatewayCount > 0
+    '        Gateway_Remove(GatewayCount - 1)
+    '    Loop
+    '    For A = 0 To tmpGatewayCount - 1
+    '        Gateway_Create(tmpGateways(A).PosA, tmpGateways(A).PosB)
+    '    Next
 
-        Terrain = NewTerrain
-        Gateways = tmpGateways
+    '    AfterInitialized()
+    'End Sub
 
-        AfterInitialized()
-    End Sub
+    'Public Sub Rotate_CounterClockwise(ByVal ObjectRotateMode As enumObjectRotateMode)
+    '    Dim X As Integer
+    '    Dim Y As Integer
+    '    Dim NewTerrain As New clsTerrain(New sXY_int(Terrain.TileSize.Y, Terrain.TileSize.X))
+    '    Dim tmpGateways() As clsGateway
+    '    Dim tmpGatewayCount As Integer
+    '    Dim Y2 As Integer
+
+    '    Undo_Clear()
+    '    SectorAll_GLLists_Delete()
+
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Terrain.TileSize.X - Y, X).Height
+    '            NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Terrain.TileSize.X - Y, X).Terrain
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        Y2 = Terrain.TileSize.X - Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(Y2, X).Texture
+    '            NewTerrain.Tiles(X, Y).Texture.Orientation.RotateAnticlockwise()
+    '            NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(Y2, X).DownSide
+    '            NewTerrain.Tiles(X, Y).DownSide.RotateAnticlockwise()
+    '            NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(Y2, X).Tri
+    '            NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(Y2, X).TriTopRightIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(Y2, X).TriTopLeftIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(Y2, X).TriBottomLeftIsCliff
+    '            NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(Y2, X).TriBottomRightIsCliff
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            NewTerrain.SideH(X, Y).Road = Terrain.SideV(Terrain.TileSize.X - Y, X).Road
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.SideV(X, Y).Road = Terrain.SideH(Terrain.TileSize.X - Y - 1, X).Road
+    '        Next
+    '    Next
+
+    '    Dim A As Integer
+    '    Dim intTemp As Integer
+
+    '    tmpGatewayCount = GatewayCount
+    '    ReDim tmpGateways(tmpGatewayCount - 1)
+    '    For A = 0 To GatewayCount - 1
+    '        tmpGateways(A) = New clsGateway
+    '        tmpGateways(A).PosA.Y = Terrain.TileSize.X - Gateways(A).PosA.X - 1
+    '        tmpGateways(A).PosA.X = Gateways(A).PosA.Y
+    '        tmpGateways(A).PosB.Y = Terrain.TileSize.X - Gateways(A).PosB.X - 1
+    '        tmpGateways(A).PosB.X = Gateways(A).PosB.Y
+    '    Next
+
+    '    For A = 0 To UnitCount - 1
+    '        Units(A).Sectors_Remove()
+    '        If ObjectRotateMode = enumObjectRotateMode.All Then
+    '            Units(A).Rotation += 90
+    '            If Units(A).Rotation >= 360 Then
+    '                Units(A).Rotation -= 360
+    '            End If
+    '        ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+    '            If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
+    '                If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
+    '                    Units(A).Rotation += 90
+    '                    If Units(A).Rotation >= 360 Then
+    '                        Units(A).Rotation -= 360
+    '                    End If
+    '                    If Units(A).Rotation = 180 Then
+    '                        Units(A).Rotation = 0
+    '                    ElseIf Units(A).Rotation = 270 Then
+    '                        Units(A).Rotation = 90
+    '                    End If
+    '                End If
+    '            End If
+    '        End If
+    '        intTemp = Units(A).Pos.Horizontal.Y
+    '        Units(A).Pos.Horizontal.Y = Terrain.TileSize.X * TerrainGridSpacing - Units(A).Pos.Horizontal.X
+    '        Units(A).Pos.Horizontal.X = intTemp
+    '    Next
+    '    Selected_Tile_A = Nothing
+    '    Selected_Tile_B = Nothing
+    '    Selected_Area_VertexA = Nothing
+    '    Selected_Area_VertexB = Nothing
+
+    '    Sectors_Deallocate()
+    '    SectorCount.X = CInt(Math.Ceiling(NewTerrain.TileSize.X / SectorTileSize))
+    '    SectorCount.Y = CInt(Math.Ceiling(NewTerrain.TileSize.Y / SectorTileSize))
+    '    ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
+    '    For Y = 0 To SectorCount.Y - 1
+    '        For X = 0 To SectorCount.X - 1
+    '            Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
+    '        Next
+    '    Next
+
+    '    Dim ZeroPos As New sXY_int(0, 0)
+
+    '    A = 0
+    '    Do While A < UnitCount
+    '        If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+    '            Unit_Sectors_Calc(Units(A))
+    '            A += 1
+    '        Else
+    '            Unit_Remove(A)
+    '        End If
+    '    Loop
+
+    '    Terrain = NewTerrain
+    '    Do While GatewayCount > 0
+    '        Gateway_Remove(GatewayCount - 1)
+    '    Loop
+    '    For A = 0 To tmpGatewayCount - 1
+    '        Gateway_Create(tmpGateways(A).PosA, tmpGateways(A).PosB)
+    '    Next
+
+    '    AfterInitialized()
+    'End Sub
+
+    'Public Sub Rotate_FlipX(ByVal ObjectRotateMode As enumObjectRotateMode)
+    '    Dim X As Integer
+    '    Dim Y As Integer
+    '    Dim NewTerrain As New clsTerrain(Terrain.TileSize)
+    '    Dim tmpGateways() As clsGateway
+    '    Dim tmpGatewayCount As Integer
+    '    Dim X2 As Integer
+
+    '    Undo_Clear()
+    '    SectorAll_GLLists_Delete()
+
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.Vertices(X, Y).Height = Terrain.Vertices(Terrain.TileSize.X - X, Y).Height
+    '            NewTerrain.Vertices(X, Y).Terrain = Terrain.Vertices(Terrain.TileSize.X - X, Y).Terrain
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            X2 = Terrain.TileSize.X - X - 1
+    '            NewTerrain.Tiles(X, Y).Texture = Terrain.Tiles(X2, Y).Texture
+    '            NewTerrain.Tiles(X, Y).Texture.Orientation.ResultXFlip = Not NewTerrain.Tiles(X, Y).Texture.Orientation.ResultXFlip
+    '            NewTerrain.Tiles(X, Y).DownSide = Terrain.Tiles(X2, Y).DownSide
+    '            NewTerrain.Tiles(X2, Y).DownSide.FlipX()
+    '            NewTerrain.Tiles(X, Y).Tri = Not Terrain.Tiles(X2, Y).Tri
+    '            NewTerrain.Tiles(X, Y).TriTopLeftIsCliff = Terrain.Tiles(X2, Y).TriTopRightIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomLeftIsCliff = Terrain.Tiles(X2, Y).TriBottomRightIsCliff
+    '            NewTerrain.Tiles(X, Y).TriBottomRightIsCliff = Terrain.Tiles(X2, Y).TriBottomLeftIsCliff
+    '            NewTerrain.Tiles(X, Y).TriTopRightIsCliff = Terrain.Tiles(X2, Y).TriTopLeftIsCliff
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y
+    '        For X = 0 To NewTerrain.TileSize.X - 1
+    '            NewTerrain.SideH(X, Y).Road = Terrain.SideH(Terrain.TileSize.X - X - 1, Y).Road
+    '        Next
+    '    Next
+    '    For Y = 0 To NewTerrain.TileSize.Y - 1
+    '        For X = 0 To NewTerrain.TileSize.X
+    '            NewTerrain.SideV(X, Y).Road = Terrain.SideV(Terrain.TileSize.X - X, Y).Road
+    '        Next
+    '    Next
+
+    '    Dim A As Integer
+
+    '    tmpGatewayCount = GatewayCount
+    '    ReDim tmpGateways(tmpGatewayCount - 1)
+    '    For A = 0 To GatewayCount - 1
+    '        tmpGateways(A) = New clsGateway
+    '        tmpGateways(A).PosA.X = NewTerrain.TileSize.X - Gateways(A).PosA.X - 1
+    '        tmpGateways(A).PosA.Y = Gateways(A).PosA.Y
+    '        tmpGateways(A).PosB.X = NewTerrain.TileSize.X - Gateways(A).PosB.X - 1
+    '        tmpGateways(A).PosB.Y = Gateways(A).PosB.Y
+    '    Next
+
+    '    For A = 0 To UnitCount - 1
+    '        Units(A).Sectors_Remove()
+    '        If ObjectRotateMode = enumObjectRotateMode.All Then
+    '            Units(A).Rotation -= 180
+    '            If Units(A).Rotation < 0 Then
+    '                Units(A).Rotation += 360
+    '            End If
+    '        ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
+    '            If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
+    '                If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
+    '                    Units(A).Rotation -= 180
+    '                    If Units(A).Rotation < 0 Then
+    '                        Units(A).Rotation += 360
+    '                    End If
+    '                    If Units(A).Rotation = 180 Then
+    '                        Units(A).Rotation = 0
+    '                    ElseIf Units(A).Rotation = 270 Then
+    '                        Units(A).Rotation = 90
+    '                    End If
+    '                End If
+    '            End If
+    '        End If
+    '        Units(A).Pos.Horizontal.X = Terrain.TileSize.X * TerrainGridSpacing - Units(A).Pos.Horizontal.X
+    '    Next
+    '    Selected_Tile_A = Nothing
+    '    Selected_Tile_B = Nothing
+    '    Selected_Area_VertexA = Nothing
+    '    Selected_Area_VertexB = Nothing
+
+    '    Sectors_Deallocate()
+    '    SectorCount.X = CInt(Math.Ceiling(NewTerrain.TileSize.X / SectorTileSize))
+    '    SectorCount.Y = CInt(Math.Ceiling(NewTerrain.TileSize.Y / SectorTileSize))
+    '    ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
+    '    For Y = 0 To SectorCount.Y - 1
+    '        For X = 0 To SectorCount.X - 1
+    '            Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
+    '        Next
+    '    Next
+
+    '    Dim ZeroPos As New sXY_int(0, 0)
+
+    '    A = 0
+    '    Do While A < UnitCount
+    '        If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+    '            Unit_Sectors_Calc(Units(A))
+    '            A += 1
+    '        Else
+    '            Unit_Remove(A)
+    '        End If
+    '    Loop
+
+    '    Terrain = NewTerrain
+    '    Do While GatewayCount > 0
+    '        Gateway_Remove(GatewayCount - 1)
+    '    Loop
+    '    For A = 0 To tmpGatewayCount - 1
+    '        Gateway_Create(tmpGateways(A).PosA, tmpGateways(A).PosB)
+    '    Next
+
+    '    AfterInitialized()
+    'End Sub
 
     Public Sub RandomizeHeights(ByVal LevelCount As Integer)
         Dim hmSource As New clsHeightmap
@@ -626,7 +827,7 @@
         SectorGraphicsChanges.SetAllChanged()
     End Sub
 
-    Public Sub MapTexturer(ByRef LayerList As frmMapTexturer.sLayerList)
+    Public Sub MapTexturer(ByRef LayerList As sLayerList)
         Dim X As Integer
         Dim Y As Integer
         Dim A As Integer
@@ -827,22 +1028,22 @@
                             For B = 0 To .Tiles_Straight.TileCount - 1
                                 If .Tiles_Straight.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Straight.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_Top) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Right) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Bottom) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Left) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -853,22 +1054,22 @@
                             For B = 0 To .Tiles_Corner_In.TileCount - 1
                                 If .Tiles_Corner_In.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Corner_In.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_TopLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_TopRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -879,22 +1080,22 @@
                             For B = 0 To .Tiles_Corner_Out.TileCount - 1
                                 If .Tiles_Corner_Out.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Corner_Out.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_TopLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_TopRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -909,22 +1110,22 @@
                             For B = 0 To .Tiles_Straight.TileCount - 1
                                 If .Tiles_Straight.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Straight.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_Top) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Inner.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Right) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Bottom) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain_Outer.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Left) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -944,7 +1145,7 @@
                             For B = 0 To .Tiles_Corner_In.TileCount - 1
                                 If .Tiles_Corner_In.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Corner_In.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_TopLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
@@ -953,7 +1154,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_TopRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
@@ -962,7 +1163,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = True
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
@@ -971,7 +1172,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = True
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -987,7 +1188,7 @@
                             For B = 0 To .Tiles_Corner_Out.TileCount - 1
                                 If .Tiles_Corner_Out.Tiles(B).TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum Then
                                     RotateDirection(.Tiles_Corner_Out.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_TopLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -996,7 +1197,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = True
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_TopRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Inner.Num) += 1
@@ -1005,7 +1206,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = True
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomRight) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -1014,7 +1215,7 @@
                                         Terrain.Tiles(X, Y).TriBottomRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriTopRightIsCliff = False
                                         Terrain.Tiles(X, Y).TriBottomLeftIsCliff = False
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomLeft) Then
                                         VertexTerrainCount(Offset.X, Offset.Y, .Terrain_Outer.Num) += 1
                                         VertexTerrainCount(Offset.X + 1, Offset.Y, .Terrain_Inner.Num) += 1
                                         VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain_Outer.Num) += 1
@@ -1038,16 +1239,16 @@
                                     VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain.Num) += 1
                                     VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain.Num) += 1
                                     RotateDirection(.Tile_Corner_In.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_TopLeft) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_TopLeft) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_TopRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_TopRight) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomRight) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomRight) Then
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_BottomLeft) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_BottomLeft) Then
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                     End If
@@ -1072,13 +1273,13 @@
                                     VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain.Num) += 1
                                     VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain.Num) += 1
                                     RotateDirection(.Tile_End.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Right) Then
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Bottom) Then
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Left) Then
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                     End If
                                 End If
@@ -1090,16 +1291,16 @@
                                     VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain.Num) += 1
                                     VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain.Num) += 1
                                     RotateDirection(.Tile_Straight.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Right) Then
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Bottom) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Left) Then
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
                                     End If
@@ -1112,19 +1313,19 @@
                                     VertexTerrainCount(Offset.X, Offset.Y + 1, .Terrain.Num) += 1
                                     VertexTerrainCount(Offset.X + 1, Offset.Y + 1, .Terrain.Num) += 1
                                     RotateDirection(.Tile_TIntersection.Tiles(B).Direction, Terrain.Tiles(X, Y).Texture.Orientation, Orientation)
-                                    If IdenticalTileOrientations(Orientation, TileDirection_Top) Then
+                                    If IdenticalTileDirections(Orientation, TileDirection_Top) Then
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Right) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Right) Then
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Bottom) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Bottom) Then
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideV_Road_Count(Offset.X + 1, Offset.Y, .Road.Num) += 1
-                                    ElseIf IdenticalTileOrientations(Orientation, TileDirection_Left) Then
+                                    ElseIf IdenticalTileDirections(Orientation, TileDirection_Left) Then
                                         SideV_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y, .Road.Num) += 1
                                         SideH_Road_Count(Offset.X, Offset.Y + 1, .Road.Num) += 1
@@ -1230,1009 +1431,1314 @@
         Public Effect As Double
 
         Public MustOverride Sub ActionPerform()
+    End Class
 
-        Public Class clsApplyCliff
-            Inherits clsMap.clsAction
+    Public MustInherit Class clsObjectAction
 
-            Public Angle As Double
-            Public SetTris As Boolean
+        Public Map As clsMap
+        Public Unit As clsUnit
+        Public ResultUnit As clsUnit
 
-            Private A As Integer
-            Private difA As Double
-            Private difB As Double
-            Private HeightA As Double
-            Private HeightB As Double
-            Private TriTopLeftMaxSlope As Double
-            Private TriTopRightMaxSlope As Double
-            Private TriBottomLeftMaxSlope As Double
-            Private TriBottomRightMaxSlope As Double
-            Private CliffChanged As Boolean
-            Private TriChanged As Boolean
-            Private NewVal As Boolean
-            Private Terrain As clsTerrain
-            Private tmpPos As sXY_int
+        Protected ID As UInteger
 
-            Public Overrides Sub ActionPerform()
+        Public MustOverride Sub ActionPerform()
+    End Class
 
-                Terrain = Map.Terrain
+    Public Class clsApplyCliff
+        Inherits clsMap.clsAction
 
-                HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) / 2.0#
-                HeightB = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-                difA = HeightB - HeightA
-                HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) / 2.0#
-                HeightB = (CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-                difB = HeightB - HeightA
-                If Math.Abs(difA) = Math.Abs(difB) Then
-                    A = CInt(Int(Rnd() * 4.0F))
-                    If A = 0 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
-                    ElseIf A = 1 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
-                    ElseIf A = 2 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
-                    End If
-                ElseIf Math.Abs(difA) > Math.Abs(difB) Then
-                    If difA < 0.0# Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
-                    End If
+        Public Angle As Double
+        Public SetTris As Boolean
+
+        Private A As Integer
+        Private difA As Double
+        Private difB As Double
+        Private HeightA As Double
+        Private HeightB As Double
+        Private TriTopLeftMaxSlope As Double
+        Private TriTopRightMaxSlope As Double
+        Private TriBottomLeftMaxSlope As Double
+        Private TriBottomRightMaxSlope As Double
+        Private CliffChanged As Boolean
+        Private TriChanged As Boolean
+        Private NewVal As Boolean
+        Private Terrain As clsTerrain
+        Private tmpPos As sXY_int
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) / 2.0#
+            HeightB = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
+            difA = HeightB - HeightA
+            HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) / 2.0#
+            HeightB = (CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
+            difB = HeightB - HeightA
+            If Math.Abs(difA) = Math.Abs(difB) Then
+                A = CInt(Int(Rnd() * 4.0F))
+                If A = 0 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
+                ElseIf A = 1 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
+                ElseIf A = 2 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
                 Else
-                    If difB < 0.0# Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
-                    End If
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
                 End If
+            ElseIf Math.Abs(difA) > Math.Abs(difB) Then
+                If difA < 0.0# Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
+                End If
+            Else
+                If difB < 0.0# Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
+                End If
+            End If
 
-                CliffChanged = False
-                TriChanged = False
+            CliffChanged = False
+            TriChanged = False
 
-                If SetTris Then
-                    difA = Math.Abs(CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X, PosNum.Y).Height)
-                    difB = Math.Abs(CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height)
-                    If difA = difB Then
-                        If Rnd() >= 0.5F Then
-                            NewVal = False
-                        Else
-                            NewVal = True
-                        End If
-                    ElseIf difA < difB Then
+            If SetTris Then
+                difA = Math.Abs(CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X, PosNum.Y).Height)
+                difB = Math.Abs(CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height)
+                If difA = difB Then
+                    If Rnd() >= 0.5F Then
                         NewVal = False
                     Else
                         NewVal = True
                     End If
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).Tri <> NewVal Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Tri = NewVal
-                        TriChanged = True
-                    End If
+                ElseIf difA < difB Then
+                    NewVal = False
+                Else
+                    NewVal = True
+                End If
+                If Terrain.Tiles(PosNum.X, PosNum.Y).Tri <> NewVal Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Tri = NewVal
+                    TriChanged = True
+                End If
+            End If
+
+            If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
+                tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
+                tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
+                TriTopLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
+                tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
+                TriBottomRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
+                    CliffChanged = True
+                End If
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
+                    CliffChanged = True
                 End If
 
-                If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
-                    tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
-                    tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
-                    TriTopLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
-                    tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
-                    tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
-                    TriBottomRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                NewVal = (TriTopLeftMaxSlope >= Angle)
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff <> NewVal Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = NewVal
+                    CliffChanged = True
+                End If
 
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
-                        CliffChanged = True
-                    End If
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
-                        CliffChanged = True
-                    End If
+                NewVal = (TriBottomRightMaxSlope >= Angle)
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff <> NewVal Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = NewVal
+                    CliffChanged = True
+                End If
 
-                    NewVal = (TriTopLeftMaxSlope >= Angle)
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff <> NewVal Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = NewVal
-                        CliffChanged = True
-                    End If
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
+                End If
+            Else
+                tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
+                tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
+                TriTopRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
+                tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
+                TriBottomLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
 
-                    NewVal = (TriBottomRightMaxSlope >= Angle)
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff <> NewVal Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = NewVal
-                        CliffChanged = True
-                    End If
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
+                    CliffChanged = True
+                End If
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
+                    CliffChanged = True
+                End If
 
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
+                NewVal = (TriTopRightMaxSlope >= Angle)
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff <> NewVal Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = NewVal
+                    CliffChanged = True
+                End If
+
+                NewVal = (TriBottomLeftMaxSlope >= Angle)
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff <> NewVal Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = NewVal
+                    CliffChanged = True
+                End If
+
+                If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
+                End If
+            End If
+
+            If CliffChanged Then
+                Map.AutoTextureChanges.TileChanged(PosNum)
+            End If
+            If TriChanged Or CliffChanged Then
+                Map.SectorGraphicsChanges.TileChanged(PosNum)
+                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+            End If
+        End Sub
+    End Class
+
+    Public Class clsApplyCliffRemove
+        Inherits clsMap.clsAction
+
+        Private Terrain As clsTerrain
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            If Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
+                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
+                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
+                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
+                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
+                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
+
+                Map.AutoTextureChanges.TileChanged(PosNum)
+                Map.SectorGraphicsChanges.TileChanged(PosNum)
+                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+            End If
+        End Sub
+    End Class
+
+    Public Class clsApplyCliffTriangle
+        Inherits clsMap.clsAction
+
+        Public Triangle As Boolean
+
+        Private Terrain As clsTerrain
+        Private CliffChanged As Boolean
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+
+            CliffChanged = False
+            If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
+                If Triangle Then
+                    If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
+                        CliffChanged = True
                     End If
                 Else
-                    tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
-                    tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
-                    TriTopRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
-                    tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
-                    tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
-                    TriBottomLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                    If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
+                        CliffChanged = True
+                    End If
+                End If
+            Else
+                If Triangle Then
+                    If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
+                        CliffChanged = True
+                    End If
+                Else
+                    If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
+                        CliffChanged = True
+                    End If
+                End If
+            End If
 
+            If Not CliffChanged Then
+                Exit Sub
+            End If
+
+            Dim HeightA As Double
+            Dim HeightB As Double
+            Dim difA As Double
+            Dim difB As Double
+            Dim A As Integer
+
+            Map.AutoTextureChanges.TileChanged(PosNum)
+            Map.SectorGraphicsChanges.TileChanged(PosNum)
+            Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+
+            HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) / 2.0#
+            HeightB = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
+            difA = HeightB - HeightA
+            HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) / 2.0#
+            HeightB = (CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
+            difB = HeightB - HeightA
+            If Math.Abs(difA) = Math.Abs(difB) Then
+                A = CInt(Int(Rnd() * 4.0F))
+                If A = 0 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
+                ElseIf A = 1 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
+                ElseIf A = 2 Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
+                End If
+            ElseIf Math.Abs(difA) > Math.Abs(difB) Then
+                If difA < 0.0# Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
+                End If
+            Else
+                If difB < 0.0# Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
+                End If
+            End If
+        End Sub
+    End Class
+
+    Public Class clsApplyCliffTriangleRemove
+        Inherits clsMap.clsAction
+
+        Public Triangle As Boolean
+
+        Private Terrain As clsTerrain
+        Private CliffChanged As Boolean
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            CliffChanged = False
+            If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
+                If Triangle Then
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
                         Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
                         CliffChanged = True
                     End If
+                Else
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
                         Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
                         CliffChanged = True
                     End If
-
-                    NewVal = (TriTopRightMaxSlope >= Angle)
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff <> NewVal Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = NewVal
+                End If
+                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = (Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff)
+            Else
+                If Triangle Then
+                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
                         CliffChanged = True
                     End If
-
-                    NewVal = (TriBottomLeftMaxSlope >= Angle)
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff <> NewVal Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = NewVal
+                Else
+                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
+                        Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
                         CliffChanged = True
                     End If
-
-                    If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
-                    End If
                 End If
+                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = (Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff)
+            End If
 
-                If CliffChanged Then
-                    Map.AutoTextureChanges.TileChanged(PosNum)
-                End If
-                If TriChanged Or CliffChanged Then
-                    Map.SectorGraphicsChanges.TileChanged(PosNum)
-                    Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-                End If
-            End Sub
-        End Class
+            If Not CliffChanged Then
+                Exit Sub
+            End If
 
-        Public Class clsApplyCliffRemove
-            Inherits clsMap.clsAction
+            Map.AutoTextureChanges.TileChanged(PosNum)
+            Map.SectorGraphicsChanges.TileChanged(PosNum)
+            Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+        End Sub
+    End Class
 
-            Private Terrain As clsTerrain
+    Public Class clsApplyHeightChange
+        Inherits clsMap.clsAction
 
-            Public Overrides Sub ActionPerform()
+        Public Rate As Double
 
-                Terrain = Map.Terrain
+        Private Terrain As clsTerrain
 
-                If Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Or Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
-                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
-                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
-                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
-                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
-                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
+        Public Overrides Sub ActionPerform()
 
-                    Map.AutoTextureChanges.TileChanged(PosNum)
-                    Map.SectorGraphicsChanges.TileChanged(PosNum)
-                    Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-                End If
-            End Sub
-        End Class
+            Terrain = Map.Terrain
 
-        Public Class clsApplyCliffTriangle
-            Inherits clsMap.clsAction
+            Terrain.Vertices(PosNum.X, PosNum.Y).Height = CByte(Clamp_int(CInt(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + CInt(Rate * Effect), Byte.MinValue, Byte.MaxValue))
 
-            Public Triangle As Boolean
+            Map.SectorGraphicsChanges.VertexAndNormalsChanged(PosNum)
+            Map.SectorUnitHeightsChanges.VertexChanged(PosNum)
+            Map.SectorTerrainUndoChanges.VertexChanged(PosNum)
+        End Sub
+    End Class
 
-            Private Terrain As clsTerrain
-            Private CliffChanged As Boolean
+    Public Class clsApplyHeightSet
+        Inherits clsMap.clsAction
 
-            Public Overrides Sub ActionPerform()
+        Public Height As Byte
 
-                Terrain = Map.Terrain
+        Private Terrain As clsTerrain
 
-                CliffChanged = False
-                If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
-                    If Triangle Then
-                        If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
-                            CliffChanged = True
-                        End If
-                    Else
-                        If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
-                            CliffChanged = True
-                        End If
-                    End If
-                Else
-                    If Triangle Then
-                        If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
-                            CliffChanged = True
-                        End If
-                    Else
-                        If Not Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
-                            CliffChanged = True
-                        End If
-                    End If
-                End If
+        Public Overrides Sub ActionPerform()
 
-                If Not CliffChanged Then
-                    Exit Sub
-                End If
+            Terrain = Map.Terrain
 
-                Dim HeightA As Double
-                Dim HeightB As Double
-                Dim difA As Double
-                Dim difB As Double
-                Dim A As Integer
-
-                Map.AutoTextureChanges.TileChanged(PosNum)
-                Map.SectorGraphicsChanges.TileChanged(PosNum)
-                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-
-                HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) / 2.0#
-                HeightB = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-                difA = HeightB - HeightA
-                HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) / 2.0#
-                HeightB = (CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-                difB = HeightB - HeightA
-                If Math.Abs(difA) = Math.Abs(difB) Then
-                    A = CInt(Int(Rnd() * 4.0F))
-                    If A = 0 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
-                    ElseIf A = 1 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
-                    ElseIf A = 2 Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
-                    End If
-                ElseIf Math.Abs(difA) > Math.Abs(difB) Then
-                    If difA < 0.0# Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
-                    End If
-                Else
-                    If difB < 0.0# Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
-                    End If
-                End If
-            End Sub
-        End Class
-
-        Public Class clsApplyCliffTriangleRemove
-            Inherits clsMap.clsAction
-
-            Public Triangle As Boolean
-
-            Private Terrain As clsTerrain
-            Private CliffChanged As Boolean
-
-            Public Overrides Sub ActionPerform()
-
-                Terrain = Map.Terrain
-
-                CliffChanged = False
-                If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
-                    If Triangle Then
-                        If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
-                            CliffChanged = True
-                        End If
-                    Else
-                        If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
-                            CliffChanged = True
-                        End If
-                    End If
-                Else
-                    If Triangle Then
-                        If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
-                            CliffChanged = True
-                        End If
-                    Else
-                        If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
-                            CliffChanged = True
-                        End If
-                    End If
-                End If
-
-                If Not CliffChanged Then
-                    Exit Sub
-                End If
-
-                Map.AutoTextureChanges.TileChanged(PosNum)
-                Map.SectorGraphicsChanges.TileChanged(PosNum)
-                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-            End Sub
-        End Class
-
-        Public Class clsApplyHeightChange
-            Inherits clsMap.clsAction
-
-            Public Rate As Double
-
-            Private Terrain As clsTerrain
-
-            Public Overrides Sub ActionPerform()
-
-                Terrain = Map.Terrain
-
-                Terrain.Vertices(PosNum.X, PosNum.Y).Height = CByte(Clamp_int(CInt(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + CInt(Rate * Effect), Byte.MinValue, Byte.MaxValue))
-
+            If Terrain.Vertices(PosNum.X, PosNum.Y).Height <> Height Then
+                Terrain.Vertices(PosNum.X, PosNum.Y).Height = Height
                 Map.SectorGraphicsChanges.VertexAndNormalsChanged(PosNum)
-                Map.SectorTerrainUndoChanges.VertexAndNormalsChanged(PosNum)
-            End Sub
-        End Class
-
-        Public Class clsApplyHeightSet
-            Inherits clsMap.clsAction
-
-            Public Height As Byte
-
-            Private Terrain As clsTerrain
-
-            Public Overrides Sub ActionPerform()
-
-                Terrain = Map.Terrain
-
-                If Terrain.Vertices(PosNum.X, PosNum.Y).Height <> Height Then
-                    Terrain.Vertices(PosNum.X, PosNum.Y).Height = Height
-                    Map.SectorGraphicsChanges.VertexAndNormalsChanged(PosNum)
-                    Map.SectorUnitHeightsChanges.VertexAndNormalsChanged(PosNum)
-                    Map.SectorTerrainUndoChanges.VertexAndNormalsChanged(PosNum)
-                End If
-            End Sub
-        End Class
-
-        Public Class clsApplyHeightSmoothing
-            Inherits clsMap.clsAction
-
-            Public Ratio As Double
-            Public Offset As sXY_int
-            Public AreaTileSize As sXY_int
-
-            Private NewHeight(,) As Byte
-            Private Started As Boolean
-            Private TempHeight As Integer
-            Private Samples As Integer
-            Private LimitX As Integer
-            Private LimitY As Integer
-            Private XNum As Integer
-            Private VertexNum As sXY_int
-            Private Terrain As clsTerrain
-
-            Public Sub Start()
-                Dim X As Integer
-                Dim Y As Integer
-
-                Terrain = Map.Terrain
-
-                ReDim NewHeight(AreaTileSize.X, AreaTileSize.Y)
-                For Y = 0 To AreaTileSize.Y
-                    For X = 0 To AreaTileSize.X
-                        NewHeight(X, Y) = Terrain.Vertices(Offset.X + X, Offset.Y + Y).Height
-                    Next
-                Next
-
-                Started = True
-            End Sub
-
-            Public Sub Finish()
-
-                If Not Started Then
-                    Stop
-                    Exit Sub
-                End If
-
-                Dim X As Integer
-                Dim Y As Integer
-
-                Terrain = Map.Terrain
-
-                For Y = 0 To AreaTileSize.Y
-                    VertexNum.Y = Offset.Y + Y
-                    For X = 0 To AreaTileSize.X
-                        VertexNum.X = Offset.X + X
-                        Terrain.Vertices(VertexNum.X, VertexNum.Y).Height = NewHeight(X, Y)
-
-                        Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexNum)
-                        Map.SectorTerrainUndoChanges.VertexAndNormalsChanged(VertexNum)
-                    Next
-                Next
-
-                Started = False
-            End Sub
-
-            Public Overrides Sub ActionPerform()
-
-                If Not Started Then
-                    Stop
-                    Exit Sub
-                End If
-
-                Dim X As Integer
-                Dim Y As Integer
-                Dim X2 As Integer
-                Dim Y2 As Integer
-
-                Terrain = Map.Terrain
-
-                LimitX = Terrain.TileSize.X
-                LimitY = Terrain.TileSize.Y
-                TempHeight = 0
-                Samples = 0
-                For Y = Clamp_int(SmoothRadius.Tiles.YMin + PosNum.Y, 0, LimitY) - PosNum.Y To Clamp_int(SmoothRadius.Tiles.YMax + PosNum.Y, 0, LimitY) - PosNum.Y
-                    Y2 = PosNum.Y + Y
-                    XNum = Y - SmoothRadius.Tiles.YMin
-                    For X = Clamp_int(SmoothRadius.Tiles.XMin(XNum) + PosNum.X, 0, LimitX) - PosNum.X To Clamp_int(SmoothRadius.Tiles.XMax(XNum) + PosNum.X, 0, LimitX) - PosNum.X
-                        X2 = PosNum.X + X
-                        TempHeight += Terrain.Vertices(X2, Y2).Height
-                        Samples += 1
-                    Next
-                Next
-                NewHeight(PosNum.X - Offset.X, PosNum.Y - Offset.Y) = CByte(Math.Min(CInt(Terrain.Vertices(PosNum.X, PosNum.Y).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio), Byte.MaxValue))
-            End Sub
-        End Class
-
-        Public Class clsApplyRoadRemove
-            Inherits clsMap.clsAction
-
-            Private Terrain As clsTerrain
-
-            Private Sub ToolPerformSideH(ByVal SideNum As sXY_int)
-
-                Terrain = Map.Terrain
-
-                If Terrain.SideH(SideNum.X, SideNum.Y).Road IsNot Nothing Then
-                    Terrain.SideH(SideNum.X, SideNum.Y).Road = Nothing
-                    Map.AutoTextureChanges.SideHChanged(SideNum)
-                    Map.SectorGraphicsChanges.SideHChanged(SideNum)
-                    Map.SectorTerrainUndoChanges.SideHChanged(SideNum)
-                End If
-            End Sub
-
-            Private Sub ToolPerformSideV(ByVal SideNum As sXY_int)
-
-                Terrain = Map.Terrain
-
-                If Terrain.SideV(SideNum.X, SideNum.Y).Road IsNot Nothing Then
-                    Terrain.SideV(SideNum.X, SideNum.Y).Road = Nothing
-                    Map.AutoTextureChanges.SideVChanged(SideNum)
-                    Map.SectorGraphicsChanges.SideVChanged(SideNum)
-                    Map.SectorTerrainUndoChanges.SideVChanged(SideNum)
-                End If
-            End Sub
-
-            Public Overrides Sub ActionPerform()
-
-                ToolPerformSideH(PosNum)
-                ToolPerformSideH(New sXY_int(PosNum.X, PosNum.Y + 1))
-                ToolPerformSideV(PosNum)
-                ToolPerformSideV(New sXY_int(PosNum.X + 1, PosNum.Y))
-            End Sub
-        End Class
-
-        Public Class clsApplyVertexTerrain
-            Inherits clsMap.clsAction
-
-            Public VertexTerrain As clsPainter.clsTerrain
-
-            Private Terrain As clsTerrain
-
-            Public Overrides Sub ActionPerform()
-
-                Terrain = Map.Terrain
-
-                If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain IsNot VertexTerrain Then
-                    Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = VertexTerrain
-                    Map.SectorGraphicsChanges.VertexChanged(PosNum)
-                    Map.SectorTerrainUndoChanges.VertexChanged(PosNum)
-                    Map.AutoTextureChanges.VertexChanged(PosNum)
-                End If
-            End Sub
-        End Class
-
-        Public Class clsApplyTexture
-            Inherits clsMap.clsAction
-
-            Public TextureNum As Integer
-            Public SetTexture As Boolean
-            Public Orientation As sTileOrientation
-            Public SetOrientation As Boolean
-            Public RandomOrientation As Boolean
-            Public TerrainAction As enumTextureTerrainAction
-
-            Private Terrain As clsTerrain
-
-            Public Overrides Sub ActionPerform()
-
-                Terrain = Map.Terrain
-
-                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
-
-                If SetTexture Then
-                    Terrain.Tiles(PosNum.X, PosNum.Y).Texture.TextureNum = TextureNum
-                End If
-                If SetOrientation Then
-                    If RandomOrientation Then
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Texture.Orientation = New sTileOrientation(Rnd() < 0.5F, Rnd() < 0.5F, Rnd() < 0.5F)
-                    Else
-                        Terrain.Tiles(PosNum.X, PosNum.Y).Texture.Orientation = Orientation
-                    End If
-                End If
-
-                Map.TileTextureChangeTerrainAction(PosNum, TerrainAction)
-
-                Map.SectorGraphicsChanges.TileChanged(PosNum)
-                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-            End Sub
-        End Class
-
-        Public Class clsApplyVertexTerrainInterpret
-            Inherits clsMap.clsAction
-
-            Private TerrainCount() As Integer
-            Private VertexDirection As sTileDirection
-            Private Painter As clsPainter
-            Private PainterTerrainA As clsPainter.clsTerrain
-            Private PainterTerrainB As clsPainter.clsTerrain
-            Private Texture As clsTerrain.Tile.sTexture
-            Private ResultDirection As sTileDirection
-            Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
-            Private OppositeDirection As sTileDirection
-            Private BestNum As Integer
-            Private BestCount As Integer
-            Private Tile As clsTerrain.Tile
-            Private Terrain As clsTerrain
-
-            Private Sub ToolPerformTile()
-                Dim PainterBrushNum As Integer
-                Dim A As Integer
-
-                For PainterBrushNum = 0 To Painter.TerrainCount - 1
-                    PainterTerrainA = Painter.Terrains(PainterBrushNum)
-                    For A = 0 To PainterTerrainA.Tiles.TileCount - 1
-                        PainterTexture = PainterTerrainA.Tiles.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                Next
-                For PainterBrushNum = 0 To Painter.TransitionBrushCount - 1
-                    PainterTerrainA = Painter.TransitionBrushes(PainterBrushNum).Terrain_Inner
-                    PainterTerrainB = Painter.TransitionBrushes(PainterBrushNum).Terrain_Outer
-                    For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
-                        PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If DirectionsOnSameSide(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
-                        PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If IdenticalTileOrientations(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
-                        PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            OppositeDirection = PainterTexture.Direction
-                            OppositeDirection.FlipX()
-                            OppositeDirection.FlipY()
-                            RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
-                            If IdenticalTileOrientations(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            End If
-                        End If
-                    Next
-                Next
-
-                For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
-                    PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
-                    PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If DirectionsOnSameSide(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If IdenticalTileOrientations(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            OppositeDirection = PainterTexture.Direction
-                            OppositeDirection.FlipX()
-                            OppositeDirection.FlipY()
-                            RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
-                            If IdenticalTileOrientations(VertexDirection, ResultDirection) Then
-                                TerrainCount(PainterTerrainA.Num) += 1
-                            Else
-                                TerrainCount(PainterTerrainB.Num) += 1
-                            End If
-                        End If
-                    Next
-                Next
-
-                For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
-                    PainterTerrainA = Painter.RoadBrushes(PainterBrushNum).Terrain
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            TerrainCount(PainterTerrainA.Num) += 1
-                        End If
-                    Next
-                Next
-            End Sub
-
-            Public Overrides Sub ActionPerform()
-                Dim A As Integer
-
-                Terrain = Map.Terrain
-
-                Painter = Map.Painter
-                ReDim TerrainCount(Painter.TerrainCount - 1)
-
-                If PosNum.Y > 0 Then
-                    If PosNum.X > 0 Then
-                        VertexDirection = TileDirection_BottomRight
-                        Tile = Terrain.Tiles(PosNum.X - 1, PosNum.Y - 1)
-                        Texture = Tile.Texture
-                        ToolPerformTile()
-                    End If
-                    If PosNum.X < Terrain.TileSize.X Then
-                        VertexDirection = TileDirection_BottomLeft
-                        Tile = Terrain.Tiles(PosNum.X, PosNum.Y - 1)
-                        Texture = Tile.Texture
-                        ToolPerformTile()
-                    End If
-                End If
-                If PosNum.Y < Terrain.TileSize.Y Then
-                    If PosNum.X > 0 Then
-                        VertexDirection = TileDirection_TopRight
-                        Tile = Terrain.Tiles(PosNum.X - 1, PosNum.Y)
-                        Texture = Tile.Texture
-                        ToolPerformTile()
-                    End If
-                    If PosNum.X < Terrain.TileSize.X Then
-                        VertexDirection = TileDirection_TopLeft
-                        Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
-                        Texture = Tile.Texture
-                        ToolPerformTile()
-                    End If
-                End If
-
-                BestNum = -1
-                BestCount = 0
-                For A = 0 To Painter.TerrainCount - 1
-                    If TerrainCount(A) > BestCount Then
-                        BestNum = A
-                        BestCount = TerrainCount(A)
-                    End If
-                Next
-                If BestCount > 0 Then
-                    Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = Painter.Terrains(BestNum)
-                Else
-                    Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = Nothing
-                End If
-
+                Map.SectorUnitHeightsChanges.VertexChanged(PosNum)
                 Map.SectorTerrainUndoChanges.VertexChanged(PosNum)
-            End Sub
-        End Class
+            End If
+        End Sub
+    End Class
 
-        Public Class clsApplyTileTerrainInterpret
-            Inherits clsMap.clsAction
+    Public Class clsApplyHeightSmoothing
+        Inherits clsMap.clsAction
 
-            Private Painter As clsPainter
-            Private PainterTerrainA As clsPainter.clsTerrain
-            Private PainterTerrainB As clsPainter.clsTerrain
-            Private Texture As clsTerrain.Tile.sTexture
-            Private ResultDirection As sTileDirection
-            Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
-            Private OppositeDirection As sTileDirection
-            Private Tile As clsTerrain.Tile
-            Private Terrain As clsTerrain
+        Public Ratio As Double
+        Public Offset As sXY_int
+        Public AreaTileSize As sXY_int
 
-            Public Overrides Sub ActionPerform()
-                Dim PainterBrushNum As Integer
-                Dim A As Integer
+        Private NewHeight(,) As Byte
+        Private Started As Boolean
+        Private TempHeight As Integer
+        Private Samples As Integer
+        Private LimitX As Integer
+        Private LimitY As Integer
+        Private XNum As Integer
+        Private VertexNum As sXY_int
+        Private Terrain As clsTerrain
 
-                Terrain = Map.Terrain
+        Public Sub Start()
+            Dim X As Integer
+            Dim Y As Integer
 
-                Painter = Map.Painter
+            Terrain = Map.Terrain
 
-                Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
-                Texture = Tile.Texture
-
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
-                Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_None
-
-                For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
-                    PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
-                    PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            If Tile.Tri Then
-                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
-                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
-                            Else
-                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
-                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
-                            End If
-                            Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = ResultDirection
-                        End If
-                    Next
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If Tile.Tri Then
-                                If IdenticalTileOrientations(ResultDirection, TileDirection_TopLeft) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                ElseIf IdenticalTileOrientations(ResultDirection, TileDirection_BottomRight) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                End If
-                            Else
-                                If IdenticalTileOrientations(ResultDirection, TileDirection_TopRight) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                ElseIf IdenticalTileOrientations(ResultDirection, TileDirection_BottomLeft) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                End If
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
-                        PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            OppositeDirection = PainterTexture.Direction
-                            OppositeDirection.FlipX()
-                            OppositeDirection.FlipY()
-                            RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
-                            If Tile.Tri Then
-                                If IdenticalTileOrientations(ResultDirection, TileDirection_TopLeft) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                ElseIf IdenticalTileOrientations(ResultDirection, TileDirection_BottomRight) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                End If
-                            Else
-                                If IdenticalTileOrientations(ResultDirection, TileDirection_TopRight) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                ElseIf IdenticalTileOrientations(ResultDirection, TileDirection_BottomLeft) Then
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
-                                    Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
-                                End If
-                            End If
-                        End If
-                    Next
+            ReDim NewHeight(AreaTileSize.X, AreaTileSize.Y)
+            For Y = 0 To AreaTileSize.Y
+                For X = 0 To AreaTileSize.X
+                    NewHeight(X, Y) = Terrain.Vertices(Offset.X + X, Offset.Y + Y).Height
                 Next
+            Next
 
-                Map.SectorTerrainUndoChanges.TileChanged(PosNum)
-            End Sub
-        End Class
+            Started = True
+        End Sub
 
-        Public MustInherit Class clsApplySideTerrainInterpret
-            Inherits clsMap.clsAction
+        Public Sub Finish()
 
-            Protected Painter As clsPainter
-            Protected PainterTerrain As clsPainter.clsTerrain
-            Protected PainterRoad As clsPainter.clsRoad
-            Protected Texture As clsTerrain.Tile.sTexture
-            Protected ResultDirection As sTileDirection
-            Protected PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
-            Protected OppositeDirection As sTileDirection
-            Protected Tile As clsTerrain.Tile
-            Protected RoadCount() As Integer
-            Protected SideDirection As sTileDirection
-            Protected BestNum As Integer
-            Protected BestCount As Integer
-            Protected Terrain As clsTerrain
+            If Not Started Then
+                Stop
+                Exit Sub
+            End If
 
-            Protected Sub ToolPerformTile()
-                Dim PainterBrushNum As Integer
-                Dim A As Integer
+            Dim X As Integer
+            Dim Y As Integer
 
-                For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
-                    PainterRoad = Painter.RoadBrushes(PainterBrushNum).Road
-                    PainterTerrain = Painter.RoadBrushes(PainterBrushNum).Terrain
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If DirectionsOnSameSide(SideDirection, ResultDirection) Then
-                                RoadCount(PainterRoad.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RoadCount(PainterRoad.Num) += 1
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If IdenticalTileOrientations(SideDirection, ResultDirection) Then
-                                RoadCount(PainterRoad.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If DirectionsAreInLine(SideDirection, ResultDirection) Then
-                                RoadCount(PainterRoad.Num) += 1
-                            End If
-                        End If
-                    Next
-                    For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
-                        PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
-                        If PainterTexture.TextureNum = Texture.TextureNum Then
-                            RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
-                            If Not DirectionsOnSameSide(SideDirection, ResultDirection) Then
-                                RoadCount(PainterRoad.Num) += 1
-                            End If
-                        End If
-                    Next
+            Terrain = Map.Terrain
+
+            For Y = 0 To AreaTileSize.Y
+                VertexNum.Y = Offset.Y + Y
+                For X = 0 To AreaTileSize.X
+                    VertexNum.X = Offset.X + X
+                    Terrain.Vertices(VertexNum.X, VertexNum.Y).Height = NewHeight(X, Y)
+
+                    Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexNum)
+                    Map.SectorUnitHeightsChanges.VertexChanged(VertexNum)
+                    Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
                 Next
-            End Sub
+            Next
 
-            Public Overrides Sub ActionPerform()
+            Started = False
+        End Sub
 
-                Terrain = Map.Terrain
+        Public Overrides Sub ActionPerform()
 
-                Painter = Map.Painter
-                ReDim RoadCount(Painter.RoadCount - 1)
-            End Sub
-        End Class
+            If Not Started Then
+                Stop
+                Exit Sub
+            End If
 
-        Public Class clsApplySideHTerrainInterpret
-            Inherits clsMap.clsAction.clsApplySideTerrainInterpret
+            Dim X As Integer
+            Dim Y As Integer
+            Dim X2 As Integer
+            Dim Y2 As Integer
 
-            Public Overrides Sub ActionPerform()
-                MyBase.ActionPerform()
+            Terrain = Map.Terrain
 
-                Dim A As Integer
+            LimitX = Terrain.TileSize.X
+            LimitY = Terrain.TileSize.Y
+            TempHeight = 0
+            Samples = 0
+            For Y = Clamp_int(SmoothRadius.Tiles.YMin + PosNum.Y, 0, LimitY) - PosNum.Y To Clamp_int(SmoothRadius.Tiles.YMax + PosNum.Y, 0, LimitY) - PosNum.Y
+                Y2 = PosNum.Y + Y
+                XNum = Y - SmoothRadius.Tiles.YMin
+                For X = Clamp_int(SmoothRadius.Tiles.XMin(XNum) + PosNum.X, 0, LimitX) - PosNum.X To Clamp_int(SmoothRadius.Tiles.XMax(XNum) + PosNum.X, 0, LimitX) - PosNum.X
+                    X2 = PosNum.X + X
+                    TempHeight += Terrain.Vertices(X2, Y2).Height
+                    Samples += 1
+                Next
+            Next
+            NewHeight(PosNum.X - Offset.X, PosNum.Y - Offset.Y) = CByte(Math.Min(CInt(Terrain.Vertices(PosNum.X, PosNum.Y).Height * (1.0# - Ratio) + TempHeight / Samples * Ratio), Byte.MaxValue))
+        End Sub
+    End Class
 
-                If PosNum.Y > 0 Then
-                    SideDirection = TileDirection_Bottom
+    Public Class clsApplyRoadRemove
+        Inherits clsMap.clsAction
+
+        Private Terrain As clsTerrain
+
+        Private Sub ToolPerformSideH(ByVal SideNum As sXY_int)
+
+            Terrain = Map.Terrain
+
+            If Terrain.SideH(SideNum.X, SideNum.Y).Road IsNot Nothing Then
+                Terrain.SideH(SideNum.X, SideNum.Y).Road = Nothing
+                Map.AutoTextureChanges.SideHChanged(SideNum)
+                Map.SectorGraphicsChanges.SideHChanged(SideNum)
+                Map.SectorTerrainUndoChanges.SideHChanged(SideNum)
+            End If
+        End Sub
+
+        Private Sub ToolPerformSideV(ByVal SideNum As sXY_int)
+
+            Terrain = Map.Terrain
+
+            If Terrain.SideV(SideNum.X, SideNum.Y).Road IsNot Nothing Then
+                Terrain.SideV(SideNum.X, SideNum.Y).Road = Nothing
+                Map.AutoTextureChanges.SideVChanged(SideNum)
+                Map.SectorGraphicsChanges.SideVChanged(SideNum)
+                Map.SectorTerrainUndoChanges.SideVChanged(SideNum)
+            End If
+        End Sub
+
+        Public Overrides Sub ActionPerform()
+
+            ToolPerformSideH(PosNum)
+            ToolPerformSideH(New sXY_int(PosNum.X, PosNum.Y + 1))
+            ToolPerformSideV(PosNum)
+            ToolPerformSideV(New sXY_int(PosNum.X + 1, PosNum.Y))
+        End Sub
+    End Class
+
+    Public Class clsApplyVertexTerrain
+        Inherits clsMap.clsAction
+
+        Public VertexTerrain As clsPainter.clsTerrain
+
+        Private Terrain As clsTerrain
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain IsNot VertexTerrain Then
+                Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = VertexTerrain
+                Map.SectorGraphicsChanges.VertexChanged(PosNum)
+                Map.SectorTerrainUndoChanges.VertexChanged(PosNum)
+                Map.AutoTextureChanges.VertexChanged(PosNum)
+            End If
+        End Sub
+    End Class
+
+    Public Class clsApplyTexture
+        Inherits clsMap.clsAction
+
+        Public TextureNum As Integer
+        Public SetTexture As Boolean
+        Public Orientation As sTileOrientation
+        Public SetOrientation As Boolean
+        Public RandomOrientation As Boolean
+        Public TerrainAction As enumTextureTerrainAction
+
+        Private Terrain As clsTerrain
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
+
+            If SetTexture Then
+                Terrain.Tiles(PosNum.X, PosNum.Y).Texture.TextureNum = TextureNum
+            End If
+            If SetOrientation Then
+                If RandomOrientation Then
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Texture.Orientation = New sTileOrientation(Rnd() < 0.5F, Rnd() < 0.5F, Rnd() < 0.5F)
+                Else
+                    Terrain.Tiles(PosNum.X, PosNum.Y).Texture.Orientation = Orientation
+                End If
+            End If
+
+            Map.TileTextureChangeTerrainAction(PosNum, TerrainAction)
+
+            Map.SectorGraphicsChanges.TileChanged(PosNum)
+            Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+        End Sub
+    End Class
+
+    Public Class clsApplyVertexTerrainInterpret
+        Inherits clsMap.clsAction
+
+        Private TerrainCount() As Integer
+        Private VertexDirection As sTileDirection
+        Private Painter As clsPainter
+        Private PainterTerrainA As clsPainter.clsTerrain
+        Private PainterTerrainB As clsPainter.clsTerrain
+        Private Texture As clsTerrain.Tile.sTexture
+        Private ResultDirection As sTileDirection
+        Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Private OppositeDirection As sTileDirection
+        Private BestNum As Integer
+        Private BestCount As Integer
+        Private Tile As clsTerrain.Tile
+        Private Terrain As clsTerrain
+
+        Private Sub ToolPerformTile()
+            Dim PainterBrushNum As Integer
+            Dim A As Integer
+
+            For PainterBrushNum = 0 To Painter.TerrainCount - 1
+                PainterTerrainA = Painter.Terrains(PainterBrushNum)
+                For A = 0 To PainterTerrainA.Tiles.TileCount - 1
+                    PainterTexture = PainterTerrainA.Tiles.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+            Next
+            For PainterBrushNum = 0 To Painter.TransitionBrushCount - 1
+                PainterTerrainA = Painter.TransitionBrushes(PainterBrushNum).Terrain_Inner
+                PainterTerrainB = Painter.TransitionBrushes(PainterBrushNum).Terrain_Outer
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                    PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If DirectionsOnSameSide(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                    PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If IdenticalTileDirections(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                    PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        OppositeDirection = PainterTexture.Direction
+                        OppositeDirection.FlipX()
+                        OppositeDirection.FlipY()
+                        RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
+                        If IdenticalTileDirections(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        End If
+                    End If
+                Next
+            Next
+
+            For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
+                PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
+                PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If DirectionsOnSameSide(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If IdenticalTileDirections(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        OppositeDirection = PainterTexture.Direction
+                        OppositeDirection.FlipX()
+                        OppositeDirection.FlipY()
+                        RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
+                        If IdenticalTileDirections(VertexDirection, ResultDirection) Then
+                            TerrainCount(PainterTerrainA.Num) += 1
+                        Else
+                            TerrainCount(PainterTerrainB.Num) += 1
+                        End If
+                    End If
+                Next
+            Next
+
+            For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
+                PainterTerrainA = Painter.RoadBrushes(PainterBrushNum).Terrain
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        TerrainCount(PainterTerrainA.Num) += 1
+                    End If
+                Next
+            Next
+        End Sub
+
+        Public Overrides Sub ActionPerform()
+            Dim A As Integer
+
+            Terrain = Map.Terrain
+
+            Painter = Map.Painter
+            ReDim TerrainCount(Painter.TerrainCount - 1)
+
+            If PosNum.Y > 0 Then
+                If PosNum.X > 0 Then
+                    VertexDirection = TileDirection_BottomRight
+                    Tile = Terrain.Tiles(PosNum.X - 1, PosNum.Y - 1)
+                    Texture = Tile.Texture
+                    ToolPerformTile()
+                End If
+                If PosNum.X < Terrain.TileSize.X Then
+                    VertexDirection = TileDirection_BottomLeft
                     Tile = Terrain.Tiles(PosNum.X, PosNum.Y - 1)
                     Texture = Tile.Texture
                     ToolPerformTile()
                 End If
-                If PosNum.Y < Terrain.TileSize.Y Then
-                    SideDirection = TileDirection_Top
-                    Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
-                    Texture = Tile.Texture
-                    ToolPerformTile()
-                End If
-
-                BestNum = -1
-                BestCount = 0
-                For A = 0 To Painter.RoadCount - 1
-                    If RoadCount(A) > BestCount Then
-                        BestNum = A
-                        BestCount = RoadCount(A)
-                    End If
-                Next
-                If BestCount > 0 Then
-                    Terrain.SideH(PosNum.X, PosNum.Y).Road = Painter.Roads(BestNum)
-                Else
-                    Terrain.SideH(PosNum.X, PosNum.Y).Road = Nothing
-                End If
-
-                Map.SectorTerrainUndoChanges.SideHChanged(PosNum)
-            End Sub
-        End Class
-
-        Public Class clsApplySideVTerrainInterpret
-            Inherits clsMap.clsAction.clsApplySideTerrainInterpret
-
-            Public Overrides Sub ActionPerform()
-                MyBase.ActionPerform()
-
-                Dim A As Integer
-
+            End If
+            If PosNum.Y < Terrain.TileSize.Y Then
                 If PosNum.X > 0 Then
-                    SideDirection = TileDirection_Right
+                    VertexDirection = TileDirection_TopRight
                     Tile = Terrain.Tiles(PosNum.X - 1, PosNum.Y)
                     Texture = Tile.Texture
                     ToolPerformTile()
                 End If
                 If PosNum.X < Terrain.TileSize.X Then
-                    SideDirection = TileDirection_Left
+                    VertexDirection = TileDirection_TopLeft
                     Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
                     Texture = Tile.Texture
                     ToolPerformTile()
                 End If
+            End If
 
-                BestNum = -1
-                BestCount = 0
-                For A = 0 To Painter.RoadCount - 1
-                    If RoadCount(A) > BestCount Then
-                        BestNum = A
-                        BestCount = RoadCount(A)
+            BestNum = -1
+            BestCount = 0
+            For A = 0 To Painter.TerrainCount - 1
+                If TerrainCount(A) > BestCount Then
+                    BestNum = A
+                    BestCount = TerrainCount(A)
+                End If
+            Next
+            If BestCount > 0 Then
+                Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = Painter.Terrains(BestNum)
+            Else
+                Terrain.Vertices(PosNum.X, PosNum.Y).Terrain = Nothing
+            End If
+
+            Map.SectorTerrainUndoChanges.VertexChanged(PosNum)
+        End Sub
+    End Class
+
+    Public Class clsApplyTileTerrainInterpret
+        Inherits clsMap.clsAction
+
+        Private Painter As clsPainter
+        Private PainterTerrainA As clsPainter.clsTerrain
+        Private PainterTerrainB As clsPainter.clsTerrain
+        Private Texture As clsTerrain.Tile.sTexture
+        Private ResultDirection As sTileDirection
+        Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Private OppositeDirection As sTileDirection
+        Private Tile As clsTerrain.Tile
+        Private Terrain As clsTerrain
+
+        Public Overrides Sub ActionPerform()
+            Dim PainterBrushNum As Integer
+            Dim A As Integer
+
+            Terrain = Map.Terrain
+
+            Painter = Map.Painter
+
+            Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
+            Texture = Tile.Texture
+
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
+            Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_None
+
+            For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
+                PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
+                PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        If Tile.Tri Then
+                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
+                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
+                        Else
+                            Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
+                            Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
+                        End If
+                        Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = ResultDirection
                     End If
                 Next
-                If BestCount > 0 Then
-                    Terrain.SideV(PosNum.X, PosNum.Y).Road = Painter.Roads(BestNum)
-                Else
-                    Terrain.SideV(PosNum.X, PosNum.Y).Road = Nothing
-                End If
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If Tile.Tri Then
+                            If IdenticalTileDirections(ResultDirection, TileDirection_TopLeft) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            ElseIf IdenticalTileDirections(ResultDirection, TileDirection_BottomRight) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            End If
+                        Else
+                            If IdenticalTileDirections(ResultDirection, TileDirection_TopRight) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            ElseIf IdenticalTileDirections(ResultDirection, TileDirection_BottomLeft) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            End If
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                    PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        OppositeDirection = PainterTexture.Direction
+                        OppositeDirection.FlipX()
+                        OppositeDirection.FlipY()
+                        RotateDirection(OppositeDirection, Texture.Orientation, ResultDirection)
+                        If Tile.Tri Then
+                            If IdenticalTileDirections(ResultDirection, TileDirection_TopLeft) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            ElseIf IdenticalTileDirections(ResultDirection, TileDirection_BottomRight) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            End If
+                        Else
+                            If IdenticalTileDirections(ResultDirection, TileDirection_TopRight) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            ElseIf IdenticalTileDirections(ResultDirection, TileDirection_BottomLeft) Then
+                                Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff = True
+                                Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = True
+                            End If
+                        End If
+                    End If
+                Next
+            Next
 
-                Map.SectorTerrainUndoChanges.SideVChanged(PosNum)
-            End Sub
-        End Class
+            Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+        End Sub
+    End Class
+
+    Public MustInherit Class clsApplySideTerrainInterpret
+        Inherits clsMap.clsAction
+
+        Protected Painter As clsPainter
+        Protected PainterTerrain As clsPainter.clsTerrain
+        Protected PainterRoad As clsPainter.clsRoad
+        Protected Texture As clsTerrain.Tile.sTexture
+        Protected ResultDirection As sTileDirection
+        Protected PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Protected OppositeDirection As sTileDirection
+        Protected Tile As clsTerrain.Tile
+        Protected RoadCount() As Integer
+        Protected SideDirection As sTileDirection
+        Protected BestNum As Integer
+        Protected BestCount As Integer
+        Protected Terrain As clsTerrain
+
+        Protected Sub ToolPerformTile()
+            Dim PainterBrushNum As Integer
+            Dim A As Integer
+
+            For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
+                PainterRoad = Painter.RoadBrushes(PainterBrushNum).Road
+                PainterTerrain = Painter.RoadBrushes(PainterBrushNum).Terrain
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If DirectionsOnSameSide(SideDirection, ResultDirection) Then
+                            RoadCount(PainterRoad.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RoadCount(PainterRoad.Num) += 1
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If IdenticalTileDirections(SideDirection, ResultDirection) Then
+                            RoadCount(PainterRoad.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If DirectionsAreInLine(SideDirection, ResultDirection) Then
+                            RoadCount(PainterRoad.Num) += 1
+                        End If
+                    End If
+                Next
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
+                    PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
+                    If PainterTexture.TextureNum = Texture.TextureNum Then
+                        RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
+                        If Not DirectionsOnSameSide(SideDirection, ResultDirection) Then
+                            RoadCount(PainterRoad.Num) += 1
+                        End If
+                    End If
+                Next
+            Next
+        End Sub
+
+        Public Overrides Sub ActionPerform()
+
+            Terrain = Map.Terrain
+
+            Painter = Map.Painter
+            ReDim RoadCount(Painter.RoadCount - 1)
+        End Sub
+    End Class
+
+    Public Class clsApplySideHTerrainInterpret
+        Inherits clsMap.clsApplySideTerrainInterpret
+
+        Public Overrides Sub ActionPerform()
+            MyBase.ActionPerform()
+
+            Dim A As Integer
+
+            If PosNum.Y > 0 Then
+                SideDirection = TileDirection_Bottom
+                Tile = Terrain.Tiles(PosNum.X, PosNum.Y - 1)
+                Texture = Tile.Texture
+                ToolPerformTile()
+            End If
+            If PosNum.Y < Terrain.TileSize.Y Then
+                SideDirection = TileDirection_Top
+                Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
+                Texture = Tile.Texture
+                ToolPerformTile()
+            End If
+
+            BestNum = -1
+            BestCount = 0
+            For A = 0 To Painter.RoadCount - 1
+                If RoadCount(A) > BestCount Then
+                    BestNum = A
+                    BestCount = RoadCount(A)
+                End If
+            Next
+            If BestCount > 0 Then
+                Terrain.SideH(PosNum.X, PosNum.Y).Road = Painter.Roads(BestNum)
+            Else
+                Terrain.SideH(PosNum.X, PosNum.Y).Road = Nothing
+            End If
+
+            Map.SectorTerrainUndoChanges.SideHChanged(PosNum)
+        End Sub
+    End Class
+
+    Public Class clsApplySideVTerrainInterpret
+        Inherits clsMap.clsApplySideTerrainInterpret
+
+        Public Overrides Sub ActionPerform()
+            MyBase.ActionPerform()
+
+            Dim A As Integer
+
+            If PosNum.X > 0 Then
+                SideDirection = TileDirection_Right
+                Tile = Terrain.Tiles(PosNum.X - 1, PosNum.Y)
+                Texture = Tile.Texture
+                ToolPerformTile()
+            End If
+            If PosNum.X < Terrain.TileSize.X Then
+                SideDirection = TileDirection_Left
+                Tile = Terrain.Tiles(PosNum.X, PosNum.Y)
+                Texture = Tile.Texture
+                ToolPerformTile()
+            End If
+
+            BestNum = -1
+            BestCount = 0
+            For A = 0 To Painter.RoadCount - 1
+                If RoadCount(A) > BestCount Then
+                    BestNum = A
+                    BestCount = RoadCount(A)
+                End If
+            Next
+            If BestCount > 0 Then
+                Terrain.SideV(PosNum.X, PosNum.Y).Road = Painter.Roads(BestNum)
+            Else
+                Terrain.SideV(PosNum.X, PosNum.Y).Road = Nothing
+            End If
+
+            Map.SectorTerrainUndoChanges.SideVChanged(PosNum)
+        End Sub
+    End Class
+
+    Public Class clsApplyAutoTri
+        Inherits clsAction
+
+        Private difA As Double
+        Private difB As Double
+        Private NewTri As Boolean
+
+        Public Overrides Sub ActionPerform()
+
+            'tri set to the direction where the diagonal edge will be the flattest, so that cliff edges are level
+            difA = Math.Abs(CDbl(Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) - Map.Terrain.Vertices(PosNum.X, PosNum.Y).Height)
+            difB = Math.Abs(CDbl(Map.Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) - Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height)
+            If difA = difB Then
+                NewTri = (Rnd() < 0.5F)
+            Else
+                NewTri = (difA > difB)
+            End If
+            Map.Terrain.Tiles(PosNum.X, PosNum.Y).Tri = NewTri
+
+            Map.SectorGraphicsChanges.TileChanged(PosNum)
+            Map.SectorUnitHeightsChanges.TileChanged(PosNum)
+            Map.SectorTerrainUndoChanges.TileChanged(PosNum)
+        End Sub
+    End Class
+
+    Public Class clsObjectRotation
+        Inherits clsObjectAction
+
+        Public Angle As Integer
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            ResultUnit.Rotation = Angle
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectRotation")
+        End Sub
+    End Class
+
+    Public Class clsObjectUnitGroup
+        Inherits clsObjectAction
+
+        Public UnitGroup As clsUnitGroup
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            ResultUnit.UnitGroup = UnitGroup
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectUnitGroup")
+        End Sub
+    End Class
+
+    Public Class clsObjectPriority
+        Inherits clsObjectAction
+
+        Public Priority As Integer
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            ResultUnit.SavePriority = Priority
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
+        End Sub
+    End Class
+
+    Public Class clsObjectHealth
+        Inherits clsObjectAction
+
+        Public Health As Double
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            ResultUnit.Health = Health
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
+        End Sub
+    End Class
+
+    Public Class clsObjectPosOffset
+        Inherits clsObjectAction
+
+        Public Offset As sXY_int
+
+        Private NewPos As sXY_int
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            NewPos.X = Unit.Pos.Horizontal.X + Offset.X
+            NewPos.Y = Unit.Pos.Horizontal.Y + Offset.Y
+            ResultUnit.Pos = Map.TileAligned_Pos_From_MapPos(NewPos, ResultUnit.Type.GetFootprint)
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
+        End Sub
+    End Class
+
+    Public Class clsObjectRotationOffset
+        Inherits clsObjectAction
+
+        Public Offset As Integer
+
+        Private NewPos As sXY_int
+
+        Public Overrides Sub ActionPerform()
+
+            ResultUnit = New clsMap.clsUnit(Unit)
+            ID = Unit.ID
+
+            ResultUnit.Rotation = Unit.Rotation + Offset
+            If ResultUnit.Rotation < 0 Then
+                ResultUnit.Rotation += 360
+            ElseIf ResultUnit.Rotation >= 360 Then
+                ResultUnit.Rotation -= 360
+            End If
+
+            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+            Map.UnitID_Add_StoreChange(ResultUnit, ID)
+            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
+        End Sub
+    End Class
+
+    Public Class clsObjectTemplateToDesign
+        Inherits clsObjectAction
+
+        Public Changed As Boolean
+
+        Private OldDroidType As clsDroidDesign
+        Private NewDroidType As clsDroidDesign
+        Private DoUnit As Boolean
+
+        Public Overrides Sub ActionPerform()
+
+            If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(Unit.Type, clsDroidDesign)
+                DoUnit = OldDroidType.IsTemplate
+            Else
+                OldDroidType = Nothing
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+
+                ResultUnit = New clsMap.clsUnit(Unit)
+                ID = Unit.ID
+
+                NewDroidType = New clsDroidDesign
+                ResultUnit.Type = NewDroidType
+                NewDroidType.CopyDesign(OldDroidType)
+                NewDroidType.UpdateAttachments()
+
+                Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+                Map.UnitID_Add_StoreChange(ResultUnit, ID)
+                ErrorIDChange(ID, ResultUnit, "TemplateToDesign")
+            Else
+                ResultUnit = Unit
+            End If
+        End Sub
+    End Class
+
+    Public MustInherit Class clsObjectComponent
+        Inherits clsObjectAction
+
+        Public Changed As Boolean
+
+        Private OldDroidType As clsDroidDesign
+        Protected NewDroidType As clsDroidDesign
+        Private DoUnit As Boolean
+
+        Protected MustOverride Sub ChangeComponent()
+
+        Public Overrides Sub ActionPerform()
+
+            If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                OldDroidType = CType(Unit.Type, clsDroidDesign)
+                DoUnit = Not OldDroidType.IsTemplate
+            Else
+                OldDroidType = Nothing
+                DoUnit = False
+            End If
+            If DoUnit Then
+                Changed = True
+
+                ResultUnit = New clsMap.clsUnit(Unit)
+                ID = Unit.ID
+
+                NewDroidType = New clsDroidDesign
+                ResultUnit.Type = NewDroidType
+                NewDroidType.CopyDesign(OldDroidType)
+
+                ChangeComponent()
+
+                NewDroidType.UpdateAttachments()
+
+                Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
+                Map.UnitID_Add_StoreChange(ResultUnit, ID)
+                ErrorIDChange(ID, ResultUnit, "ObjectComponent")
+            Else
+                ResultUnit = Unit
+            End If
+        End Sub
+    End Class
+
+    Public Class clsObjectBody
+        Inherits clsObjectComponent
+
+        Public Body As clsBody
+
+        Protected Overrides Sub ChangeComponent()
+
+            NewDroidType.Body = Body
+        End Sub
+    End Class
+
+    Public Class clsObjectPropulsion
+        Inherits clsObjectComponent
+
+        Public Propulsion As clsPropulsion
+
+        Protected Overrides Sub ChangeComponent()
+
+            NewDroidType.Propulsion = Propulsion
+        End Sub
+    End Class
+
+    Public Class clsObjectTurret
+        Inherits clsObjectComponent
+
+        Public Turret As clsTurret
+        Public TurretNum As Integer
+
+        Protected Overrides Sub ChangeComponent()
+
+            Select Case TurretNum
+                Case 0
+                    NewDroidType.Turret1 = Turret
+                Case 1
+                    NewDroidType.Turret2 = Turret
+                Case 2
+                    NewDroidType.Turret3 = Turret
+            End Select
+        End Sub
+    End Class
+
+    Public Class clsObjectTurretCount
+        Inherits clsObjectComponent
+
+        Public TurretCount As Byte
+
+        Protected Overrides Sub ChangeComponent()
+
+            NewDroidType.TurretCount = TurretCount
+        End Sub
+    End Class
+
+    Public Class clsObjectDroidType
+        Inherits clsObjectComponent
+
+        Public DroidType As clsDroidDesign.clsTemplateDroidType
+
+        Protected Overrides Sub ChangeComponent()
+
+            NewDroidType.TemplateDroidType = DroidType
+        End Sub
     End Class
 End Class

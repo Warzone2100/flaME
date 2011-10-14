@@ -28,7 +28,13 @@ Partial Class ctrlMapView
         Me.lblPos = New System.Windows.Forms.ToolStripStatusLabel()
         Me.lblUndo = New System.Windows.Forms.ToolStripStatusLabel()
         Me.pnlDraw = New System.Windows.Forms.Panel()
+        Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
+        Me.tabMaps = New System.Windows.Forms.TabControl()
+        Me.TableLayoutPanel2 = New System.Windows.Forms.TableLayoutPanel()
+        Me.btnClose = New System.Windows.Forms.Button()
         Me.ssStatus.SuspendLayout()
+        Me.TableLayoutPanel1.SuspendLayout()
+        Me.TableLayoutPanel2.SuspendLayout()
         Me.SuspendLayout()
         '
         'ssStatus
@@ -78,22 +84,77 @@ Partial Class ctrlMapView
         'pnlDraw
         '
         Me.pnlDraw.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.pnlDraw.Location = New System.Drawing.Point(0, 0)
+        Me.pnlDraw.Location = New System.Drawing.Point(0, 28)
         Me.pnlDraw.Margin = New System.Windows.Forms.Padding(0)
         Me.pnlDraw.Name = "pnlDraw"
-        Me.pnlDraw.Size = New System.Drawing.Size(1308, 392)
+        Me.pnlDraw.Size = New System.Drawing.Size(1308, 364)
         Me.pnlDraw.TabIndex = 1
+        '
+        'TableLayoutPanel1
+        '
+        Me.TableLayoutPanel1.ColumnCount = 1
+        Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.TableLayoutPanel1.Controls.Add(Me.pnlDraw, 0, 1)
+        Me.TableLayoutPanel1.Controls.Add(Me.TableLayoutPanel2, 0, 0)
+        Me.TableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.TableLayoutPanel1.Location = New System.Drawing.Point(0, 0)
+        Me.TableLayoutPanel1.Name = "TableLayoutPanel1"
+        Me.TableLayoutPanel1.RowCount = 2
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28.0!))
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.TableLayoutPanel1.Size = New System.Drawing.Size(1308, 392)
+        Me.TableLayoutPanel1.TabIndex = 2
+        '
+        'tabMaps
+        '
+        Me.tabMaps.Appearance = System.Windows.Forms.TabAppearance.Buttons
+        Me.tabMaps.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.tabMaps.Location = New System.Drawing.Point(3, 3)
+        Me.tabMaps.Name = "tabMaps"
+        Me.tabMaps.SelectedIndex = -1
+        Me.tabMaps.Size = New System.Drawing.Size(1270, 22)
+        Me.tabMaps.TabIndex = 2
+        '
+        'TableLayoutPanel2
+        '
+        Me.TableLayoutPanel2.ColumnCount = 2
+        Me.TableLayoutPanel2.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.TableLayoutPanel2.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 32.0!))
+        Me.TableLayoutPanel2.Controls.Add(Me.tabMaps, 0, 0)
+        Me.TableLayoutPanel2.Controls.Add(Me.btnClose, 1, 0)
+        Me.TableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.TableLayoutPanel2.Location = New System.Drawing.Point(0, 0)
+        Me.TableLayoutPanel2.Margin = New System.Windows.Forms.Padding(0)
+        Me.TableLayoutPanel2.Name = "TableLayoutPanel2"
+        Me.TableLayoutPanel2.RowCount = 1
+        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.TableLayoutPanel2.Size = New System.Drawing.Size(1308, 28)
+        Me.TableLayoutPanel2.TabIndex = 2
+        '
+        'btnClose
+        '
+        Me.btnClose.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.btnClose.Location = New System.Drawing.Point(1276, 0)
+        Me.btnClose.Margin = New System.Windows.Forms.Padding(0)
+        Me.btnClose.Name = "btnClose"
+        Me.btnClose.Size = New System.Drawing.Size(32, 28)
+        Me.btnClose.TabIndex = 3
+        Me.btnClose.Text = "X"
+        Me.btnClose.UseVisualStyleBackColor = True
         '
         'ctrlMapView
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.Controls.Add(Me.pnlDraw)
+        Me.Controls.Add(Me.TableLayoutPanel1)
         Me.Controls.Add(Me.ssStatus)
         Me.Margin = New System.Windows.Forms.Padding(0)
         Me.Name = "ctrlMapView"
         Me.Size = New System.Drawing.Size(1308, 424)
         Me.ssStatus.ResumeLayout(False)
         Me.ssStatus.PerformLayout()
+        Me.TableLayoutPanel1.ResumeLayout(False)
+        Me.TableLayoutPanel2.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -104,4 +165,8 @@ Partial Class ctrlMapView
     Public WithEvents lblPos As System.Windows.Forms.ToolStripStatusLabel
     Public WithEvents pnlDraw As System.Windows.Forms.Panel
     Public WithEvents lblUndo As System.Windows.Forms.ToolStripStatusLabel
+    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Friend WithEvents tabMaps As System.Windows.Forms.TabControl
+    Friend WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
+    Friend WithEvents btnClose As System.Windows.Forms.Button
 End Class

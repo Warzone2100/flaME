@@ -29,7 +29,7 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.22</ReleaseVersion>
+    <ReleaseVersion>1.23</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -56,25 +56,19 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Core">
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
       <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="OpenTK">
       <HintPath>OpenTK.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="OpenTK.GLControl">
       <HintPath>OpenTK.GLControl.dll</HintPath>
     </Reference>
-    <Reference Include="Matrix3D, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="Matrix3D">
       <HintPath>Matrix3D.dll</HintPath>
     </Reference>
   </ItemGroup>
@@ -104,11 +98,9 @@
     <Compile Include="clsMapWZ.vb" />
     <Compile Include="clsModel.vb" />
     <Compile Include="clsPainter.vb" />
-    <Compile Include="clsReadFile.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="clsTileset.vb" />
     <Compile Include="clsUnitType.vb" />
-    <Compile Include="clsWriteFile.vb" />
     <Compile Include="GLFont.vb" />
     <Compile Include="modBitmap.vb" />
     <Compile Include="modData.vb" />
@@ -147,10 +139,15 @@
     <Compile Include="frmGenerator.vb" />
     <Compile Include="frmMain.vb" />
     <Compile Include="frmMainIC.vb" />
-    <Compile Include="frmMapTexturer.vb" />
     <Compile Include="frmOptions.vb" />
     <Compile Include="frmWarnings.vb" />
     <Compile Include="frmWZLoad.vb" />
+    <Compile Include="frmGeneratorIC.vb" />
+    <Compile Include="ctrlColour.vb" />
+    <Compile Include="clsMapDraw.vb" />
+    <Compile Include="modMaps.vb" />
+    <Compile Include="clsViewInfo.vb" />
+    <Compile Include="modPainters.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

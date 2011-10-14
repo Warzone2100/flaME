@@ -53,7 +53,6 @@
                 End If
             Next
             If A = TileCount Then
-                'todo: dont do this when user has elected to not have invalid tiles
                 ReturnResult.TextureNum = -1
                 ReturnResult.Direction = TileDirection_None
             Else
@@ -70,6 +69,8 @@
         Public Tiles_Corner_In As New clsTileList
         Public Tiles_Corner_Out As New clsTileList
     End Class
+    Public TransitionBrushes() As clsTransition_Brush
+    Public TransitionBrushCount As Integer
     Public Class clsCliff_Brush
         Public Name As String
         Public Terrain_Inner As clsTerrain
@@ -78,8 +79,6 @@
         Public Tiles_Corner_In As New clsTileList
         Public Tiles_Corner_Out As New clsTileList
     End Class
-    Public TransitionBrushes() As clsTransition_Brush
-    Public TransitionBrushCount As Integer
     Public CliffBrushes() As clsCliff_Brush
     Public CliffBrushCount As Integer
 

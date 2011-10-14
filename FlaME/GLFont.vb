@@ -17,7 +17,7 @@ Public Class GLFont
         GLTextures_Generate(BaseFont)
     End Sub
 
-    Private Sub GLTextures_Generate(ByVal BaseFont As Font)
+    Private Sub GLTextures_Generate(ByVal NewBaseFont As Font)
         Dim A As Integer
         Dim X As Integer
         Dim Y As Integer
@@ -30,7 +30,7 @@ Public Class GLFont
         Dim TexBitmap As Bitmap
         Dim tmpString As String
 
-        BaseFont = BaseFont
+        BaseFont = NewBaseFont
         Height = BaseFont.Height
         For A = 0 To 255
             tmpString = Chr(A)

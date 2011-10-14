@@ -20,14 +20,11 @@
                 PropertyCount += 1
             End Sub
 
-            Public Function ReadFile(ByVal File As clsReadFile) As clsResult
+            Public Function ReadFile(ByVal File As System.IO.StreamReader) As clsResult
                 Dim ReturnResult As New clsResult
 
                 Dim InvalidLineCount As Integer = 0
                 Dim CurrentEntryNum As Integer = -1
-                Dim TerminatorChars(1) As Char
-                TerminatorChars(0) = Chr(10)
-                TerminatorChars(1) = Chr(13)
                 Dim LineText As String = Nothing
                 Dim A As Integer
                 Dim TrimChars(2) As Char
@@ -36,11 +33,12 @@
                 TrimChars(2) = " "c
 
                 Do
-                    If Not File.Get_Text_Terminated(TerminatorChars, False, True, LineText) Then
+                    LineText = File.ReadLine
+                    If LineText Is Nothing Then
                         Exit Do
                     End If
                     LineText.Trim(TrimChars)
-                    If LineText.Length >= 3 Then
+                    If LineText.Length >= 1 Then
                         A = LineText.IndexOf("="c)
                         If A >= 0 Then
                             CreateProperty(LineText.Substring(0, A).ToLower.Trim, LineText.Substring(A + 1, LineText.Length - A - 1).Trim)
@@ -135,14 +133,11 @@
             SectionCount += 1
         End Sub
 
-        Public Function ReadFile(ByVal File As clsReadFile) As clsResult
+        Public Function ReadFile(ByVal File As IO.StreamReader) As clsResult
             Dim ReturnResult As New clsResult
 
             Dim InvalidLineCount As Integer = 0
             Dim CurrentEntryNum As Integer = -1
-            Dim TerminatorChars(1) As Char
-            TerminatorChars(0) = Chr(10)
-            TerminatorChars(1) = Chr(13)
             Dim LineText As String = Nothing
             Dim A As Integer
             Dim TrimChars(2) As Char
@@ -152,11 +147,12 @@
             TrimChars(2) = " "c
 
             Do
-                If Not File.Get_Text_Terminated(TerminatorChars, False, True, LineText) Then
+                LineText = File.ReadLine
+                If LineText Is Nothing Then
                     Exit Do
                 End If
                 LineText.Trim(TrimChars)
-                If LineText.Length >= 3 Then
+                If LineText.Length >= 2 Then
                     If LineText.Chars(0) = "["c Then
                         If LineText.Chars(LineText.Length - 1) = "]"c Then
                             SectionName = LineText.Substring(1, LineText.Length - 2)
@@ -248,7 +244,7 @@
 
     Public Class clsINIWrite
 
-        Public File As clsWriteFile
+        Public File As IO.StreamWriter
         Public LineEndChar As Char = Chr(10)
         Public EqualsChar As Char = "="c
 
@@ -256,7 +252,7 @@
 
             Name = Name.Replace(LineEndChar, "")
 
-            File.Text_Append("["c & Name & "]"c & LineEndChar)
+            File.Write("["c & Name & "]"c & LineEndChar)
         End Sub
 
         Public Sub Property_Append(ByVal Name As String, ByVal Value As String)
@@ -265,19 +261,20 @@
             Name = Name.Replace(EqualsChar, "")
             Value = Value.Replace(LineEndChar, "")
 
-            File.Text_Append(Name & EqualsChar & Value & LineEndChar)
+            File.Write(Name & EqualsChar & Value & LineEndChar)
         End Sub
 
         Public Sub Gap_Append()
 
-            File.Text_Append(LineEndChar)
+            File.Write(LineEndChar)
         End Sub
     End Class
 
-    Public Function CreateINIWriteFile() As clsINIWrite
+    Public Function CreateINIWriteFile(ByVal Output As IO.Stream) As clsINIWrite
         Dim NewINI As New clsINIWrite
+        Dim Encoding As New System.Text.UTF8Encoding(False, False)
 
-        NewINI.File = New clsWriteFile
+        NewINI.File = New IO.StreamWriter(Output, Encoding)
 
         Return NewINI
     End Function

@@ -277,11 +277,11 @@
     End Structure
 
     Public Structure sFileData_Entry
-        Public FieldValue() As String
+        Public FieldValues() As String
         Public FieldCount As Integer
     End Structure
     Public Structure sFileData
-        Public Entry() As sFileData_Entry
+        Public Entries() As sFileData_Entry
         Public EntryCount As Integer
     End Structure
 
@@ -294,7 +294,7 @@
 
         With FileData
             .EntryCount = NewEntryCount
-            ReDim .Entry(.EntryCount - 1)
+            ReDim .Entries(.EntryCount - 1)
         End With
     End Sub
 
@@ -540,59 +540,59 @@
                 .BodyCount = DataBody.EntryCount
                 ReDim .Bodies(.BodyCount - 1)
                 For Body_Num = 0 To .BodyCount - 1
-                    .Bodies(Body_Num).Code = DataBody.Entry(Body_Num).FieldValue(0)
+                    .Bodies(Body_Num).Code = DataBody.Entries(Body_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Bodies(Body_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Bodies(Body_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Bodies(Body_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for body component " & .Bodies(Body_Num).Code & ".")
                     End If
-                    .Bodies(Body_Num).HitPoints = CInt(Val(DataBody.Entry(Body_Num).FieldValue(6)))
-                    .Bodies(Body_Num).PIE = LCase(DataBody.Entry(Body_Num).FieldValue(7))
-                    .Bodies(Body_Num).Designable = (DataBody.Entry(Body_Num).FieldValue(24) <> "0")
+                    InvariantParse_int(DataBody.Entries(Body_Num).FieldValues(6), .Bodies(Body_Num).HitPoints)
+                    .Bodies(Body_Num).PIE = LCase(DataBody.Entries(Body_Num).FieldValues(7))
+                    .Bodies(Body_Num).Designable = (DataBody.Entries(Body_Num).FieldValues(24) <> "0")
                 Next
             End With
             DataBody.EntryCount = 0
-            Erase DataBody.Entry
+            Erase DataBody.Entries
 
             'interpret propulsion
             With .Propulsion_List
                 .PropulsionCount = DataPropulsion.EntryCount
                 ReDim .Propulsions(.PropulsionCount - 1)
                 For Propulsion_Num = 0 To .PropulsionCount - 1
-                    .Propulsions(Propulsion_Num).Code = DataPropulsion.Entry(Propulsion_Num).FieldValue(0)
+                    .Propulsions(Propulsion_Num).Code = DataPropulsion.Entries(Propulsion_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Propulsions(Propulsion_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Propulsions(Propulsion_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Propulsions(Propulsion_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for propulsion component " & .Propulsions(Propulsion_Num).Code & ".")
                     End If
-                    .Propulsions(Propulsion_Num).HitPoints = CInt(Val(DataPropulsion.Entry(Propulsion_Num).FieldValue(7)))
-                    .Propulsions(Propulsion_Num).PIE = LCase(DataPropulsion.Entry(Propulsion_Num).FieldValue(8))
-                    .Propulsions(Propulsion_Num).Designable = (DataPropulsion.Entry(Propulsion_Num).FieldValue(11) <> "0")
+                    InvariantParse_int(DataPropulsion.Entries(Propulsion_Num).FieldValues(7), .Propulsions(Propulsion_Num).HitPoints)
+                    .Propulsions(Propulsion_Num).PIE = LCase(DataPropulsion.Entries(Propulsion_Num).FieldValues(8))
+                    .Propulsions(Propulsion_Num).Designable = (DataPropulsion.Entries(Propulsion_Num).FieldValues(11) <> "0")
                 Next
             End With
             DataPropulsion.EntryCount = 0
-            Erase DataPropulsion.Entry
+            Erase DataPropulsion.Entries
 
             'interpret construction
             With .Construction_List
                 .ConstructionCount = DataConstruction.EntryCount
                 ReDim .Constructions(.ConstructionCount - 1)
                 For Construction_Num = 0 To .ConstructionCount - 1
-                    .Constructions(Construction_Num).Code = DataConstruction.Entry(Construction_Num).FieldValue(0)
+                    .Constructions(Construction_Num).Code = DataConstruction.Entries(Construction_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Constructions(Construction_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Constructions(Construction_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Constructions(Construction_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for construction component " & .Constructions(Construction_Num).Code & ".")
                     End If
-                    .Constructions(Construction_Num).PIE = LCase(DataConstruction.Entry(Construction_Num).FieldValue(8))
-                    .Constructions(Construction_Num).Designable = (DataConstruction.Entry(Construction_Num).FieldValue(11) <> "0")
+                    .Constructions(Construction_Num).PIE = LCase(DataConstruction.Entries(Construction_Num).FieldValues(8))
+                    .Constructions(Construction_Num).Designable = (DataConstruction.Entries(Construction_Num).FieldValues(11) <> "0")
                 Next
             End With
             DataConstruction.EntryCount = 0
-            Erase DataConstruction.Entry
+            Erase DataConstruction.Entries
 
             'interpret weapons
             Dim WeaponNum As Integer
@@ -600,17 +600,17 @@
                 .WeaponCount = DataWeapons.EntryCount
                 ReDim .Weapons(.WeaponCount - 1)
                 For WeaponNum = 0 To .WeaponCount - 1
-                    .Weapons(WeaponNum).Code = DataWeapons.Entry(WeaponNum).FieldValue(0)
+                    .Weapons(WeaponNum).Code = DataWeapons.Entries(WeaponNum).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Weapons(WeaponNum).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Weapons(WeaponNum).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Weapons(WeaponNum).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for weapon component " & .Weapons(WeaponNum).Code & ".")
                     End If
-                    .Weapons(WeaponNum).HitPoints = CInt(Val(DataWeapons.Entry(WeaponNum).FieldValue(7)))
-                    .Weapons(WeaponNum).PIE = LCase(DataWeapons.Entry(WeaponNum).FieldValue(8))
-                    .Weapons(WeaponNum).PIE2 = LCase(DataWeapons.Entry(WeaponNum).FieldValue(9))
-                    .Weapons(WeaponNum).Designable = (DataWeapons.Entry(WeaponNum).FieldValue(51) <> "0")
+                    InvariantParse_int(DataWeapons.Entries(WeaponNum).FieldValues(7), .Weapons(WeaponNum).HitPoints)
+                    .Weapons(WeaponNum).PIE = LCase(DataWeapons.Entries(WeaponNum).FieldValues(8))
+                    .Weapons(WeaponNum).PIE2 = LCase(DataWeapons.Entries(WeaponNum).FieldValues(9))
+                    .Weapons(WeaponNum).Designable = (DataWeapons.Entries(WeaponNum).FieldValues(51) <> "0")
                 Next
             End With
 
@@ -619,55 +619,55 @@
                 .SensorCount = DataSensor.EntryCount
                 ReDim .Sensors(.SensorCount - 1)
                 For Sensor_Num = 0 To .SensorCount - 1
-                    .Sensors(Sensor_Num).Code = DataSensor.Entry(Sensor_Num).FieldValue(0)
+                    .Sensors(Sensor_Num).Code = DataSensor.Entries(Sensor_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Sensors(Sensor_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Sensors(Sensor_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Sensors(Sensor_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for sensor component " & .Sensors(Sensor_Num).Code & ".")
                     End If
-                    .Sensors(Sensor_Num).HitPoints = CInt(Val(DataSensor.Entry(Sensor_Num).FieldValue(7)))
-                    .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entry(Sensor_Num).FieldValue(8))
-                    .Sensors(Sensor_Num).PIE2 = LCase(DataSensor.Entry(Sensor_Num).FieldValue(9))
-                    .Sensors(Sensor_Num).Designable = (DataSensor.Entry(Sensor_Num).FieldValue(15) <> "0")
+                    InvariantParse_int(DataSensor.Entries(Sensor_Num).FieldValues(7), .Sensors(Sensor_Num).HitPoints)
+                    .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entries(Sensor_Num).FieldValues(8))
+                    .Sensors(Sensor_Num).PIE2 = LCase(DataSensor.Entries(Sensor_Num).FieldValues(9))
+                    .Sensors(Sensor_Num).Designable = (DataSensor.Entries(Sensor_Num).FieldValues(15) <> "0")
                 Next
             End With
             DataSensor.EntryCount = 0
-            Erase DataSensor.Entry
+            Erase DataSensor.Entries
 
             'interpret repair
             With .Repair_List
                 .RepairCount = DataRepair.EntryCount
                 ReDim .Repairs(.RepairCount - 1)
                 For Repair_Num = 0 To .RepairCount - 1
-                    .Repairs(Repair_Num).Code = DataRepair.Entry(Repair_Num).FieldValue(0)
+                    .Repairs(Repair_Num).Code = DataRepair.Entries(Repair_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Repairs(Repair_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Repairs(Repair_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Repairs(Repair_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for repair component " & .Repairs(Repair_Num).Code & ".")
                     End If
-                    .Repairs(Repair_Num).PIE = LCase(DataRepair.Entry(Repair_Num).FieldValue(9))
-                    .Repairs(Repair_Num).PIE2 = LCase(DataRepair.Entry(Repair_Num).FieldValue(10))
-                    .Repairs(Repair_Num).Designable = (DataRepair.Entry(Repair_Num).FieldValue(13) <> "0")
+                    .Repairs(Repair_Num).PIE = LCase(DataRepair.Entries(Repair_Num).FieldValues(9))
+                    .Repairs(Repair_Num).PIE2 = LCase(DataRepair.Entries(Repair_Num).FieldValues(10))
+                    .Repairs(Repair_Num).Designable = (DataRepair.Entries(Repair_Num).FieldValues(13) <> "0")
                 Next
             End With
             DataRepair.EntryCount = 0
-            Erase DataRepair.Entry
+            Erase DataRepair.Entries
 
             'interpret brain
             With .Brain_List
                 .BrainCount = DataBrain.EntryCount
                 ReDim .Brains(.BrainCount - 1)
                 For Brain_Num = 0 To .BrainCount - 1
-                    .Brains(Brain_Num).Code = DataBrain.Entry(Brain_Num).FieldValue(0)
+                    .Brains(Brain_Num).Code = DataBrain.Entries(Brain_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Brains(Brain_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Brains(Brain_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Brains(Brain_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for brain component " & .Brains(Brain_Num).Code & ".")
                     End If
-                    .Brains(Brain_Num).Weapon_Num = GetWeaponNumFromCode(NewModData, DataBrain.Entry(Brain_Num).FieldValue(7))
+                    .Brains(Brain_Num).Weapon_Num = GetWeaponNumFromCode(NewModData, DataBrain.Entries(Brain_Num).FieldValues(7))
                     .Brains(Brain_Num).Designable = True
                 Next
             End With
@@ -678,15 +678,15 @@
                 .ECMCount = DataECM.EntryCount
                 ReDim .ECMs(.ECMCount - 1)
                 For ECM_Num = 0 To .ECMCount - 1
-                    .ECMs(ECM_Num).Code = DataECM.Entry(ECM_Num).FieldValue(0)
+                    .ECMs(ECM_Num).Code = DataECM.Entries(ECM_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .ECMs(ECM_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .ECMs(ECM_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .ECMs(ECM_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for ecm component " & .ECMs(ECM_Num).Code & ".")
                     End If
-                    .ECMs(ECM_Num).HitPoints = CInt(Val(DataECM.Entry(ECM_Num).FieldValue(7)))
-                    .ECMs(ECM_Num).PIE = LCase(DataECM.Entry(ECM_Num).FieldValue(8))
+                    InvariantParse_int(DataECM.Entries(ECM_Num).FieldValues(7), .ECMs(ECM_Num).HitPoints)
+                    .ECMs(ECM_Num).PIE = LCase(DataECM.Entries(ECM_Num).FieldValues(8))
                     .ECMs(ECM_Num).Designable = False
                 Next
             End With
@@ -696,17 +696,17 @@
                 .FeatureCount = DataFeatures.EntryCount
                 ReDim .Features(.FeatureCount - 1)
                 For Feature_Num = 0 To .FeatureCount - 1
-                    .Features(Feature_Num).Code = DataFeatures.Entry(Feature_Num).FieldValue(0)
+                    .Features(Feature_Num).Code = DataFeatures.Entries(Feature_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Features(Feature_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Features(Feature_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Features(Feature_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for feature " & .Features(Feature_Num).Code & ".")
                     End If
-                    .Features(Feature_Num).PIE = LCase(DataFeatures.Entry(Feature_Num).FieldValue(6))
-                    .Features(Feature_Num).Footprint.X = CInt(DataFeatures.Entry(Feature_Num).FieldValue(1))
-                    .Features(Feature_Num).Footprint.Y = CInt(DataFeatures.Entry(Feature_Num).FieldValue(2))
-                    .Features(Feature_Num).Type = DataFeatures.Entry(Feature_Num).FieldValue(7)
+                    .Features(Feature_Num).PIE = LCase(DataFeatures.Entries(Feature_Num).FieldValues(6))
+                    .Features(Feature_Num).Footprint.X = CInt(DataFeatures.Entries(Feature_Num).FieldValues(1))
+                    .Features(Feature_Num).Footprint.Y = CInt(DataFeatures.Entries(Feature_Num).FieldValues(2))
+                    .Features(Feature_Num).Type = DataFeatures.Entries(Feature_Num).FieldValues(7)
                 Next
             End With
 
@@ -721,15 +721,15 @@
             Next
             Dim BodyPropNum As Integer
             For BodyPropNum = 0 To DataBodyPropulsion.EntryCount - 1
-                With DataBodyPropulsion.Entry(BodyPropNum)
-                    Body_Num = GetBodyNumFromCode(NewModData, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(0))
-                    Propulsion_Num = GetPropulsionNumFromCode(NewModData, DataBodyPropulsion.Entry(BodyPropNum).FieldValue(1))
+                With DataBodyPropulsion.Entries(BodyPropNum)
+                    Body_Num = GetBodyNumFromCode(NewModData, DataBodyPropulsion.Entries(BodyPropNum).FieldValues(0))
+                    Propulsion_Num = GetPropulsionNumFromCode(NewModData, DataBodyPropulsion.Entries(BodyPropNum).FieldValues(1))
                     If Body_Num >= 0 And Propulsion_Num >= 0 Then
-                        If DataAssignWeapons.Entry(BodyPropNum).FieldValue(2) <> "0" Then
-                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).LeftPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(2))
+                        If DataAssignWeapons.Entries(BodyPropNum).FieldValues(2) <> "0" Then
+                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).LeftPIE = LCase(DataBodyPropulsion.Entries(BodyPropNum).FieldValues(2))
                         End If
-                        If DataAssignWeapons.Entry(BodyPropNum).FieldValue(3) <> "0" Then
-                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).RightPIE = LCase(DataBodyPropulsion.Entry(BodyPropNum).FieldValue(3))
+                        If DataAssignWeapons.Entries(BodyPropNum).FieldValues(3) <> "0" Then
+                            BodyPropulsionPIEs(Body_Num, Propulsion_Num).RightPIE = LCase(DataBodyPropulsion.Entries(BodyPropNum).FieldValues(3))
                         End If
                     End If
                 End With
@@ -740,21 +740,21 @@
                 .TemplateCount = DataTemplates.EntryCount
                 ReDim .Templates(.TemplateCount - 1)
                 For Template_Num = 0 To .TemplateCount - 1
-                    .Templates(Template_Num).Code = DataTemplates.Entry(Template_Num).FieldValue(0)
+                    .Templates(Template_Num).Code = DataTemplates.Entries(Template_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Templates(Template_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Templates(Template_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Templates(Template_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for template component " & .Templates(Template_Num).Code & ".")
                     End If
-                    .Templates(Template_Num).Body = GetBodyNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(2))
-                    .Templates(Template_Num).Propulsion = GetPropulsionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(7))
-                    .Templates(Template_Num).Brain = GetBrainNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(3))
-                    .Templates(Template_Num).Construction = GetConstructionNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(4))
-                    .Templates(Template_Num).ECM = GetECMNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(5))
-                    .Templates(Template_Num).Repair = GetRepairNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(8))
-                    .Templates(Template_Num).DroidType = DataTemplates.Entry(Template_Num).FieldValue(9)
-                    .Templates(Template_Num).Sensor = GetSensorNumFromCode(NewModData, DataTemplates.Entry(Template_Num).FieldValue(10))
+                    .Templates(Template_Num).Body = GetBodyNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(2))
+                    .Templates(Template_Num).Propulsion = GetPropulsionNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(7))
+                    .Templates(Template_Num).Brain = GetBrainNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(3))
+                    .Templates(Template_Num).Construction = GetConstructionNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(4))
+                    .Templates(Template_Num).ECM = GetECMNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(5))
+                    .Templates(Template_Num).Repair = GetRepairNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(8))
+                    .Templates(Template_Num).DroidType = DataTemplates.Entries(Template_Num).FieldValues(9)
+                    .Templates(Template_Num).Sensor = GetSensorNumFromCode(NewModData, DataTemplates.Entries(Template_Num).FieldValues(10))
                     .Templates(Template_Num).Weapon1 = -1
                     .Templates(Template_Num).Weapon2 = -1
                     .Templates(Template_Num).Weapon3 = -1
@@ -763,17 +763,17 @@
 
             Dim AssignedWeapon_Num As Integer
             For AssignedWeapon_Num = 0 To DataAssignWeapons.EntryCount - 1
-                With DataAssignWeapons.Entry(AssignedWeapon_Num)
-                    Template_Num = GetTemplateNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0))
+                With DataAssignWeapons.Entries(AssignedWeapon_Num)
+                    Template_Num = GetTemplateNumFromCode(NewModData, DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(0))
                     If Template_Num >= 0 Then
-                        If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(1) <> "NULL" Then
-                            NewModData.Template_List.Templates(Template_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(1))
+                        If DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(1) <> "NULL" Then
+                            NewModData.Template_List.Templates(Template_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(1))
                         End If
-                        If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(2) <> "NULL" Then
-                            NewModData.Template_List.Templates(Template_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(2))
+                        If DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(2) <> "NULL" Then
+                            NewModData.Template_List.Templates(Template_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(2))
                         End If
-                        If DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(3) <> "NULL" Then
-                            NewModData.Template_List.Templates(Template_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(3))
+                        If DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(3) <> "NULL" Then
+                            NewModData.Template_List.Templates(Template_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataAssignWeapons.Entries(AssignedWeapon_Num).FieldValues(3))
                         End If
                     Else
                         'Data_Load.Problem = "Weapons assigned to missing template " & DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0) & "."
@@ -787,45 +787,45 @@
                 .StructureCount = DataStructures.EntryCount
                 ReDim .Structures(.StructureCount - 1)
                 For Structure_Num = 0 To .StructureCount - 1
-                    .Structures(Structure_Num).Code = DataStructures.Entry(Structure_Num).FieldValue(0)
+                    .Structures(Structure_Num).Code = DataStructures.Entries(Structure_Num).FieldValues(0)
                     FileData_Entries_Get_From_Field_Value(DataNames, 0, .Structures(Structure_Num).Code, Entry_Num_List)
                     If Entry_Num_List.ResultCount > 0 Then
-                        .Structures(Structure_Num).Name = DataNames.Entry(Entry_Num_List.ResultEntryNum(0)).FieldValue(1)
+                        .Structures(Structure_Num).Name = DataNames.Entries(Entry_Num_List.ResultEntryNum(0)).FieldValues(1)
                     Else
                         ReturnResult.Warning_Add("No name in names.txt for structure " & .Structures(Structure_Num).Code & ".")
                     End If
-                    .Structures(Structure_Num).Type = DataStructures.Entry(Structure_Num).FieldValue(1)
-                    .Structures(Structure_Num).Footprint.X = CInt(DataStructures.Entry(Structure_Num).FieldValue(5))
-                    .Structures(Structure_Num).Footprint.Y = CInt(DataStructures.Entry(Structure_Num).FieldValue(6))
-                    .Structures(Structure_Num).PIE = LCase(DataStructures.Entry(Structure_Num).FieldValue(21))
-                    .Structures(Structure_Num).BasePIE = LCase(DataStructures.Entry(Structure_Num).FieldValue(22))
+                    .Structures(Structure_Num).Type = DataStructures.Entries(Structure_Num).FieldValues(1)
+                    .Structures(Structure_Num).Footprint.X = CInt(DataStructures.Entries(Structure_Num).FieldValues(5))
+                    .Structures(Structure_Num).Footprint.Y = CInt(DataStructures.Entries(Structure_Num).FieldValues(6))
+                    .Structures(Structure_Num).PIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(21))
+                    .Structures(Structure_Num).BasePIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(22))
                     .Structures(Structure_Num).Weapon1 = -1
                     .Structures(Structure_Num).Weapon2 = -1
                     .Structures(Structure_Num).Weapon3 = -1
                     .Structures(Structure_Num).Weapon4 = -1
-                    .Structures(Structure_Num).ECM = GetECMNumFromCode(NewModData, DataStructures.Entry(Structure_Num).FieldValue(18))
-                    .Structures(Structure_Num).Sensor = GetSensorNumFromCode(NewModData, DataStructures.Entry(Structure_Num).FieldValue(19))
+                    .Structures(Structure_Num).ECM = GetECMNumFromCode(NewModData, DataStructures.Entries(Structure_Num).FieldValues(18))
+                    .Structures(Structure_Num).Sensor = GetSensorNumFromCode(NewModData, DataStructures.Entries(Structure_Num).FieldValues(19))
                 Next
             End With
             DataStructures.EntryCount = 0
-            Erase DataStructures.Entry
+            Erase DataStructures.Entries
 
             Dim StructureWeaponNum As Integer
             For StructureWeaponNum = 0 To DataStructureWeapons.EntryCount - 1
-                With DataStructureWeapons.Entry(StructureWeaponNum)
-                    Structure_Num = GetStructureNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(0))
+                With DataStructureWeapons.Entries(StructureWeaponNum)
+                    Structure_Num = GetStructureNumFromCode(NewModData, DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(0))
                     If Structure_Num >= 0 Then
-                        If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(1) <> "NULL" Then
-                            NewModData.Structure_List.Structures(Structure_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(1))
+                        If DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(1) <> "NULL" Then
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon1 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(1))
                         End If
-                        If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(2) <> "NULL" Then
-                            NewModData.Structure_List.Structures(Structure_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(2))
+                        If DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(2) <> "NULL" Then
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon2 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(2))
                         End If
-                        If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(3) <> "NULL" Then
-                            NewModData.Structure_List.Structures(Structure_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(3))
+                        If DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(3) <> "NULL" Then
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon3 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(3))
                         End If
-                        If DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(4) <> "NULL" Then
-                            NewModData.Structure_List.Structures(Structure_Num).Weapon4 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entry(StructureWeaponNum).FieldValue(4))
+                        If DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(4) <> "NULL" Then
+                            NewModData.Structure_List.Structures(Structure_Num).Weapon4 = GetWeaponNumFromCode(NewModData, DataStructureWeapons.Entries(StructureWeaponNum).FieldValues(4))
                         End If
                     Else
                         'Data_Load.Problem = "Weapons assigned to missing template " & DataAssignWeapons.Entry(AssignedWeapon_Num).FieldValue(0) & "."
@@ -894,10 +894,10 @@
 
         For A = 0 To PIE_Files.GetUpperBound(0)
             SplitPath = New sSplitPath(PIE_Files(A))
-            If LCase(SplitPath.FileExtension) = "pie" Then
+            If SplitPath.FileExtension.ToLower = "pie" Then
                 With PIE_List.PIEs(PIE_List.PIECount)
                     .Path = PIE_Files(A)
-                    .LCaseFileTitle = LCase(SplitPath.FileTitle)
+                    .LCaseFileTitle = SplitPath.FileTitle.ToLower
                 End With
                 PIE_List.PIECount += 1
             End If
@@ -1253,7 +1253,7 @@
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
                 For Entry_Num_Other = Entry_Num + 1 To .EntryCount - 1
-                    If .Entry(Entry_Num).FieldValue(Field_Num) = .Entry(Entry_Num_Other).FieldValue(Field_Num) Then
+                    If .Entries(Entry_Num).FieldValues(Field_Num) = .Entries(Entry_Num_Other).FieldValues(Field_Num) Then
                         Return False
                     End If
                 Next
@@ -1269,7 +1269,7 @@
         ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
-                With .Entry(Entry_Num)
+                With .Entries(Entry_Num)
                     If Not .FieldCount = FieldCount Then
                         ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount)
                         Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
@@ -1288,7 +1288,7 @@
         ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
-                With .Entry(Entry_Num)
+                With .Entries(Entry_Num)
                     If (.FieldCount < FieldCountMin Or .FieldCount > FieldCountMax) Then
                         ReDim Preserve Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount)
                         Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
@@ -1307,8 +1307,8 @@
         ReDim Output_Entry_Num_List.ResultEntryNum(FileData.EntryCount - 1)
         With FileData
             For Entry_Num = 0 To .EntryCount - 1
-                With .Entry(Entry_Num)
-                    If .FieldValue(Search_Field_Num) = Search_String Then
+                With .Entries(Entry_Num)
+                    If .FieldValues(Search_Field_Num) = Search_String Then
                         Output_Entry_Num_List.ResultEntryNum(Output_Entry_Num_List.ResultCount) = Entry_Num
                         Output_Entry_Num_List.ResultCount += 1
                     End If
@@ -1456,7 +1456,7 @@
         Dim LineCount As Integer
         Dim LineNum As Integer
         Dim strTemp As String
-        Dim CommaPos As Short
+        Dim CommaPos As Integer
         Dim Flag As Boolean
 
         'load all bytes
@@ -1473,34 +1473,34 @@
         LineCount = LineData.Lines.GetUpperBound(0) + 1
 
         With FileData
-            ReDim .Entry(LineCount - 1)
+            ReDim .Entries(LineCount - 1)
             For LineNum = 0 To LineCount - 1
                 strTemp = LineData.Lines(LineNum)
                 Flag = False
-                With .Entry(.EntryCount)
-                    ReDim .FieldValue(63)
+                With .Entries(.EntryCount)
+                    ReDim .FieldValues(63)
                     Do
-                        If .FieldValue.GetUpperBound(0) < .FieldCount Then
-                            ReDim Preserve .FieldValue(.FieldCount + 16)
+                        If .FieldValues.GetUpperBound(0) < .FieldCount Then
+                            ReDim Preserve .FieldValues(.FieldCount + 16)
                         End If
-                        CommaPos = CShort(InStr(1, strTemp, ","))
+                        CommaPos = InStr(1, strTemp, ",")
                         If CommaPos = 0 Then
-                            .FieldValue(.FieldCount) = strTemp
+                            .FieldValues(.FieldCount) = strTemp
                             Flag = True
                         Else
-                            .FieldValue(.FieldCount) = Left(strTemp, CommaPos - 1)
+                            .FieldValues(.FieldCount) = Left(strTemp, CommaPos - 1)
                             strTemp = Right(strTemp, strTemp.Length - CommaPos)
                         End If
                         .FieldCount += 1
                         If Flag Then
-                            ReDim Preserve .FieldValue(.FieldCount - 1)
+                            ReDim Preserve .FieldValues(.FieldCount - 1)
                             Exit Do
                         End If
                     Loop
                 End With
                 .EntryCount += 1
             Next
-            ReDim Preserve .Entry(.EntryCount - 1)
+            ReDim Preserve .Entries(.EntryCount - 1)
         End With
 
         ReturnResult.Success = True
@@ -1537,7 +1537,7 @@
         'output as entries with fields
         Dim Code As String
         With FileData
-            ReDim .Entry(LineCount - 1)
+            ReDim .Entries(LineCount - 1)
             For LineNum = 0 To LineCount - 1
                 strTemp = LineData.Lines(LineNum)
                 'get code until space or tab
@@ -1549,10 +1549,10 @@
                 Next
                 Code = Left(strTemp, A)
                 If Code <> "" Then
-                    With .Entry(.EntryCount)
+                    With .Entries(.EntryCount)
                         .FieldCount = 2
-                        ReDim Preserve .FieldValue(.FieldCount - 1)
-                        .FieldValue(0) = Code
+                        ReDim Preserve .FieldValues(.FieldCount - 1)
+                        .FieldValues(0) = Code
                         'ignore everything until the quotation mark
                         For B = A + 1 To strTemp.Length - 1
                             tmpChar = strTemp.Chars(B)
@@ -1568,15 +1568,15 @@
                             End If
                         Next
                         If B + 1 < strTemp.Length Then
-                            .FieldValue(1) = strTemp.Substring(B + 1, A - (B + 1))
+                            .FieldValues(1) = strTemp.Substring(B + 1, A - (B + 1))
                         Else
-                            .FieldValue(1) = ""
+                            .FieldValues(1) = ""
                         End If
                     End With
                     .EntryCount += 1
                 End If
             Next
-            ReDim Preserve .Entry(.EntryCount - 1)
+            ReDim Preserve .Entries(.EntryCount - 1)
         End With
 
         ReturnResult.Success = True
@@ -1720,22 +1720,24 @@
         End If
 
         Dim A As Integer
-        Dim PIEFile As clsReadFile
+        Dim PIEFile As IO.StreamReader
 
         For A = 0 To PIE_List.PIECount - 1
             If PIE_List.PIEs(A).LCaseFileTitle = PIE_LCaseFileTitle Then
                 If PIE_List.PIEs(A).Model Is Nothing Then
                     PIE_List.PIEs(A).Model = New clsModel
-                    PIEFile = New clsReadFile
-                    PIEFile.Begin(PIE_List.PIEs(A).Path)
                     Try
-                        ResultOutput.AppendAsWarning(PIE_List.PIEs(A).Model.LoadPIE(PIEFile), "Loading PIE " & ControlChars.Quote & PIE_LCaseFileTitle & ControlChars.Quote & ": ")
+                        PIEFile = New IO.StreamReader(PIE_List.PIEs(A).Path)
+                        Try
+                            ResultOutput.AppendAsWarning(PIE_List.PIEs(A).Model.LoadPIE(PIEFile), "Loading PIE " & ControlChars.Quote & PIE_LCaseFileTitle & ControlChars.Quote & ": ")
+                        Catch ex As Exception
+                            PIEFile.Close()
+                            ResultOutput.Warning_Add(PIE_LCaseFileTitle & " produced error " & ex.Message & ".")
+                            Return PIE_List.PIEs(A).Model
+                        End Try
                     Catch ex As Exception
-                        PIEFile.Close()
-                        ResultOutput.Warning_Add(PIE_LCaseFileTitle & " produced error " & ex.Message & ".")
-                        Return PIE_List.PIEs(A).Model
+                        ResultOutput.Warning_Add("Unable to open PIE " & ControlChars.Quote & PIE_List.PIEs(A).Path & ControlChars.Quote & ": " & ex.Message)
                     End Try
-                    PIEFile.Close()
                 End If
                 Return PIE_List.PIEs(A).Model
             End If
