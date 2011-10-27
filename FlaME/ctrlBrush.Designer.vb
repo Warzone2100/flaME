@@ -28,6 +28,7 @@ Partial Class ctrlBrush
         Me.Label1 = New System.Windows.Forms.Label()
         Me.nudRadius = New System.Windows.Forms.NumericUpDown()
         Me.tabShape.SuspendLayout()
+        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'tabShape
@@ -42,7 +43,7 @@ Partial Class ctrlBrush
         Me.tabShape.Name = "tabShape"
         Me.tabShape.Padding = New System.Drawing.Point(0, 0)
         Me.tabShape.SelectedIndex = 0
-        Me.tabShape.Size = New System.Drawing.Size(161, 32)
+        Me.tabShape.Size = New System.Drawing.Size(303, 42)
         Me.tabShape.SizeMode = System.Windows.Forms.TabSizeMode.Fixed
         Me.tabShape.TabIndex = 41
         '
@@ -52,7 +53,7 @@ Partial Class ctrlBrush
         Me.TabPage37.Margin = New System.Windows.Forms.Padding(4)
         Me.TabPage37.Name = "TabPage37"
         Me.TabPage37.Padding = New System.Windows.Forms.Padding(4)
-        Me.TabPage37.Size = New System.Drawing.Size(153, 0)
+        Me.TabPage37.Size = New System.Drawing.Size(295, 10)
         Me.TabPage37.TabIndex = 0
         Me.TabPage37.Text = "Circular"
         Me.TabPage37.UseVisualStyleBackColor = True
@@ -63,7 +64,7 @@ Partial Class ctrlBrush
         Me.TabPage38.Margin = New System.Windows.Forms.Padding(4)
         Me.TabPage38.Name = "TabPage38"
         Me.TabPage38.Padding = New System.Windows.Forms.Padding(4)
-        Me.TabPage38.Size = New System.Drawing.Size(153, 0)
+        Me.TabPage38.Size = New System.Drawing.Size(295, 10)
         Me.TabPage38.TabIndex = 1
         Me.TabPage38.Text = "Square"
         Me.TabPage38.UseVisualStyleBackColor = True
@@ -81,15 +82,17 @@ Partial Class ctrlBrush
         '
         'nudRadius
         '
-        Me.nudRadius.DecimalPlaces = 1
+        Me.nudRadius.DecimalPlaces = 3
         Me.nudRadius.Increment = New Decimal(New Integer() {5, 0, 0, 65536})
         Me.nudRadius.Location = New System.Drawing.Point(60, 0)
         Me.nudRadius.Margin = New System.Windows.Forms.Padding(4)
-        Me.nudRadius.Maximum = New Decimal(New Integer() {512, 0, 0, 0})
+        Me.nudRadius.Maximum = New Decimal(New Integer() {512125, 0, 0, 196608})
+        Me.nudRadius.Minimum = New Decimal(New Integer() {125, 0, 0, 196608})
         Me.nudRadius.Name = "nudRadius"
         Me.nudRadius.Size = New System.Drawing.Size(75, 22)
         Me.nudRadius.TabIndex = 40
         Me.nudRadius.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
+        Me.nudRadius.Value = New Decimal(New Integer() {125, 0, 0, 196608})
         '
         'ctrlBrush
         '
@@ -98,8 +101,9 @@ Partial Class ctrlBrush
         Me.Controls.Add(Me.Label1)
         Me.Controls.Add(Me.nudRadius)
         Me.Name = "ctrlBrush"
-        Me.Size = New System.Drawing.Size(334, 35)
+        Me.Size = New System.Drawing.Size(695, 87)
         Me.tabShape.ResumeLayout(False)
+        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
@@ -108,5 +112,4 @@ Partial Class ctrlBrush
     Public WithEvents TabPage38 As System.Windows.Forms.TabPage
     Public WithEvents Label1 As System.Windows.Forms.Label
     Public WithEvents nudRadius As System.Windows.Forms.NumericUpDown
-
 End Class

@@ -28,7 +28,7 @@
         txtAuthor.Text = Map.InterfaceOptions.CompileMultiAuthor
         cboLicense.Text = Map.InterfaceOptions.CompileMultiLicense
 
-        txtCampTime.Text = InvariantToString_int(Map.InterfaceOptions.CampaignGameTime)
+        'txtCampTime.Text = InvariantToString_int(Map.InterfaceOptions.CampaignGameTime)
         cboCampType.SelectedIndex = Map.InterfaceOptions.CampaignGameType
 
         cbxAutoScrollLimits.Checked = Map.InterfaceOptions.AutoScrollLimits
@@ -48,11 +48,11 @@
         Map.InterfaceOptions.CompileMultiAuthor = txtAuthor.Text
         Map.InterfaceOptions.CompileMultiLicense = cboLicense.Text
 
-        Try
-            Map.InterfaceOptions.CampaignGameTime = CInt(txtCampTime.Text)
-        Catch ex As Exception
-            Map.InterfaceOptions.CampaignGameTime = 2
-        End Try
+        'Try
+        '    Map.InterfaceOptions.CampaignGameTime = CInt(txtCampTime.Text)
+        'Catch ex As Exception
+        '    Map.InterfaceOptions.CampaignGameTime = 2
+        'End Try
         Map.InterfaceOptions.CampaignGameType = cboCampType.SelectedIndex
 
         Dim Invalid As Boolean = False
@@ -117,7 +117,7 @@
         End If
         ReturnResult.Append(ValidateMap, "")
 
-        ReturnResult.Append(ValidateMap_UnitPositions, "")
+        ReturnResult.AppendAsWarning(ValidateMap_UnitPositions, "")
 
         ReturnResult.Append(ValidateMap_Multiplayer(PlayerCount, IsXPlayerFormat), "")
 
@@ -141,14 +141,15 @@
             ShowWarnings(ReturnResult, "Compile Multiplayer")
             Exit Sub
         End If
-        SaveFileDialog.FileName = PlayerCount & "c-" & MapName
-        SaveFileDialog.Filter = "WZ Files (*.wz)|*.wz"
-        If SaveFileDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+        Dim CompileMultiDialog As New SaveFileDialog
+        CompileMultiDialog.FileName = PlayerCount & "c-" & MapName
+        CompileMultiDialog.Filter = "WZ Files (*.wz)|*.wz"
+        If CompileMultiDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
         Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
         WriteWZArgs.MapName = MapName
-        WriteWZArgs.Path = SaveFileDialog.FileName
+        WriteWZArgs.Path = CompileMultiDialog.FileName
         WriteWZArgs.Overwrite = True
         SetScrollLimits(WriteWZArgs.ScrollMin, WriteWZArgs.ScrollMax)
         WriteWZArgs.Multiplayer = New clsMap.sWrite_WZ_Args.clsMultiplayer
@@ -450,7 +451,6 @@ ExitLoop:
 
         Dim MapName As String
         Dim TypeNum As Integer
-        Dim dblTemp As Double
 
         MapName = txtName.Text
         If MapName.Length < 1 Then
@@ -464,20 +464,21 @@ ExitLoop:
             ShowWarnings(ReturnResult, "Compile Campaign")
             Exit Sub
         End If
-        If FolderBrowserDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+        Dim CompileCampDialog As New FolderBrowserDialog
+        If CompileCampDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
         Dim WriteWZArgs As New clsMap.sWrite_WZ_Args
         WriteWZArgs.MapName = MapName
-        WriteWZArgs.Path = FolderBrowserDialog.SelectedPath
+        WriteWZArgs.Path = CompileCampDialog.SelectedPath
         WriteWZArgs.Overwrite = False
         SetScrollLimits(WriteWZArgs.ScrollMin, WriteWZArgs.ScrollMax)
         WriteWZArgs.Campaign = New clsMap.sWrite_WZ_Args.clsCampaign
-        If InvariantParse_dbl(txtCampTime.Text, dblTemp) Then
-            WriteWZArgs.Campaign.GAMTime = CUInt(Clamp_dbl(dblTemp, UInteger.MinValue, UInteger.MaxValue))
-        Else
-            WriteWZArgs.Campaign.GAMTime = UInteger.MinValue
-        End If
+        'If InvariantParse_dbl(txtCampTime.Text, dblTemp) Then
+        '    WriteWZArgs.Campaign.GAMTime = CUInt(Clamp_dbl(dblTemp, UInteger.MinValue, UInteger.MaxValue))
+        'Else
+        '    WriteWZArgs.Campaign.GAMTime = UInteger.MinValue
+        'End If
         WriteWZArgs.Campaign.GAMType = CUInt(TypeNum)
         WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Campaign
         ReturnResult.Append(Map.Write_WZ(WriteWZArgs), "")

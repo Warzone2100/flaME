@@ -303,9 +303,9 @@ Partial Public Class clsMap
         Public Function GetINIRotation() As String
             Dim Rotation16 As Integer
 
-            Rotation16 = CInt(Rotation * 65536.0# / 360.0#)
-            If Rotation16 >= 63356 Then
-                Rotation16 -= 65536
+            Rotation16 = CInt(Rotation * INIRotationMax / 360.0#)
+            If Rotation16 >= INIRotationMax Then
+                Rotation16 -= INIRotationMax
             End If
 
             Return InvariantToString_int(Rotation16) & ", 0, 0"
@@ -445,6 +445,9 @@ Partial Public Class clsMap
     End Class
     Public Gateways(-1) As clsGateway
     Public GatewayCount As Integer
+
+    Public ScriptMarkers(-1) As clsScriptMarker
+    Public ScriptMarkerCount As Integer
 
     Public Class clsPointChanges
 
@@ -1045,7 +1048,9 @@ Partial Public Class clsMap
         If TerrainInterpretChanges IsNot Nothing Then
             TerrainInterpretChanges.Deallocate()
         End If
-        Undo_Clear()
+        Erase UnitChanges
+        Erase GatewayChanges
+        Erase Undos
     End Sub
 
     Public Sub Terrain_Resize(ByVal Offset As sXY_int, ByVal Size As sXY_int)
@@ -1207,6 +1212,14 @@ Partial Public Class clsMap
         Loop
 
         Terrain = NewTerrain
+
+        Dim tmpScriptMarkers(ScriptMarkerCount - 1) As clsScriptMarker
+        For A = 0 To ScriptMarkerCount - 1
+            tmpScriptMarkers(A) = ScriptMarkers(A)
+        Next
+        For A = 0 To ScriptMarkerCount - 1
+            tmpScriptMarkers(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
+        Next
 
         InitializeForUserInput()
     End Sub
@@ -1982,7 +1995,7 @@ Partial Public Class clsMap
         Dim DateNow As Date = Now
         Dim Path As String
 
-        Path = AutoSavePath & "autosaved-" & DateNow.Year & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
+        Path = AutoSavePath & "autosaved-" & InvariantToString_int(DateNow.Year) & "-" & MinDigits(DateNow.Month, 2) & "-" & MinDigits(DateNow.Day, 2) & "-" & MinDigits(DateNow.Hour, 2) & "-" & MinDigits(DateNow.Minute, 2) & "-" & MinDigits(DateNow.Second, 2) & "-" & MinDigits(DateNow.Millisecond, 3) & ".fmap"
 
         Dim Result As clsResult = Write_FMap(Path, False, Settings.AutoSaveCompress)
 
@@ -2471,7 +2484,7 @@ Partial Public Class clsMap
         Gateways(Num).Map_GatewayNum = -1
 
         GatewayCount -= 1
-        If Num <> GatewayCount Then
+        If Num < GatewayCount Then
             Gateways(Num) = Gateways(GatewayCount)
             Gateways(Num).Map_GatewayNum = Num
         End If
@@ -2502,7 +2515,7 @@ Partial Public Class clsMap
         End If
     End Function
 
-    Protected Sub Gateway_Add(ByVal NewGateway As clsGateway)
+    Private Sub Gateway_Add(ByVal NewGateway As clsGateway)
 
         NewGateway.Map_GatewayNum = GatewayCount
 
@@ -2755,6 +2768,15 @@ Partial Public Class clsMap
 
         Result.X = CInt(Int(Horizontal.X / TerrainGridSpacing))
         Result.Y = CInt(Int(Horizontal.Y / TerrainGridSpacing))
+
+        Return Result
+    End Function
+
+    Public Function GetPosVertexNum(ByVal Horizontal As sXY_int) As sXY_int
+        Dim Result As sXY_int
+
+        Result.X = CInt(Math.Round(Horizontal.X / TerrainGridSpacing))
+        Result.Y = CInt(Math.Round(Horizontal.Y / TerrainGridSpacing))
 
         Return Result
     End Function
@@ -3547,270 +3569,6 @@ Partial Public Class clsMap
         End Select
     End Sub
 
-    Public Class clsDrawTileOutline
-        Inherits clsMap.clsAction
-
-        Public Colour As sRGBA_sng
-
-        Private Vertex0 As sXYZ_int
-        Private Vertex1 As sXYZ_int
-        Private Vertex2 As sXYZ_int
-        Private Vertex3 As sXYZ_int
-
-        Public Overrides Sub ActionPerform()
-
-            Vertex0.X = PosNum.X * TerrainGridSpacing
-            Vertex0.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y).Height * Map.HeightMultiplier
-            Vertex0.Z = -PosNum.Y * TerrainGridSpacing
-            Vertex1.X = (PosNum.X + 1) * TerrainGridSpacing
-            Vertex1.Y = Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height * Map.HeightMultiplier
-            Vertex1.Z = -PosNum.Y * TerrainGridSpacing
-            Vertex2.X = PosNum.X * TerrainGridSpacing
-            Vertex2.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height * Map.HeightMultiplier
-            Vertex2.Z = -(PosNum.Y + 1) * TerrainGridSpacing
-            Vertex3.X = (PosNum.X + 1) * TerrainGridSpacing
-            Vertex3.Y = Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height * Map.HeightMultiplier
-            Vertex3.Z = -(PosNum.Y + 1) * TerrainGridSpacing
-            GL.Begin(BeginMode.LineLoop)
-            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-            GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-            GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-            GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-            GL.End()
-        End Sub
-    End Class
-
-    Public Class clsDrawCallTerrain
-        Inherits clsMap.clsAction
-
-        Public Overrides Sub ActionPerform()
-
-            GL.CallList(Map.Sectors(PosNum.X, PosNum.Y).GLList_Textured)
-        End Sub
-    End Class
-
-    Public Class clsDrawCallTerrainWireframe
-        Inherits clsMap.clsAction
-
-        Public Overrides Sub ActionPerform()
-
-            GL.CallList(Map.Sectors(PosNum.X, PosNum.Y).GLList_Wireframe)
-        End Sub
-    End Class
-
-    Public Class clsDrawTileOrientation
-        Inherits clsMap.clsAction
-
-        Public Overrides Sub ActionPerform()
-            Dim X As Integer
-            Dim Y As Integer
-
-            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y - 1)
-                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X - 1)
-                    Map.DrawTileOrientation(New sXY_int(X, Y))
-                Next
-            Next
-        End Sub
-    End Class
-
-    Public Class clsDrawVertexTerrain
-        Inherits clsMap.clsAction
-
-        Public ViewAngleMatrix As Matrix3D.Matrix3D
-
-        Private RGB_sng As sRGB_sng
-        Private RGB_sng2 As sRGB_sng
-        Private XYZ_dbl As Matrix3D.XYZ_dbl
-        Private XYZ_dbl2 As Matrix3D.XYZ_dbl
-        Private XYZ_dbl3 As Matrix3D.XYZ_dbl
-        Private Vertex0 As Matrix3D.XYZ_dbl
-        Private Vertex1 As Matrix3D.XYZ_dbl
-        Private Vertex2 As Matrix3D.XYZ_dbl
-        Private Vertex3 As Matrix3D.XYZ_dbl
-
-        Public Overrides Sub ActionPerform()
-            Dim X As Integer
-            Dim Y As Integer
-            Dim A As Integer
-
-            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y)
-                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X)
-                    If Map.Terrain.Vertices(X, Y).Terrain IsNot Nothing Then
-                        A = Map.Terrain.Vertices(X, Y).Terrain.Num
-                        If A < Map.Painter.TerrainCount Then
-                            If Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
-                                RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
-                                If RGB_sng.Red + RGB_sng.Green + RGB_sng.Blue < 1.5F Then
-                                    RGB_sng2.Red = (RGB_sng.Red + 1.0F) / 2.0F
-                                    RGB_sng2.Green = (RGB_sng.Green + 1.0F) / 2.0F
-                                    RGB_sng2.Blue = (RGB_sng.Blue + 1.0F) / 2.0F
-                                Else
-                                    RGB_sng2.Red = RGB_sng.Red / 2.0F
-                                    RGB_sng2.Green = RGB_sng.Green / 2.0F
-                                    RGB_sng2.Blue = RGB_sng.Blue / 2.0F
-                                End If
-                                XYZ_dbl.X = X * TerrainGridSpacing
-                                XYZ_dbl.Y = Map.Terrain.Vertices(X, Y).Height * Map.HeightMultiplier
-                                XYZ_dbl.Z = -Y * TerrainGridSpacing
-                                XYZ_dbl2.X = 10.0#
-                                XYZ_dbl2.Y = 10.0#
-                                XYZ_dbl2.Z = 0.0#
-                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
-                                Vertex0.X = XYZ_dbl.X + XYZ_dbl3.X
-                                Vertex0.Y = XYZ_dbl.Y + XYZ_dbl3.Y
-                                Vertex0.Z = XYZ_dbl.Z + XYZ_dbl3.Z
-                                XYZ_dbl2.X = -10.0#
-                                XYZ_dbl2.Y = 10.0#
-                                XYZ_dbl2.Z = 0.0#
-                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
-                                Vertex1.X = XYZ_dbl.X + XYZ_dbl3.X
-                                Vertex1.Y = XYZ_dbl.Y + XYZ_dbl3.Y
-                                Vertex1.Z = XYZ_dbl.Z + XYZ_dbl3.Z
-                                XYZ_dbl2.X = -10.0#
-                                XYZ_dbl2.Y = -10.0#
-                                XYZ_dbl2.Z = 0.0#
-                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
-                                Vertex2.X = XYZ_dbl.X + XYZ_dbl3.X
-                                Vertex2.Y = XYZ_dbl.Y + XYZ_dbl3.Y
-                                Vertex2.Z = XYZ_dbl.Z + XYZ_dbl3.Z
-                                XYZ_dbl2.X = 10.0#
-                                XYZ_dbl2.Y = -10.0#
-                                XYZ_dbl2.Z = 0.0#
-                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
-                                Vertex3.X = XYZ_dbl.X + XYZ_dbl3.X
-                                Vertex3.Y = XYZ_dbl.Y + XYZ_dbl3.Y
-                                Vertex3.Z = XYZ_dbl.Z + XYZ_dbl3.Z
-                                GL.Begin(BeginMode.Quads)
-                                GL.Color3(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue)
-                                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                                GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-                                GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-                                GL.End()
-                                GL.Begin(BeginMode.LineLoop)
-                                GL.Color3(RGB_sng2.Red, RGB_sng2.Green, RGB_sng2.Blue)
-                                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                                GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-                                GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-                                GL.End()
-                            End If
-                        End If
-                    End If
-                Next
-            Next
-        End Sub
-    End Class
-
-    Public Class clsDrawVertexMarker
-        Inherits clsMap.clsAction
-
-        Public Colour As sRGBA_sng
-
-        Private Vertex0 As sXYZ_int
-
-        Public Overrides Sub ActionPerform()
-
-            Vertex0.X = PosNum.X * TerrainGridSpacing
-            Vertex0.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y).Height * Map.HeightMultiplier
-            Vertex0.Z = -PosNum.Y * TerrainGridSpacing
-            GL.Begin(BeginMode.Lines)
-            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
-            GL.Vertex3(Vertex0.X - 8, Vertex0.Y, -Vertex0.Z)
-            GL.Vertex3(Vertex0.X + 8, Vertex0.Y, -Vertex0.Z)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8)
-            GL.End()
-        End Sub
-    End Class
-
-    Public Class clsDrawSectorObjects
-        Inherits clsMap.clsAction
-
-        Public UnitTextLabels As clsTextLabels
-
-        Private UnitDrawn() As Boolean
-        Private Started As Boolean
-
-        Public Sub Start()
-
-            ReDim UnitDrawn(Map.UnitCount - 1)
-
-            Started = True
-        End Sub
-
-        Public Overrides Sub ActionPerform()
-
-            If Not Started Then
-                Stop
-                Exit Sub
-            End If
-
-            Dim A As Integer
-            Dim tmpUnit As clsUnit
-            Dim tmpSector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
-            Dim DrawUnitLabel As Boolean
-            Dim ViewInfo As clsViewInfo = Map.ViewInfo
-            Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
-            Dim TextLabel As clsTextLabel
-            Dim XYZ_dbl As Matrix3D.XYZ_dbl
-            Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
-            Dim ScreenPos As sXY_int
-
-            For A = 0 To tmpSector.UnitCount - 1
-                tmpUnit = tmpSector.Units(A)
-                If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
-                    UnitDrawn(tmpUnit.Map_UnitNum) = True
-                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
-                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
-                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
-                    DrawUnitLabel = False
-                    If tmpUnit.Type.IsUnknown Then
-                        DrawUnitLabel = True
-                    Else
-                        GL.PushMatrix()
-                        GL.Translate(XYZ_dbl.X, XYZ_dbl.Y, -XYZ_dbl.Z)
-                        tmpUnit.Type.GLDraw(tmpUnit.Rotation)
-                        GL.PopMatrix()
-                        If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
-                            If CType(tmpUnit.Type, clsDroidDesign).AlwaysDrawTextLabel Then
-                                DrawUnitLabel = True
-                            End If
-                        End If
-                        If MouseOverTerrain IsNot Nothing Then
-                            If MouseOverTerrain.UnitCount > 0 Then
-                                If MouseOverTerrain.Units(0) Is tmpUnit Then
-                                    DrawUnitLabel = True
-                                End If
-                            End If
-                        End If
-                    End If
-                    If DrawUnitLabel And Not UnitTextLabels.AtMaxCount Then
-                        Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
-                        If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
-                            If ScreenPos.X >= 0 And ScreenPos.X <= ViewInfo.MapView.GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= ViewInfo.MapView.GLSize.Y Then
-                                TextLabel = New clsTextLabel
-                                With TextLabel
-                                    .TextFont = UnitLabelFont
-                                    .SizeY = Settings.DisplayFont.SizeInPoints
-                                    .Colour.Red = 1.0F
-                                    .Colour.Green = 1.0F
-                                    .Colour.Blue = 1.0F
-                                    .Colour.Alpha = 1.0F
-                                    .Pos.X = ScreenPos.X + 32
-                                    .Pos.Y = ScreenPos.Y
-                                    .Text = tmpUnit.Type.GetDisplayText
-                                End With
-                                UnitTextLabels.Add(TextLabel)
-                            End If
-                        End If
-                    End If
-                End If
-            Next
-        End Sub
-    End Class
-
     Public Class clsInterfaceOptions
         Public CompileName As String
         Public CompileMultiPlayers As String
@@ -3820,7 +3578,7 @@ Partial Public Class clsMap
         Public AutoScrollLimits As Boolean
         Public ScrollMin As sXY_int
         Public ScrollMax As sXY_uint
-        Public CampaignGameTime As Integer
+        'Public CampaignGameTime As Integer
         Public CampaignGameType As Integer
 
         Public Sub New()
@@ -3836,7 +3594,7 @@ Partial Public Class clsMap
             ScrollMin.Y = 0
             ScrollMax.X = 0UI
             ScrollMax.Y = 0UI
-            CampaignGameTime = 2
+            'CampaignGameTime = 2
             CampaignGameType = -1
         End Sub
     End Class
@@ -3879,4 +3637,110 @@ Partial Public Class clsMap
         End If
         MapView_TabPage.Text = Result
     End Sub
+
+    Public Function SideHIsCliffOnBothSides(ByVal SideNum As sXY_int) As Boolean
+        Dim TileNum As sXY_int
+
+        If SideNum.Y > 0 Then
+            TileNum.X = SideNum.X
+            TileNum.Y = SideNum.Y - 1
+            If Terrain.Tiles(TileNum.X, TileNum.Y).Tri Then
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriBottomRightIsCliff Then
+                    Return False
+                End If
+            Else
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriBottomLeftIsCliff Then
+                    Return False
+                End If
+            End If
+        End If
+
+        If SideNum.Y < Terrain.TileSize.Y Then
+            TileNum.X = SideNum.X
+            TileNum.Y = SideNum.Y
+            If Terrain.Tiles(TileNum.X, TileNum.Y).Tri Then
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriTopLeftIsCliff Then
+                    Return False
+                End If
+            Else
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriTopRightIsCliff Then
+                    Return False
+                End If
+            End If
+        End If
+
+        Return True
+    End Function
+
+    Public Function SideVIsCliffOnBothSides(ByVal SideNum As sXY_int) As Boolean
+        Dim TileNum As sXY_int
+
+        If SideNum.X > 0 Then
+            TileNum.X = SideNum.X - 1
+            TileNum.Y = SideNum.Y
+            If Terrain.Tiles(TileNum.X, TileNum.Y).Tri Then
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriBottomRightIsCliff Then
+                    Return False
+                End If
+            Else
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriTopRightIsCliff Then
+                    Return False
+                End If
+            End If
+        End If
+
+        If SideNum.X < Terrain.TileSize.X Then
+            TileNum.X = SideNum.X
+            TileNum.Y = SideNum.Y
+            If Terrain.Tiles(TileNum.X, TileNum.Y).Tri Then
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriTopLeftIsCliff Then
+                    Return False
+                End If
+            Else
+                If Not Terrain.Tiles(TileNum.X, TileNum.Y).TriBottomLeftIsCliff Then
+                    Return False
+                End If
+            End If
+        End If
+
+        Return True
+    End Function
+
+    Public Function VertexIsCliffEdge(ByVal VertexNum As sXY_int) As Boolean
+        Dim TileNum As sXY_int
+
+        If VertexNum.X > 0 Then
+            If VertexNum.Y > 0 Then
+                TileNum.X = VertexNum.X - 1
+                TileNum.Y = VertexNum.Y - 1
+                If Terrain.Tiles(TileNum.X, TileNum.Y).Terrain_IsCliff Then
+                    Return True
+                End If
+            End If
+            If VertexNum.Y < Terrain.TileSize.Y Then
+                TileNum.X = VertexNum.X - 1
+                TileNum.Y = VertexNum.Y
+                If Terrain.Tiles(TileNum.X, TileNum.Y).Terrain_IsCliff Then
+                    Return True
+                End If
+            End If
+        End If
+        If VertexNum.X < Terrain.TileSize.X Then
+            If VertexNum.Y > 0 Then
+                TileNum.X = VertexNum.X
+                TileNum.Y = VertexNum.Y - 1
+                If Terrain.Tiles(TileNum.X, TileNum.Y).Terrain_IsCliff Then
+                    Return True
+                End If
+            End If
+            If VertexNum.Y < Terrain.TileSize.Y Then
+                TileNum.X = VertexNum.X
+                TileNum.Y = VertexNum.Y
+                If Terrain.Tiles(TileNum.X, TileNum.Y).Terrain_IsCliff Then
+                    Return True
+                End If
+            End If
+        End If
+        Return False
+    End Function
 End Class

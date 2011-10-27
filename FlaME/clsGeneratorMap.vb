@@ -1980,6 +1980,9 @@ PointMakingFinished:
                     Terrain.Vertices(TilePos.X + 1, TilePos.Y).Height = AverageHeight
                     Terrain.Vertices(TilePos.X, TilePos.Y + 1).Height = AverageHeight
                     Terrain.Vertices(TilePos.X + 1, TilePos.Y + 1).Height = AverageHeight
+                    Map.SectorGraphicsChanges.TileChanged(TilePos)
+                    Map.SectorUnitHeightsChanges.TileChanged(TilePos)
+                    Map.SectorTerrainUndoChanges.TileChanged(TilePos)
                     tmpUnit.Pos.Altitude = AverageHeight * Map.HeightMultiplier
                     If PassageNodes(D, A).PlayerBaseNum >= 0 Then
                         'place base derrick

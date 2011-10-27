@@ -30,20 +30,20 @@
 
     Public Sub SetDataSubDirs()
 
-        SubDirNames = "messages" & OSPathSeperator & "strings" & OSPathSeperator & "names.txt"
-        SubDirStructures = "stats" & OSPathSeperator & "structures.txt"
-        SubDirBrain = "stats" & OSPathSeperator & "brain.txt"
-        SubDirBody = "stats" & ospathseperator & "body.txt"
-        SubDirPropulsion = "stats" & ospathseperator & "propulsion.txt"
-        SubDirBodyPropulsion = "stats" & ospathseperator & "bodypropulsionimd.txt"
-        SubDirConstruction = "stats" & ospathseperator & "construction.txt"
-        SubDirSensor = "stats" & ospathseperator & "sensor.txt"
-        SubDirRepair = "stats" & ospathseperator & "repair.txt"
-        SubDirTemplates = "stats" & ospathseperator & "templates.txt"
-        SubDirWeapons = "stats" & ospathseperator & "weapons.txt"
-        SubDirECM = "stats" & ospathseperator & "ecm.txt"
-        SubDirFeatures = "stats" & OSPathSeperator & "features.txt"
-        SubDirPIEs = "pies" & OSPathSeperator
+        SubDirNames = "messages" & PlatformPathSeperator & "strings" & PlatformPathSeperator & "names.txt"
+        SubDirStructures = "stats" & PlatformPathSeperator & "structures.txt"
+        SubDirBrain = "stats" & PlatformPathSeperator & "brain.txt"
+        SubDirBody = "stats" & PlatformPathSeperator & "body.txt"
+        SubDirPropulsion = "stats" & PlatformPathSeperator & "propulsion.txt"
+        SubDirBodyPropulsion = "stats" & PlatformPathSeperator & "bodypropulsionimd.txt"
+        SubDirConstruction = "stats" & PlatformPathSeperator & "construction.txt"
+        SubDirSensor = "stats" & PlatformPathSeperator & "sensor.txt"
+        SubDirRepair = "stats" & PlatformPathSeperator & "repair.txt"
+        SubDirTemplates = "stats" & PlatformPathSeperator & "templates.txt"
+        SubDirWeapons = "stats" & PlatformPathSeperator & "weapons.txt"
+        SubDirECM = "stats" & PlatformPathSeperator & "ecm.txt"
+        SubDirFeatures = "stats" & PlatformPathSeperator & "features.txt"
+        SubDirPIEs = "pies" & PlatformPathSeperator
         'SubDirStructurePIE = "structs" & ospathseperator
         SubDirStructurePIE = SubDirPIEs
         'SubDirBodiesPIE = "components" & ospathseperator & "bodies" & ospathseperator 
@@ -52,11 +52,11 @@
         SubDirPropPIE = SubDirPIEs
         'SubDirWeaponsPIE = "components" & ospathseperator & "weapons" & ospathseperator 
         SubDirWeaponsPIE = SubDirPIEs
-        SubdirTexpages = "texpages" & ospathseperator
-        SubDirAssignWeapons = "stats" & ospathseperator & "assignweapons.txt"
+        SubdirTexpages = "texpages" & PlatformPathSeperator
+        SubDirAssignWeapons = "stats" & PlatformPathSeperator & "assignweapons.txt"
         'SubDirFeaturePIE = "features" & ospathseperator 
         SubDirFeaturePIE = SubDirPIEs
-        SubDirStructureWeapons = "stats" & ospathseperator & "structureweapons.txt"
+        SubDirStructureWeapons = "stats" & PlatformPathSeperator & "structureweapons.txt"
     End Sub
 
     Public Bodies(-1) As clsBody
@@ -864,7 +864,7 @@
                     Else
                         ReturnResult.Warning_Add("Unable to load " & tmpString & ": " & Result.Problem)
                     End If
-                    InstrPos2 = InStrRev(tmpString, OSPathSeperator)
+                    InstrPos2 = InStrRev(tmpString, PlatformPathSeperator)
                     TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
                 Else

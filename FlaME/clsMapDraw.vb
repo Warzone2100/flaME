@@ -2,6 +2,8 @@
 
 Partial Public Class clsMap
 
+    Public ViewInfo As clsViewInfo
+
     Public Sub GLDraw()
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim Footprint As sXY_int
@@ -202,58 +204,12 @@ Partial Public Class clsMap
                     End If
                 End If
                 GL.LineWidth(3.0F)
-                For X = StartXY.X To FinishXY.X - 1
-                    Vertex0.X = X * TerrainGridSpacing
-                    Vertex0.Y = Terrain.Vertices(X, StartXY.Y).Height * HeightMultiplier
-                    Vertex0.Z = -StartXY.Y * TerrainGridSpacing
-                    Vertex1.X = (X + 1) * TerrainGridSpacing
-                    Vertex1.Y = Terrain.Vertices(X + 1, StartXY.Y).Height * HeightMultiplier
-                    Vertex1.Z = -StartXY.Y * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(1.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.End()
-                Next
-                For X = StartXY.X To FinishXY.X - 1
-                    Vertex0.X = X * TerrainGridSpacing
-                    Vertex0.Y = Terrain.Vertices(X, FinishXY.Y).Height * HeightMultiplier
-                    Vertex0.Z = -FinishXY.Y * TerrainGridSpacing
-                    Vertex1.X = (X + 1) * TerrainGridSpacing
-                    Vertex1.Y = Terrain.Vertices(X + 1, FinishXY.Y).Height * HeightMultiplier
-                    Vertex1.Z = -FinishXY.Y * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(1.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.End()
-                Next
-                For Y = StartXY.Y To FinishXY.Y - 1
-                    Vertex0.X = StartXY.X * TerrainGridSpacing
-                    Vertex0.Y = Terrain.Vertices(StartXY.X, Y).Height * HeightMultiplier
-                    Vertex0.Z = -Y * TerrainGridSpacing
-                    Vertex1.X = StartXY.X * TerrainGridSpacing
-                    Vertex1.Y = Terrain.Vertices(StartXY.X, Y + 1).Height * HeightMultiplier
-                    Vertex1.Z = -(Y + 1) * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(1.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.End()
-                Next
-                For Y = StartXY.Y To FinishXY.Y - 1
-                    Vertex0.X = FinishXY.X * TerrainGridSpacing
-                    Vertex0.Y = Terrain.Vertices(FinishXY.X, Y).Height * HeightMultiplier
-                    Vertex0.Z = -Y * TerrainGridSpacing
-                    Vertex1.X = FinishXY.X * TerrainGridSpacing
-                    Vertex1.Y = Terrain.Vertices(FinishXY.X, Y + 1).Height * HeightMultiplier
-                    Vertex1.Z = -(Y + 1) * TerrainGridSpacing
-                    GL.Begin(BeginMode.Lines)
-                    GL.Color3(1.0F, 1.0F, 1.0F)
-                    GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-                    GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-                    GL.End()
-                Next
+                Dim DrawSelection As New clsMap.clsDrawAreaOutline
+                DrawSelection.Map = Me
+                DrawSelection.StartXY = StartXY
+                DrawSelection.FinishXY = FinishXY
+                DrawSelection.Colour = New sRGBA_sng(1.0F, 1.0F, 1.0F, 1.0F)
+                DrawSelection.ActionPerform()
             End If
         End If
 
@@ -699,6 +655,13 @@ Partial Public Class clsMap
 
         GL.Disable(EnableCap.DepthTest)
 
+        GL.PushMatrix()
+        GL.Translate(-ViewInfo.ViewPos.X, -ViewInfo.ViewPos.Y, ViewInfo.ViewPos.Z)
+        For A = 0 To ScriptMarkerCount - 1
+            ScriptMarkers(A).GLDraw()
+        Next
+        GL.PopMatrix()
+
         'draw unit selection
 
         GL.Begin(BeginMode.Quads)
@@ -860,8 +823,6 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public ViewInfo As clsViewInfo
-
     Public Sub DrawUnitRectangle(ByVal Position As Matrix3D.XYZ_dbl, ByVal Footprint As sXY_int, ByVal BorderInsideThickness As Double, ByVal InsideColour As sRGBA_sng, ByVal OutsideColour As sRGBA_sng)
         Dim PosA As sXY_dbl
         Dim PosB As sXY_dbl
@@ -908,4 +869,354 @@ Partial Public Class clsMap
         GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
         GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
     End Sub
+
+    Public Class clsDrawTileOutline
+        Inherits clsMap.clsAction
+
+        Public Colour As sRGBA_sng
+
+        Private Vertex0 As sXYZ_int
+        Private Vertex1 As sXYZ_int
+        Private Vertex2 As sXYZ_int
+        Private Vertex3 As sXYZ_int
+
+        Public Overrides Sub ActionPerform()
+
+            Vertex0.X = PosNum.X * TerrainGridSpacing
+            Vertex0.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y).Height * Map.HeightMultiplier
+            Vertex0.Z = -PosNum.Y * TerrainGridSpacing
+            Vertex1.X = (PosNum.X + 1) * TerrainGridSpacing
+            Vertex1.Y = Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height * Map.HeightMultiplier
+            Vertex1.Z = -PosNum.Y * TerrainGridSpacing
+            Vertex2.X = PosNum.X * TerrainGridSpacing
+            Vertex2.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height * Map.HeightMultiplier
+            Vertex2.Z = -(PosNum.Y + 1) * TerrainGridSpacing
+            Vertex3.X = (PosNum.X + 1) * TerrainGridSpacing
+            Vertex3.Y = Map.Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height * Map.HeightMultiplier
+            Vertex3.Z = -(PosNum.Y + 1) * TerrainGridSpacing
+            GL.Begin(BeginMode.LineLoop)
+            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
+            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+            GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+            GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
+            GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+            GL.End()
+        End Sub
+    End Class
+
+    Public Class clsDrawAreaOutline
+        'does not inherit action
+
+        Public Map As clsMap
+        Public Colour As sRGBA_sng
+        Public StartXY As sXY_int
+        Public FinishXY As sXY_int
+
+        Private Vertex0 As sXYZ_int
+        Private Vertex1 As sXYZ_int
+        Private Vertex2 As sXYZ_int
+        Private Vertex3 As sXYZ_int
+
+        Public Sub ActionPerform()
+
+            GL.Begin(BeginMode.Lines)
+            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
+            For X = StartXY.X To FinishXY.X - 1
+                Vertex0.X = X * TerrainGridSpacing
+                Vertex0.Y = Map.Terrain.Vertices(X, StartXY.Y).Height * Map.HeightMultiplier
+                Vertex0.Z = -StartXY.Y * TerrainGridSpacing
+                Vertex1.X = (X + 1) * TerrainGridSpacing
+                Vertex1.Y = Map.Terrain.Vertices(X + 1, StartXY.Y).Height * Map.HeightMultiplier
+                Vertex1.Z = -StartXY.Y * TerrainGridSpacing
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+            Next
+            For X = StartXY.X To FinishXY.X - 1
+                Vertex0.X = X * TerrainGridSpacing
+                Vertex0.Y = Map.Terrain.Vertices(X, FinishXY.Y).Height * Map.HeightMultiplier
+                Vertex0.Z = -FinishXY.Y * TerrainGridSpacing
+                Vertex1.X = (X + 1) * TerrainGridSpacing
+                Vertex1.Y = Map.Terrain.Vertices(X + 1, FinishXY.Y).Height * Map.HeightMultiplier
+                Vertex1.Z = -FinishXY.Y * TerrainGridSpacing
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+            Next
+            For Y = StartXY.Y To FinishXY.Y - 1
+                Vertex0.X = StartXY.X * TerrainGridSpacing
+                Vertex0.Y = Map.Terrain.Vertices(StartXY.X, Y).Height * Map.HeightMultiplier
+                Vertex0.Z = -Y * TerrainGridSpacing
+                Vertex1.X = StartXY.X * TerrainGridSpacing
+                Vertex1.Y = Map.Terrain.Vertices(StartXY.X, Y + 1).Height * Map.HeightMultiplier
+                Vertex1.Z = -(Y + 1) * TerrainGridSpacing
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+            Next
+            For Y = StartXY.Y To FinishXY.Y - 1
+                Vertex0.X = FinishXY.X * TerrainGridSpacing
+                Vertex0.Y = Map.Terrain.Vertices(FinishXY.X, Y).Height * Map.HeightMultiplier
+                Vertex0.Z = -Y * TerrainGridSpacing
+                Vertex1.X = FinishXY.X * TerrainGridSpacing
+                Vertex1.Y = Map.Terrain.Vertices(FinishXY.X, Y + 1).Height * Map.HeightMultiplier
+                Vertex1.Z = -(Y + 1) * TerrainGridSpacing
+                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+            Next
+            GL.End()
+        End Sub
+    End Class
+
+    Public Class clsDrawCallTerrain
+        Inherits clsMap.clsAction
+
+        Public Overrides Sub ActionPerform()
+
+            GL.CallList(Map.Sectors(PosNum.X, PosNum.Y).GLList_Textured)
+        End Sub
+    End Class
+
+    Public Class clsDrawCallTerrainWireframe
+        Inherits clsMap.clsAction
+
+        Public Overrides Sub ActionPerform()
+
+            GL.CallList(Map.Sectors(PosNum.X, PosNum.Y).GLList_Wireframe)
+        End Sub
+    End Class
+
+    Public Class clsDrawTileOrientation
+        Inherits clsMap.clsAction
+
+        Public Overrides Sub ActionPerform()
+            Dim X As Integer
+            Dim Y As Integer
+
+            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y - 1)
+                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X - 1)
+                    Map.DrawTileOrientation(New sXY_int(X, Y))
+                Next
+            Next
+        End Sub
+    End Class
+
+    Public Class clsDrawVertexTerrain
+        Inherits clsMap.clsAction
+
+        Public ViewAngleMatrix As Matrix3D.Matrix3D
+
+        Private RGB_sng As sRGB_sng
+        Private RGB_sng2 As sRGB_sng
+        Private XYZ_dbl As Matrix3D.XYZ_dbl
+        Private XYZ_dbl2 As Matrix3D.XYZ_dbl
+        Private XYZ_dbl3 As Matrix3D.XYZ_dbl
+        Private Vertex0 As Matrix3D.XYZ_dbl
+        Private Vertex1 As Matrix3D.XYZ_dbl
+        Private Vertex2 As Matrix3D.XYZ_dbl
+        Private Vertex3 As Matrix3D.XYZ_dbl
+
+        Public Overrides Sub ActionPerform()
+            Dim X As Integer
+            Dim Y As Integer
+            Dim A As Integer
+
+            For Y = PosNum.Y * SectorTileSize To Math.Min((PosNum.Y + 1) * SectorTileSize - 1, Map.Terrain.TileSize.Y)
+                For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X)
+                    If Map.Terrain.Vertices(X, Y).Terrain IsNot Nothing Then
+                        A = Map.Terrain.Vertices(X, Y).Terrain.Num
+                        If A < Map.Painter.TerrainCount Then
+                            If Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
+                                RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
+                                If RGB_sng.Red + RGB_sng.Green + RGB_sng.Blue < 1.5F Then
+                                    RGB_sng2.Red = (RGB_sng.Red + 1.0F) / 2.0F
+                                    RGB_sng2.Green = (RGB_sng.Green + 1.0F) / 2.0F
+                                    RGB_sng2.Blue = (RGB_sng.Blue + 1.0F) / 2.0F
+                                Else
+                                    RGB_sng2.Red = RGB_sng.Red / 2.0F
+                                    RGB_sng2.Green = RGB_sng.Green / 2.0F
+                                    RGB_sng2.Blue = RGB_sng.Blue / 2.0F
+                                End If
+                                XYZ_dbl.X = X * TerrainGridSpacing
+                                XYZ_dbl.Y = Map.Terrain.Vertices(X, Y).Height * Map.HeightMultiplier
+                                XYZ_dbl.Z = -Y * TerrainGridSpacing
+                                XYZ_dbl2.X = 10.0#
+                                XYZ_dbl2.Y = 10.0#
+                                XYZ_dbl2.Z = 0.0#
+                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                Vertex0.X = XYZ_dbl.X + XYZ_dbl3.X
+                                Vertex0.Y = XYZ_dbl.Y + XYZ_dbl3.Y
+                                Vertex0.Z = XYZ_dbl.Z + XYZ_dbl3.Z
+                                XYZ_dbl2.X = -10.0#
+                                XYZ_dbl2.Y = 10.0#
+                                XYZ_dbl2.Z = 0.0#
+                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                Vertex1.X = XYZ_dbl.X + XYZ_dbl3.X
+                                Vertex1.Y = XYZ_dbl.Y + XYZ_dbl3.Y
+                                Vertex1.Z = XYZ_dbl.Z + XYZ_dbl3.Z
+                                XYZ_dbl2.X = -10.0#
+                                XYZ_dbl2.Y = -10.0#
+                                XYZ_dbl2.Z = 0.0#
+                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                Vertex2.X = XYZ_dbl.X + XYZ_dbl3.X
+                                Vertex2.Y = XYZ_dbl.Y + XYZ_dbl3.Y
+                                Vertex2.Z = XYZ_dbl.Z + XYZ_dbl3.Z
+                                XYZ_dbl2.X = 10.0#
+                                XYZ_dbl2.Y = -10.0#
+                                XYZ_dbl2.Z = 0.0#
+                                Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl2, XYZ_dbl3)
+                                Vertex3.X = XYZ_dbl.X + XYZ_dbl3.X
+                                Vertex3.Y = XYZ_dbl.Y + XYZ_dbl3.Y
+                                Vertex3.Z = XYZ_dbl.Z + XYZ_dbl3.Z
+                                GL.Begin(BeginMode.Quads)
+                                GL.Color3(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue)
+                                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+                                GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+                                GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
+                                GL.End()
+                                GL.Begin(BeginMode.LineLoop)
+                                GL.Color3(RGB_sng2.Red, RGB_sng2.Green, RGB_sng2.Blue)
+                                GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
+                                GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
+                                GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
+                                GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
+                                GL.End()
+                            End If
+                        End If
+                    End If
+                Next
+            Next
+        End Sub
+    End Class
+
+    Public Class clsDrawVertexMarker
+        Inherits clsMap.clsAction
+
+        Public Colour As sRGBA_sng
+
+        Private Vertex0 As sXYZ_int
+
+        Public Overrides Sub ActionPerform()
+
+            Vertex0.X = PosNum.X * TerrainGridSpacing
+            Vertex0.Y = Map.Terrain.Vertices(PosNum.X, PosNum.Y).Height * Map.HeightMultiplier
+            Vertex0.Z = -PosNum.Y * TerrainGridSpacing
+            GL.Begin(BeginMode.Lines)
+            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
+            GL.Vertex3(Vertex0.X - 8, Vertex0.Y, -Vertex0.Z)
+            GL.Vertex3(Vertex0.X + 8, Vertex0.Y, -Vertex0.Z)
+            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8)
+            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8)
+            GL.End()
+        End Sub
+    End Class
+
+    Public Class clsDrawHorizontalPosOnTerrain
+        'does not inherit action
+
+        Public Map As clsMap
+
+        Public Horizontal As sXY_int
+        Public Colour As sRGBA_sng
+
+        Private Vertex0 As sXYZ_int
+
+        Public Sub ActionPerform()
+
+            Vertex0.X = Horizontal.X
+            Vertex0.Y = CInt(Map.GetTerrainHeight(Horizontal))
+            Vertex0.Z = -Horizontal.Y
+            GL.Begin(BeginMode.Lines)
+            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
+            GL.Vertex3(Vertex0.X - 8, Vertex0.Y, -Vertex0.Z)
+            GL.Vertex3(Vertex0.X + 8, Vertex0.Y, -Vertex0.Z)
+            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8)
+            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8)
+            GL.End()
+        End Sub
+    End Class
+
+    Public Class clsDrawSectorObjects
+        Inherits clsMap.clsAction
+
+        Public UnitTextLabels As clsTextLabels
+
+        Private UnitDrawn() As Boolean
+        Private Started As Boolean
+
+        Public Sub Start()
+
+            ReDim UnitDrawn(Map.UnitCount - 1)
+
+            Started = True
+        End Sub
+
+        Public Overrides Sub ActionPerform()
+
+            If Not Started Then
+                Stop
+                Exit Sub
+            End If
+
+            Dim A As Integer
+            Dim tmpUnit As clsUnit
+            Dim tmpSector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+            Dim DrawUnitLabel As Boolean
+            Dim ViewInfo As clsViewInfo = Map.ViewInfo
+            Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
+            Dim TextLabel As clsTextLabel
+            Dim XYZ_dbl As Matrix3D.XYZ_dbl
+            Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
+            Dim ScreenPos As sXY_int
+
+            For A = 0 To tmpSector.UnitCount - 1
+                tmpUnit = tmpSector.Units(A)
+                If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
+                    UnitDrawn(tmpUnit.Map_UnitNum) = True
+                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
+                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
+                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
+                    DrawUnitLabel = False
+                    If tmpUnit.Type.IsUnknown Then
+                        DrawUnitLabel = True
+                    Else
+                        GL.PushMatrix()
+                        GL.Translate(XYZ_dbl.X, XYZ_dbl.Y, -XYZ_dbl.Z)
+                        tmpUnit.Type.GLDraw(tmpUnit.Rotation)
+                        GL.PopMatrix()
+                        If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                            If CType(tmpUnit.Type, clsDroidDesign).AlwaysDrawTextLabel Then
+                                DrawUnitLabel = True
+                            End If
+                        End If
+                        If MouseOverTerrain IsNot Nothing Then
+                            If MouseOverTerrain.UnitCount > 0 Then
+                                If MouseOverTerrain.Units(0) Is tmpUnit Then
+                                    DrawUnitLabel = True
+                                End If
+                            End If
+                        End If
+                    End If
+                    If DrawUnitLabel And Not UnitTextLabels.AtMaxCount Then
+                        Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                        If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                            If ScreenPos.X >= 0 And ScreenPos.X <= ViewInfo.MapView.GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= ViewInfo.MapView.GLSize.Y Then
+                                TextLabel = New clsTextLabel
+                                With TextLabel
+                                    .TextFont = UnitLabelFont
+                                    .SizeY = Settings.DisplayFont.SizeInPoints
+                                    .Colour.Red = 1.0F
+                                    .Colour.Green = 1.0F
+                                    .Colour.Blue = 1.0F
+                                    .Colour.Alpha = 1.0F
+                                    .Pos.X = ScreenPos.X + 32
+                                    .Pos.Y = ScreenPos.Y
+                                    .Text = tmpUnit.Type.GetDisplayText
+                                End With
+                                UnitTextLabels.Add(TextLabel)
+                            End If
+                        End If
+                    End If
+                End If
+            Next
+        End Sub
+    End Class
 End Class

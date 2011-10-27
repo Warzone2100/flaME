@@ -25,6 +25,9 @@ Partial Public Class frmMain
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cboTileType = New System.Windows.Forms.ComboBox()
         Me.tpAutoTexture = New System.Windows.Forms.TabPage()
+        Me.rdoFillCliffIgnore = New System.Windows.Forms.RadioButton()
+        Me.rdoFillCliffStopAfter = New System.Windows.Forms.RadioButton()
+        Me.rdoFillCliffStopBefore = New System.Windows.Forms.RadioButton()
         Me.rdoCliffTriBrush = New System.Windows.Forms.RadioButton()
         Me.rdoRoadRemove = New System.Windows.Forms.RadioButton()
         Me.pnlCliffRemoveBrush = New System.Windows.Forms.Panel()
@@ -32,7 +35,6 @@ Partial Public Class frmMain
         Me.cbxInvalidTiles = New System.Windows.Forms.CheckBox()
         Me.cbxAutoTexSetHeight = New System.Windows.Forms.CheckBox()
         Me.cbxCliffTris = New System.Windows.Forms.CheckBox()
-        Me.btnMapTexturer = New System.Windows.Forms.Button()
         Me.Label29 = New System.Windows.Forms.Label()
         Me.rdoAutoRoadLine = New System.Windows.Forms.RadioButton()
         Me.btnAutoTextureRemove = New System.Windows.Forms.Button()
@@ -87,6 +89,7 @@ Partial Public Class frmMain
         Me.txtHeightSetL = New System.Windows.Forms.TextBox()
         Me.Label5 = New System.Windows.Forms.Label()
         Me.tpAutoHeight = New System.Windows.Forms.TabPage()
+        Me.btnFlatOil = New System.Windows.Forms.Button()
         Me.btnGenerator = New System.Windows.Forms.Button()
         Me.btnWaterTri = New System.Windows.Forms.Button()
         Me.btnReinterpretTerrain = New System.Windows.Forms.Button()
@@ -233,7 +236,6 @@ Partial Public Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
-        Me.btnFlatOil = New System.Windows.Forms.Button()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
         Me.SplitContainer1.SuspendLayout()
@@ -570,6 +572,9 @@ Partial Public Class frmMain
         'tpAutoTexture
         '
         Me.tpAutoTexture.AutoScroll = True
+        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffIgnore)
+        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffStopAfter)
+        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffStopBefore)
         Me.tpAutoTexture.Controls.Add(Me.rdoCliffTriBrush)
         Me.tpAutoTexture.Controls.Add(Me.rdoRoadRemove)
         Me.tpAutoTexture.Controls.Add(Me.pnlCliffRemoveBrush)
@@ -577,7 +582,6 @@ Partial Public Class frmMain
         Me.tpAutoTexture.Controls.Add(Me.cbxInvalidTiles)
         Me.tpAutoTexture.Controls.Add(Me.cbxAutoTexSetHeight)
         Me.tpAutoTexture.Controls.Add(Me.cbxCliffTris)
-        Me.tpAutoTexture.Controls.Add(Me.btnMapTexturer)
         Me.tpAutoTexture.Controls.Add(Me.Label29)
         Me.tpAutoTexture.Controls.Add(Me.rdoAutoRoadLine)
         Me.tpAutoTexture.Controls.Add(Me.btnAutoTextureRemove)
@@ -599,6 +603,44 @@ Partial Public Class frmMain
         Me.tpAutoTexture.TabIndex = 2
         Me.tpAutoTexture.Text = "Terrain Painter"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
+        '
+        'rdoFillCliffIgnore
+        '
+        Me.rdoFillCliffIgnore.AutoSize = True
+        Me.rdoFillCliffIgnore.Checked = True
+        Me.rdoFillCliffIgnore.Location = New System.Drawing.Point(96, 244)
+        Me.rdoFillCliffIgnore.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoFillCliffIgnore.Name = "rdoFillCliffIgnore"
+        Me.rdoFillCliffIgnore.Size = New System.Drawing.Size(91, 21)
+        Me.rdoFillCliffIgnore.TabIndex = 52
+        Me.rdoFillCliffIgnore.TabStop = True
+        Me.rdoFillCliffIgnore.Text = "Ignore Cliff"
+        Me.rdoFillCliffIgnore.UseCompatibleTextRendering = True
+        Me.rdoFillCliffIgnore.UseVisualStyleBackColor = True
+        '
+        'rdoFillCliffStopAfter
+        '
+        Me.rdoFillCliffStopAfter.AutoSize = True
+        Me.rdoFillCliffStopAfter.Location = New System.Drawing.Point(96, 283)
+        Me.rdoFillCliffStopAfter.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoFillCliffStopAfter.Name = "rdoFillCliffStopAfter"
+        Me.rdoFillCliffStopAfter.Size = New System.Drawing.Size(112, 21)
+        Me.rdoFillCliffStopAfter.TabIndex = 51
+        Me.rdoFillCliffStopAfter.Text = "Stop After Cliff"
+        Me.rdoFillCliffStopAfter.UseCompatibleTextRendering = True
+        Me.rdoFillCliffStopAfter.UseVisualStyleBackColor = True
+        '
+        'rdoFillCliffStopBefore
+        '
+        Me.rdoFillCliffStopBefore.AutoSize = True
+        Me.rdoFillCliffStopBefore.Location = New System.Drawing.Point(96, 264)
+        Me.rdoFillCliffStopBefore.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoFillCliffStopBefore.Name = "rdoFillCliffStopBefore"
+        Me.rdoFillCliffStopBefore.Size = New System.Drawing.Size(123, 21)
+        Me.rdoFillCliffStopBefore.TabIndex = 50
+        Me.rdoFillCliffStopBefore.Text = "Stop Before Cliff"
+        Me.rdoFillCliffStopBefore.UseCompatibleTextRendering = True
+        Me.rdoFillCliffStopBefore.UseVisualStyleBackColor = True
         '
         'rdoCliffTriBrush
         '
@@ -675,17 +717,6 @@ Partial Public Class frmMain
         Me.cbxCliffTris.UseCompatibleTextRendering = True
         Me.cbxCliffTris.UseVisualStyleBackColor = True
         '
-        'btnMapTexturer
-        '
-        Me.btnMapTexturer.Location = New System.Drawing.Point(14, 283)
-        Me.btnMapTexturer.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnMapTexturer.Name = "btnMapTexturer"
-        Me.btnMapTexturer.Size = New System.Drawing.Size(160, 30)
-        Me.btnMapTexturer.TabIndex = 34
-        Me.btnMapTexturer.Text = "Entire Map Painter"
-        Me.btnMapTexturer.UseVisualStyleBackColor = True
-        Me.btnMapTexturer.Visible = False
-        '
         'Label29
         '
         Me.Label29.Location = New System.Drawing.Point(11, 328)
@@ -754,13 +785,11 @@ Partial Public Class frmMain
         'rdoAutoTexturePlace
         '
         Me.rdoAutoTexturePlace.AutoSize = True
-        Me.rdoAutoTexturePlace.Checked = True
         Me.rdoAutoTexturePlace.Location = New System.Drawing.Point(11, 214)
         Me.rdoAutoTexturePlace.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoAutoTexturePlace.Name = "rdoAutoTexturePlace"
         Me.rdoAutoTexturePlace.Size = New System.Drawing.Size(59, 21)
         Me.rdoAutoTexturePlace.TabIndex = 26
-        Me.rdoAutoTexturePlace.TabStop = True
         Me.rdoAutoTexturePlace.Text = "Place"
         Me.rdoAutoTexturePlace.UseCompatibleTextRendering = True
         Me.rdoAutoTexturePlace.UseVisualStyleBackColor = True
@@ -1314,6 +1343,17 @@ Partial Public Class frmMain
         Me.tpAutoHeight.TabIndex = 3
         Me.tpAutoHeight.Text = "Misc"
         Me.tpAutoHeight.UseVisualStyleBackColor = True
+        '
+        'btnFlatOil
+        '
+        Me.btnFlatOil.Location = New System.Drawing.Point(4, 80)
+        Me.btnFlatOil.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnFlatOil.Name = "btnFlatOil"
+        Me.btnFlatOil.Size = New System.Drawing.Size(223, 30)
+        Me.btnFlatOil.TabIndex = 4
+        Me.btnFlatOil.Text = "Flatten Under Oils"
+        Me.btnFlatOil.UseCompatibleTextRendering = True
+        Me.btnFlatOil.UseVisualStyleBackColor = True
         '
         'btnGenerator
         '
@@ -2757,20 +2797,9 @@ Partial Public Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
-        'btnFlatOil
-        '
-        Me.btnFlatOil.Location = New System.Drawing.Point(4, 80)
-        Me.btnFlatOil.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnFlatOil.Name = "btnFlatOil"
-        Me.btnFlatOil.Size = New System.Drawing.Size(223, 30)
-        Me.btnFlatOil.TabIndex = 4
-        Me.btnFlatOil.Text = "Flatten Under Oils"
-        Me.btnFlatOil.UseCompatibleTextRendering = True
-        Me.btnFlatOil.UseVisualStyleBackColor = True
-        '
         'frmMain
         '
-        Me.AllowDrop = true
+        Me.AllowDrop = True
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
         Me.ClientSize = New System.Drawing.Size(1296, 655)
         Me.Controls.Add(Me.TableLayoutPanel5)
@@ -2778,9 +2807,9 @@ Partial Public Class frmMain
         Me.Margin = New System.Windows.Forms.Padding(4)
         Me.Name = "frmMain"
         Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
-        Me.SplitContainer1.Panel1.ResumeLayout(false)
-        Me.SplitContainer1.Panel2.ResumeLayout(false)
-        Me.SplitContainer1.ResumeLayout(false)
+        Me.SplitContainer1.Panel1.ResumeLayout(False)
+        Me.SplitContainer1.Panel2.ResumeLayout(False)
+        Me.SplitContainer1.ResumeLayout(False)
         Me.TabControl.ResumeLayout(false)
         Me.tpTextures.ResumeLayout(false)
         Me.TableLayoutPanel6.ResumeLayout(false)
@@ -2908,7 +2937,6 @@ End Sub
     Public WithEvents Label28 As System.Windows.Forms.Label
     Public WithEvents rdoAutoRoadLine As System.Windows.Forms.RadioButton
     Public WithEvents Label29 As System.Windows.Forms.Label
-    Public WithEvents btnMapTexturer As System.Windows.Forms.Button
     Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
     Public WithEvents TableLayoutPanel4 As System.Windows.Forms.TableLayoutPanel
     Public WithEvents TableLayoutPanel3 As System.Windows.Forms.TableLayoutPanel
@@ -3071,5 +3099,8 @@ End Sub
     Public WithEvents rdoCliffTriBrush As System.Windows.Forms.RadioButton
     Public WithEvents btnTextureClockwise As System.Windows.Forms.Button
     Public WithEvents btnFlatOil As System.Windows.Forms.Button
+    Public WithEvents rdoFillCliffIgnore As System.Windows.Forms.RadioButton
+    Public WithEvents rdoFillCliffStopAfter As System.Windows.Forms.RadioButton
+    Public WithEvents rdoFillCliffStopBefore As System.Windows.Forms.RadioButton
 End Class
 #End If

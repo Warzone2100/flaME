@@ -347,10 +347,10 @@
                 ResultInfo.CompileMultiAuthor = ReadOldText(File)
                 ResultInfo.CompileMultiLicense = ReadOldText(File)
                 strTemp = ReadOldText(File)
-                If Not InvariantParse_int(strTemp, ResultInfo.CampaignGameTime) Then
-                    ReturnResult.Warning_Add("Compile campaign time was invalid.")
-                    ResultInfo.CampaignGameTime = 2
-                End If
+                'If Not InvariantParse_int(strTemp, ResultInfo.CampaignGameTime) Then
+                '    ReturnResult.Warning_Add("Compile campaign time was invalid.")
+                '    ResultInfo.CampaignGameTime = 2
+                'End If
                 ResultInfo.CampaignGameType = File.ReadInt32
                 If ResultInfo.CampaignGameType < -1 Or ResultInfo.CampaignGameType >= GameTypeCount Then
                     ReturnResult.Warning_Add("Compile campaign type out of range.")
@@ -622,7 +622,7 @@
                             For B = 0 To strTemp.Length - 1
                                 If strTemp.Chars(B) <> " " And strTemp.Chars(B) <> Chr(9) Then
                                     GotText = True
-                                    ObjectText(C) = ObjectText(C) & strTemp.Chars(B)
+                                    ObjectText(C) &= strTemp.Chars(B)
                                 Else
                                     If GotText Then
                                         C += 1
@@ -984,11 +984,11 @@ LineDone:
             File.Write(Text)
             Text = "    Gravity 1" & EndChar
             File.Write(Text)
-            Text = "    HeightScale " & HeightMultiplier & EndChar
+            Text = "    HeightScale " & InvariantToString_int(HeightMultiplier) & EndChar
             File.Write(Text)
-            Text = "    MapWidth " & Terrain.TileSize.X & EndChar
+            Text = "    MapWidth " & InvariantToString_int(Terrain.TileSize.X) & EndChar
             File.Write(Text)
-            Text = "    MapHeight " & Terrain.TileSize.Y & EndChar
+            Text = "    MapHeight " & InvariantToString_int(Terrain.TileSize.Y) & EndChar
             File.Write(Text)
             Text = "    TileWidth 128" & EndChar
             File.Write(Text)
@@ -1016,7 +1016,7 @@ LineDone:
             File.Write(Text)
             Text = "    }" & EndChar
             File.Write(Text)
-            Text = "    NumTiles " & Terrain.TileSize.X * Terrain.TileSize.Y & EndChar
+            Text = "    NumTiles " & InvariantToString_int(Terrain.TileSize.X * Terrain.TileSize.Y) & EndChar
             File.Write(Text)
             Text = "    Tiles {" & EndChar
             File.Write(Text)
@@ -1043,7 +1043,7 @@ LineDone:
                         TF = 0
                     End If
 
-                    Text = "        TID " & Terrain.Tiles(X, Y).Texture.TextureNum + 1 & " VF " & VF & " TF " & TF & " F " & Flip & " VH " & Terrain.Vertices(X, Y).Height & " " & Terrain.Vertices(X + 1, Y).Height & " " & Terrain.Vertices(X + 1, Y + 1).Height & " " & Terrain.Vertices(X, Y + 1).Height & EndChar
+                    Text = "        TID " & Terrain.Tiles(X, Y).Texture.TextureNum + 1 & " VF " & InvariantToString_int(VF) & " TF " & InvariantToString_int(TF) & " F " & InvariantToString_int(Flip) & " VH " & InvariantToString_byte(Terrain.Vertices(X, Y).Height) & " " & InvariantToString_byte(Terrain.Vertices(X + 1, Y).Height) & " " & Terrain.Vertices(X + 1, Y + 1).Height & " " & InvariantToString_byte(Terrain.Vertices(X, Y + 1).Height) & EndChar
                     File.Write(Text)
                 Next
             Next
@@ -1065,7 +1065,7 @@ LineDone:
                 Text = "	FeatureSet " & EndChar
             End If
             File.Write(Text)
-            Text = "    NumObjects " & UnitCount & EndChar
+            Text = "    NumObjects " & InvariantToString_int(UnitCount) & EndChar
             File.Write(Text)
             Text = "    Objects {" & EndChar
             File.Write(Text)
@@ -1091,7 +1091,7 @@ LineDone:
                 XYZ_int = LNDPos_From_MapPos(Units(A).Pos.Horizontal)
                 If B >= 0 Then
                     If Units(A).Type.GetCode(strTemp) Then
-                        Text = "        " & Units(A).ID & " " & B & " " & Quote & strTemp & Quote & " " & Units(A).UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & Strings.FormatNumber(XYZ_int.X, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(XYZ_int.Y, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(XYZ_int.Z, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(0, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(Units(A).Rotation, 2, TriState.True, TriState.False, TriState.False) & " " & Strings.FormatNumber(0, 2, TriState.True, TriState.False, TriState.False) & EndChar
+                        Text = "        " & InvariantToString_uint(Units(A).ID) & " " & B & " " & Quote & strTemp & Quote & " " & Units(A).UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & InvariantToString_int(XYZ_int.X) & ".00 " & InvariantToString_int(XYZ_int.Y) & ".00 " & InvariantToString_int(XYZ_int.Z) & ".00 0.00 " & InvariantToString_int(Units(A).Rotation) & ".00 0.00" & EndChar
                         File.Write(Text)
                     Else
                         ReturnResult.Warning_Add("Error. Code not found.")
@@ -1112,7 +1112,7 @@ LineDone:
             File.Write(Text)
             Text = "    Limits {" & EndChar
             File.Write(Text)
-            Text = "        " & Quote & "Entire Map" & Quote & " 0 0 0 " & Terrain.TileSize.X & " " & Terrain.TileSize.Y & EndChar
+            Text = "        " & Quote & "Entire Map" & Quote & " 0 0 0 " & InvariantToString_int(Terrain.TileSize.X) & " " & InvariantToString_int(Terrain.TileSize.Y) & EndChar
             File.Write(Text)
             Text = "    }" & EndChar
             File.Write(Text)
@@ -1122,12 +1122,12 @@ LineDone:
             File.Write(Text)
             Text = "    Version 1" & EndChar
             File.Write(Text)
-            Text = "    NumGateways " & GatewayCount & EndChar
+            Text = "    NumGateways " & InvariantToString_int(GatewayCount) & EndChar
             File.Write(Text)
             Text = "    Gates {" & EndChar
             File.Write(Text)
             For A = 0 To GatewayCount - 1
-                Text = "        " & Gateways(A).PosA.X & " " & Gateways(A).PosA.Y & " " & Gateways(A).PosB.X & " " & Gateways(A).PosB.Y & EndChar
+                Text = "        " & InvariantToString_int(Gateways(A).PosA.X) & " " & InvariantToString_int(Gateways(A).PosA.Y) & " " & InvariantToString_int(Gateways(A).PosB.X) & " " & InvariantToString_int(Gateways(A).PosB.Y) & EndChar
                 File.Write(Text)
             Next
             Text = "    }" & EndChar
@@ -1147,7 +1147,7 @@ LineDone:
                     If C + B < 0 Then
                         Text = Text & "2 "
                     Else
-                        Text = Text & Tile_TypeNum(C + B) & " "
+                        Text = Text & InvariantToString_byte(Tile_TypeNum(C + B)) & " "
                     End If
                 Next
                 Text = Text & EndChar
@@ -1500,7 +1500,7 @@ LineDone:
             WriteText(File, True, InterfaceOptions.CompileMultiAuthor)
 
             WriteText(File, True, InterfaceOptions.CompileMultiLicense)
-            WriteText(File, True, InvariantToString_int(InterfaceOptions.CampaignGameTime))
+            'WriteText(File, True, InvariantToString_int(InterfaceOptions.CampaignGameTime))
             Dim intTemp As Integer = InterfaceOptions.CampaignGameType
             File.Write(intTemp)
 

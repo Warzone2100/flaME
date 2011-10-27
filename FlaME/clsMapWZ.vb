@@ -82,7 +82,9 @@ Partial Public Class clsMap
                                     GameName = Strings.LCase(Strings.Mid(LineData.Lines(A + B), C + 1, D - C - 1))
                                     'see if map is already counted
                                     For C = 0 To MapCount - 1
-                                        If GameName = MapName.Names(C) Then Exit For
+                                        If GameName = MapName.Names(C) Then
+                                            Exit For
+                                        End If
                                     Next
                                     If C = MapCount Then
                                         GameFound = True
@@ -160,15 +162,13 @@ Partial Public Class clsMap
 
         Dim ZipSearchResult As clsZipStreamEntry
 
-        'load map files
-
-        ZipSearchResult = FindZipEntryFromPath(Path, GameFilesPath & "game.map")
+        ZipSearchResult = FindZipEntryFromPath(Path, MapLoadName)
         If ZipSearchResult Is Nothing Then
-            ReturnResult.Problem_Add("game.map file not found.")
+            ReturnResult.Problem_Add("Game file not found.")
             Return ReturnResult
         Else
             Dim Map_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
-            SubResult = Read_WZ_Game(Map_Reader)
+            SubResult = Read_WZ_gam(Map_Reader)
             Map_Reader.Close()
 
             If Not SubResult.Success Then
@@ -177,8 +177,35 @@ Partial Public Class clsMap
             End If
         End If
 
+        ZipSearchResult = FindZipEntryFromPath(Path, GameFilesPath & "game.map")
+        If ZipSearchResult Is Nothing Then
+            ReturnResult.Problem_Add("game.map file not found.")
+            Return ReturnResult
+        Else
+            Dim Map_Reader As New IO.BinaryReader(ZipSearchResult.Stream)
+            SubResult = Read_WZ_map(Map_Reader)
+            Map_Reader.Close()
+
+            If Not SubResult.Success Then
+                ReturnResult.Problem_Add(SubResult.Problem)
+                Return ReturnResult
+            End If
+        End If
+
+        ZipSearchResult = FindZipEntryFromPath(Path, GameFilesPath & "labels.ini")
+        If ZipSearchResult Is Nothing Then
+
+        Else
+            Dim LabelsINI As New clsINIRead
+            Dim LabelsINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
+            LabelsINI_Reader.Close()
+            Dim INILabels As New clsINILabels(LabelsINI.SectionCount)
+            ReturnResult.AppendAsWarning(LabelsINI.Translate(INILabels), "Labels INI: ")
+            Read_WZ_Labels(LabelsINI, INILabels)
+        End If
+
         Dim BJOUnits As New clsMap.clsWZBJOUnits
-        Dim NewUnit As clsUnit
 
         Dim INIFeatures As clsINIFeatures = Nothing
 
@@ -276,7 +303,211 @@ Partial Public Class clsMap
             End If
         End If
 
+        Dim CreateObjectsArgs As sCreateWZObjectsArgs
+        CreateObjectsArgs.BJOUnits = BJOUnits
+        CreateObjectsArgs.INIStructures = INIStructures
+        CreateObjectsArgs.INIDroids = INIDroids
+        CreateObjectsArgs.INIFeatures = INIFeatures
+        ReturnResult.Append(CreateWZObjects(CreateObjectsArgs), "")
+
+        Return ReturnResult
+    End Function
+
+    Public Function Load_Game(ByVal Path As String) As clsResult
+        Dim ReturnResult As New clsResult
+        Dim SubResult As sResult
+        Dim Quote As String = ControlChars.Quote
+        Dim LineData As New sLines
+
+        Tileset = Nothing
+
+        TileType_Reset()
+        SetPainterToDefaults()
+
+        Dim GameSplitPath As New sSplitPath(Path)
+        Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & PlatformPathSeperator
+        Dim MapDirectory As String
+        Dim File As IO.FileStream = Nothing
+
+        SubResult = TryOpenFileStream(Path, File)
+        If Not SubResult.Success Then
+            ReturnResult.Problem_Add("Game file not found: " & SubResult.Problem)
+            Return ReturnResult
+        Else
+            Dim Map_Reader As New IO.BinaryReader(File)
+            SubResult = Read_WZ_gam(Map_Reader)
+            Map_Reader.Close()
+
+            If Not SubResult.Success Then
+                ReturnResult.Problem_Add(SubResult.Problem)
+                Return ReturnResult
+            End If
+        End If
+
+        SubResult = TryOpenFileStream(GameFilesPath & "game.map", File)
+        If Not SubResult.Success Then
+            Dim PromptResult As MsgBoxResult = MsgBox("game.map file not found. Do you want to select another directory to load the underlying map from?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle))
+            If PromptResult <> MsgBoxResult.Ok Then
+                ReturnResult.Problem_Add("Aborted.")
+                Return ReturnResult
+            End If
+            Dim DirectorySelect As New FolderBrowserDialog
+            DirectorySelect.SelectedPath = GameFilesPath
+            If DirectorySelect.ShowDialog() <> DialogResult.OK Then
+                ReturnResult.Problem_Add("Aborted.")
+                Return ReturnResult
+            End If
+            MapDirectory = DirectorySelect.SelectedPath & PlatformPathSeperator
+
+            SubResult = TryOpenFileStream(MapDirectory & "game.map", File)
+            If Not SubResult.Success Then
+                ReturnResult.Problem_Add("game.map file not found: " & SubResult.Problem)
+                Return ReturnResult
+            End If
+        Else
+            MapDirectory = GameFilesPath
+        End If
+
+        Dim Map_ReaderB As New IO.BinaryReader(File)
+        SubResult = Read_WZ_map(Map_ReaderB)
+        Map_ReaderB.Close()
+
+        SubResult = TryOpenFileStream(GameFilesPath & "labels.ini", File)
+        If Not SubResult.Success Then
+
+        Else
+            Dim LabelsINI As New clsINIRead
+            Dim LabelsINI_Reader As New IO.StreamReader(File)
+            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
+            LabelsINI_Reader.Close()
+            Dim INILabels As New clsINILabels(LabelsINI.SectionCount)
+            ReturnResult.AppendAsWarning(LabelsINI.Translate(INILabels), "Labels INI: ")
+            Read_WZ_Labels(LabelsINI, INILabels)
+        End If
+
+        Dim BJOUnits As New clsMap.clsWZBJOUnits
+
+        Dim INIFeatures As clsINIFeatures = Nothing
+
+        SubResult = TryOpenFileStream(GameFilesPath & "feature.ini", File)
+        If Not SubResult.Success Then
+
+        Else
+            Dim FeaturesINI As New clsINIRead
+            Dim FeaturesINI_Reader As New IO.StreamReader(File)
+            ReturnResult.AppendAsWarning(FeaturesINI.ReadFile(FeaturesINI_Reader), "Features INI: ")
+            FeaturesINI_Reader.Close()
+            INIFeatures = New clsINIFeatures(FeaturesINI.SectionCount)
+            ReturnResult.AppendAsWarning(FeaturesINI.Translate(INIFeatures), "Features INI: ")
+        End If
+
+        If INIFeatures Is Nothing Then
+            SubResult = TryOpenFileStream(GameFilesPath & "feat.bjo", File)
+            If Not SubResult.Success Then
+                ReturnResult.Warning_Add("feat.bjo file not found.")
+            Else
+                Dim Features_Reader As New IO.BinaryReader(File)
+                SubResult = Read_WZ_Features(Features_Reader, BJOUnits)
+                Features_Reader.Close()
+                If Not SubResult.Success Then
+                    ReturnResult.Warning_Add(SubResult.Problem)
+                End If
+            End If
+        End If
+
+        SubResult = TryOpenFileStream(MapDirectory & "ttypes.ttp", File)
+        If Not SubResult.Success Then
+            ReturnResult.Warning_Add("ttypes.ttp file not found.")
+        Else
+            Dim TileTypes_Reader As New IO.BinaryReader(File)
+            SubResult = Read_WZ_TileTypes(TileTypes_Reader)
+            TileTypes_Reader.Close()
+            If Not SubResult.Success Then
+                ReturnResult.Warning_Add(SubResult.Problem)
+            End If
+        End If
+
+        Dim INIStructures As clsINIStructures = Nothing
+
+        SubResult = TryOpenFileStream(GameFilesPath & "struct.ini", File)
+        If Not SubResult.Success Then
+
+        Else
+            Dim StructuresINI As New clsINIRead
+            Dim StructuresINI_Reader As New IO.StreamReader(File)
+            ReturnResult.AppendAsWarning(StructuresINI.ReadFile(StructuresINI_Reader), "Structures INI: ")
+            StructuresINI_Reader.Close()
+            INIStructures = New clsINIStructures(StructuresINI.SectionCount, Me)
+            ReturnResult.AppendAsWarning(StructuresINI.Translate(INIStructures), "Structures INI: ")
+        End If
+
+        If INIStructures Is Nothing Then
+            SubResult = TryOpenFileStream(GameFilesPath & "struct.bjo", File)
+            If Not SubResult.Success Then
+                ReturnResult.Warning_Add("struct.bjo file not found.")
+            Else
+                Dim Structures_Reader As New IO.BinaryReader(File)
+                SubResult = Read_WZ_Structures(Structures_Reader, BJOUnits)
+                Structures_Reader.Close()
+                If Not SubResult.Success Then
+                    ReturnResult.Warning_Add(SubResult.Problem)
+                End If
+            End If
+        End If
+
+        Dim INIDroids As clsINIDroids = Nothing
+
+        SubResult = TryOpenFileStream(GameFilesPath & "droid.ini", File)
+        If Not SubResult.Success Then
+
+        Else
+            Dim DroidsINI As New clsINIRead
+            Dim DroidsINI_Reader As New IO.StreamReader(File)
+            ReturnResult.AppendAsWarning(DroidsINI.ReadFile(DroidsINI_Reader), "Droids INI: ")
+            DroidsINI_Reader.Close()
+            INIDroids = New clsINIDroids(DroidsINI.SectionCount, Me)
+            ReturnResult.AppendAsWarning(DroidsINI.Translate(INIDroids), "Droids INI: ")
+        End If
+
+        If INIStructures Is Nothing Then
+            SubResult = TryOpenFileStream(GameFilesPath & "dinit.bjo", File)
+            If Not SubResult.Success Then
+                ReturnResult.Warning_Add("dinit.bjo file not found.")
+            Else
+                Dim Droids_Reader As New IO.BinaryReader(File)
+                SubResult = Read_WZ_Droids(Droids_Reader, BJOUnits)
+                Droids_Reader.Close()
+                If Not SubResult.Success Then
+                    ReturnResult.Warning_Add(SubResult.Problem)
+                End If
+            End If
+        End If
+
+        Dim CreateObjectsArgs As sCreateWZObjectsArgs
+        CreateObjectsArgs.BJOUnits = BJOUnits
+        CreateObjectsArgs.INIStructures = INIStructures
+        CreateObjectsArgs.INIDroids = INIDroids
+        CreateObjectsArgs.INIFeatures = INIFeatures
+        ReturnResult.Append(CreateWZObjects(CreateObjectsArgs), "")
+
+        Return ReturnResult
+    End Function
+
+    Public Structure sCreateWZObjectsArgs
+        Public BJOUnits As clsWZBJOUnits
+        Public INIStructures As clsINIStructures
+        Public INIDroids As clsINIDroids
+        Public INIFeatures As clsINIFeatures
+    End Structure
+
+    Public Function CreateWZObjects(ByVal Args As sCreateWZObjectsArgs) As clsResult
+        Dim ReturnResult As New clsResult
+        Dim NewUnit As clsUnit
         Dim AvailableID As UInteger
+        Dim BJOUnits As clsWZBJOUnits = Args.BJOUnits
+        Dim INIStructures As clsINIStructures = Args.INIStructures
+        Dim INIDroids As clsINIDroids = Args.INIDroids
+        Dim INIFeatures As clsINIFeatures = Args.INIFeatures
 
         AvailableID = 1UI
         For A = 0 To BJOUnits.UnitCount - 1
@@ -310,8 +541,8 @@ Partial Public Class clsMap
             NewUnit = New clsUnit
             NewUnit.ID = BJOUnits.Units(A).ID
             NewUnit.Type = FindOrCreateUnitType(BJOUnits.Units(A).Code, BJOUnits.Units(A).ObjectType)
-            If Not SubResult.Success Then
-                ReturnResult.Problem_Add(SubResult.Problem)
+            If NewUnit.Type Is Nothing Then
+                ReturnResult.Problem_Add("Unable to create object type.")
                 Return ReturnResult
             End If
             If BJOUnits.Units(A).Player >= PlayerCountMax Then
@@ -675,22 +906,21 @@ Partial Public Class clsMap
 
             Select Case INIProperty.Name
                 Case "id"
-                    Try
-                        If CUInt(INIProperty.Value) > 0 Then
-                            Structures(INISectionNum).ID = CUInt(INIProperty.Value)
+                    Dim uintTemp As UInteger
+                    If InvariantParse_uint(INIProperty.Value, uintTemp) Then
+                        If uintTemp > 0 Then
+                            Structures(INISectionNum).ID = uintTemp
                         End If
-                    Catch ex As Exception
+                    Else
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "name"
                     Structures(INISectionNum).Code = INIProperty.Value
                 Case "startpos"
                     Dim StartPos As Integer
-                    Try
-                        StartPos = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, StartPos) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If StartPos < 0 Or StartPos >= PlayerCountMax Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
@@ -701,61 +931,26 @@ Partial Public Class clsMap
                     End If
                     Structures(INISectionNum).UnitGroup = ParentMap.ScavengerUnitGroup
                 Case "position"
-                    Dim VectorText() As String
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WorldPosFromINIText(INIProperty.Value, Structures(INISectionNum).Pos) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        Structures(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
                 Case "rotation"
-                    Dim VectorText() As String
-                    Dim WZAngle As sWZAngle
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WZAngleFromINIText(INIProperty.Value, Structures(INISectionNum).Rotation) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        WZAngle.Direction = CUShort(VectorText(0))
-                        WZAngle.Pitch = CUShort(VectorText(1))
-                        WZAngle.Roll = CUShort(VectorText(2))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    Structures(INISectionNum).Rotation = WZAngle
                 Case "modules"
-                    Try
-                        If CInt(INIProperty.Value) >= 0 Then
-                            Structures(INISectionNum).ModuleCount = CInt(INIProperty.Value)
-                        Else
-                            Return clsINIRead.enumTranslatorResult.ValueInvalid
-                        End If
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                Case "health"
-                    Dim A As Integer
-                    A = INIProperty.Value.IndexOf("%"c)
-                    If A < 0 Then
+                    Dim ModuleCount As Integer
+                    If Not InvariantParse_int(INIProperty.Value, ModuleCount) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    INIProperty.Value = INIProperty.Value.Replace("%", "")
-                    Try
-                        Structures(INISectionNum).HealthPercent = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If ModuleCount < 0 Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
+                    Structures(INISectionNum).ModuleCount = ModuleCount
+                Case "health"
+                    If Not HealthFromINIText(INIProperty.Value, Structures(INISectionNum).HealthPercent) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -807,22 +1002,21 @@ Partial Public Class clsMap
 
             Select Case INIProperty.Name
                 Case "id"
-                    Try
-                        If CUInt(INIProperty.Value) > 0 Then
-                            Droids(INISectionNum).ID = CUInt(INIProperty.Value)
+                    Dim uintTemp As UInteger
+                    If InvariantParse_uint(INIProperty.Value, uintTemp) Then
+                        If uintTemp > 0 Then
+                            Droids(INISectionNum).ID = uintTemp
                         End If
-                    Catch ex As Exception
+                    Else
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "template"
                     Droids(INISectionNum).Template = INIProperty.Value
                 Case "startpos"
                     Dim StartPos As Integer
-                    Try
-                        StartPos = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, StartPos) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                     If StartPos < 0 Or StartPos >= PlayerCountMax Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
@@ -835,63 +1029,25 @@ Partial Public Class clsMap
                 Case "name"
                     'ignore
                 Case "position"
-                    Dim VectorText() As String
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WorldPosFromINIText(INIProperty.Value, Droids(INISectionNum).Pos) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        Droids(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
                 Case "rotation"
-                    Dim VectorText() As String
-                    Dim WZAngle As sWZAngle
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WZAngleFromINIText(INIProperty.Value, Droids(INISectionNum).Rotation) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        WZAngle.Direction = CUShort(VectorText(0))
-                        WZAngle.Pitch = CUShort(VectorText(1))
-                        WZAngle.Roll = CUShort(VectorText(2))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    Droids(INISectionNum).Rotation = WZAngle
                 Case "health"
-                    Dim A As Integer
-                    A = INIProperty.Value.IndexOf("%"c)
-                    If A < 0 Then
+                    If Not HealthFromINIText(INIProperty.Value, Droids(INISectionNum).HealthPercent) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    INIProperty.Value = INIProperty.Value.Replace("%", "")
-                    Try
-                        Droids(INISectionNum).HealthPercent = CInt(INIProperty.Value)
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
                 Case "droidtype"
-                    Try
-                        Droids(INISectionNum).DroidType = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Droids(INISectionNum).DroidType) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "weapons"
-                    Try
-                        Droids(INISectionNum).WeaponCount = CInt(INIProperty.Value)
-                    Catch ex As Exception
+                    If Not InvariantParse_int(INIProperty.Value, Droids(INISectionNum).WeaponCount) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "parts\body"
                     Droids(INISectionNum).Body = INIProperty.Value
                 Case "parts\propulsion"
@@ -936,72 +1092,37 @@ Partial Public Class clsMap
 
             FeatureCount = NewFeatureCount
             ReDim Features(FeatureCount - 1)
+            For A = 0 To FeatureCount - 1
+                Features(A).HealthPercent = -1
+            Next
         End Sub
 
         Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "id"
-                    Try
-                        If CUInt(INIProperty.Value) > 0 Then
-                            Features(INISectionNum).ID = CUInt(INIProperty.Value)
+                    Dim uintTemp As UInteger
+                    If InvariantParse_uint(INIProperty.Value, uintTemp) Then
+                        If uintTemp > 0 Then
+                            Features(INISectionNum).ID = uintTemp
                         End If
-                    Catch ex As Exception
+                    Else
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
+                    End If
                 Case "name"
                     Features(INISectionNum).Code = INIProperty.Value
                 Case "position"
-                    Dim VectorText() As String
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WorldPosFromINIText(INIProperty.Value, Features(INISectionNum).Pos) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        Features(INISectionNum).Pos = New clsWorldPos(New sWorldPos(New sXY_int(CInt(VectorText(0)), CInt(VectorText(1))), CInt(VectorText(2))))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
                 Case "rotation"
-                    Dim VectorText() As String
-                    Dim WZAngle As sWZAngle
-                    Dim A As Integer
-                    VectorText = INIProperty.Value.Split(","c)
-                    If VectorText.GetUpperBound(0) + 1 <> 3 Then
+                    If Not WZAngleFromINIText(INIProperty.Value, Features(INISectionNum).Rotation) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    For A = 0 To VectorText.GetUpperBound(0)
-                        VectorText(A) = VectorText(A).Trim()
-                    Next
-                    Try
-                        WZAngle.Direction = CUShort(VectorText(0))
-                        WZAngle.Pitch = CUShort(VectorText(1))
-                        WZAngle.Roll = CUShort(VectorText(2))
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    Features(INISectionNum).Rotation = WZAngle
                 Case "health"
-                    Dim A As Integer
-                    Dim Health As Integer
-                    A = INIProperty.Value.IndexOf("%"c)
-                    If A < 0 Then
+                    If Not HealthFromINIText(INIProperty.Value, Features(INISectionNum).HealthPercent) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    INIProperty.Value = INIProperty.Value.Replace("%", "")
-                    Try
-                        Health = CInt(INIProperty.Value)
-                    Catch ex As Exception
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End Try
-                    If Health < 0 Or Health > 100 Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    Features(INISectionNum).HealthPercent = Health
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -1009,7 +1130,82 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Private Function Read_WZ_Game(ByVal File As IO.BinaryReader) As sResult
+    Public Class clsINILabels
+        Inherits clsINIRead.clsSectionTranslator
+
+        Public Structure sLabel
+            Public Label As String
+            Public Pos As String
+        End Structure
+        Public Labels() As sLabel
+        Public LabelCount As Integer
+
+        Public Sub New(ByVal NewFeatureCount As Integer)
+
+            LabelCount = NewFeatureCount
+            ReDim Labels(LabelCount - 1)
+        End Sub
+
+        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+
+            Select Case INIProperty.Name
+                Case "label"
+                    Labels(INISectionNum).Label = INIProperty.Value
+                Case "pos"
+                    Labels(INISectionNum).Pos = INIProperty.Value
+                Case Else
+                    Return clsINIRead.enumTranslatorResult.NameUnknown
+            End Select
+            Return clsINIRead.enumTranslatorResult.Translated
+        End Function
+    End Class
+
+    Private Function Read_WZ_gam(ByVal File As IO.BinaryReader) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
+
+        Dim strTemp As String
+        Dim Version As UInteger
+
+        Try
+
+            strTemp = ReadOldTextOfLength(File, 4)
+            If strTemp <> "game" Then
+                ReturnResult.Problem = "Unknown game identifier."
+                Return ReturnResult
+            End If
+
+            Version = File.ReadUInt32
+            If Version <> 8UI Then
+                If MsgBox("Game file version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                    ReturnResult.Problem = "Aborted."
+                    Return ReturnResult
+                End If
+            End If
+
+            If InterfaceOptions Is Nothing Then
+                InterfaceOptions = New clsInterfaceOptions
+            End If
+
+            File.ReadInt32()
+            'InterfaceOptions.CampaignGameTime = File.ReadInt32
+            InterfaceOptions.CampaignGameType = File.ReadInt32
+            InterfaceOptions.ScrollMin.X = File.ReadInt32
+            InterfaceOptions.ScrollMin.Y = File.ReadInt32
+            InterfaceOptions.ScrollMax.X = File.ReadUInt32
+            InterfaceOptions.ScrollMax.Y = File.ReadUInt32
+
+        Catch ex As Exception
+            ReturnResult.Problem = ex.Message
+            Return ReturnResult
+        End Try
+
+        ReturnResult.Success = True
+        Return ReturnResult
+    End Function
+
+    Private Function Read_WZ_map(ByVal File As IO.BinaryReader) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1030,29 +1226,30 @@ Partial Public Class clsMap
         Dim PosA As sXY_int
         Dim PosB As sXY_int
 
-        strTemp = ReadOldTextOfLength(File, 4)
-        If strTemp <> "map " Then
-            ReturnResult.Problem = "Unknown game.map identifier."
-            Return ReturnResult
-        End If
+        Try
 
-        Version = File.ReadUInt32
-        If Version <> 10UI Then
-            If MsgBox("game.map version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
-                ReturnResult.Problem = "Aborted."
+            strTemp = ReadOldTextOfLength(File, 4)
+            If strTemp <> "map " Then
+                ReturnResult.Problem = "Unknown game.map identifier."
                 Return ReturnResult
             End If
-        End If
-        MapWidth = File.ReadUInt32
-        MapHeight = File.ReadUInt32
-        If MapWidth < 1UI Or MapWidth > MapMaxSize Or MapHeight < 1UI Or MapHeight > MapMaxSize Then
-            ReturnResult.Problem = "Map size out of range."
-            Return ReturnResult
-        End If
 
-        Terrain_Blank(New sXY_int(CInt(MapWidth), CInt(MapHeight)))
+            Version = File.ReadUInt32
+            If Version <> 10UI Then
+                If MsgBox("game.map version is unknown. Continue?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle)) <> MsgBoxResult.Ok Then
+                    ReturnResult.Problem = "Aborted."
+                    Return ReturnResult
+                End If
+            End If
+            MapWidth = File.ReadUInt32
+            MapHeight = File.ReadUInt32
+            If MapWidth < 1UI Or MapWidth > MapMaxSize Or MapHeight < 1UI Or MapHeight > MapMaxSize Then
+                ReturnResult.Problem = "Map size out of range."
+                Return ReturnResult
+            End If
 
-        Try
+            Terrain_Blank(New sXY_int(CInt(MapWidth), CInt(MapHeight)))
+
             For Y = 0 To Terrain.TileSize.Y - 1
                 For X = 0 To Terrain.TileSize.X - 1
                     TextureNum = File.ReadByte
@@ -1319,11 +1516,98 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
+    Public Function Read_WZ_Labels(ByVal INI As clsINIRead, ByVal Labels As clsINILabels) As clsResult
+        Dim ReturnResult As New clsResult
+
+        Dim A As Integer
+        Dim B As Integer
+        Dim tmpPositions As clsSplitCommaText
+        Dim TranslatedPositions(3) As Integer
+        Dim TypeNum As Integer
+        Dim strTemp As String
+        Dim NewPosition As clsMap.clsScriptPosition
+        Dim NewArea As clsMap.clsScriptArea
+
+        Dim FailedCount As Integer = 0
+        Dim ModifiedCount As Integer = 0
+
+        For A = 0 To Labels.LabelCount - 1
+            strTemp = INI.Sections(A).Name
+            B = strTemp.IndexOf("_"c)
+            strTemp = Strings.Left(strTemp, B)
+            Select Case strTemp
+                Case "position"
+                    TypeNum = 0
+                Case "area"
+                    TypeNum = 1
+                Case Else
+                    TypeNum = Integer.MaxValue
+                    FailedCount += 1
+                    Continue For
+            End Select
+            tmpPositions = New clsSplitCommaText(Labels.Labels(A).Pos)
+            Select Case TypeNum
+                Case 0 'position
+                    If tmpPositions.PartCount >= 2 Then
+                        For B = 0 To 1
+                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
+                                Exit For
+                            End If
+                        Next
+                        If B < 2 Then
+                            FailedCount += 1
+                        Else
+                            NewPosition = clsMap.clsScriptPosition.Create(Me)
+                            NewPosition.PosX = TranslatedPositions(0)
+                            NewPosition.PosY = TranslatedPositions(1)
+                            NewPosition.SetLabel(Labels.Labels(A).Label)
+                            If NewPosition.Label <> Labels.Labels(A).Label Or NewPosition.PosX <> TranslatedPositions(0) Or NewPosition.PosY <> TranslatedPositions(1) Then
+                                ModifiedCount += 1
+                            End If
+                        End If
+                    Else
+                        FailedCount += 1
+                    End If
+                Case 1 'area
+                    If tmpPositions.PartCount >= 4 Then
+                        For B = 0 To 3
+                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
+                                Exit For
+                            End If
+                        Next
+                        If B < 4 Then
+                            FailedCount += 1
+                        Else
+                            NewArea = clsMap.clsScriptArea.Create(Me)
+                            NewArea.SetPositions(New sXY_int(TranslatedPositions(0), TranslatedPositions(1)), New sXY_int(TranslatedPositions(2), TranslatedPositions(3)))
+                            NewArea.SetLabel(Labels.Labels(A).Label)
+                            If NewArea.Label <> Labels.Labels(A).Label Or NewArea.PosAX <> TranslatedPositions(0) Or NewArea.PosAY <> TranslatedPositions(1) _
+                                Or NewArea.PosBX <> TranslatedPositions(2) Or NewArea.PosBY <> TranslatedPositions(3) Then
+                                ModifiedCount += 1
+                            End If
+                        End If
+                    Else
+                        FailedCount += 1
+                    End If
+                Case Else
+                    ReturnResult.Warning_Add("Error! Bad type number for script label.")
+            End Select
+        Next
+
+        If FailedCount > 0 Then
+            ReturnResult.Warning_Add("Unable to translate " & FailedCount & " script labels.")
+        End If
+        If ModifiedCount > 0 Then
+            ReturnResult.Warning_Add(ModifiedCount & " script labels had invalid values and were modified.")
+        End If
+
+        Return ReturnResult
+    End Function
+
     Public Function Data_WZ_StructuresINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim tmpStructure As clsStructureType
-        Dim EndChar As Char = Chr(10)
         Dim tmpUnit As clsUnit
         Dim A As Integer
         Dim UnitIsModule(UnitCount - 1) As Boolean
@@ -1462,7 +1746,6 @@ Partial Public Class clsMap
         Dim tmpDroid As clsDroidDesign
         Dim tmpTemplate As clsDroidTemplate
         Dim Text As String
-        Dim EndChar As Char = Chr(10)
         Dim tmpUnit As clsUnit
         Dim AsPartsNotTemplate As Boolean
         Dim ValidDroid As Boolean
@@ -1598,7 +1881,6 @@ Partial Public Class clsMap
     Public Function Data_WZ_FeaturesINI(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
         Dim tmpFeature As clsFeatureType
-        Dim EndChar As Char = Chr(10)
         Dim tmpUnit As clsUnit
         Dim Valid As Boolean
         Dim A As Integer
@@ -1629,6 +1911,21 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
+    Public Function Data_WZ_LabelsINI(ByVal File As clsINIWrite) As clsResult
+        Dim ReturnResult As New clsResult
+        Dim A As Integer
+
+        Try
+            For A = 0 To ScriptMarkerCount - 1
+                ScriptMarkers(A).WriteWZ(File)
+            Next
+        Catch ex As Exception
+            ReturnResult.Warning_Add(ex.Message)
+        End Try
+
+        Return ReturnResult
+    End Function
+
     Public Structure sWrite_WZ_Args
         Public Path As String
         Public Overwrite As Boolean
@@ -1641,7 +1938,7 @@ Partial Public Class clsMap
         End Class
         Public Multiplayer As clsMultiplayer
         Public Class clsCampaign
-            Public GAMTime As UInteger
+            'Public GAMTime As UInteger
             Public GAMType As UInteger
         End Class
         Public Campaign As clsCampaign
@@ -1718,6 +2015,8 @@ Partial Public Class clsMap
             Dim File_droidBJO As New IO.BinaryWriter(File_droidBJO_Memory)
             Dim INI_droid_Memory As New IO.MemoryStream
             Dim INI_droid As clsINIWrite = CreateINIWriteFile(INI_droid_Memory)
+            Dim INI_Labels_Memory As New IO.MemoryStream
+            Dim INI_Labels As clsINIWrite = CreateINIWriteFile(INI_Labels_Memory)
 
             Dim PlayersPrefix As String = ""
             Dim PlayersText As String = ""
@@ -1806,11 +2105,10 @@ Partial Public Class clsMap
 
             WriteText(File_GAM, False, "game")
             File_GAM.Write(8UI)
+            File_GAM.Write(0UI) 'Time
             If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
                 File_GAM.Write(0UI)
-                File_GAM.Write(0UI)
             ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
-                File_GAM.Write(Args.Campaign.GAMTime)
                 File_GAM.Write(Args.Campaign.GAMType)
             End If
             File_GAM.Write(Args.ScrollMin.X)
@@ -2063,6 +2361,8 @@ Partial Public Class clsMap
                 ReturnResult.Append(Data_WZ_DroidsINI(INI_droid, -1), "Droids INI: ")
             End If
 
+            ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels), "Script labels INI: ")
+
             File_LEV.Flush()
             File_MAP.Flush()
             File_GAM.Flush()
@@ -2073,6 +2373,7 @@ Partial Public Class clsMap
             INI_struct.File.Flush()
             File_droidBJO.Flush()
             INI_droid.File.Flush()
+            INI_Labels.File.Flush()
 
             If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
 
@@ -2200,6 +2501,14 @@ Partial Public Class clsMap
                         ReturnResult.Problem_Add("Unable to make entry " & ZipPath)
                     End If
 
+                    ZipPath = "multiplay/maps/" & PlayersPrefix & Args.MapName & "/" & "labels.ini"
+                    ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+                    If ZipEntry IsNot Nothing Then
+                        ReturnResult.Append(WriteMemoryToZipEntryAndFlush(INI_Labels_Memory, WZStream), ZipPath & ": ")
+                    Else
+                        ReturnResult.Problem_Add("Unable to make entry " & ZipPath)
+                    End If
+
                     WZStream.Finish()
                     WZStream.Close()
                     Return ReturnResult
@@ -2224,7 +2533,7 @@ Partial Public Class clsMap
                 tmpFilePath = tmpPath & Args.MapName & ".gam"
                 ReturnResult.Append(WriteMemoryToNewFile(File_GAM_Memory, tmpPath & Args.MapName & ".gam"), "Write game file: ")
 
-                tmpPath &= Args.MapName & OSPathSeperator
+                tmpPath &= Args.MapName & PlatformPathSeperator
                 Try
                     IO.Directory.CreateDirectory(tmpPath)
                 Catch ex As Exception
@@ -2255,6 +2564,9 @@ Partial Public Class clsMap
 
                 tmpFilePath = tmpPath & "ttypes.ttp"
                 ReturnResult.Append(WriteMemoryToNewFile(File_TTP_Memory, tmpFilePath), "Write tile types file: ")
+
+                tmpFilePath = tmpPath & "labels.ini"
+                ReturnResult.Append(WriteMemoryToNewFile(INI_Labels_Memory, tmpFilePath), "Write script labels file: ")
             End If
 
         Catch ex As Exception

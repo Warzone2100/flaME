@@ -133,7 +133,7 @@ Public Class clsTileset
 
             '-------- 128 --------
 
-            GraphicPath = SlashPath & Name & "-128" & OSPathSeperator & strTile
+            GraphicPath = SlashPath & Name & "-128" & PlatformPathSeperator & strTile
 
             RedTotal = 0
             GreenTotal = 0
@@ -178,7 +178,7 @@ Public Class clsTileset
 
             '-------- 64 --------
 
-            GraphicPath = SlashPath & Name & "-64" & OSPathSeperator & strTile
+            GraphicPath = SlashPath & Name & "-64" & PlatformPathSeperator & strTile
 
             Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
@@ -195,7 +195,7 @@ Public Class clsTileset
 
             '-------- 32 --------
 
-            GraphicPath = SlashPath & Name & "-32" & OSPathSeperator & strTile
+            GraphicPath = SlashPath & Name & "-32" & PlatformPathSeperator & strTile
 
             Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
@@ -212,7 +212,7 @@ Public Class clsTileset
 
             '-------- 16 --------
 
-            GraphicPath = SlashPath & Name & "-16" & OSPathSeperator & strTile
+            GraphicPath = SlashPath & Name & "-16" & PlatformPathSeperator & strTile
 
             Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then

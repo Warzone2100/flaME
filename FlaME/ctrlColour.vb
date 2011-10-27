@@ -73,6 +73,7 @@
     Private Sub InitializeComponent()
         Me.pnlColour = New System.Windows.Forms.Panel()
         Me.nudAlpha = New System.Windows.Forms.NumericUpDown()
+        CType(Me.nudAlpha, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'pnlColour
@@ -102,7 +103,8 @@
         Me.Controls.Add(Me.pnlColour)
         Me.Margin = New System.Windows.Forms.Padding(0)
         Me.Name = "ctrlColour"
-        Me.Size = New System.Drawing.Size(119, 32)
+        Me.Size = New System.Drawing.Size(211, 39)
+        CType(Me.nudAlpha, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub

@@ -261,7 +261,7 @@
             Name = Name.Replace(EqualsChar, "")
             Value = Value.Replace(LineEndChar, "")
 
-            File.Write(Name & EqualsChar & Value & LineEndChar)
+            File.Write(Name & " " & EqualsChar & " " & Value & LineEndChar)
         End Sub
 
         Public Sub Gap_Append()

@@ -54,12 +54,11 @@ Partial Class ctrlColour
         Me.Controls.Add(Me.pnlColour)
         Me.Margin = New System.Windows.Forms.Padding(0)
         Me.Name = "ctrlColour"
-        Me.Size = New System.Drawing.Size(119, 32)
+        Me.Size = New System.Drawing.Size(211, 39)
         CType(Me.nudAlpha, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
     Friend WithEvents pnlColour As System.Windows.Forms.Panel
     Friend WithEvents nudAlpha As System.Windows.Forms.NumericUpDown
-
 End Class

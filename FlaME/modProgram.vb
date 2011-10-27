@@ -6,7 +6,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.23"
+    Public Const ProgramVersionNumber As String = "1.24"
 
 #If MonoDevelop = 0.0# Then
     Public Const ProgramPlatform As String = "Windows"
@@ -44,29 +44,25 @@ Public Module modProgram
     Public Const MinimapMaxSize As Integer = 512
     Public MinimapFeatureColour As sRGB_sng
 
-    Public OSPathSeperator As Char
+    Public PlatformPathSeperator As Char
 
     Public MyDocumentsProgramPath As String
 
     Public SettingsPath As String
-#If Portable = 0.0# Then
-    Public OldSettingsPath As String
-#End If
     Public AutoSavePath As String
     Public InterfaceImagesPath As String
 
     Public Sub SetProgramSubDirs()
 
-        MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & OSPathSeperator & ".flaME"
+        MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & PlatformPathSeperator & ".flaME"
 #If Portable = 0.0# Then
         SettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings.ini"
-        OldSettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings"
         AutoSavePath = MyDocumentsProgramPath & OSPathSeperator & "autosave" & OSPathSeperator
 #Else
-        SettingsPath = My.Application.Info.DirectoryPath & OSPathSeperator & "settings.ini"
-        AutoSavePath = My.Application.Info.DirectoryPath & OSPathSeperator & "autosave" & OSPathSeperator
+        SettingsPath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "settings.ini"
+        AutoSavePath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "autosave" & PlatformPathSeperator
 #End If
-        InterfaceImagesPath = My.Application.Info.DirectoryPath & OSPathSeperator & "interface" & OSPathSeperator
+        InterfaceImagesPath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "interface" & PlatformPathSeperator
     End Sub
 
     Public ProgramInitialized As Boolean = False
@@ -133,13 +129,15 @@ Public Module modProgram
     'undo controls
     Public Control_Undo As clsInputControl
     Public Control_Redo As clsInputControl
+    'script marker controls
+    Public Control_ScriptPosition As clsInputControl
 
-    Public TextureBrush As New clsBrush(0.0#, clsBrush.enumShape.Circle)
-    Public TerrainBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
-    Public HeightBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
-    Public CliffBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
+    Public TextureBrush As New clsBrush(0.125#, clsBrush.enumShape.Circle)
+    Public TerrainBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
+    Public HeightBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
+    Public CliffBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
 
-    Public SmoothRadius As New clsBrush(1.5#, clsBrush.enumShape.Circle)
+    Public SmoothRadius As New clsBrush(1.0#, clsBrush.enumShape.Square)
 
     Public InputControls() As clsInputControl
     Public InputControlCount As Integer
@@ -187,6 +185,8 @@ Public Module modProgram
     Public TemplateDroidTypes(-1) As clsDroidDesign.clsTemplateDroidType
     Public TemplateDroidTypeCount As Integer
 
+    Public Const INIRotationMax As Integer = 65536
+
     Public Enum enumObjectRotateMode As Byte
         None
         Walls
@@ -197,6 +197,12 @@ Public Module modProgram
         Ignore
         Reinterpret
         Remove
+    End Enum
+
+    Public Enum enumFillCliffAction As Byte
+        Ignore
+        StopBefore
+        StopAfter
     End Enum
 
     Public Structure sResult
@@ -374,7 +380,7 @@ Public Module modProgram
 
         Public Overridable Function GetINIOutput() As String
 
-            Return Red & ", " & Green & ", " & Blue
+            Return InvariantToString_sng(Red) & ", " & InvariantToString_sng(Green) & ", " & InvariantToString_sng(Blue)
         End Function
 
         Public Overridable Function ReadINIText(ByVal SplitText As clsSplitCommaText) As Boolean
@@ -386,9 +392,9 @@ Public Module modProgram
             Dim Colour As sRGB_sng
 
             Try
-                Colour.Red = CSng(SplitText.Parts(0))
-                Colour.Green = CSng(SplitText.Parts(1))
-                Colour.Blue = CSng(SplitText.Parts(2))
+                InvariantParse_sng(SplitText.Parts(0), Colour.Red)
+                InvariantParse_sng(SplitText.Parts(1), Colour.Green)
+                InvariantParse_sng(SplitText.Parts(2), Colour.Blue)
             Catch ex As Exception
                 Return False
             End Try
@@ -422,7 +428,7 @@ Public Module modProgram
 
         Public Overrides Function GetINIOutput() As String
 
-            Return MyBase.GetINIOutput() & ", " & Alpha
+            Return MyBase.GetINIOutput() & ", " & InvariantToString_sng(Alpha)
         End Function
 
         Public Overrides Function ReadINIText(ByVal SplitText As clsSplitCommaText) As Boolean
@@ -558,19 +564,19 @@ Public Module modProgram
                 For X = Clamp_int(Tiles.XMin(XNum) + Centre.X, 0, LastValidNum.X) - Centre.X To Clamp_int(Tiles.XMax(XNum) + Centre.X, 0, LastValidNum.X) - Centre.X
                     Action.PosNum.X = Centre.X + X
                     If Action.UseEffect Then
-                        If _Radius > 0.0# Then
+                        If Tiles.ResultRadius > 0.0# Then
                             Select Case _Shape
                                 Case clsBrush.enumShape.Circle
                                     If _Alignment Then
-                                        Action.Effect = 1.0# - GetDist_XY_dbl(New sXY_dbl(Centre.X - 0.5#, Centre.Y - 0.5#), New sXY_dbl(Action.PosNum)) / (_Radius + 0.5#)
+                                        Action.Effect = 1.0# - GetDist_XY_dbl(New sXY_dbl(Centre.X - 0.5#, Centre.Y - 0.5#), New sXY_dbl(Action.PosNum)) / (Tiles.ResultRadius + 0.5#)
                                     Else
-                                        Action.Effect = 1.0# - GetDist_XY_int(Centre, Action.PosNum) / _Radius
+                                        Action.Effect = 1.0# - GetDist_XY_int(Centre, Action.PosNum) / (Tiles.ResultRadius + 0.5#)
                                     End If
                                 Case clsBrush.enumShape.Square
                                     If _Alignment Then
-                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - (Centre.X - 0.5#)), Math.Abs(Action.PosNum.Y - (Centre.Y - 0.5#))) / (_Radius + 0.5#)
+                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - (Centre.X - 0.5#)), Math.Abs(Action.PosNum.Y - (Centre.Y - 0.5#))) / (Tiles.ResultRadius + 0.5#)
                                     Else
-                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - Centre.X), Math.Abs(Action.PosNum.Y - Centre.Y)) / _Radius
+                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - Centre.X), Math.Abs(Action.PosNum.Y - Centre.Y)) / (Tiles.ResultRadius + 0.5#)
                                     End If
                             End Select
                         End If
@@ -586,6 +592,7 @@ Public Module modProgram
         Public XMax() As Integer
         Public YMin As Integer
         Public YMax As Integer
+        Public ResultRadius As Double
 
         Public Sub CreateCircle(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
             Dim X As Integer
@@ -597,10 +604,9 @@ Public Module modProgram
             Dim A As Integer
             Dim B As Integer
 
-            RadiusB = Radius / TileSize
+            RadiusB = Radius / TileSize + 0.5#
             If Alignment Then
-                RadiusB += 0.5#
-                Y = CInt(Int(RadiusB + 0.5#))
+                Y = CInt(Math.Round(RadiusB))
                 YMin = -Y
                 YMax = Y - 1
                 B = YMax - YMin
@@ -631,6 +637,8 @@ Public Module modProgram
                     XMax(A) = X
                 Next
             End If
+
+            ResultRadius = B / 2.0#
         End Sub
 
         Public Sub CreateSquare(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
@@ -639,13 +647,13 @@ Public Module modProgram
             Dim B As Integer
             Dim RadiusB As Double
 
+            RadiusB = Radius / TileSize + 0.5#
             If Alignment Then
-                RadiusB = Radius / TileSize + 0.5#
+                RadiusB += 0.5#
                 A = CInt(Int(RadiusB))
                 YMin = -A
                 YMax = A - 1
             Else
-                RadiusB = Radius / TileSize
                 A = CInt(Int(RadiusB))
                 YMin = -A
                 YMax = A
@@ -657,6 +665,8 @@ Public Module modProgram
                 XMin(Y) = YMin
                 XMax(Y) = YMax
             Next
+
+            ResultRadius = B / 2.0#
         End Sub
     End Structure
 
@@ -716,11 +726,11 @@ Public Module modProgram
         Public Sub New(ByVal Path As String)
             Dim A As Integer
 
-            Parts = Path.Split(OSPathSeperator)
+            Parts = Path.Split(PlatformPathSeperator)
             PartCount = Parts.GetUpperBound(0) + 1
             FilePath = ""
             For A = 0 To PartCount - 2
-                FilePath &= Parts(A) & OSPathSeperator
+                FilePath &= Parts(A) & PlatformPathSeperator
             Next
             FileTitle = Parts(A)
             A = InStrRev(FileTitle, ".")
@@ -806,10 +816,10 @@ Public Module modProgram
 
     Public Function EndWithPathSeperator(ByVal Text As String) As String
 
-        If Strings.Right(Text, 1) = OSPathSeperator Then
+        If Strings.Right(Text, 1) = PlatformPathSeperator Then
             Return Text
         Else
-            Return Text & OSPathSeperator
+            Return Text & PlatformPathSeperator
         End If
     End Function
 
@@ -1208,7 +1218,7 @@ Public Module modProgram
 
         Dim MessageText As String
 
-        MessageText = "An object's ID has been changed unexpectedly. The error was in " & ControlChars.Quote & NameOfErrorSource & ControlChars.Quote & "." & ControlChars.CrLf & ControlChars.CrLf & "The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & ". It's ID was " & IntendedID & ", but is now " & IDUnit.ID & "." & ControlChars.CrLf & ControlChars.CrLf & "Click Cancel to stop seeing this message. Otherwise, click OK."
+        MessageText = "An object's ID has been changed unexpectedly. The error was in " & ControlChars.Quote & NameOfErrorSource & ControlChars.Quote & "." & ControlChars.CrLf & ControlChars.CrLf & "The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & ". It's ID was " & InvariantToString_uint(IntendedID) & ", but is now " & InvariantToString_uint(IDUnit.ID) & "." & ControlChars.CrLf & ControlChars.CrLf & "Click Cancel to stop seeing this message. Otherwise, click OK."
 
         If MsgBox(MessageText, MsgBoxStyle.OkCancel) = MsgBoxResult.Cancel Then
             ShowIDErrorMessage = False
@@ -1218,7 +1228,7 @@ Public Module modProgram
     Public Sub ZeroIDWarning(ByVal IDUnit As clsMap.clsUnit, ByVal NewID As UInteger)
         Dim MessageText As String
 
-        MessageText = "An object's ID has been changed from 0 to " & NewID & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
+        MessageText = "An object's ID has been changed from 0 to " & InvariantToString_uint(NewID) & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
 
         MsgBox(MessageText, MsgBoxStyle.OkOnly)
     End Sub
@@ -1301,26 +1311,32 @@ Public Module modProgram
         Dim ResultMap As New clsMap
         Dim Extension As String = SplitPath.FileExtension.ToLower
 
-        If Extension = "fmap" Then
-            ReturnResult.Append(ResultMap.Load_FMap(Path), "Load FMap: ")
-            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, True)
-        ElseIf Extension = "fme" Or Extension = "wzme" Then
-            ReturnResult.Append(ResultMap.Load_FME(Path), "")
-            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-        ElseIf Extension = "wz" Then
-            ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
-            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-        ElseIf Extension = "lnd" Then
-            ResultB = ResultMap.Load_LND(Path)
-            If Not ResultB.Success Then
-                ReturnResult.Problem_Add("Load LND: " & ResultB.Problem)
-            End If
-            ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-        Else
-            ReturnResult.Problem_Add("File extension not recognised.")
-        End If
+        Select Case Extension
+            Case "fmap"
+                ReturnResult.Append(ResultMap.Load_FMap(Path), "Load FMap: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, True)
+            Case "fme", "wzme"
+                ReturnResult.Append(ResultMap.Load_FME(Path), "")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "wz"
+                ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "gam"
+                ReturnResult.Append(ResultMap.Load_Game(Path), "Load gam: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "lnd"
+                ResultB = ResultMap.Load_LND(Path)
+                If Not ResultB.Success Then
+                    ReturnResult.Problem_Add("Load LND: " & ResultB.Problem)
+                End If
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case Else
+                ReturnResult.Problem_Add("File extension not recognised.")
+        End Select
 
-        If Not ReturnResult.HasProblems Then
+        If ReturnResult.HasProblems Then
+            ResultMap.Deallocate()
+        Else
             ResultMap.InitializeForUserInput()
             NewMainMap(ResultMap)
             UpdateMapTabs()
@@ -1635,6 +1651,11 @@ Public Module modProgram
         Return Short.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
     End Function
 
+    Public Function InvariantParse_ushort(ByVal Text As String, ByRef Result As UShort) As Boolean
+
+        Return UShort.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
+    End Function
+
     Public Function InvariantParse_int(ByVal Text As String, ByRef Result As Integer) As Boolean
 
         Return Integer.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
@@ -1735,5 +1756,78 @@ Public Module modProgram
         End Try
 
         Return ReturnResult
+    End Function
+
+    Public Function TryOpenFileStream(ByVal Path As String, ByRef Output As IO.FileStream) As sResult
+        Dim ReturnResult As sResult
+        ReturnResult.Success = False
+        ReturnResult.Problem = ""
+
+        Try
+            Output = New IO.FileStream(Path, IO.FileMode.Open)
+        Catch ex As Exception
+            Output = Nothing
+            ReturnResult.Problem = ex.Message
+            Return ReturnResult
+        End Try
+
+        ReturnResult.Success = True
+        Return ReturnResult
+    End Function
+
+    Public Function WZAngleFromINIText(ByVal Text As String, ByRef Result As sWZAngle) As Boolean
+        Dim VectorText As New clsSplitCommaText(Text)
+        Dim WZAngle As sWZAngle
+
+        If VectorText.PartCount <> 3 Then
+            Return False
+        End If
+        If Not InvariantParse_ushort(VectorText.Parts(0), WZAngle.Direction) Then
+            Return False
+        End If
+        If Not InvariantParse_ushort(VectorText.Parts(1), WZAngle.Pitch) Then
+            Return False
+        End If
+        If Not InvariantParse_ushort(VectorText.Parts(2), WZAngle.Roll) Then
+            Return False
+        End If
+        Result = WZAngle
+        Return True
+    End Function
+
+    Public Function HealthFromINIText(ByVal Text As String, ByRef Result As Integer) As Boolean
+        Dim A As Integer
+        Dim Health As Integer
+
+        A = Text.IndexOf("%"c)
+        If A < 0 Then
+            Return False
+        End If
+        Text = Text.Replace("%", "")
+        If Not InvariantParse_int(Text, Health) Then
+            Return False
+        End If
+        If Health < 0 Or Health > 100 Then
+            Return False
+        End If
+        Result = Health
+        Return True
+    End Function
+
+    Public Function WorldPosFromINIText(ByVal Text As String, ByRef Result As clsWorldPos) As Boolean
+        Dim VectorText As New clsSplitCommaText(Text)
+        Dim A As Integer
+
+        If VectorText.PartCount <> 3 Then
+            Return False
+        End If
+        Dim tmpPositions(2) As Integer
+        For A = 0 To 2
+            If Not InvariantParse_int(VectorText.Parts(A), tmpPositions(A)) Then
+                Return False
+            End If
+        Next
+        Result = New clsWorldPos(New sWorldPos(New sXY_int(tmpPositions(0), tmpPositions(1)), tmpPositions(2)))
+        Return True
     End Function
 End Module

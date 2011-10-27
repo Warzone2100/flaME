@@ -822,7 +822,7 @@
         End If
     End Sub
 
-    Public Sub Apply_Terrain_Fill()
+    Public Sub Apply_Terrain_Fill(ByVal CliffAction As enumFillCliffAction, ByVal Inside As Boolean)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -839,130 +839,182 @@
             Exit Sub 'otherwise will cause endless loop
         End If
 
-        Dim X As Integer
-        Dim Y As Integer
         Dim A As Integer
         Dim SourceOfFill(524288) As sXY_int
         Dim SourceOfFillCount As Integer
-        Dim SourceOfFill_Num As Integer
-        Dim VertexNum As sXY_int
+        Dim SourceOfFillNum As Integer
         Dim MoveCount As Integer
         Dim RemainingCount As Integer
         Dim MoveOffset As Integer
+        Dim CurrentSource As sXY_int
+        Dim NextSource As sXY_int
+        Dim StopForCliff As Boolean
+        Dim StopForEdge As Boolean
 
-        SourceOfFill(0).X = StartVertex.X
-        SourceOfFill(0).Y = StartVertex.Y
+        SourceOfFill(0) = StartVertex
         SourceOfFillCount = 1
-        SourceOfFill_Num = 0
+        SourceOfFillNum = 0
+        Do While SourceOfFillNum < SourceOfFillCount
+            CurrentSource = SourceOfFill(SourceOfFillNum)
 
-        X = SourceOfFill(SourceOfFill_Num).X
-        Y = SourceOfFill(SourceOfFill_Num).Y
-        Map.Terrain.Vertices(X, Y).Terrain = FillType
-        VertexNum.X = X
-        VertexNum.Y = Y
-        Map.SectorGraphicsChanges.VertexChanged(VertexNum)
-        Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
-        Map.AutoTextureChanges.VertexChanged(VertexNum)
-        Do While SourceOfFill_Num < SourceOfFillCount
-            X = SourceOfFill(SourceOfFill_Num).X + 1
-            Y = SourceOfFill(SourceOfFill_Num).Y
-            If X >= 0 And X <= Map.Terrain.TileSize.X _
-            And Y >= 0 And Y <= Map.Terrain.TileSize.Y Then
-                If Map.Terrain.Vertices(X, Y).Terrain Is ReplaceType Then
-                    If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+            If CliffAction = enumFillCliffAction.StopBefore Then
+                StopForCliff = Map.VertexIsCliffEdge(CurrentSource)
+            Else
+                StopForCliff = False
+            End If
+            StopForEdge = False
+            If Inside Then
+                If CurrentSource.X > 0 Then
+                    If CurrentSource.Y > 0 Then
+                        If Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y - 1).Terrain IsNot ReplaceType _
+                            And Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y - 1).Terrain IsNot FillType Then
+                            StopForEdge = True
+                        End If
                     End If
-                    SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Y
-                    SourceOfFillCount += 1
-
-                    Map.Terrain.Vertices(X, Y).Terrain = FillType
-
-                    VertexNum.X = X
-                    VertexNum.Y = Y
-                    Map.SectorGraphicsChanges.VertexChanged(VertexNum)
-                    Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
-                    Map.AutoTextureChanges.VertexChanged(VertexNum)
+                    If Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y).Terrain IsNot ReplaceType _
+                        And Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y).Terrain IsNot FillType Then
+                        StopForEdge = True
+                    End If
+                    If CurrentSource.Y < Map.Terrain.TileSize.Y Then
+                        If Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y + 1).Terrain IsNot ReplaceType _
+                            And Map.Terrain.Vertices(CurrentSource.X - 1, CurrentSource.Y + 1).Terrain IsNot FillType Then
+                            StopForEdge = True
+                        End If
+                    End If
+                End If
+                If CurrentSource.Y > 0 Then
+                    If Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y - 1).Terrain IsNot ReplaceType _
+                        And Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y - 1).Terrain IsNot FillType Then
+                        StopForEdge = True
+                    End If
+                End If
+                If CurrentSource.X < Map.Terrain.TileSize.X Then
+                    If CurrentSource.Y > 0 Then
+                        If Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y - 1).Terrain IsNot ReplaceType _
+                            And Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y - 1).Terrain IsNot FillType Then
+                            StopForEdge = True
+                        End If
+                    End If
+                    If Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y).Terrain IsNot ReplaceType _
+                        And Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y).Terrain IsNot FillType Then
+                        StopForEdge = True
+                    End If
+                    If CurrentSource.Y < Map.Terrain.TileSize.Y Then
+                        If Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y + 1).Terrain IsNot ReplaceType _
+                            And Map.Terrain.Vertices(CurrentSource.X + 1, CurrentSource.Y + 1).Terrain IsNot FillType Then
+                            StopForEdge = True
+                        End If
+                    End If
+                End If
+                If CurrentSource.Y < Map.Terrain.TileSize.Y Then
+                    If Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y + 1).Terrain IsNot ReplaceType _
+                        And Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y + 1).Terrain IsNot FillType Then
+                        StopForEdge = True
+                    End If
                 End If
             End If
 
-            X = SourceOfFill(SourceOfFill_Num).X - 1
-            Y = SourceOfFill(SourceOfFill_Num).Y
-            If X >= 0 And X <= Map.Terrain.TileSize.X _
-            And Y >= 0 And Y <= Map.Terrain.TileSize.Y Then
-                If Map.Terrain.Vertices(X, Y).Terrain Is ReplaceType Then
-                    If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+            If Not (StopForCliff Or StopForEdge) Then
+                If Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y).Terrain Is ReplaceType Then
+                    Map.Terrain.Vertices(CurrentSource.X, CurrentSource.Y).Terrain = FillType
+                    Map.SectorGraphicsChanges.VertexChanged(CurrentSource)
+                    Map.SectorTerrainUndoChanges.VertexChanged(CurrentSource)
+                    Map.AutoTextureChanges.VertexChanged(CurrentSource)
+
+                    NextSource.X = CurrentSource.X + 1
+                    NextSource.Y = CurrentSource.Y
+                    If NextSource.X >= 0 And NextSource.X <= Map.Terrain.TileSize.X _
+                     And NextSource.Y >= 0 And NextSource.Y <= Map.Terrain.TileSize.Y Then
+                        If CliffAction = enumFillCliffAction.StopAfter Then
+                            StopForCliff = Map.SideHIsCliffOnBothSides(New sXY_int(CurrentSource.X, CurrentSource.Y))
+                        Else
+                            StopForCliff = False
+                        End If
+                        If Not StopForCliff Then
+                            If Map.Terrain.Vertices(NextSource.X, NextSource.Y).Terrain Is ReplaceType Then
+                                If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
+                                    ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                                End If
+                                SourceOfFill(SourceOfFillCount) = NextSource
+                                SourceOfFillCount += 1
+                            End If
+                        End If
                     End If
-                    SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Y
-                    SourceOfFillCount += 1
 
-                    Map.Terrain.Vertices(X, Y).Terrain = FillType
+                    NextSource.X = CurrentSource.X - 1
+                    NextSource.Y = CurrentSource.Y
+                    If NextSource.X >= 0 And NextSource.X <= Map.Terrain.TileSize.X _
+                     And NextSource.Y >= 0 And NextSource.Y <= Map.Terrain.TileSize.Y Then
+                        If CliffAction = enumFillCliffAction.StopAfter Then
+                            StopForCliff = Map.SideHIsCliffOnBothSides(New sXY_int(CurrentSource.X - 1, CurrentSource.Y))
+                        Else
+                            StopForCliff = False
+                        End If
+                        If Not StopForCliff Then
+                            If Map.Terrain.Vertices(NextSource.X, NextSource.Y).Terrain Is ReplaceType Then
+                                If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
+                                    ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                                End If
+                                SourceOfFill(SourceOfFillCount) = NextSource
+                                SourceOfFillCount += 1
+                            End If
+                        End If
+                    End If
 
-                    VertexNum.X = X
-                    VertexNum.Y = Y
-                    Map.SectorGraphicsChanges.VertexChanged(VertexNum)
-                    Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
-                    Map.AutoTextureChanges.VertexChanged(VertexNum)
+                    NextSource.X = CurrentSource.X
+                    NextSource.Y = CurrentSource.Y + 1
+                    If NextSource.X >= 0 And NextSource.X <= Map.Terrain.TileSize.X _
+                     And NextSource.Y >= 0 And NextSource.Y <= Map.Terrain.TileSize.Y Then
+                        If CliffAction = enumFillCliffAction.StopAfter Then
+                            StopForCliff = Map.SideVIsCliffOnBothSides(New sXY_int(CurrentSource.X, CurrentSource.Y))
+                        Else
+                            StopForCliff = False
+                        End If
+                        If Not StopForCliff Then
+                            If Map.Terrain.Vertices(NextSource.X, NextSource.Y).Terrain Is ReplaceType Then
+                                If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
+                                    ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                                End If
+                                SourceOfFill(SourceOfFillCount) = NextSource
+                                SourceOfFillCount += 1
+                            End If
+                        End If
+                    End If
+
+                    NextSource.X = CurrentSource.X
+                    NextSource.Y = CurrentSource.Y - 1
+                    If NextSource.X >= 0 And NextSource.X <= Map.Terrain.TileSize.X _
+                     And NextSource.Y >= 0 And NextSource.Y <= Map.Terrain.TileSize.Y Then
+                        If CliffAction = enumFillCliffAction.StopAfter Then
+                            StopForCliff = Map.SideVIsCliffOnBothSides(New sXY_int(CurrentSource.X, CurrentSource.Y - 1))
+                        Else
+                            StopForCliff = False
+                        End If
+                        If Not StopForCliff Then
+                            If Map.Terrain.Vertices(NextSource.X, NextSource.Y).Terrain Is ReplaceType Then
+                                If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
+                                    ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
+                                End If
+                                SourceOfFill(SourceOfFillCount) = NextSource
+                                SourceOfFillCount += 1
+                            End If
+                        End If
+                    End If
+
                 End If
             End If
 
-            X = SourceOfFill(SourceOfFill_Num).X
-            Y = SourceOfFill(SourceOfFill_Num).Y + 1
-            If X >= 0 And X <= Map.Terrain.TileSize.X _
-            And Y >= 0 And Y <= Map.Terrain.TileSize.Y Then
-                If Map.Terrain.Vertices(X, Y).Terrain Is ReplaceType Then
-                    If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
-                    End If
-                    SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Y
-                    SourceOfFillCount += 1
+            SourceOfFillNum += 1
 
-                    Map.Terrain.Vertices(X, Y).Terrain = FillType
-
-                    VertexNum.X = X
-                    VertexNum.Y = Y
-                    Map.SectorGraphicsChanges.VertexChanged(VertexNum)
-                    Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
-                    Map.AutoTextureChanges.VertexChanged(VertexNum)
-                End If
-            End If
-
-            X = SourceOfFill(SourceOfFill_Num).X
-            Y = SourceOfFill(SourceOfFill_Num).Y - 1
-            If X >= 0 And X <= Map.Terrain.TileSize.X _
-            And Y >= 0 And Y <= Map.Terrain.TileSize.Y Then
-                If Map.Terrain.Vertices(X, Y).Terrain Is ReplaceType Then
-                    If SourceOfFill.GetUpperBound(0) < SourceOfFillCount Then
-                        ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
-                    End If
-                    SourceOfFill(SourceOfFillCount).X = X
-                    SourceOfFill(SourceOfFillCount).Y = Y
-                    SourceOfFillCount += 1
-
-                    Map.Terrain.Vertices(X, Y).Terrain = FillType
-
-                    VertexNum.X = X
-                    VertexNum.Y = Y
-                    Map.SectorGraphicsChanges.VertexChanged(VertexNum)
-                    Map.SectorTerrainUndoChanges.VertexChanged(VertexNum)
-                    Map.AutoTextureChanges.VertexChanged(VertexNum)
-                End If
-            End If
-
-            SourceOfFill_Num += 1
-
-            If SourceOfFill_Num >= 131072 Then
-                RemainingCount = SourceOfFillCount - SourceOfFill_Num
-                MoveCount = Math.Min(SourceOfFill_Num, RemainingCount)
+            If SourceOfFillNum >= 131072 Then
+                RemainingCount = SourceOfFillCount - SourceOfFillNum
+                MoveCount = Math.Min(SourceOfFillNum, RemainingCount)
                 MoveOffset = SourceOfFillCount - MoveCount
                 For A = 0 To MoveCount - 1
                     SourceOfFill(A) = SourceOfFill(MoveOffset + A)
                 Next
-                SourceOfFillCount -= SourceOfFill_Num
-                SourceOfFill_Num = 0
+                SourceOfFillCount -= SourceOfFillNum
+                SourceOfFillNum = 0
                 If SourceOfFillCount * 3 < SourceOfFill.GetUpperBound(0) + 1 Then
                     ReDim Preserve SourceOfFill(SourceOfFillCount * 2 + 1)
                 End If
@@ -1304,6 +1356,13 @@
                                         MapView.ListSelectBegin()
                                     End If
                                 End If
+                            ElseIf Control_ScriptPosition.Active Then
+                                Dim NewPosition As clsMap.clsScriptPosition = clsMap.clsScriptPosition.Create(Map)
+                                If NewPosition IsNot Nothing Then
+                                    NewPosition.PosX = MouseLeftDown.OverTerrain.DownPos.Horizontal.X
+                                    NewPosition.PosY = MouseLeftDown.OverTerrain.DownPos.Horizontal.Y
+                                    frmMainInstance.ScriptMarkerLists_Update()
+                                End If
                             Else
                                 If Not Control_Unit_Multiselect.Active Then
                                     Map.SelectedUnits.Clear()
@@ -1348,7 +1407,7 @@
                                 If Control_Picker.Active Then
                                     frmMainInstance.TerrainPicker()
                                 Else
-                                    Apply_Terrain_Fill()
+                                    Apply_Terrain_Fill(frmMainInstance.FillCliffAction, frmMainInstance.cbxFillInside.Checked)
                                     MapView.DrawViewLater()
                                 End If
                             End If

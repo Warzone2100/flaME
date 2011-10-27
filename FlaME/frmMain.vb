@@ -22,6 +22,10 @@ Partial Public Class frmMain
 
     Public SelectedObjectType As clsUnitType
 
+    Public TextureTerrainAction As enumTextureTerrainAction = enumTextureTerrainAction.Reinterpret
+
+    Public FillCliffAction As enumFillCliffAction = enumFillCliffAction.Ignore
+
     Public WithEvents tmrKey As Timer
     Public WithEvents tmrTool As Timer
 
@@ -36,7 +40,7 @@ Partial Public Class frmMain
     Public Sub New()
         InitializeComponent() 'required for monodevelop too
 
-        OSPathSeperator = IO.Path.DirectorySeparatorChar
+        PlatformPathSeperator = IO.Path.DirectorySeparatorChar
 
         'these depend on ospathseperator
         SetProgramSubDirs()
@@ -328,7 +332,7 @@ Partial Public Class frmMain
 #End If
 
         Try
-            ProgramIcon = New Icon(My.Application.Info.DirectoryPath & OSPathSeperator & "flaME.ico")
+            ProgramIcon = New Icon(My.Application.Info.DirectoryPath & PlatformPathSeperator & "flaME.ico")
         Catch ex As Exception
             InitializeResult.Warning_Add(ProgramName & " icon is missing: " & ex.Message)
         End Try
@@ -605,6 +609,11 @@ Partial Public Class frmMain
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.ControlKey, Keys.Y)
         End With
 
+        Control_ScriptPosition = InputControl_Create()
+        With Control_ScriptPosition
+            .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.P)
+        End With
+
         Controls_Set_Default()
     End Sub
 
@@ -621,11 +630,11 @@ Partial Public Class frmMain
     Public Sub Load_Map_Prompt()
 
         LoadMapDialog.FileName = ""
-        LoadMapDialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.lnd)|*.fmap;*.fme;*.wz;*.lnd|All Files (*.*)|*.*"
+        LoadMapDialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.gam, *.lnd)|*.fmap;*.fme;*.wz;*.gam;*.lnd|All Files (*.*)|*.*"
         If LoadMapDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
-        LoadMap(LoadMapDialog.FileName)
+        ShowWarnings(LoadMap(LoadMapDialog.FileName), "Load map")
     End Sub
 
     Public Sub Load_Heightmap_Prompt()
@@ -929,6 +938,7 @@ Error_Exit:
         Map.Terrain_Resize(Offset, NewSize)
 
         Resize_Update()
+        ScriptMarkerLists_Update()
 
         Map.SectorGraphicsChanges.SetAllChanged()
 
@@ -1161,37 +1171,13 @@ Error_Exit:
     End Sub
 
     Private Sub rdoAutoCliffRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoCliffRemove.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoAutoCliffRemove.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoCliffRemove)
-            Tool = enumTool.AutoCliffRemove
-        End If
-
-        Running = False
+        Tool = enumTool.AutoCliffRemove
     End Sub
 
     Private Sub rdoAutoCliffBrush_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoCliffBrush.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoAutoCliffBrush.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoCliffBrush)
-            Tool = enumTool.AutoCliff
-        End If
-
-        Running = False
+        Tool = enumTool.AutoCliff
     End Sub
 
     Private Sub MinimapBMPToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MinimapBMPToolStripMenuItem.Click
@@ -1217,20 +1203,8 @@ Error_Exit:
     End Sub
 
     Private Sub rdoAutoTextureFill_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoTextureFill.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoAutoTextureFill.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoTextureFill)
-            Tool = enumTool.AutoTexture_Fill
-        End If
-
-        Running = False
+        Tool = enumTool.AutoTexture_Fill
     End Sub
 
     Private Sub btnHeightOffsetSelection_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnHeightOffsetSelection.Click
@@ -1276,76 +1250,28 @@ Error_Exit:
     End Sub
 
     Private Sub rdoAutoTexturePlace_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoTexturePlace.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoAutoTexturePlace.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoTexturePlace)
-            Tool = enumTool.AutoTexture_Place
-        End If
-
-        Running = False
+        Tool = enumTool.AutoTexture_Place
     End Sub
 
     Private Sub rdoAutoRoadPlace_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoRoadPlace.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoAutoRoadPlace.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoRoadPlace)
-            Tool = enumTool.AutoRoad_Place
-        End If
-
-        Running = False
+        Tool = enumTool.AutoRoad_Place
     End Sub
 
     Private Sub rdoAutoRoadLine_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoRoadLine.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
+        Tool = enumTool.AutoRoad_Line
+        Dim Map As clsMap = MainMap
+        If Map IsNot Nothing Then
+            Map.Selected_Tile_A = Nothing
+            Map.Selected_Tile_B = Nothing
         End If
-        Running = True
-
-        If rdoAutoRoadLine.Checked Then
-            TerrainPainter_UncheckTools(rdoAutoRoadLine)
-            Tool = enumTool.AutoRoad_Line
-            Dim Map As clsMap = MainMap
-            If Map IsNot Nothing Then
-                Map.Selected_Tile_A = Nothing
-                Map.Selected_Tile_B = Nothing
-            End If
-        End If
-
-        Running = False
     End Sub
 
     Private Sub rdoRoadRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoRoadRemove.Click
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoRoadRemove.Checked Then
-            TerrainPainter_UncheckTools(rdoRoadRemove)
-            Tool = enumTool.AutoRoad_Remove
-        End If
-
-        Running = False
+        Tool = enumTool.AutoRoad_Remove
     End Sub
 
     Private Sub btnAutoRoadRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnAutoRoadRemove.Click
@@ -3038,8 +2964,6 @@ Error_Exit:
         SelectedObjects_SetDroidType(TemplateDroidTypes(cboDroidType.SelectedIndex))
     End Sub
 
-    Public TextureTerrainAction As enumTextureTerrainAction = enumTextureTerrainAction.Reinterpret
-
     Private Sub rdoTextureIgnoreTerrain_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoTextureIgnoreTerrain.Click
 
         If rdoTextureIgnoreTerrain.Checked Then
@@ -3105,48 +3029,8 @@ Error_Exit:
     End Sub
 
     Private Sub rdoCliffTriBrush_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoCliffTriBrush.CheckedChanged
-        Static Running As Boolean
 
-        If Running Then
-            Stop
-            Exit Sub
-        End If
-        Running = True
-
-        If rdoCliffTriBrush.Checked Then
-            TerrainPainter_UncheckTools(rdoCliffTriBrush)
-            Tool = enumTool.CliffTriangle
-        End If
-
-        Running = False
-    End Sub
-
-    Private Sub TerrainPainter_UncheckTools(ByVal Except As Control)
-
-        If rdoAutoCliffBrush IsNot Except Then
-            rdoAutoCliffBrush.Checked = False
-        End If
-        If rdoCliffTriBrush IsNot Except Then
-            rdoCliffTriBrush.Checked = False
-        End If
-        If rdoAutoCliffRemove IsNot Except Then
-            rdoAutoCliffRemove.Checked = False
-        End If
-        If rdoAutoTextureFill IsNot Except Then
-            rdoAutoTextureFill.Checked = False
-        End If
-        If rdoAutoTexturePlace IsNot Except Then
-            rdoAutoTexturePlace.Checked = False
-        End If
-        If rdoAutoRoadPlace IsNot Except Then
-            rdoAutoRoadPlace.Checked = False
-        End If
-        If rdoAutoRoadLine IsNot Except Then
-            rdoAutoRoadLine.Checked = False
-        End If
-        If rdoRoadRemove IsNot Except Then
-            rdoRoadRemove.Checked = False
-        End If
+        Tool = enumTool.CliffTriangle
     End Sub
 
     Private Sub LoadInterfaceImage(ByVal ImagePath As String, ByRef ResultBitmap As Bitmap, ByVal Result As clsResult)
@@ -3170,6 +3054,7 @@ Error_Exit:
         Resize_Update()
         MainMapTilesetChanged()
         PainterTerrains_Refresh(-1, -1)
+        ScriptMarkerLists_Update()
 
         If Map IsNot Nothing Then
             Map.ViewInfo.FOV_Calc()
@@ -3378,5 +3263,287 @@ Error_Exit:
         Next
         Map.Update()
         Map.UndoStepCreate("Flatten Under Oil")
+    End Sub
+
+    Private Sub rdoFillCliffIgnore_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoFillCliffIgnore.CheckedChanged
+
+        FillCliffAction = enumFillCliffAction.Ignore
+    End Sub
+
+    Private Sub rdoFillCliffStopBefore_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoFillCliffStopBefore.CheckedChanged
+
+        FillCliffAction = enumFillCliffAction.StopBefore
+    End Sub
+
+    Private Sub rdoFillCliffStopAfter_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoFillCliffStopAfter.CheckedChanged
+
+        FillCliffAction = enumFillCliffAction.StopAfter
+    End Sub
+
+    Private Sub btnScriptAreaCreate_Click(sender As System.Object, e As System.EventArgs) Handles btnScriptAreaCreate.Click
+        If Not btnScriptAreaCreate.Enabled Then
+            Exit Sub
+        End If
+        Dim Map As clsMap = MainMap
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        If Map.Selected_Area_VertexA Is Nothing Then
+            MsgBox("Select something first.")
+            Exit Sub
+        End If
+        If Map.Selected_Area_VertexB Is Nothing Then
+            MsgBox("Select something first.")
+            Exit Sub
+        End If
+
+        Dim NewArea As clsMap.clsScriptArea = clsMap.clsScriptArea.Create(Map)
+        If NewArea Is Nothing Then
+            MsgBox("Error: Creating area failed.")
+            Exit Sub
+        End If
+
+        NewArea.SetPositions(New sXY_int(Map.Selected_Area_VertexA.X * TerrainGridSpacing, _
+        Map.Selected_Area_VertexA.Y * TerrainGridSpacing), _
+        New sXY_int(Map.Selected_Area_VertexB.X * TerrainGridSpacing, _
+       Map.Selected_Area_VertexB.Y * TerrainGridSpacing))
+
+        ScriptMarkerLists_Update()
+
+        Map.SetChanged() 'todo: remove if areas become undoable
+    End Sub
+
+    Private lstScriptPositions_Objects(-1) As clsMap.clsScriptPosition
+    Private lstScriptAreas_Objects(-1) As clsMap.clsScriptArea
+
+    Public Sub ScriptMarkerLists_Update()
+        Dim Map As clsMap = MainMap
+        Dim NewSelectedScriptMarker As clsMap.clsScriptMarker = Nothing
+
+        lstScriptPositions.Enabled = False
+        lstScriptAreas.Enabled = False
+
+        lstScriptPositions.Items.Clear()
+        lstScriptAreas.Items.Clear()
+
+        If Map Is Nothing Then
+            SelectedScriptMarker = Nothing
+            Exit Sub
+        End If
+
+        Dim A As Integer
+        Dim B As Integer
+        Dim tmpPosition As clsMap.clsScriptPosition
+        Dim tmpArea As clsMap.clsScriptArea
+
+        ReDim lstScriptPositions_Objects(Map.ScriptMarkerCount - 1)
+        ReDim lstScriptAreas_Objects(Map.ScriptMarkerCount - 1)
+
+        For A = 0 To Map.ScriptMarkerCount - 1
+            If TypeOf Map.ScriptMarkers(A) Is clsMap.clsScriptPosition Then
+                tmpPosition = CType(Map.ScriptMarkers(A), clsMap.clsScriptPosition)
+                B = lstScriptPositions.Items.Add(tmpPosition.Label)
+                lstScriptPositions_Objects(B) = tmpPosition
+                If tmpPosition Is SelectedScriptMarker Then
+                    NewSelectedScriptMarker = tmpPosition
+                    lstScriptPositions.SelectedIndex = B
+                End If
+            ElseIf TypeOf Map.ScriptMarkers(A) Is clsMap.clsScriptArea Then
+                tmpArea = CType(Map.ScriptMarkers(A), clsMap.clsScriptArea)
+                B = lstScriptAreas.Items.Add(tmpArea.Label)
+                lstScriptAreas_Objects(B) = tmpArea
+                If tmpArea Is SelectedScriptMarker Then
+                    NewSelectedScriptMarker = tmpArea
+                    lstScriptAreas.SelectedIndex = B
+                End If
+            End If
+        Next
+
+        lstScriptPositions.Enabled = True
+        lstScriptAreas.Enabled = True
+
+        SelectedScriptMarker = NewSelectedScriptMarker
+
+        SelectedScriptMarker_Update()
+    End Sub
+
+    Private SelectedScriptMarker As clsMap.clsScriptMarker
+
+    Private Sub lstScriptPositions_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstScriptPositions.SelectedIndexChanged
+        If Not lstScriptPositions.Enabled Then
+            Exit Sub
+        End If
+
+        SelectedScriptMarker = lstScriptPositions_Objects(lstScriptPositions.SelectedIndex)
+
+        lstScriptAreas.Enabled = False
+        lstScriptAreas.SelectedIndex = -1
+        lstScriptAreas.Enabled = True
+
+        SelectedScriptMarker_Update()
+    End Sub
+
+    Private Sub lstScriptAreas_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstScriptAreas.SelectedIndexChanged
+        If Not lstScriptAreas.Enabled Then
+            Exit Sub
+        End If
+
+        SelectedScriptMarker = lstScriptAreas_Objects(lstScriptAreas.SelectedIndex)
+
+        lstScriptPositions.Enabled = False
+        lstScriptPositions.SelectedIndex = -1
+        lstScriptPositions.Enabled = True
+
+        SelectedScriptMarker_Update()
+    End Sub
+
+    Public Sub SelectedScriptMarker_Update()
+
+        txtScriptMarkerLabel.Enabled = False
+        txtScriptMarkerX.Enabled = False
+        txtScriptMarkerY.Enabled = False
+        txtScriptMarkerX2.Enabled = False
+        txtScriptMarkerY2.Enabled = False
+        txtScriptMarkerLabel.Text = ""
+        txtScriptMarkerX.Text = ""
+        txtScriptMarkerY.Text = ""
+        txtScriptMarkerX2.Text = ""
+        txtScriptMarkerY2.Text = ""
+        If SelectedScriptMarker IsNot Nothing Then
+            txtScriptMarkerLabel.Text = SelectedScriptMarker.Label
+            txtScriptMarkerLabel.Enabled = True
+
+            txtScriptMarkerX.Enabled = True
+            txtScriptMarkerY.Enabled = True
+            If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
+                Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+                txtScriptMarkerX.Text = InvariantToString_int(tmpPosition.PosX)
+                txtScriptMarkerY.Text = InvariantToString_int(tmpPosition.PosY)
+            ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
+                Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+                txtScriptMarkerX.Text = InvariantToString_int(tmpArea.PosAX)
+                txtScriptMarkerY.Text = InvariantToString_int(tmpArea.PosAY)
+                txtScriptMarkerX2.Text = InvariantToString_int(tmpArea.PosBX)
+                txtScriptMarkerY2.Text = InvariantToString_int(tmpArea.PosBY)
+                txtScriptMarkerX2.Enabled = True
+                txtScriptMarkerY2.Enabled = True
+            End If
+        End If
+    End Sub
+
+    Private Sub btnScriptMarkerRemove_Click(sender As System.Object, e As System.EventArgs) Handles btnScriptMarkerRemove.Click
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        SelectedScriptMarker.Deallocate()
+
+        ScriptMarkerLists_Update()
+    End Sub
+
+    Private Sub txtScriptMarkerLabel_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerLabel.LostFocus
+        If Not txtScriptMarkerLabel.Enabled Then
+            Exit Sub
+        End If
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        If SelectedScriptMarker.Label = txtScriptMarkerLabel.Text Then
+            Exit Sub
+        End If
+
+        Dim Result As sResult = SelectedScriptMarker.SetLabel(txtScriptMarkerLabel.Text)
+
+        If Not Result.Success Then
+            MsgBox("Unable to change label: " & Result.Problem)
+            SelectedScriptMarker_Update()
+            Exit Sub
+        End If
+
+        ScriptMarkerLists_Update()
+    End Sub
+
+    Private Sub txtScriptMarkerX_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerX.LostFocus
+        If Not txtScriptMarkerX.Enabled Then
+            Exit Sub
+        End If
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+            InvariantParse_int(txtScriptMarkerX.Text, tmpPosition.PosX)
+        ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+            InvariantParse_int(txtScriptMarkerX.Text, tmpArea.PosAX)
+        Else
+            MsgBox("Error: unhandled type.")
+        End If
+
+        SelectedScriptMarker_Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub txtScriptMarkerY_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerY.LostFocus
+        If Not txtScriptMarkerY.Enabled Then
+            Exit Sub
+        End If
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+            InvariantParse_int(txtScriptMarkerY.Text, tmpPosition.PosY)
+        ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+            InvariantParse_int(txtScriptMarkerY.Text, tmpArea.PosAY)
+        Else
+            MsgBox("Error: unhandled type.")
+        End If
+
+        SelectedScriptMarker_Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub txtScriptMarkerX2_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerX2.LostFocus
+        If Not txtScriptMarkerX2.Enabled Then
+            Exit Sub
+        End If
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        If TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+            InvariantParse_int(txtScriptMarkerX2.Text, tmpArea.PosBX)
+        Else
+            MsgBox("Error: unhandled type.")
+        End If
+
+        SelectedScriptMarker_Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub txtScriptMarkerY2_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerY2.LostFocus
+        If Not txtScriptMarkerY2.Enabled Then
+            Exit Sub
+        End If
+        If SelectedScriptMarker Is Nothing Then
+            Exit Sub
+        End If
+
+        If TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+            InvariantParse_int(txtScriptMarkerY2.Text, tmpArea.PosBY)
+        Else
+            MsgBox("Error: unhandled type.")
+        End If
+
+        SelectedScriptMarker_Update()
+        View_DrawViewLater()
     End Sub
 End Class
