@@ -1123,7 +1123,7 @@
 
         Dim ApplyRoadRemove As New clsMap.clsApplyRoadRemove
         ApplyRoadRemove.Map = Map
-        HeightBrush.PerformActionMapTiles(ApplyRoadRemove, MouseOverTerrain.Tile)
+        CliffBrush.PerformActionMapTiles(ApplyRoadRemove, MouseOverTerrain.Tile)
 
         Map.Update()
 

@@ -31,6 +31,13 @@
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
 !define FLAMEFULLNAME "${PROGRAMNAME} ${FLAMEVSHORT}"
 !define UNDERSCOREFULLNAME "${PROGRAMNAME}_${PROGRAMVMAJOR}_${PROGRAMVMINOR}"
+
+;---- Is better if all of these are unique
+!define FMAP_REG "${PROGRAMNAME} Map File (${FLAMEFULLNAME})"
+!define FME_REG "${PROGRAMNAME} Old Map File (${FLAMEFULLNAME})"
+!define WZ_REG "Warzone 2100 Archive (${FLAMEFULLNAME})"
+!define LND_REG "EditWorld Map File (${FLAMEFULLNAME})"
+!define GAM_REG "Warzone 2100 Game File (${FLAMEFULLNAME})"
 	
 ;--------------------------------
 ;General
@@ -176,19 +183,23 @@ SectionEnd
 SubSection "File Associations"
 
 Section "FlaME .fmap" RegFMAP
-	${registerExtension} "$INSTDIR\FlaME.exe" ".fmap" "${PROGRAMNAME} Map File" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fmap" "${FMAP_REG}" "$INSTDIR\map.ico"
 SectionEnd
 
 Section "FlaME .fme" RegFME
-	${registerExtension} "$INSTDIR\FlaME.exe" ".fme" "${PROGRAMNAME} Map File" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".fme" "${FME_REG}" "$INSTDIR\map.ico"
 SectionEnd
 
 Section "Editworld .lnd" RegLND
-	${registerExtension} "$INSTDIR\FlaME.exe" ".lnd" "EditWorld Map File" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".lnd" "${LND_REG}" "$INSTDIR\map.ico"
 SectionEnd
 
 Section "Warzone .wz" RegWZ
-	${registerExtension} "$INSTDIR\FlaME.exe" ".wz" "Warzone 2100 Archive" "$INSTDIR\map.ico"
+	${registerExtension} "$INSTDIR\FlaME.exe" ".wz" "${WZ_REG}" "$INSTDIR\map.ico"
+SectionEnd
+
+Section "Warzone .gam" RegGam
+	${registerExtension} "$INSTDIR\FlaME.exe" ".gam" "${GAM_REG}" "$INSTDIR\map.ico"
 SectionEnd
 
 SubSectionEnd
@@ -213,6 +224,7 @@ LangString DESC_RegFMAP ${LANG_ENGLISH} "Open .fmap files when double clicked."
 LangString DESC_RegFME ${LANG_ENGLISH} "Open .fme files when double clicked."
 LangString DESC_RegLND ${LANG_ENGLISH} "Open .lnd files when double clicked."
 LangString DESC_RegWZ ${LANG_ENGLISH} "Open .wz files when double clicked."
+LangString DESC_RegGam ${LANG_ENGLISH} "Open .gam files when double clicked."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${Main} $(DESC_Main)
@@ -220,6 +232,7 @@ LangString DESC_RegWZ ${LANG_ENGLISH} "Open .wz files when double clicked."
 	!insertmacro MUI_DESCRIPTION_TEXT ${RegFME} $(DESC_RegFME)
 	!insertmacro MUI_DESCRIPTION_TEXT ${RegLND} $(DESC_RegLND)
 	!insertmacro MUI_DESCRIPTION_TEXT ${RegWZ} $(DESC_RegWZ)
+	!insertmacro MUI_DESCRIPTION_TEXT ${RegGam} $(DESC_RegGam)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
@@ -268,10 +281,11 @@ Section "un.Uninstall ${PROGRAMNAME}" unMain
 	; remove the desktop shortcut icon
 	Delete "$DESKTOP\${FLAMEFULLNAME}.lnk"
 	
-	${unregisterExtension} ".fmap" "${PROGRAMNAME} Map File"
-	${unregisterExtension} ".fme" "${PROGRAMNAME} Map File"
-	${unregisterExtension} ".wz" "Warzone 2100 Archive"
-	${unregisterExtension} ".lnd" "EditWorld Map File"
+	${unregisterExtension} ".fmap" "${FMAP_REG}"
+	${unregisterExtension} ".fme" "${FME_REG}"
+	${unregisterExtension} ".wz" "${WZ_REG}"
+	${unregisterExtension} ".lnd" "${LND_REG}"
+	${unregisterExtension} ".gam" "${GAM_REG}"
 SectionEnd
 
 ;--------------------------------

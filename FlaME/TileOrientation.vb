@@ -165,7 +165,7 @@
     Public TileDirection_Left As New sTileDirection(0, 1)
     Public TileDirection_None As New sTileDirection(1, 1)
 
-    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTile_Orientation_Chance, ByVal NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
+    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTileOrientationChance, ByVal NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
         Dim ReturnResult As clsMap.clsTerrain.Tile.sTexture
 
         'use random for empty tiles

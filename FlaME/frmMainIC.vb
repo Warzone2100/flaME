@@ -25,9 +25,11 @@ Partial Public Class frmMain
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cboTileType = New System.Windows.Forms.ComboBox()
         Me.tpAutoTexture = New System.Windows.Forms.TabPage()
+        Me.Panel15 = New System.Windows.Forms.Panel()
+        Me.cbxFillInside = New System.Windows.Forms.CheckBox()
         Me.rdoFillCliffIgnore = New System.Windows.Forms.RadioButton()
-        Me.rdoFillCliffStopAfter = New System.Windows.Forms.RadioButton()
         Me.rdoFillCliffStopBefore = New System.Windows.Forms.RadioButton()
+        Me.rdoFillCliffStopAfter = New System.Windows.Forms.RadioButton()
         Me.rdoCliffTriBrush = New System.Windows.Forms.RadioButton()
         Me.rdoRoadRemove = New System.Windows.Forms.RadioButton()
         Me.pnlCliffRemoveBrush = New System.Windows.Forms.Panel()
@@ -149,6 +151,7 @@ Partial Public Class frmMain
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Panel14 = New System.Windows.Forms.Panel()
+        Me.txtObjectLabel = New System.Windows.Forms.TextBox()
         Me.Label35 = New System.Windows.Forms.Label()
         Me.btnDroidToDesign = New System.Windows.Forms.Button()
         Me.Label24 = New System.Windows.Forms.Label()
@@ -164,6 +167,25 @@ Partial Public Class frmMain
         Me.Label33 = New System.Windows.Forms.Label()
         Me.txtObjectID = New System.Windows.Forms.TextBox()
         Me.Label26 = New System.Windows.Forms.Label()
+        Me.tpCampaignMarkers = New System.Windows.Forms.TabPage()
+        Me.Label11 = New System.Windows.Forms.Label()
+        Me.Label43 = New System.Windows.Forms.Label()
+        Me.Label42 = New System.Windows.Forms.Label()
+        Me.lstScriptAreas = New System.Windows.Forms.ListBox()
+        Me.lstScriptPositions = New System.Windows.Forms.ListBox()
+        Me.btnScriptAreaCreate = New System.Windows.Forms.Button()
+        Me.GroupBox1 = New System.Windows.Forms.GroupBox()
+        Me.txtScriptMarkerLabel = New System.Windows.Forms.TextBox()
+        Me.Label41 = New System.Windows.Forms.Label()
+        Me.btnScriptMarkerRemove = New System.Windows.Forms.Button()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.txtScriptMarkerY = New System.Windows.Forms.TextBox()
+        Me.txtScriptMarkerX = New System.Windows.Forms.TextBox()
+        Me.Label7 = New System.Windows.Forms.Label()
+        Me.txtScriptMarkerY2 = New System.Windows.Forms.TextBox()
+        Me.Label4 = New System.Windows.Forms.Label()
+        Me.Label8 = New System.Windows.Forms.Label()
+        Me.txtScriptMarkerX2 = New System.Windows.Forms.TextBox()
         Me.TableLayoutPanel7 = New System.Windows.Forms.TableLayoutPanel()
         Me.Panel7 = New System.Windows.Forms.Panel()
         Me.tsTools = New System.Windows.Forms.ToolStrip()
@@ -220,7 +242,7 @@ Partial Public Class frmMain
         Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
         Me.ToolStripMenuItem4 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ImportHeightmapToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
+        Me.ToolStripSeparator8 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuImportTileTypes = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripMenuItem2 = New System.Windows.Forms.ToolStripSeparator()
         Me.MapWZToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -236,6 +258,7 @@ Partial Public Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
+        Me.Label17 = New System.Windows.Forms.Label()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
         Me.SplitContainer1.SuspendLayout()
@@ -245,6 +268,7 @@ Partial Public Class frmMain
         Me.Panel5.SuspendLayout()
         Me.Panel6.SuspendLayout()
         Me.tpAutoTexture.SuspendLayout()
+        Me.Panel15.SuspendLayout()
         Me.tpHeight.SuspendLayout()
         Me.tabHeightSetR.SuspendLayout()
         Me.tabHeightSetL.SuspendLayout()
@@ -269,6 +293,8 @@ Partial Public Class frmMain
         Me.Panel9.SuspendLayout()
         Me.Panel8.SuspendLayout()
         Me.Panel14.SuspendLayout()
+        Me.tpCampaignMarkers.SuspendLayout()
+        Me.GroupBox1.SuspendLayout()
         Me.TableLayoutPanel7.SuspendLayout()
         Me.Panel7.SuspendLayout()
         Me.tsTools.SuspendLayout()
@@ -309,6 +335,7 @@ Partial Public Class frmMain
         Me.TabControl.Controls.Add(Me.tpResize)
         Me.TabControl.Controls.Add(Me.tpObjects)
         Me.TabControl.Controls.Add(Me.tpObject)
+        Me.TabControl.Controls.Add(Me.tpCampaignMarkers)
         Me.TabControl.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TabControl.ItemSize = New System.Drawing.Size(72, 22)
         Me.TabControl.Location = New System.Drawing.Point(0, 0)
@@ -572,9 +599,7 @@ Partial Public Class frmMain
         'tpAutoTexture
         '
         Me.tpAutoTexture.AutoScroll = True
-        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffIgnore)
-        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffStopAfter)
-        Me.tpAutoTexture.Controls.Add(Me.rdoFillCliffStopBefore)
+        Me.tpAutoTexture.Controls.Add(Me.Panel15)
         Me.tpAutoTexture.Controls.Add(Me.rdoCliffTriBrush)
         Me.tpAutoTexture.Controls.Add(Me.rdoRoadRemove)
         Me.tpAutoTexture.Controls.Add(Me.pnlCliffRemoveBrush)
@@ -604,11 +629,33 @@ Partial Public Class frmMain
         Me.tpAutoTexture.Text = "Terrain Painter"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
         '
+        'Panel15
+        '
+        Me.Panel15.Controls.Add(Me.cbxFillInside)
+        Me.Panel15.Controls.Add(Me.rdoFillCliffIgnore)
+        Me.Panel15.Controls.Add(Me.rdoFillCliffStopBefore)
+        Me.Panel15.Controls.Add(Me.rdoFillCliffStopAfter)
+        Me.Panel15.Location = New System.Drawing.Point(73, 244)
+        Me.Panel15.Name = "Panel15"
+        Me.Panel15.Size = New System.Drawing.Size(313, 81)
+        Me.Panel15.TabIndex = 53
+        '
+        'cbxFillInside
+        '
+        Me.cbxFillInside.Location = New System.Drawing.Point(135, 4)
+        Me.cbxFillInside.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxFillInside.Name = "cbxFillInside"
+        Me.cbxFillInside.Size = New System.Drawing.Size(147, 21)
+        Me.cbxFillInside.TabIndex = 54
+        Me.cbxFillInside.Text = "Stop Before Edge"
+        Me.cbxFillInside.UseCompatibleTextRendering = True
+        Me.cbxFillInside.UseVisualStyleBackColor = True
+        '
         'rdoFillCliffIgnore
         '
         Me.rdoFillCliffIgnore.AutoSize = True
         Me.rdoFillCliffIgnore.Checked = True
-        Me.rdoFillCliffIgnore.Location = New System.Drawing.Point(96, 244)
+        Me.rdoFillCliffIgnore.Location = New System.Drawing.Point(4, 4)
         Me.rdoFillCliffIgnore.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoFillCliffIgnore.Name = "rdoFillCliffIgnore"
         Me.rdoFillCliffIgnore.Size = New System.Drawing.Size(91, 21)
@@ -618,22 +665,10 @@ Partial Public Class frmMain
         Me.rdoFillCliffIgnore.UseCompatibleTextRendering = True
         Me.rdoFillCliffIgnore.UseVisualStyleBackColor = True
         '
-        'rdoFillCliffStopAfter
-        '
-        Me.rdoFillCliffStopAfter.AutoSize = True
-        Me.rdoFillCliffStopAfter.Location = New System.Drawing.Point(96, 283)
-        Me.rdoFillCliffStopAfter.Margin = New System.Windows.Forms.Padding(4)
-        Me.rdoFillCliffStopAfter.Name = "rdoFillCliffStopAfter"
-        Me.rdoFillCliffStopAfter.Size = New System.Drawing.Size(112, 21)
-        Me.rdoFillCliffStopAfter.TabIndex = 51
-        Me.rdoFillCliffStopAfter.Text = "Stop After Cliff"
-        Me.rdoFillCliffStopAfter.UseCompatibleTextRendering = True
-        Me.rdoFillCliffStopAfter.UseVisualStyleBackColor = True
-        '
         'rdoFillCliffStopBefore
         '
         Me.rdoFillCliffStopBefore.AutoSize = True
-        Me.rdoFillCliffStopBefore.Location = New System.Drawing.Point(96, 264)
+        Me.rdoFillCliffStopBefore.Location = New System.Drawing.Point(4, 24)
         Me.rdoFillCliffStopBefore.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoFillCliffStopBefore.Name = "rdoFillCliffStopBefore"
         Me.rdoFillCliffStopBefore.Size = New System.Drawing.Size(123, 21)
@@ -641,6 +676,18 @@ Partial Public Class frmMain
         Me.rdoFillCliffStopBefore.Text = "Stop Before Cliff"
         Me.rdoFillCliffStopBefore.UseCompatibleTextRendering = True
         Me.rdoFillCliffStopBefore.UseVisualStyleBackColor = True
+        '
+        'rdoFillCliffStopAfter
+        '
+        Me.rdoFillCliffStopAfter.AutoSize = True
+        Me.rdoFillCliffStopAfter.Location = New System.Drawing.Point(4, 43)
+        Me.rdoFillCliffStopAfter.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoFillCliffStopAfter.Name = "rdoFillCliffStopAfter"
+        Me.rdoFillCliffStopAfter.Size = New System.Drawing.Size(112, 21)
+        Me.rdoFillCliffStopAfter.TabIndex = 51
+        Me.rdoFillCliffStopAfter.Text = "Stop After Cliff"
+        Me.rdoFillCliffStopAfter.UseCompatibleTextRendering = True
+        Me.rdoFillCliffStopAfter.UseVisualStyleBackColor = True
         '
         'rdoCliffTriBrush
         '
@@ -2061,6 +2108,8 @@ Partial Public Class frmMain
         '
         'Panel14
         '
+        Me.Panel14.Controls.Add(Me.Label17)
+        Me.Panel14.Controls.Add(Me.txtObjectLabel)
         Me.Panel14.Controls.Add(Me.Label35)
         Me.Panel14.Controls.Add(Me.btnDroidToDesign)
         Me.Panel14.Controls.Add(Me.Label24)
@@ -2082,9 +2131,17 @@ Partial Public Class frmMain
         Me.Panel14.Size = New System.Drawing.Size(404, 344)
         Me.Panel14.TabIndex = 1
         '
+        'txtObjectLabel
+        '
+        Me.txtObjectLabel.Location = New System.Drawing.Point(91, 181)
+        Me.txtObjectLabel.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtObjectLabel.Name = "txtObjectLabel"
+        Me.txtObjectLabel.Size = New System.Drawing.Size(137, 22)
+        Me.txtObjectLabel.TabIndex = 42
+        '
         'Label35
         '
-        Me.Label35.Location = New System.Drawing.Point(153, 213)
+        Me.Label35.Location = New System.Drawing.Point(153, 243)
         Me.Label35.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label35.Name = "Label35"
         Me.Label35.Size = New System.Drawing.Size(176, 27)
@@ -2138,7 +2195,7 @@ Partial Public Class frmMain
         '
         'Label23
         '
-        Me.Label23.Location = New System.Drawing.Point(21, 120)
+        Me.Label23.Location = New System.Drawing.Point(8, 120)
         Me.Label23.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label23.Name = "Label23"
         Me.Label23.Size = New System.Drawing.Size(75, 25)
@@ -2149,7 +2206,7 @@ Partial Public Class frmMain
         '
         'txtObjectHealth
         '
-        Me.txtObjectHealth.Location = New System.Drawing.Point(91, 215)
+        Me.txtObjectHealth.Location = New System.Drawing.Point(91, 245)
         Me.txtObjectHealth.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectHealth.Name = "txtObjectHealth"
         Me.txtObjectHealth.Size = New System.Drawing.Size(54, 22)
@@ -2159,7 +2216,7 @@ Partial Public Class frmMain
         '
         'txtObjectRotation
         '
-        Me.txtObjectRotation.Location = New System.Drawing.Point(104, 121)
+        Me.txtObjectRotation.Location = New System.Drawing.Point(91, 121)
         Me.txtObjectRotation.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectRotation.Name = "txtObjectRotation"
         Me.txtObjectRotation.Size = New System.Drawing.Size(41, 22)
@@ -2169,7 +2226,7 @@ Partial Public Class frmMain
         '
         'Label34
         '
-        Me.Label34.Location = New System.Drawing.Point(20, 214)
+        Me.Label34.Location = New System.Drawing.Point(20, 244)
         Me.Label34.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label34.Name = "Label34"
         Me.Label34.Size = New System.Drawing.Size(63, 25)
@@ -2191,7 +2248,7 @@ Partial Public Class frmMain
         '
         'txtObjectPriority
         '
-        Me.txtObjectPriority.Location = New System.Drawing.Point(91, 185)
+        Me.txtObjectPriority.Location = New System.Drawing.Point(91, 215)
         Me.txtObjectPriority.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectPriority.Name = "txtObjectPriority"
         Me.txtObjectPriority.Size = New System.Drawing.Size(54, 22)
@@ -2201,7 +2258,7 @@ Partial Public Class frmMain
         '
         'Label25
         '
-        Me.Label25.Location = New System.Drawing.Point(21, 153)
+        Me.Label25.Location = New System.Drawing.Point(47, 150)
         Me.Label25.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label25.Name = "Label25"
         Me.Label25.Size = New System.Drawing.Size(36, 25)
@@ -2212,7 +2269,7 @@ Partial Public Class frmMain
         '
         'Label33
         '
-        Me.Label33.Location = New System.Drawing.Point(20, 184)
+        Me.Label33.Location = New System.Drawing.Point(20, 214)
         Me.Label33.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label33.Name = "Label33"
         Me.Label33.Size = New System.Drawing.Size(63, 25)
@@ -2223,7 +2280,7 @@ Partial Public Class frmMain
         '
         'txtObjectID
         '
-        Me.txtObjectID.Location = New System.Drawing.Point(65, 154)
+        Me.txtObjectID.Location = New System.Drawing.Point(91, 151)
         Me.txtObjectID.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectID.Name = "txtObjectID"
         Me.txtObjectID.Size = New System.Drawing.Size(80, 22)
@@ -2233,7 +2290,7 @@ Partial Public Class frmMain
         '
         'Label26
         '
-        Me.Label26.Location = New System.Drawing.Point(154, 121)
+        Me.Label26.Location = New System.Drawing.Point(140, 120)
         Me.Label26.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label26.Name = "Label26"
         Me.Label26.Size = New System.Drawing.Size(88, 25)
@@ -2241,6 +2298,208 @@ Partial Public Class frmMain
         Me.Label26.Text = "(0-359)"
         Me.Label26.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label26.UseCompatibleTextRendering = True
+        '
+        'tpCampaignMarkers
+        '
+        Me.tpCampaignMarkers.Controls.Add(Me.Label11)
+        Me.tpCampaignMarkers.Controls.Add(Me.Label43)
+        Me.tpCampaignMarkers.Controls.Add(Me.Label42)
+        Me.tpCampaignMarkers.Controls.Add(Me.lstScriptAreas)
+        Me.tpCampaignMarkers.Controls.Add(Me.lstScriptPositions)
+        Me.tpCampaignMarkers.Controls.Add(Me.btnScriptAreaCreate)
+        Me.tpCampaignMarkers.Controls.Add(Me.GroupBox1)
+        Me.tpCampaignMarkers.Location = New System.Drawing.Point(4, 51)
+        Me.tpCampaignMarkers.Name = "tpCampaignMarkers"
+        Me.tpCampaignMarkers.Size = New System.Drawing.Size(410, 557)
+        Me.tpCampaignMarkers.TabIndex = 7
+        Me.tpCampaignMarkers.Text = "Script Markers"
+        Me.tpCampaignMarkers.UseVisualStyleBackColor = True
+        '
+        'Label11
+        '
+        Me.Label11.Location = New System.Drawing.Point(238, 11)
+        Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label11.Name = "Label11"
+        Me.Label11.Size = New System.Drawing.Size(142, 55)
+        Me.Label11.TabIndex = 53
+        Me.Label11.Text = "Hold P and click to make positions."
+        Me.Label11.UseCompatibleTextRendering = True
+        '
+        'Label43
+        '
+        Me.Label43.AutoSize = True
+        Me.Label43.Location = New System.Drawing.Point(203, 66)
+        Me.Label43.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label43.Name = "Label43"
+        Me.Label43.Size = New System.Drawing.Size(44, 20)
+        Me.Label43.TabIndex = 52
+        Me.Label43.Text = "Areas:"
+        Me.Label43.UseCompatibleTextRendering = True
+        '
+        'Label42
+        '
+        Me.Label42.AutoSize = True
+        Me.Label42.Location = New System.Drawing.Point(18, 66)
+        Me.Label42.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label42.Name = "Label42"
+        Me.Label42.Size = New System.Drawing.Size(63, 20)
+        Me.Label42.TabIndex = 51
+        Me.Label42.Text = "Positions:"
+        Me.Label42.UseCompatibleTextRendering = True
+        '
+        'lstScriptAreas
+        '
+        Me.lstScriptAreas.FormattingEnabled = True
+        Me.lstScriptAreas.ItemHeight = 16
+        Me.lstScriptAreas.Location = New System.Drawing.Point(202, 89)
+        Me.lstScriptAreas.Name = "lstScriptAreas"
+        Me.lstScriptAreas.Size = New System.Drawing.Size(178, 148)
+        Me.lstScriptAreas.TabIndex = 47
+        '
+        'lstScriptPositions
+        '
+        Me.lstScriptPositions.FormattingEnabled = True
+        Me.lstScriptPositions.ItemHeight = 16
+        Me.lstScriptPositions.Location = New System.Drawing.Point(18, 89)
+        Me.lstScriptPositions.Name = "lstScriptPositions"
+        Me.lstScriptPositions.Size = New System.Drawing.Size(178, 148)
+        Me.lstScriptPositions.TabIndex = 46
+        '
+        'btnScriptAreaCreate
+        '
+        Me.btnScriptAreaCreate.Location = New System.Drawing.Point(18, 20)
+        Me.btnScriptAreaCreate.Name = "btnScriptAreaCreate"
+        Me.btnScriptAreaCreate.Size = New System.Drawing.Size(201, 31)
+        Me.btnScriptAreaCreate.TabIndex = 45
+        Me.btnScriptAreaCreate.Text = "Create Area From Selection"
+        Me.btnScriptAreaCreate.UseCompatibleTextRendering = True
+        Me.btnScriptAreaCreate.UseVisualStyleBackColor = True
+        '
+        'GroupBox1
+        '
+        Me.GroupBox1.Controls.Add(Me.txtScriptMarkerLabel)
+        Me.GroupBox1.Controls.Add(Me.Label41)
+        Me.GroupBox1.Controls.Add(Me.btnScriptMarkerRemove)
+        Me.GroupBox1.Controls.Add(Me.Label2)
+        Me.GroupBox1.Controls.Add(Me.txtScriptMarkerY)
+        Me.GroupBox1.Controls.Add(Me.txtScriptMarkerX)
+        Me.GroupBox1.Controls.Add(Me.Label7)
+        Me.GroupBox1.Controls.Add(Me.txtScriptMarkerY2)
+        Me.GroupBox1.Controls.Add(Me.Label4)
+        Me.GroupBox1.Controls.Add(Me.Label8)
+        Me.GroupBox1.Controls.Add(Me.txtScriptMarkerX2)
+        Me.GroupBox1.Location = New System.Drawing.Point(18, 243)
+        Me.GroupBox1.Name = "GroupBox1"
+        Me.GroupBox1.Size = New System.Drawing.Size(178, 231)
+        Me.GroupBox1.TabIndex = 44
+        Me.GroupBox1.TabStop = False
+        Me.GroupBox1.Text = "Selected Marker"
+        Me.GroupBox1.UseCompatibleTextRendering = True
+        '
+        'txtScriptMarkerLabel
+        '
+        Me.txtScriptMarkerLabel.Location = New System.Drawing.Point(56, 32)
+        Me.txtScriptMarkerLabel.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScriptMarkerLabel.Name = "txtScriptMarkerLabel"
+        Me.txtScriptMarkerLabel.Size = New System.Drawing.Size(96, 22)
+        Me.txtScriptMarkerLabel.TabIndex = 50
+        '
+        'Label41
+        '
+        Me.Label41.AutoSize = True
+        Me.Label41.Location = New System.Drawing.Point(7, 35)
+        Me.Label41.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label41.Name = "Label41"
+        Me.Label41.Size = New System.Drawing.Size(41, 20)
+        Me.Label41.TabIndex = 49
+        Me.Label41.Text = "Label:"
+        Me.Label41.UseCompatibleTextRendering = True
+        '
+        'btnScriptMarkerRemove
+        '
+        Me.btnScriptMarkerRemove.Location = New System.Drawing.Point(10, 185)
+        Me.btnScriptMarkerRemove.Name = "btnScriptMarkerRemove"
+        Me.btnScriptMarkerRemove.Size = New System.Drawing.Size(142, 31)
+        Me.btnScriptMarkerRemove.TabIndex = 48
+        Me.btnScriptMarkerRemove.Text = "Remove"
+        Me.btnScriptMarkerRemove.UseCompatibleTextRendering = True
+        Me.btnScriptMarkerRemove.UseVisualStyleBackColor = True
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(22, 66)
+        Me.Label2.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(15, 20)
+        Me.Label2.TabIndex = 33
+        Me.Label2.Text = "x:"
+        Me.Label2.UseCompatibleTextRendering = True
+        '
+        'txtScriptMarkerY
+        '
+        Me.txtScriptMarkerY.Location = New System.Drawing.Point(91, 87)
+        Me.txtScriptMarkerY.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScriptMarkerY.Name = "txtScriptMarkerY"
+        Me.txtScriptMarkerY.Size = New System.Drawing.Size(61, 22)
+        Me.txtScriptMarkerY.TabIndex = 34
+        '
+        'txtScriptMarkerX
+        '
+        Me.txtScriptMarkerX.Location = New System.Drawing.Point(22, 87)
+        Me.txtScriptMarkerX.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScriptMarkerX.Name = "txtScriptMarkerX"
+        Me.txtScriptMarkerX.Size = New System.Drawing.Size(61, 22)
+        Me.txtScriptMarkerX.TabIndex = 32
+        '
+        'Label7
+        '
+        Me.Label7.AutoSize = True
+        Me.Label7.Location = New System.Drawing.Point(91, 66)
+        Me.Label7.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label7.Name = "Label7"
+        Me.Label7.Size = New System.Drawing.Size(15, 20)
+        Me.Label7.TabIndex = 35
+        Me.Label7.Text = "y:"
+        Me.Label7.UseCompatibleTextRendering = True
+        '
+        'txtScriptMarkerY2
+        '
+        Me.txtScriptMarkerY2.Location = New System.Drawing.Point(91, 143)
+        Me.txtScriptMarkerY2.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScriptMarkerY2.Name = "txtScriptMarkerY2"
+        Me.txtScriptMarkerY2.Size = New System.Drawing.Size(61, 22)
+        Me.txtScriptMarkerY2.TabIndex = 38
+        '
+        'Label4
+        '
+        Me.Label4.AutoSize = True
+        Me.Label4.Location = New System.Drawing.Point(91, 122)
+        Me.Label4.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label4.Name = "Label4"
+        Me.Label4.Size = New System.Drawing.Size(23, 20)
+        Me.Label4.TabIndex = 39
+        Me.Label4.Text = "y2:"
+        Me.Label4.UseCompatibleTextRendering = True
+        '
+        'Label8
+        '
+        Me.Label8.AutoSize = True
+        Me.Label8.Location = New System.Drawing.Point(22, 122)
+        Me.Label8.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label8.Name = "Label8"
+        Me.Label8.Size = New System.Drawing.Size(23, 20)
+        Me.Label8.TabIndex = 37
+        Me.Label8.Text = "x2:"
+        Me.Label8.UseCompatibleTextRendering = True
+        '
+        'txtScriptMarkerX2
+        '
+        Me.txtScriptMarkerX2.Location = New System.Drawing.Point(22, 143)
+        Me.txtScriptMarkerX2.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtScriptMarkerX2.Name = "txtScriptMarkerX2"
+        Me.txtScriptMarkerX2.Size = New System.Drawing.Size(61, 22)
+        Me.txtScriptMarkerX2.TabIndex = 36
         '
         'TableLayoutPanel7
         '
@@ -2657,7 +2916,7 @@ Partial Public Class frmMain
         '
         'ToolStripMenuItem4
         '
-        Me.ToolStripMenuItem4.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ImportHeightmapToolStripMenuItem, Me.ToolStripSeparator7, Me.menuImportTileTypes})
+        Me.ToolStripMenuItem4.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ImportHeightmapToolStripMenuItem, Me.ToolStripSeparator8, Me.menuImportTileTypes})
         Me.ToolStripMenuItem4.Name = "ToolStripMenuItem4"
         Me.ToolStripMenuItem4.Size = New System.Drawing.Size(177, 24)
         Me.ToolStripMenuItem4.Text = "Import"
@@ -2668,10 +2927,10 @@ Partial Public Class frmMain
         Me.ImportHeightmapToolStripMenuItem.Size = New System.Drawing.Size(162, 24)
         Me.ImportHeightmapToolStripMenuItem.Text = "Heightmap..."
         '
-        'ToolStripSeparator7
+        'ToolStripSeparator8
         '
-        Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
-        Me.ToolStripSeparator7.Size = New System.Drawing.Size(159, 6)
+        Me.ToolStripSeparator8.Name = "ToolStripSeparator8"
+        Me.ToolStripSeparator8.Size = New System.Drawing.Size(159, 6)
         '
         'menuImportTileTypes
         '
@@ -2797,6 +3056,17 @@ Partial Public Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
+        'Label17
+        '
+        Me.Label17.Location = New System.Drawing.Point(21, 180)
+        Me.Label17.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label17.Name = "Label17"
+        Me.Label17.Size = New System.Drawing.Size(62, 25)
+        Me.Label17.TabIndex = 43
+        Me.Label17.Text = "Label:"
+        Me.Label17.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        Me.Label17.UseCompatibleTextRendering = True
+        '
         'frmMain
         '
         Me.AllowDrop = True
@@ -2810,63 +3080,69 @@ Partial Public Class frmMain
         Me.SplitContainer1.Panel1.ResumeLayout(False)
         Me.SplitContainer1.Panel2.ResumeLayout(False)
         Me.SplitContainer1.ResumeLayout(False)
-        Me.TabControl.ResumeLayout(false)
-        Me.tpTextures.ResumeLayout(false)
-        Me.TableLayoutPanel6.ResumeLayout(false)
-        Me.Panel5.ResumeLayout(false)
-        Me.Panel5.PerformLayout
-        Me.Panel6.ResumeLayout(false)
-        Me.tpAutoTexture.ResumeLayout(false)
-        Me.tpAutoTexture.PerformLayout
-        Me.tpHeight.ResumeLayout(false)
-        Me.tpHeight.PerformLayout
-        Me.tabHeightSetR.ResumeLayout(false)
-        Me.tabHeightSetL.ResumeLayout(false)
-        Me.tpAutoHeight.ResumeLayout(false)
-        Me.tpResize.ResumeLayout(false)
-        Me.tpResize.PerformLayout
-        Me.tpObjects.ResumeLayout(false)
-        Me.TableLayoutPanel1.ResumeLayout(false)
-        Me.TableLayoutPanel4.ResumeLayout(false)
-        Me.Panel4.ResumeLayout(false)
-        Me.TableLayoutPanel3.ResumeLayout(false)
-        Me.Panel3.ResumeLayout(false)
-        Me.Panel1.ResumeLayout(false)
-        Me.Panel1.PerformLayout
-        Me.TableLayoutPanel2.ResumeLayout(false)
-        Me.Panel2.ResumeLayout(false)
-        Me.tpObject.ResumeLayout(false)
-        Me.TableLayoutPanel8.ResumeLayout(false)
-        Me.TableLayoutPanel9.ResumeLayout(false)
-        Me.Panel13.ResumeLayout(false)
-        Me.Panel13.PerformLayout
-        Me.Panel12.ResumeLayout(false)
-        Me.Panel12.PerformLayout
-        Me.Panel11.ResumeLayout(false)
-        Me.Panel11.PerformLayout
-        Me.Panel10.ResumeLayout(false)
-        Me.Panel9.ResumeLayout(false)
-        Me.Panel8.ResumeLayout(false)
-        Me.Panel14.ResumeLayout(false)
-        Me.Panel14.PerformLayout
-        Me.TableLayoutPanel7.ResumeLayout(false)
-        Me.Panel7.ResumeLayout(false)
-        Me.Panel7.PerformLayout
-        Me.tsTools.ResumeLayout(false)
-        Me.tsTools.PerformLayout
-        Me.tsFile.ResumeLayout(false)
-        Me.tsFile.PerformLayout
-        Me.tsSelection.ResumeLayout(false)
-        Me.tsSelection.PerformLayout
-        Me.tsMinimap.ResumeLayout(false)
-        Me.tsMinimap.PerformLayout
-        Me.menuMain.ResumeLayout(false)
-        Me.menuMain.PerformLayout
-        Me.TableLayoutPanel5.ResumeLayout(false)
-        Me.TableLayoutPanel5.PerformLayout
-        Me.ResumeLayout(false)
+        Me.TabControl.ResumeLayout(False)
+        Me.tpTextures.ResumeLayout(False)
+        Me.TableLayoutPanel6.ResumeLayout(False)
+        Me.Panel5.ResumeLayout(False)
+        Me.Panel5.PerformLayout()
+        Me.Panel6.ResumeLayout(False)
+        Me.tpAutoTexture.ResumeLayout(False)
+        Me.tpAutoTexture.PerformLayout()
+        Me.Panel15.ResumeLayout(False)
+        Me.Panel15.PerformLayout()
+        Me.tpHeight.ResumeLayout(False)
+        Me.tpHeight.PerformLayout()
+        Me.tabHeightSetR.ResumeLayout(False)
+        Me.tabHeightSetL.ResumeLayout(False)
+        Me.tpAutoHeight.ResumeLayout(False)
+        Me.tpResize.ResumeLayout(False)
+        Me.tpResize.PerformLayout()
+        Me.tpObjects.ResumeLayout(False)
+        Me.TableLayoutPanel1.ResumeLayout(False)
+        Me.TableLayoutPanel4.ResumeLayout(False)
+        Me.Panel4.ResumeLayout(False)
+        Me.TableLayoutPanel3.ResumeLayout(False)
+        Me.Panel3.ResumeLayout(False)
+        Me.Panel1.ResumeLayout(False)
+        Me.Panel1.PerformLayout()
+        Me.TableLayoutPanel2.ResumeLayout(False)
+        Me.Panel2.ResumeLayout(False)
+        Me.tpObject.ResumeLayout(False)
+        Me.TableLayoutPanel8.ResumeLayout(False)
+        Me.TableLayoutPanel9.ResumeLayout(False)
+        Me.Panel13.ResumeLayout(False)
+        Me.Panel13.PerformLayout()
+        Me.Panel12.ResumeLayout(False)
+        Me.Panel12.PerformLayout()
+        Me.Panel11.ResumeLayout(False)
+        Me.Panel11.PerformLayout()
+        Me.Panel10.ResumeLayout(False)
+        Me.Panel9.ResumeLayout(False)
+        Me.Panel8.ResumeLayout(False)
+        Me.Panel14.ResumeLayout(False)
+        Me.Panel14.PerformLayout()
+        Me.tpCampaignMarkers.ResumeLayout(False)
+        Me.tpCampaignMarkers.PerformLayout()
+        Me.GroupBox1.ResumeLayout(False)
+        Me.GroupBox1.PerformLayout()
+        Me.TableLayoutPanel7.ResumeLayout(False)
+        Me.Panel7.ResumeLayout(False)
+        Me.Panel7.PerformLayout()
+        Me.tsTools.ResumeLayout(False)
+        Me.tsTools.PerformLayout()
+        Me.tsFile.ResumeLayout(False)
+        Me.tsFile.PerformLayout()
+        Me.tsSelection.ResumeLayout(False)
+        Me.tsSelection.PerformLayout()
+        Me.tsMinimap.ResumeLayout(False)
+        Me.tsMinimap.PerformLayout()
+        Me.menuMain.ResumeLayout(False)
+        Me.menuMain.PerformLayout()
+        Me.TableLayoutPanel5.ResumeLayout(False)
+        Me.TableLayoutPanel5.PerformLayout()
+        Me.ResumeLayout(False)
 
-End Sub
+    End Sub
     Public WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
     Public WithEvents tpTextures As System.Windows.Forms.TabPage
     Public WithEvents tpHeight As System.Windows.Forms.TabPage
@@ -2986,7 +3262,6 @@ End Sub
     Public WithEvents ToolStripMenuItem4 As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents ImportHeightmapToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents menuImportTileTypes As System.Windows.Forms.ToolStripMenuItem
-    Public WithEvents ToolStripSeparator7 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents cbxCliffTris As System.Windows.Forms.CheckBox
     Public WithEvents tsFile As System.Windows.Forms.ToolStrip
     Public WithEvents tsbSave As System.Windows.Forms.ToolStripButton
@@ -3102,5 +3377,29 @@ End Sub
     Public WithEvents rdoFillCliffIgnore As System.Windows.Forms.RadioButton
     Public WithEvents rdoFillCliffStopAfter As System.Windows.Forms.RadioButton
     Public WithEvents rdoFillCliffStopBefore As System.Windows.Forms.RadioButton
+    Friend WithEvents Panel15 As System.Windows.Forms.Panel
+    Friend WithEvents ToolStripSeparator8 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents tpCampaignMarkers As System.Windows.Forms.TabPage
+    Friend WithEvents GroupBox1 As System.Windows.Forms.GroupBox
+    Public WithEvents Label2 As System.Windows.Forms.Label
+    Public WithEvents txtScriptMarkerY As System.Windows.Forms.TextBox
+    Public WithEvents txtScriptMarkerX As System.Windows.Forms.TextBox
+    Public WithEvents Label7 As System.Windows.Forms.Label
+    Public WithEvents txtScriptMarkerY2 As System.Windows.Forms.TextBox
+    Public WithEvents Label4 As System.Windows.Forms.Label
+    Public WithEvents Label8 As System.Windows.Forms.Label
+    Public WithEvents txtScriptMarkerX2 As System.Windows.Forms.TextBox
+    Public WithEvents cbxFillInside As System.Windows.Forms.CheckBox
+    Public WithEvents btnScriptAreaCreate As System.Windows.Forms.Button
+    Friend WithEvents lstScriptAreas As System.Windows.Forms.ListBox
+    Friend WithEvents lstScriptPositions As System.Windows.Forms.ListBox
+    Public WithEvents btnScriptMarkerRemove As System.Windows.Forms.Button
+    Public WithEvents txtScriptMarkerLabel As System.Windows.Forms.TextBox
+    Public WithEvents Label41 As System.Windows.Forms.Label
+    Public WithEvents Label43 As System.Windows.Forms.Label
+    Public WithEvents Label42 As System.Windows.Forms.Label
+    Public WithEvents Label11 As System.Windows.Forms.Label
+    Public WithEvents txtObjectLabel As System.Windows.Forms.TextBox
+    Public WithEvents Label17 As System.Windows.Forms.Label
 End Class
 #End If

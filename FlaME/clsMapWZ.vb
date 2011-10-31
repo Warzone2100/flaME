@@ -192,19 +192,6 @@ Partial Public Class clsMap
             End If
         End If
 
-        ZipSearchResult = FindZipEntryFromPath(Path, GameFilesPath & "labels.ini")
-        If ZipSearchResult Is Nothing Then
-
-        Else
-            Dim LabelsINI As New clsINIRead
-            Dim LabelsINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
-            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
-            LabelsINI_Reader.Close()
-            Dim INILabels As New clsINILabels(LabelsINI.SectionCount)
-            ReturnResult.AppendAsWarning(LabelsINI.Translate(INILabels), "Labels INI: ")
-            Read_WZ_Labels(LabelsINI, INILabels)
-        End If
-
         Dim BJOUnits As New clsMap.clsWZBJOUnits
 
         Dim INIFeatures As clsINIFeatures = Nothing
@@ -310,6 +297,18 @@ Partial Public Class clsMap
         CreateObjectsArgs.INIFeatures = INIFeatures
         ReturnResult.Append(CreateWZObjects(CreateObjectsArgs), "")
 
+        'map objects are modified by this and must already exist
+        ZipSearchResult = FindZipEntryFromPath(Path, GameFilesPath & "labels.ini")
+        If ZipSearchResult Is Nothing Then
+
+        Else
+            Dim LabelsINI As New clsINIRead
+            Dim LabelsINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
+            LabelsINI_Reader.Close()
+            ReturnResult.AppendAsWarning(Read_WZ_Labels(LabelsINI, False), "Interpret labels INI:")
+        End If
+
         Return ReturnResult
     End Function
 
@@ -325,7 +324,7 @@ Partial Public Class clsMap
         SetPainterToDefaults()
 
         Dim GameSplitPath As New sSplitPath(Path)
-        Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & PlatformPathSeperator
+        Dim GameFilesPath As String = GameSplitPath.FilePath & GameSplitPath.FileTitleWithoutExtension & PlatformPathSeparator
         Dim MapDirectory As String
         Dim File As IO.FileStream = Nothing
 
@@ -346,7 +345,7 @@ Partial Public Class clsMap
 
         SubResult = TryOpenFileStream(GameFilesPath & "game.map", File)
         If Not SubResult.Success Then
-            Dim PromptResult As MsgBoxResult = MsgBox("game.map file not found. Do you want to select another directory to load the underlying map from?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle))
+            Dim PromptResult As MsgBoxResult = MsgBox("game.map file not found at " & GameFilesPath & ControlChars.NewLine & "Do you want to select another directory to load the underlying map from?", CType(MsgBoxStyle.OkCancel + MsgBoxStyle.Question, MsgBoxStyle))
             If PromptResult <> MsgBoxResult.Ok Then
                 ReturnResult.Problem_Add("Aborted.")
                 Return ReturnResult
@@ -357,7 +356,7 @@ Partial Public Class clsMap
                 ReturnResult.Problem_Add("Aborted.")
                 Return ReturnResult
             End If
-            MapDirectory = DirectorySelect.SelectedPath & PlatformPathSeperator
+            MapDirectory = DirectorySelect.SelectedPath & PlatformPathSeparator
 
             SubResult = TryOpenFileStream(MapDirectory & "game.map", File)
             If Not SubResult.Success Then
@@ -371,19 +370,6 @@ Partial Public Class clsMap
         Dim Map_ReaderB As New IO.BinaryReader(File)
         SubResult = Read_WZ_map(Map_ReaderB)
         Map_ReaderB.Close()
-
-        SubResult = TryOpenFileStream(GameFilesPath & "labels.ini", File)
-        If Not SubResult.Success Then
-
-        Else
-            Dim LabelsINI As New clsINIRead
-            Dim LabelsINI_Reader As New IO.StreamReader(File)
-            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
-            LabelsINI_Reader.Close()
-            Dim INILabels As New clsINILabels(LabelsINI.SectionCount)
-            ReturnResult.AppendAsWarning(LabelsINI.Translate(INILabels), "Labels INI: ")
-            Read_WZ_Labels(LabelsINI, INILabels)
-        End If
 
         Dim BJOUnits As New clsMap.clsWZBJOUnits
 
@@ -489,6 +475,18 @@ Partial Public Class clsMap
         CreateObjectsArgs.INIDroids = INIDroids
         CreateObjectsArgs.INIFeatures = INIFeatures
         ReturnResult.Append(CreateWZObjects(CreateObjectsArgs), "")
+
+        'map objects are modified by this and must already exist
+        SubResult = TryOpenFileStream(GameFilesPath & "labels.ini", File)
+        If Not SubResult.Success Then
+
+        Else
+            Dim LabelsINI As New clsINIRead
+            Dim LabelsINI_Reader As New IO.StreamReader(File)
+            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
+            LabelsINI_Reader.Close()
+            ReturnResult.AppendAsWarning(Read_WZ_Labels(LabelsINI, False), "Interpret labels INI :")
+        End If
 
         Return ReturnResult
     End Function
@@ -618,7 +616,7 @@ Partial Public Class clsMap
                             NewUnit.UnitGroup = INIStructures.Structures(A).UnitGroup
                         End If
                         NewUnit.Pos = INIStructures.Structures(A).Pos.WorldPos
-                        NewUnit.Rotation = CInt(INIStructures.Structures(A).Rotation.Direction * 360.0# / 65536.0#)
+                        NewUnit.Rotation = CInt(INIStructures.Structures(A).Rotation.Direction * 360.0# / INIRotationMax)
                         If NewUnit.Rotation = 360 Then
                             NewUnit.Rotation = 0
                         End If
@@ -697,7 +695,7 @@ Partial Public Class clsMap
                         NewUnit.Type = tmpFeatureType
                         NewUnit.UnitGroup = FeatureUnitGroup
                         NewUnit.Pos = INIFeatures.Features(A).Pos.WorldPos
-                        NewUnit.Rotation = CInt(INIFeatures.Features(A).Rotation.Direction * 360.0# / 65536.0#)
+                        NewUnit.Rotation = CInt(INIFeatures.Features(A).Rotation.Direction * 360.0# / INIRotationMax)
                         If NewUnit.Rotation = 360 Then
                             NewUnit.Rotation = 0
                         End If
@@ -836,7 +834,7 @@ Partial Public Class clsMap
                             NewUnit.UnitGroup = INIDroids.Droids(A).UnitGroup
                         End If
                         NewUnit.Pos = INIDroids.Droids(A).Pos.WorldPos
-                        NewUnit.Rotation = CInt(INIDroids.Droids(A).Rotation.Direction * 360.0# / 65536.0#)
+                        NewUnit.Rotation = CInt(INIDroids.Droids(A).Rotation.Direction * 360.0# / INIRotationMax)
                         If NewUnit.Rotation = 360 Then
                             NewUnit.Rotation = 0
                         End If
@@ -1130,36 +1128,6 @@ Partial Public Class clsMap
         End Function
     End Class
 
-    Public Class clsINILabels
-        Inherits clsINIRead.clsSectionTranslator
-
-        Public Structure sLabel
-            Public Label As String
-            Public Pos As String
-        End Structure
-        Public Labels() As sLabel
-        Public LabelCount As Integer
-
-        Public Sub New(ByVal NewFeatureCount As Integer)
-
-            LabelCount = NewFeatureCount
-            ReDim Labels(LabelCount - 1)
-        End Sub
-
-        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
-
-            Select Case INIProperty.Name
-                Case "label"
-                    Labels(INISectionNum).Label = INIProperty.Value
-                Case "pos"
-                    Labels(INISectionNum).Pos = INIProperty.Value
-                Case Else
-                    Return clsINIRead.enumTranslatorResult.NameUnknown
-            End Select
-            Return clsINIRead.enumTranslatorResult.Translated
-        End Function
-    End Class
-
     Private Function Read_WZ_gam(ByVal File As IO.BinaryReader) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
@@ -1191,6 +1159,7 @@ Partial Public Class clsMap
             File.ReadInt32()
             'InterfaceOptions.CampaignGameTime = File.ReadInt32
             InterfaceOptions.CampaignGameType = File.ReadInt32
+            InterfaceOptions.AutoScrollLimits = False
             InterfaceOptions.ScrollMin.X = File.ReadInt32
             InterfaceOptions.ScrollMin.Y = File.ReadInt32
             InterfaceOptions.ScrollMax.X = File.ReadUInt32
@@ -1516,78 +1485,118 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Read_WZ_Labels(ByVal INI As clsINIRead, ByVal Labels As clsINILabels) As clsResult
+    Public Function Read_WZ_Labels(ByVal INI As clsINIRead, ByVal IsFMap As Boolean) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim A As Integer
         Dim B As Integer
-        Dim tmpPositions As clsSplitCommaText
-        Dim TranslatedPositions(3) As Integer
+        Dim tmpPositionsA As clsPositionFromText
+        Dim tmpPositionsB As clsPositionFromText
         Dim TypeNum As Integer
-        Dim strTemp As String
         Dim NewPosition As clsMap.clsScriptPosition
         Dim NewArea As clsMap.clsScriptArea
+        Dim tmpSection As clsINIRead.clsSection
+        Dim strName As String
+        Dim strLabel As String
+        Dim strPosA As String
+        Dim strPosB As String
+        Dim strID As String
+        Dim tmpID As UInteger
 
         Dim FailedCount As Integer = 0
         Dim ModifiedCount As Integer = 0
 
-        For A = 0 To Labels.LabelCount - 1
-            strTemp = INI.Sections(A).Name
-            B = strTemp.IndexOf("_"c)
-            strTemp = Strings.Left(strTemp, B)
-            Select Case strTemp
+        For A = 0 To INI.SectionCount - 1
+            tmpSection = INI.Sections(A)
+            strName = tmpSection.Name
+            B = strName.IndexOf("_"c)
+            strName = Strings.Left(strName, B)
+            Select Case strName
                 Case "position"
                     TypeNum = 0
                 Case "area"
                     TypeNum = 1
+                Case "object"
+                    If IsFMap Then
+                        TypeNum = Integer.MaxValue
+                        FailedCount += 1
+                        Continue For
+                    Else
+                        TypeNum = 2
+                    End If
                 Case Else
                     TypeNum = Integer.MaxValue
                     FailedCount += 1
                     Continue For
             End Select
-            tmpPositions = New clsSplitCommaText(Labels.Labels(A).Pos)
+            strLabel = tmpSection.GetLastPropertyValue("label")
+            If strLabel Is Nothing Then
+                FailedCount += 1
+                Continue For
+            End If
+            strLabel = strLabel.Replace(CStr(ControlChars.Quote), "")
             Select Case TypeNum
                 Case 0 'position
-                    If tmpPositions.PartCount >= 2 Then
-                        For B = 0 To 1
-                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
-                                Exit For
-                            End If
-                        Next
-                        If B < 2 Then
-                            FailedCount += 1
-                        Else
-                            NewPosition = clsMap.clsScriptPosition.Create(Me)
-                            NewPosition.PosX = TranslatedPositions(0)
-                            NewPosition.PosY = TranslatedPositions(1)
-                            NewPosition.SetLabel(Labels.Labels(A).Label)
-                            If NewPosition.Label <> Labels.Labels(A).Label Or NewPosition.PosX <> TranslatedPositions(0) Or NewPosition.PosY <> TranslatedPositions(1) Then
-                                ModifiedCount += 1
-                            End If
+                    strPosA = tmpSection.GetLastPropertyValue("pos")
+                    If strPosA Is Nothing Then
+                        FailedCount += 1
+                        Continue For
+                    End If
+                    tmpPositionsA = New clsPositionFromText
+                    If tmpPositionsA.Translate(strPosA) Then
+                        NewPosition = clsMap.clsScriptPosition.Create(Me)
+                        NewPosition.PosX = tmpPositionsA.Pos.X
+                        NewPosition.PosY = tmpPositionsA.Pos.Y
+                        NewPosition.SetLabel(strLabel)
+                        If NewPosition.Label <> strLabel Or NewPosition.PosX <> tmpPositionsA.Pos.X Or NewPosition.PosY <> tmpPositionsA.Pos.Y Then
+                            ModifiedCount += 1
                         End If
                     Else
                         FailedCount += 1
+                        Continue For
                     End If
                 Case 1 'area
-                    If tmpPositions.PartCount >= 4 Then
-                        For B = 0 To 3
-                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
-                                Exit For
-                            End If
-                        Next
-                        If B < 4 Then
-                            FailedCount += 1
-                        Else
-                            NewArea = clsMap.clsScriptArea.Create(Me)
-                            NewArea.SetPositions(New sXY_int(TranslatedPositions(0), TranslatedPositions(1)), New sXY_int(TranslatedPositions(2), TranslatedPositions(3)))
-                            NewArea.SetLabel(Labels.Labels(A).Label)
-                            If NewArea.Label <> Labels.Labels(A).Label Or NewArea.PosAX <> TranslatedPositions(0) Or NewArea.PosAY <> TranslatedPositions(1) _
-                                Or NewArea.PosBX <> TranslatedPositions(2) Or NewArea.PosBY <> TranslatedPositions(3) Then
-                                ModifiedCount += 1
-                            End If
+                    strPosA = tmpSection.GetLastPropertyValue("pos1")
+                    If strPosA Is Nothing Then
+                        FailedCount += 1
+                        Continue For
+                    End If
+                    strPosB = tmpSection.GetLastPropertyValue("pos2")
+                    If strPosB Is Nothing Then
+                        FailedCount += 1
+                        Continue For
+                    End If
+                    tmpPositionsA = New clsPositionFromText
+                    tmpPositionsB = New clsPositionFromText
+                    If tmpPositionsA.Translate(strPosA) And tmpPositionsB.Translate(strPosB) Then
+                        NewArea = clsMap.clsScriptArea.Create(Me)
+                        NewArea.SetPositions(tmpPositionsA.Pos, tmpPositionsB.Pos)
+                        NewArea.SetLabel(strLabel)
+                        If NewArea.Label <> strLabel Or NewArea.PosAX <> tmpPositionsA.Pos.X Or NewArea.PosAY <> tmpPositionsA.Pos.Y _
+                            Or NewArea.PosBX <> tmpPositionsB.Pos.X Or NewArea.PosBY <> tmpPositionsB.Pos.Y Then
+                            ModifiedCount += 1
                         End If
                     Else
                         FailedCount += 1
+                        Continue For
+                    End If
+                Case 2 'object
+                    strID = tmpSection.GetLastPropertyValue("id")
+                    If InvariantParse_uint(strID, tmpID) Then
+                        For B = 0 To UnitCount - 1
+                            If Units(B).ID = tmpID Then
+                                Exit For
+                            End If
+                        Next
+                        If B < UnitCount Then
+                            If Not Units(B).SetLabel(strLabel).Success Then
+                                FailedCount += 1
+                                Continue For
+                            End If
+                        Else
+                            FailedCount += 1
+                            Continue For
+                        End If
                     End If
                 Case Else
                     ReturnResult.Warning_Add("Error! Bad type number for script label.")
@@ -1762,32 +1771,41 @@ Partial Public Class clsMap
                     ValidDroid = False
                     ReturnResult.Warning_Add("Error. A droid's ID was zero. It was NOT saved. Delete and replace it to allow save.")
                 End If
-                If tmpDroid.Body Is Nothing Then
-                    ValidDroid = False
-                    InvalidPartCount += 1
-                ElseIf tmpDroid.Propulsion Is Nothing Then
-                    ValidDroid = False
-                    InvalidPartCount += 1
-                ElseIf tmpDroid.TurretCount >= 1 Then
-                    If tmpDroid.Turret1 Is Nothing Then
+                If tmpDroid.IsTemplate Then
+                    tmpTemplate = CType(tmpDroid, clsDroidTemplate)
+                    AsPartsNotTemplate = tmpUnit.PreferPartsOutput
+                Else
+                    tmpTemplate = Nothing
+                    AsPartsNotTemplate = True
+                End If
+                If AsPartsNotTemplate Then
+                    If tmpDroid.Body Is Nothing Then
                         ValidDroid = False
                         InvalidPartCount += 1
-                    End If
-                ElseIf tmpDroid.TurretCount >= 2 Then
-                    If tmpDroid.Turret2 Is Nothing Then
+                    ElseIf tmpDroid.Propulsion Is Nothing Then
                         ValidDroid = False
                         InvalidPartCount += 1
-                    ElseIf tmpDroid.Turret2.TurretType <> clsTurret.enumTurretType.Weapon Then
-                        ValidDroid = False
-                        InvalidPartCount += 1
-                    End If
-                ElseIf tmpDroid.TurretCount >= 3 And tmpDroid.Turret3 Is Nothing Then
-                    If tmpDroid.Turret3 Is Nothing Then
-                        ValidDroid = False
-                        InvalidPartCount += 1
-                    ElseIf tmpDroid.Turret3.TurretType <> clsTurret.enumTurretType.Weapon Then
-                        ValidDroid = False
-                        InvalidPartCount += 1
+                    ElseIf tmpDroid.TurretCount >= 1 Then
+                        If tmpDroid.Turret1 Is Nothing Then
+                            ValidDroid = False
+                            InvalidPartCount += 1
+                        End If
+                    ElseIf tmpDroid.TurretCount >= 2 Then
+                        If tmpDroid.Turret2 Is Nothing Then
+                            ValidDroid = False
+                            InvalidPartCount += 1
+                        ElseIf tmpDroid.Turret2.TurretType <> clsTurret.enumTurretType.Weapon Then
+                            ValidDroid = False
+                            InvalidPartCount += 1
+                        End If
+                    ElseIf tmpDroid.TurretCount >= 3 And tmpDroid.Turret3 Is Nothing Then
+                        If tmpDroid.Turret3 Is Nothing Then
+                            ValidDroid = False
+                            InvalidPartCount += 1
+                        ElseIf tmpDroid.Turret3.TurretType <> clsTurret.enumTurretType.Weapon Then
+                            ValidDroid = False
+                            InvalidPartCount += 1
+                        End If
                     End If
                 End If
                 If ValidDroid Then
@@ -1797,12 +1815,6 @@ Partial Public Class clsMap
                         File.Property_Append("player", "scavenger")
                     Else
                         File.Property_Append("startpos", InvariantToString_int(tmpUnit.UnitGroup.WZ_StartPos))
-                    End If
-                    If tmpDroid.IsTemplate Then
-                        tmpTemplate = CType(tmpDroid, clsDroidTemplate)
-                        AsPartsNotTemplate = tmpUnit.PreferPartsOutput
-                    Else
-                        AsPartsNotTemplate = True
                     End If
                     If AsPartsNotTemplate Then
                         File.Property_Append("name", tmpDroid.GenerateName)
@@ -1911,14 +1923,22 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_WZ_LabelsINI(ByVal File As clsINIWrite) As clsResult
+    Public Function Data_WZ_LabelsINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
         Dim ReturnResult As New clsResult
         Dim A As Integer
 
         Try
-            For A = 0 To ScriptMarkerCount - 1
-                ScriptMarkers(A).WriteWZ(File)
+            For A = 0 To ScriptPositions.ItemCount - 1
+                ScriptPositions.Item(A).WriteWZ(File)
             Next
+            For A = 0 To ScriptAreas.ItemCount - 1
+                ScriptAreas.Item(A).WriteWZ(File)
+            Next
+            If PlayerCount >= 0 Then 'not an FMap
+                For A = 0 To UnitCount - 1
+                    Units(A).WriteWZLabel(File, PlayerCount)
+                Next
+            End If
         Catch ex As Exception
             ReturnResult.Warning_Add(ex.Message)
         End Try
@@ -2004,19 +2024,19 @@ Partial Public Class clsMap
             Dim File_featBJO_Memory As New IO.MemoryStream
             Dim File_featBJO As New IO.BinaryWriter(File_featBJO_Memory)
             Dim INI_feature_Memory As New IO.MemoryStream
-            Dim INI_feature As clsINIWrite = CreateINIWriteFile(INI_feature_Memory)
+            Dim INI_feature As clsINIWrite = clsINIWrite.CreateFile(INI_feature_Memory)
             Dim File_TTP_Memory As New IO.MemoryStream
             Dim File_TTP As New IO.BinaryWriter(File_TTP_Memory)
             Dim File_structBJO_Memory As New IO.MemoryStream
             Dim File_structBJO As New IO.BinaryWriter(File_structBJO_Memory)
             Dim INI_struct_Memory As New IO.MemoryStream
-            Dim INI_struct As clsINIWrite = CreateINIWriteFile(INI_struct_Memory)
+            Dim INI_struct As clsINIWrite = clsINIWrite.CreateFile(INI_struct_Memory)
             Dim File_droidBJO_Memory As New IO.MemoryStream
             Dim File_droidBJO As New IO.BinaryWriter(File_droidBJO_Memory)
             Dim INI_droid_Memory As New IO.MemoryStream
-            Dim INI_droid As clsINIWrite = CreateINIWriteFile(INI_droid_Memory)
+            Dim INI_droid As clsINIWrite = clsINIWrite.CreateFile(INI_droid_Memory)
             Dim INI_Labels_Memory As New IO.MemoryStream
-            Dim INI_Labels As clsINIWrite = CreateINIWriteFile(INI_Labels_Memory)
+            Dim INI_Labels As clsINIWrite = clsINIWrite.CreateFile(INI_Labels_Memory)
 
             Dim PlayersPrefix As String = ""
             Dim PlayersText As String = ""
@@ -2356,12 +2376,12 @@ Partial Public Class clsMap
             If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
                 ReturnResult.Append(Data_WZ_StructuresINI(INI_struct, Args.Multiplayer.PlayerCount), "Structures INI: ")
                 ReturnResult.Append(Data_WZ_DroidsINI(INI_droid, Args.Multiplayer.PlayerCount), "Droids INI: ")
+                ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels, Args.Multiplayer.PlayerCount), "Script labels INI: ")
             ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
                 ReturnResult.Append(Data_WZ_StructuresINI(INI_struct, -1), "Structures INI: ")
                 ReturnResult.Append(Data_WZ_DroidsINI(INI_droid, -1), "Droids INI: ")
+                ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels, 0), "Script labels INI: ") 'interprets -1 players as an FMap
             End If
-
-            ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels), "Script labels INI: ")
 
             File_LEV.Flush()
             File_MAP.Flush()
@@ -2533,7 +2553,7 @@ Partial Public Class clsMap
                 tmpFilePath = tmpPath & Args.MapName & ".gam"
                 ReturnResult.Append(WriteMemoryToNewFile(File_GAM_Memory, tmpPath & Args.MapName & ".gam"), "Write game file: ")
 
-                tmpPath &= Args.MapName & PlatformPathSeperator
+                tmpPath &= Args.MapName & PlatformPathSeparator
                 Try
                     IO.Directory.CreateDirectory(tmpPath)
                 Catch ex As Exception

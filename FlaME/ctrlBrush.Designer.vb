@@ -82,17 +82,15 @@ Partial Class ctrlBrush
         '
         'nudRadius
         '
-        Me.nudRadius.DecimalPlaces = 3
+        Me.nudRadius.DecimalPlaces = 2
         Me.nudRadius.Increment = New Decimal(New Integer() {5, 0, 0, 65536})
         Me.nudRadius.Location = New System.Drawing.Point(60, 0)
         Me.nudRadius.Margin = New System.Windows.Forms.Padding(4)
-        Me.nudRadius.Maximum = New Decimal(New Integer() {512125, 0, 0, 196608})
-        Me.nudRadius.Minimum = New Decimal(New Integer() {125, 0, 0, 196608})
+        Me.nudRadius.Maximum = New Decimal(New Integer() {512, 0, 0, 0})
         Me.nudRadius.Name = "nudRadius"
         Me.nudRadius.Size = New System.Drawing.Size(75, 22)
         Me.nudRadius.TabIndex = 40
         Me.nudRadius.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
-        Me.nudRadius.Value = New Decimal(New Integer() {125, 0, 0, 196608})
         '
         'ctrlBrush
         '

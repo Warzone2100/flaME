@@ -3,6 +3,8 @@
     Inherits UserControl
 #End If
 
+    Private Const ValueOffset As Double = 0.125#
+
     Private Brush As clsBrush
 
     Public Sub New(ByVal NewBrush As clsBrush)
@@ -25,7 +27,7 @@
             Exit Sub
         End If
 
-        nudRadius.Value = CDec(Clamp_dbl(Brush.Radius, CDbl(nudRadius.Minimum), CDbl(nudRadius.Maximum)))
+        nudRadius.Value = CDec(Clamp_dbl(Brush.Radius - ValueOffset, CDbl(nudRadius.Minimum), CDbl(nudRadius.Maximum)))
         Select Case Brush.Shape
             Case clsBrush.enumShape.Circle
                 tabShape.SelectedIndex = 0
@@ -46,19 +48,12 @@
         Dim NewRadius As Double
         Dim Converted As Boolean = False
         Try
-            NewRadius = CDbl(nudRadius.Value)
+            NewRadius = ValueOffset + CDbl(nudRadius.Value)
             Converted = True
         Catch ex As Exception
 
         End Try
         If Converted Then
-            If NewRadius < 0.0# Then
-                NewRadius = 0.0#
-                nudRadius.Value = CDec(NewRadius)
-            ElseIf NewRadius > 512.0# Then
-                NewRadius = 512.0#
-                nudRadius.Value = CDec(NewRadius)
-            End If
             Brush.Radius = NewRadius
         End If
 
@@ -140,17 +135,15 @@
         '
         'nudRadius
         '
-        Me.nudRadius.DecimalPlaces = 3
+        Me.nudRadius.DecimalPlaces = 2
         Me.nudRadius.Increment = New Decimal(New Integer() {5, 0, 0, 65536})
         Me.nudRadius.Location = New System.Drawing.Point(60, 0)
         Me.nudRadius.Margin = New System.Windows.Forms.Padding(4)
-        Me.nudRadius.Maximum = New Decimal(New Integer() {512125, 0, 0, 196608})
-        Me.nudRadius.Minimum = New Decimal(New Integer() {125, 0, 0, 196608})
+        Me.nudRadius.Maximum = New Decimal(New Integer() {512, 0, 0, 0})
         Me.nudRadius.Name = "nudRadius"
         Me.nudRadius.Size = New System.Drawing.Size(75, 22)
         Me.nudRadius.TabIndex = 40
         Me.nudRadius.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
-        Me.nudRadius.Value = New Decimal(New Integer() {125, 0, 0, 196608})
         '
         'ctrlBrush
         '

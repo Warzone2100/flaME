@@ -120,7 +120,6 @@ Partial Public Class clsMap
         If Draw_TileTextures Then
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
-            GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
             MapAction = New clsMap.clsDrawCallTerrain
             MapAction.Map = Me
             VisionSectors.PerformActionMapSectors(MapAction, DrawCentreSector)
@@ -204,7 +203,7 @@ Partial Public Class clsMap
                     End If
                 End If
                 GL.LineWidth(3.0F)
-                Dim DrawSelection As New clsMap.clsDrawAreaOutline
+                Dim DrawSelection As New clsMap.clsDrawTileAreaOutline
                 DrawSelection.Map = Me
                 DrawSelection.StartXY = StartXY
                 DrawSelection.FinishXY = FinishXY
@@ -655,12 +654,71 @@ Partial Public Class clsMap
 
         GL.Disable(EnableCap.DepthTest)
 
-        GL.PushMatrix()
-        GL.Translate(-ViewInfo.ViewPos.X, -ViewInfo.ViewPos.Y, ViewInfo.ViewPos.Z)
-        For A = 0 To ScriptMarkerCount - 1
-            ScriptMarkers(A).GLDraw()
-        Next
-        GL.PopMatrix()
+        Dim ScriptMarkerTextLabels As New clsTextLabels(256)
+        Dim tmpTextLabel As clsTextLabel
+        If Draw_ScriptMarkers Then
+            Dim tmpScriptPosition As clsScriptPosition
+            Dim tmpScriptArea As clsScriptArea
+            GL.PushMatrix()
+            GL.Translate(-ViewInfo.ViewPos.X, -ViewInfo.ViewPos.Y, ViewInfo.ViewPos.Z)
+            For A = 0 To ScriptPositions.ItemCount - 1
+                tmpScriptPosition = ScriptPositions.Item(A)
+                tmpScriptPosition.GLDraw()
+            Next
+            For A = 0 To ScriptAreas.ItemCount - 1
+                tmpScriptArea = ScriptAreas.Item(A)
+                tmpScriptArea.GLDraw()
+            Next
+            For A = 0 To ScriptPositions.ItemCount - 1
+                If ScriptMarkerTextLabels.AtMaxCount Then
+                    Exit For
+                End If
+                tmpScriptPosition = ScriptPositions.Item(A)
+                XYZ_dbl.X = tmpScriptPosition.PosX - ViewInfo.ViewPos.X
+                XYZ_dbl.Z = -tmpScriptPosition.PosY - ViewInfo.ViewPos.Z
+                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(tmpScriptPosition.PosX, tmpScriptPosition.PosY)) - ViewInfo.ViewPos.Y
+                Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                    If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
+                        tmpTextLabel = New clsTextLabel
+                        tmpTextLabel.Colour.Red = 1.0F
+                        tmpTextLabel.Colour.Green = 1.0F
+                        tmpTextLabel.Colour.Blue = 0.5F
+                        tmpTextLabel.Colour.Alpha = 0.75F
+                        tmpTextLabel.TextFont = UnitLabelFont
+                        tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        tmpTextLabel.Pos = ScreenPos
+                        tmpTextLabel.Text = tmpScriptPosition.Label
+                        ScriptMarkerTextLabels.Add(tmpTextLabel)
+                    End If
+                End If
+            Next
+            For A = 0 To ScriptAreas.ItemCount - 1
+                If ScriptMarkerTextLabels.AtMaxCount Then
+                    Exit For
+                End If
+                tmpScriptArea = ScriptAreas.Item(A)
+                XYZ_dbl.X = tmpScriptArea.PosAX - ViewInfo.ViewPos.X
+                XYZ_dbl.Z = -tmpScriptArea.PosAY - ViewInfo.ViewPos.Z
+                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(tmpScriptArea.PosAX, tmpScriptArea.PosAY)) - ViewInfo.ViewPos.Y
+                Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
+                If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
+                    If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
+                        tmpTextLabel = New clsTextLabel
+                        tmpTextLabel.Colour.Red = 1.0F
+                        tmpTextLabel.Colour.Green = 1.0F
+                        tmpTextLabel.Colour.Blue = 0.5F
+                        tmpTextLabel.Colour.Alpha = 0.75F
+                        tmpTextLabel.TextFont = UnitLabelFont
+                        tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        tmpTextLabel.Pos = ScreenPos
+                        tmpTextLabel.Text = tmpScriptArea.Label
+                        ScriptMarkerTextLabels.Add(tmpTextLabel)
+                    End If
+                End If
+            Next
+            GL.PopMatrix()
+        End If
 
         'draw unit selection
 
@@ -701,6 +759,7 @@ Partial Public Class clsMap
 
         GL.Enable(EnableCap.Texture2D)
 
+        ScriptMarkerTextLabels.Draw()
         DrawObjects.UnitTextLabels.Draw()
         SelectionLabel.Draw()
 
@@ -731,8 +790,8 @@ Partial Public Class clsMap
             If Minimap_GLTexture > 0 Then
 
                 GL.Enable(EnableCap.Texture2D)
-                GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
                 GL.BindTexture(TextureTarget.Texture2D, Minimap_GLTexture)
+                GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
 
                 GL.Begin(BeginMode.Quads)
 
@@ -904,7 +963,7 @@ Partial Public Class clsMap
         End Sub
     End Class
 
-    Public Class clsDrawAreaOutline
+    Public Class clsDrawTileAreaOutline
         'does not inherit action
 
         Public Map As clsMap
@@ -914,8 +973,6 @@ Partial Public Class clsMap
 
         Private Vertex0 As sXYZ_int
         Private Vertex1 As sXYZ_int
-        Private Vertex2 As sXYZ_int
-        Private Vertex3 As sXYZ_int
 
         Public Sub ActionPerform()
 
@@ -961,6 +1018,105 @@ Partial Public Class clsMap
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
                 GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
             Next
+            GL.End()
+        End Sub
+    End Class
+
+    Public Class clsDrawTerrainLine
+        'does not inherit action
+
+        Public Map As clsMap
+        Public Colour As sRGBA_sng
+        Public StartXY As sXY_int
+        Public FinishXY As sXY_int
+
+        Private Vertex As sXYZ_int
+        Private StartTile As sXY_int
+        Private FinishTile As sXY_int
+        Private IntersectX As sIntersectPos
+        Private IntersectY As sIntersectPos
+        Private TileEdgeStart As sXY_int
+        Private TileEdgeFinish As sXY_int
+        Private LastXTile As Integer
+        Private Horizontal As sXY_int
+
+        Public Sub ActionPerform()
+            Dim X As Integer
+            Dim Y As Integer
+
+            GL.Begin(BeginMode.LineStrip)
+            GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
+
+            StartTile.Y = CInt(Int(StartXY.Y / TerrainGridSpacing))
+            FinishTile.Y = CInt(Int(FinishXY.Y / TerrainGridSpacing))
+            LastXTile = CInt(Int(StartXY.X / TerrainGridSpacing))
+
+            Horizontal = StartXY
+            Vertex.X = Horizontal.X
+            Vertex.Y = CInt(Map.GetTerrainHeight(Horizontal))
+            Vertex.Z = -Horizontal.Y
+            GL.Vertex3(Vertex.X, Vertex.Y, -Vertex.Z)
+
+            If StartTile.Y + 1 <= FinishTile.Y Then
+                For Y = StartTile.Y + 1 To FinishTile.Y
+                    TileEdgeStart.X = 0
+                    TileEdgeStart.Y = Y * TerrainGridSpacing
+                    TileEdgeFinish.X = Map.Terrain.TileSize.X * TerrainGridSpacing
+                    TileEdgeFinish.Y = Y * TerrainGridSpacing
+                    IntersectY = GetLinesIntersectBetween(StartXY, FinishXY, TileEdgeStart, TileEdgeFinish)
+                    If IntersectY.Exists Then
+                        StartTile.X = LastXTile
+                        FinishTile.X = CInt(Int(IntersectY.Pos.X / TerrainGridSpacing))
+
+                        For X = StartTile.X + 1 To FinishTile.X
+                            TileEdgeStart.X = X * TerrainGridSpacing
+                            TileEdgeStart.Y = 0
+                            TileEdgeFinish.X = X * TerrainGridSpacing
+                            TileEdgeFinish.Y = Map.Terrain.TileSize.Y * TerrainGridSpacing
+                            IntersectX = GetLinesIntersectBetween(StartXY, FinishXY, TileEdgeStart, TileEdgeFinish)
+                            If IntersectX.Exists Then
+                                Horizontal = IntersectX.Pos
+                                Vertex.X = Horizontal.X
+                                Vertex.Y = CInt(Map.GetTerrainHeight(Horizontal))
+                                Vertex.Z = -Horizontal.Y
+                                GL.Vertex3(Vertex.X, Vertex.Y, -Vertex.Z)
+                            End If
+                        Next
+
+                        LastXTile = FinishTile.X
+
+                        Horizontal = IntersectY.Pos
+                        Vertex.X = Horizontal.X
+                        Vertex.Y = CInt(Map.GetTerrainHeight(Horizontal))
+                        Vertex.Z = -Horizontal.Y
+                        GL.Vertex3(Vertex.X, Vertex.Y, -Vertex.Z)
+                    End If
+                Next
+            Else
+                StartTile.X = LastXTile
+                FinishTile.X = CInt(Int(FinishXY.X / TerrainGridSpacing))
+                For X = StartTile.X + 1 To FinishTile.X
+                    TileEdgeStart.X = X * TerrainGridSpacing
+                    TileEdgeStart.Y = 0
+                    TileEdgeFinish.X = X * TerrainGridSpacing
+                    TileEdgeFinish.Y = Map.Terrain.TileSize.Y * TerrainGridSpacing
+                    IntersectX = GetLinesIntersectBetween(StartXY, FinishXY, TileEdgeStart, TileEdgeFinish)
+                    If IntersectX.Exists Then
+                        Horizontal = IntersectX.Pos
+                        Vertex.X = Horizontal.X
+                        Vertex.Y = CInt(Map.GetTerrainHeight(Horizontal))
+                        Vertex.Z = -Horizontal.Y
+                        GL.Vertex3(Vertex.X, Vertex.Y, -Vertex.Z)
+                    End If
+                Next
+            End If
+
+            Horizontal = FinishXY
+            Vertex.X = Horizontal.X
+            Vertex.Y = CInt(Map.GetTerrainHeight(Horizontal))
+            Vertex.Z = -Horizontal.Y
+            GL.Vertex3(Vertex.X, Vertex.Y, -Vertex.Z)
+
             GL.End()
         End Sub
     End Class
@@ -1024,7 +1180,7 @@ Partial Public Class clsMap
                         A = Map.Terrain.Vertices(X, Y).Terrain.Num
                         If A < Map.Painter.TerrainCount Then
                             If Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
-                                RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).Average_Color
+                                RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).AverageColour
                                 If RGB_sng.Red + RGB_sng.Green + RGB_sng.Blue < 1.5F Then
                                     RGB_sng2.Red = (RGB_sng.Red + 1.0F) / 2.0F
                                     RGB_sng2.Green = (RGB_sng.Green + 1.0F) / 2.0F

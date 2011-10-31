@@ -16,7 +16,7 @@
 
     Public Sub UpdateMapTabs()
 
-        frmMainInstance.View.UpdateTabs()
+        frmMainInstance.MapView.UpdateTabs()
     End Sub
 
     Public Sub LoadedMap_Add(ByVal NewMap As clsMap)

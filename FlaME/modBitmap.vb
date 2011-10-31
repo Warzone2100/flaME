@@ -50,56 +50,32 @@ Public Module modBitmap
         Return ReturnResult
     End Function
 
-    Public Function BitmapGLTexture(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal IsMipmapped As Boolean, ByVal Interpolation As Boolean) As Integer
-        Dim ReturnResult As Integer
+    Public Structure sBitmapGLTexture
+        Public Texture As Bitmap
+        Public TextureNum As Integer
+        Public MipMapLevel As Integer
+        Public MinFilter As TextureMinFilter
+        Public MagFilter As TextureMagFilter
 
-        Dim tmpData As Drawing.Imaging.BitmapData = Texture.LockBits(New Rectangle(0, 0, Texture.Width, Texture.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
+        Public Sub Perform()
 
-        If OpenTK.Graphics.GraphicsContext.CurrentContext IsNot GLControlToGiveTo.Context Then
-            GLControlToGiveTo.MakeCurrent()
-        End If
+            Dim tmpData As Drawing.Imaging.BitmapData = Texture.LockBits(New Rectangle(0, 0, Texture.Width, Texture.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
 
-        GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        ReturnResult = 0
-        GL.GenTextures(1, ReturnResult)
-        GL.BindTexture(TextureTarget.Texture2D, ReturnResult)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
-        If Interpolation Then
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Linear)
-        Else
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
-        End If
-        If IsMipmapped Then
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.NearestMipmapNearest)
-        Else
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
-        End If
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
+            If MipMapLevel = 0 Then
+                GL.GenTextures(1, TextureNum)
+            End If
+            GL.BindTexture(TextureTarget.Texture2D, TextureNum)
+            If MipMapLevel = 0 Then
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, MagFilter)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, MinFilter)
+            End If
+            GL.TexImage2D(TextureTarget.Texture2D, MipMapLevel, PixelInternalFormat.Rgba, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
 
-        Texture.UnlockBits(tmpData)
-
-        Return ReturnResult
-    End Function
-
-    Public Sub BitmapGLTexture_MipMap(ByVal Texture As Bitmap, ByVal GLControlToGiveTo As OpenTK.GLControl, ByVal GLTextureNum As Integer, ByVal MipMapLevel As Integer)
-
-        Dim tmpData As Drawing.Imaging.BitmapData = Texture.LockBits(New Rectangle(0, 0, Texture.Width, Texture.Height), Imaging.ImageLockMode.ReadOnly, Imaging.PixelFormat.Format32bppArgb)
-
-        If OpenTK.Graphics.GraphicsContext.CurrentContext IsNot GLControlToGiveTo.Context Then
-            GLControlToGiveTo.MakeCurrent()
-        End If
-
-        GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
-        GL.BindTexture(TextureTarget.Texture2D, GLTextureNum)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest)
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.NearestMipmapNearest)
-        GL.TexImage2D(TextureTarget.Texture2D, MipMapLevel, PixelInternalFormat.Rgba, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
-
-        Texture.UnlockBits(tmpData)
-    End Sub
+            Texture.UnlockBits(tmpData)
+        End Sub
+    End Structure
 
     Public Function BitmapIsGLCompatible(ByVal BitmapToCheck As Bitmap) As clsResult
         Dim ReturnResult As New clsResult

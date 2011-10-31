@@ -1498,9 +1498,8 @@ LineDone:
             WriteText(File, True, InterfaceOptions.CompileMultiPlayers)
             File.Write(InterfaceOptions.CompileMultiXPlayers)
             WriteText(File, True, InterfaceOptions.CompileMultiAuthor)
-
             WriteText(File, True, InterfaceOptions.CompileMultiLicense)
-            'WriteText(File, True, InvariantToString_int(InterfaceOptions.CampaignGameTime))
+            WriteText(File, True, "0") 'WriteText(File, True, InvariantToString_int(InterfaceOptions.CampaignGameTime))
             Dim intTemp As Integer = InterfaceOptions.CampaignGameType
             File.Write(intTemp)
 

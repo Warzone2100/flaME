@@ -94,8 +94,14 @@ Public Class clsUnitType
 
     Public Sub GLDraw(ByVal RotationDegrees As Single)
 
-        GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
-        GL.Color3(1.0F, 1.0F, 1.0F)
+        Select Case Draw_Lighting
+            Case enumDrawLighting.Off
+                GL.Color3(1.0F, 1.0F, 1.0F)
+            Case enumDrawLighting.Half
+                GL.Color3(0.875F, 0.875F, 0.875F)
+            Case enumDrawLighting.Normal
+                GL.Color3(0.75F, 0.75F, 0.75F)
+        End Select
         'GL.Rotate(x, 1.0F, 0.0F, 0.0F)
         GL.Rotate(RotationDegrees, 0.0F, 1.0F, 0.0F)
         'GL.Rotate(z, 0.0F, 0.0F, -1.0F)

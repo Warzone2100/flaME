@@ -172,6 +172,7 @@ Partial Class frmMain
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Panel14 = New System.Windows.Forms.Panel()
+        Me.txtObjectLabel = New System.Windows.Forms.TextBox()
         Me.Label35 = New System.Windows.Forms.Label()
         Me.btnDroidToDesign = New System.Windows.Forms.Button()
         Me.Label24 = New System.Windows.Forms.Label()
@@ -188,6 +189,7 @@ Partial Class frmMain
         Me.txtObjectID = New System.Windows.Forms.TextBox()
         Me.Label26 = New System.Windows.Forms.Label()
         Me.tpCampaignMarkers = New System.Windows.Forms.TabPage()
+        Me.Label11 = New System.Windows.Forms.Label()
         Me.Label43 = New System.Windows.Forms.Label()
         Me.Label42 = New System.Windows.Forms.Label()
         Me.lstScriptAreas = New System.Windows.Forms.ListBox()
@@ -277,7 +279,7 @@ Partial Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
-        Me.Label11 = New System.Windows.Forms.Label()
+        Me.Label17 = New System.Windows.Forms.Label()
         CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
@@ -2128,6 +2130,8 @@ Partial Class frmMain
         '
         'Panel14
         '
+        Me.Panel14.Controls.Add(Me.Label17)
+        Me.Panel14.Controls.Add(Me.txtObjectLabel)
         Me.Panel14.Controls.Add(Me.Label35)
         Me.Panel14.Controls.Add(Me.btnDroidToDesign)
         Me.Panel14.Controls.Add(Me.Label24)
@@ -2149,9 +2153,17 @@ Partial Class frmMain
         Me.Panel14.Size = New System.Drawing.Size(404, 344)
         Me.Panel14.TabIndex = 1
         '
+        'txtObjectLabel
+        '
+        Me.txtObjectLabel.Location = New System.Drawing.Point(91, 181)
+        Me.txtObjectLabel.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtObjectLabel.Name = "txtObjectLabel"
+        Me.txtObjectLabel.Size = New System.Drawing.Size(137, 22)
+        Me.txtObjectLabel.TabIndex = 42
+        '
         'Label35
         '
-        Me.Label35.Location = New System.Drawing.Point(153, 213)
+        Me.Label35.Location = New System.Drawing.Point(153, 243)
         Me.Label35.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label35.Name = "Label35"
         Me.Label35.Size = New System.Drawing.Size(176, 27)
@@ -2205,7 +2217,7 @@ Partial Class frmMain
         '
         'Label23
         '
-        Me.Label23.Location = New System.Drawing.Point(21, 120)
+        Me.Label23.Location = New System.Drawing.Point(8, 120)
         Me.Label23.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label23.Name = "Label23"
         Me.Label23.Size = New System.Drawing.Size(75, 25)
@@ -2216,7 +2228,7 @@ Partial Class frmMain
         '
         'txtObjectHealth
         '
-        Me.txtObjectHealth.Location = New System.Drawing.Point(91, 215)
+        Me.txtObjectHealth.Location = New System.Drawing.Point(91, 245)
         Me.txtObjectHealth.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectHealth.Name = "txtObjectHealth"
         Me.txtObjectHealth.Size = New System.Drawing.Size(54, 22)
@@ -2226,7 +2238,7 @@ Partial Class frmMain
         '
         'txtObjectRotation
         '
-        Me.txtObjectRotation.Location = New System.Drawing.Point(104, 121)
+        Me.txtObjectRotation.Location = New System.Drawing.Point(91, 121)
         Me.txtObjectRotation.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectRotation.Name = "txtObjectRotation"
         Me.txtObjectRotation.Size = New System.Drawing.Size(41, 22)
@@ -2236,7 +2248,7 @@ Partial Class frmMain
         '
         'Label34
         '
-        Me.Label34.Location = New System.Drawing.Point(20, 214)
+        Me.Label34.Location = New System.Drawing.Point(20, 244)
         Me.Label34.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label34.Name = "Label34"
         Me.Label34.Size = New System.Drawing.Size(63, 25)
@@ -2258,7 +2270,7 @@ Partial Class frmMain
         '
         'txtObjectPriority
         '
-        Me.txtObjectPriority.Location = New System.Drawing.Point(91, 185)
+        Me.txtObjectPriority.Location = New System.Drawing.Point(91, 215)
         Me.txtObjectPriority.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectPriority.Name = "txtObjectPriority"
         Me.txtObjectPriority.Size = New System.Drawing.Size(54, 22)
@@ -2268,7 +2280,7 @@ Partial Class frmMain
         '
         'Label25
         '
-        Me.Label25.Location = New System.Drawing.Point(21, 153)
+        Me.Label25.Location = New System.Drawing.Point(47, 150)
         Me.Label25.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label25.Name = "Label25"
         Me.Label25.Size = New System.Drawing.Size(36, 25)
@@ -2279,7 +2291,7 @@ Partial Class frmMain
         '
         'Label33
         '
-        Me.Label33.Location = New System.Drawing.Point(20, 184)
+        Me.Label33.Location = New System.Drawing.Point(20, 214)
         Me.Label33.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label33.Name = "Label33"
         Me.Label33.Size = New System.Drawing.Size(63, 25)
@@ -2290,7 +2302,7 @@ Partial Class frmMain
         '
         'txtObjectID
         '
-        Me.txtObjectID.Location = New System.Drawing.Point(65, 154)
+        Me.txtObjectID.Location = New System.Drawing.Point(91, 151)
         Me.txtObjectID.Margin = New System.Windows.Forms.Padding(4)
         Me.txtObjectID.Name = "txtObjectID"
         Me.txtObjectID.Size = New System.Drawing.Size(80, 22)
@@ -2300,7 +2312,7 @@ Partial Class frmMain
         '
         'Label26
         '
-        Me.Label26.Location = New System.Drawing.Point(154, 121)
+        Me.Label26.Location = New System.Drawing.Point(140, 120)
         Me.Label26.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label26.Name = "Label26"
         Me.Label26.Size = New System.Drawing.Size(88, 25)
@@ -2324,6 +2336,16 @@ Partial Class frmMain
         Me.tpCampaignMarkers.TabIndex = 7
         Me.tpCampaignMarkers.Text = "Script Markers"
         Me.tpCampaignMarkers.UseVisualStyleBackColor = True
+        '
+        'Label11
+        '
+        Me.Label11.Location = New System.Drawing.Point(238, 11)
+        Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label11.Name = "Label11"
+        Me.Label11.Size = New System.Drawing.Size(142, 55)
+        Me.Label11.TabIndex = 53
+        Me.Label11.Text = "Hold P and click to make positions."
+        Me.Label11.UseCompatibleTextRendering = True
         '
         'Label43
         '
@@ -3056,15 +3078,16 @@ Partial Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
-        'Label11
+        'Label17
         '
-        Me.Label11.Location = New System.Drawing.Point(238, 11)
-        Me.Label11.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label11.Name = "Label11"
-        Me.Label11.Size = New System.Drawing.Size(142, 55)
-        Me.Label11.TabIndex = 53
-        Me.Label11.Text = "Hold P and click to make positions."
-        Me.Label11.UseCompatibleTextRendering = True
+        Me.Label17.Location = New System.Drawing.Point(21, 180)
+        Me.Label17.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label17.Name = "Label17"
+        Me.Label17.Size = New System.Drawing.Size(62, 25)
+        Me.Label17.TabIndex = 43
+        Me.Label17.Text = "Label:"
+        Me.Label17.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        Me.Label17.UseCompatibleTextRendering = True
         '
         'frmMain
         '
@@ -3399,4 +3422,6 @@ Partial Class frmMain
     Public WithEvents Label43 As System.Windows.Forms.Label
     Public WithEvents Label42 As System.Windows.Forms.Label
     Public WithEvents Label11 As System.Windows.Forms.Label
+    Public WithEvents txtObjectLabel As System.Windows.Forms.TextBox
+    Public WithEvents Label17 As System.Windows.Forms.Label
 End Class

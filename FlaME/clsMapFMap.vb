@@ -22,6 +22,7 @@ Partial Public Class clsMap
             Public TurretCodes() As String
             Public TurretCount As Integer
             Public Priority As Integer
+            Public Label As String
         End Structure
         Public Objects() As sObject
         Public ObjectCount As Integer
@@ -199,6 +200,8 @@ Partial Public Class clsMap
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     Objects(INISectionNum).Health = NewHealth
+                Case "scriptlabel"
+                    Objects(INISectionNum).Label = INIProperty.Value
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -334,21 +337,20 @@ Partial Public Class clsMap
             WZStream.CloseEntry()
         End If
 
-        If ScriptMarkerCount > 0 Then
-            ZipPath = "ScriptLabels.ini"
-            ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
-            If ZipEntry IsNot Nothing Then
-                Dim INI_ScriptLables As New clsINIWrite
-                INI_ScriptLables.File = StreamWriter
-                ReturnResult.Append(Data_FMap_ScriptLabels(INI_ScriptLables), "Serialising: " & ZipPath)
+        ZipPath = "ScriptLabels.ini"
+        ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
+        If ZipEntry IsNot Nothing Then
+            Dim INI_ScriptLabels As New clsINIWrite
+            INI_ScriptLabels.File = StreamWriter
+            ReturnResult.Append(Data_WZ_LabelsINI(INI_ScriptLabels, -1), "Serialising: " & ZipPath)
 
-                StreamWriter.Flush()
-                WZStream.CloseEntry()
-            End If
+            StreamWriter.Flush()
+            WZStream.CloseEntry()
         End If
 
         WZStream.Finish()
         WZStream.Close()
+        BinaryWriter.Close()
         Return ReturnResult
     End Function
 
@@ -687,6 +689,9 @@ Partial Public Class clsMap
                 If tmpUnit.Health < 1.0# Then
                     File.Property_Append("Health", InvariantToString_dbl(tmpUnit.Health))
                 End If
+                If tmpUnit.Label IsNot Nothing Then
+                    File.Property_Append("ScriptLabel", tmpUnit.Label)
+                End If
                 File.Gap_Append()
             Next
         Catch ex As Exception
@@ -730,22 +735,6 @@ Partial Public Class clsMap
                     File.Write(CByte(Tile_TypeNum(A)))
                 Next
             End If
-        Catch ex As Exception
-            ReturnResult.Problem_Add(ex.Message)
-        End Try
-
-        Return ReturnResult
-    End Function
-
-    Public Function Data_FMap_ScriptLabels(ByVal File As clsINIWrite) As clsResult
-        Dim ReturnResult As New clsResult
-
-        Dim A As Integer
-
-        Try
-            For A = 0 To ScriptMarkerCount - 1
-                ScriptMarkers(A).WriteFMap(File)
-            Next
         Catch ex As Exception
             ReturnResult.Problem_Add(ex.Message)
         End Try
@@ -887,9 +876,11 @@ Partial Public Class clsMap
         If ZipSearchResult Is Nothing Then
 
         Else
-            Dim ScriptLabels_Reader As New IO.StreamReader(ZipSearchResult.Stream)
-            ReturnResult.AppendAsWarning(Read_FMap_ScriptLabels(ScriptLabels_Reader), "Read script labels: ")
-            ScriptLabels_Reader.Close()
+            Dim LabelsINI As New clsINIRead
+            Dim LabelsINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
+            ReturnResult.AppendAsWarning(LabelsINI.ReadFile(LabelsINI_Reader), "Labels INI: ")
+            LabelsINI_Reader.Close()
+            ReturnResult.AppendAsWarning(Read_WZ_Labels(LabelsINI, True), "Interpret labels INI:")
         End If
 
         InterfaceOptions = ResultInfo.InterfaceOptions
@@ -1438,6 +1429,7 @@ Partial Public Class clsMap
                     If AvailableID = INIObjects.Objects(A).ID Then
                         AvailableID = NewObject.ID + 1UI
                     End If
+                    NewObject.SetLabel(INIObjects.Objects(A).Label)
                 End If
             End If
         Next
@@ -1567,129 +1559,6 @@ Partial Public Class clsMap
 
         If File.PeekChar >= 0 Then
             ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
-        End If
-
-        Return ReturnResult
-    End Function
-
-    Public Class clsFMap_INIScriptLabels
-        Inherits clsINIRead.clsSectionTranslator
-
-        Public Structure sScriptLabel
-            Public Type As String
-            Public Label As String
-            Public Pos As String
-        End Structure
-        Public ScriptLabels() As sScriptLabel
-        Public ScriptLabelCount As Integer
-
-        Public Sub New(ByVal NewScriptLabelCount As Integer)
-
-            ScriptLabelCount = NewScriptLabelCount
-            ReDim ScriptLabels(ScriptLabelCount - 1)
-        End Sub
-
-        Public Overrides Function Translate(ByVal INISectionNum As Integer, ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
-
-            Select Case INIProperty.Name
-                Case "type"
-                    ScriptLabels(INISectionNum).Type = INIProperty.Value
-                Case "label"
-                    ScriptLabels(INISectionNum).Label = INIProperty.Value
-                Case "pos"
-                    ScriptLabels(INISectionNum).Pos = INIProperty.Value
-                Case Else
-                    Return clsINIRead.enumTranslatorResult.NameUnknown
-            End Select
-            Return clsINIRead.enumTranslatorResult.Translated
-        End Function
-    End Class
-
-    Public Function Read_FMap_ScriptLabels(ByVal File As IO.StreamReader) As clsResult
-        Dim ReturnResult As New clsResult
-
-        Dim ScriptLabelsINI As New clsINIRead
-        ReturnResult.Append(ScriptLabelsINI.ReadFile(File), "")
-
-        Dim INIScriptLabels As New clsFMap_INIScriptLabels(ScriptLabelsINI.SectionCount)
-        ReturnResult.Append(ScriptLabelsINI.Translate(INIScriptLabels), "")
-
-        Dim A As Integer
-        Dim B As Integer
-        Dim tmpPositions As clsSplitCommaText
-        Dim TranslatedPositions(3) As Integer
-        Dim TypeNum As Integer
-        Dim NewPosition As clsMap.clsScriptPosition
-        Dim NewArea As clsMap.clsScriptArea
-
-        Dim FailedCount As Integer = 0
-        Dim ModifiedCount As Integer = 0
-
-        For A = 0 To INIScriptLabels.ScriptLabelCount - 1
-            Select Case INIScriptLabels.ScriptLabels(A).Type.ToLower
-                Case "position"
-                    TypeNum = 0
-                Case "area"
-                    TypeNum = 1
-                Case Else
-                    TypeNum = Integer.MaxValue
-                    FailedCount += 1
-                    Continue For
-            End Select
-            tmpPositions = New clsSplitCommaText(INIScriptLabels.ScriptLabels(A).Pos)
-            Select Case TypeNum
-                Case 0 'position
-                    If tmpPositions.PartCount >= 2 Then
-                        For B = 0 To 1
-                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
-                                Exit For
-                            End If
-                        Next
-                        If B < 2 Then
-                            FailedCount += 1
-                        Else
-                            NewPosition = clsMap.clsScriptPosition.Create(Me)
-                            NewPosition.PosX = TranslatedPositions(0)
-                            NewPosition.PosY = TranslatedPositions(1)
-                            NewPosition.SetLabel(INIScriptLabels.ScriptLabels(A).Label)
-                            If NewPosition.Label <> INIScriptLabels.ScriptLabels(A).Label Or NewPosition.PosX <> TranslatedPositions(0) Or NewPosition.PosY <> TranslatedPositions(1) Then
-                                ModifiedCount += 1
-                            End If
-                        End If
-                    Else
-                        FailedCount += 1
-                    End If
-                Case 1 'area
-                    If tmpPositions.PartCount >= 4 Then
-                        For B = 0 To 3
-                            If Not InvariantParse_int(tmpPositions.Parts(B), TranslatedPositions(B)) Then
-                                Exit For
-                            End If
-                        Next
-                        If B < 4 Then
-                            FailedCount += 1
-                        Else
-                            NewArea = clsMap.clsScriptArea.Create(Me)
-                            NewArea.SetPositions(New sXY_int(TranslatedPositions(0), TranslatedPositions(1)), New sXY_int(TranslatedPositions(2), TranslatedPositions(3)))
-                            NewArea.SetLabel(INIScriptLabels.ScriptLabels(A).Label)
-                            If NewArea.Label <> INIScriptLabels.ScriptLabels(A).Label Or NewArea.PosAX <> TranslatedPositions(0) Or NewArea.PosAY <> TranslatedPositions(1) _
-                                Or NewArea.PosBX <> TranslatedPositions(2) Or NewArea.PosBY <> TranslatedPositions(3) Then
-                                ModifiedCount += 1
-                            End If
-                        End If
-                    Else
-                        FailedCount += 1
-                    End If
-                Case Else
-                    ReturnResult.Warning_Add("Error! Bad type number for script label.")
-            End Select
-        Next
-
-        If FailedCount > 0 Then
-            ReturnResult.Warning_Add("Unable to translate " & FailedCount & " script labels.")
-        End If
-        If ModifiedCount > 0 Then
-            ReturnResult.Warning_Add(ModifiedCount & " script labels had invalid values and were modified.")
         End If
 
         Return ReturnResult

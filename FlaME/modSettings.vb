@@ -212,11 +212,11 @@
         If UnitLabelFont IsNot Nothing Then
             UnitLabelFont.Deallocate()
         End If
-        If TextureViewFont IsNot Nothing Then
-            TextureViewFont.Deallocate()
-        End If
-        UnitLabelFont = frmMainInstance.View.CreateGLFont(NewFont)
-        TextureViewFont = frmMainInstance.TextureView.CreateGLFont(NewFont)
+        'If TextureViewFont IsNot Nothing Then
+        '    TextureViewFont.Deallocate()
+        'End If
+        UnitLabelFont = frmMainInstance.MapView.CreateGLFont(NewFont)
+        'TextureViewFont = frmMainInstance.TextureView.CreateGLFont(NewFont)
     End Sub
 
     Public Function Settings_Write() As clsResult
@@ -236,7 +236,7 @@
         Dim INI_Settings As clsINIWrite
 
         Try
-            INI_Settings = CreateINIWriteFile(IO.File.Create(SettingsPath))
+            INI_Settings = clsINIWrite.CreateFile(IO.File.Create(SettingsPath))
         Catch ex As Exception
             ReturnResult.Problem_Add(ex.Message)
             Return ReturnResult

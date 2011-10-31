@@ -7,7 +7,7 @@
         Dim RotatedPos As sXY_int
         Dim NewTerrainPosA As sXY_int = GetRotatedPos(Orientation, New sXY_int(0, 0), Terrain.TileSize)
         Dim NewTerrainPosB As sXY_int = GetRotatedPos(Orientation, Terrain.TileSize, Terrain.TileSize)
-        Dim VertexLimits As New sXY_int(Math.Max(NewTerrainPosA.x, NewTerrainPosB.x), Math.Max(NewTerrainPosA.y, NewTerrainPosB.y))
+        Dim VertexLimits As New sXY_int(Math.Max(NewTerrainPosA.X, NewTerrainPosB.X), Math.Max(NewTerrainPosA.Y, NewTerrainPosB.Y))
         Dim NewTerrain As New clsTerrain(VertexLimits)
         Dim NewTileLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y - 1)
         Dim NewSideHLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y)
@@ -672,10 +672,33 @@
         Public Map As clsMap
         Public Unit As clsUnit
         Public ResultUnit As clsUnit
+        Public ActionPerformed As Boolean
 
-        Protected ID As UInteger
+        Protected Overridable Sub ActionCondition()
 
-        Public MustOverride Sub ActionPerform()
+        End Sub
+
+        Public Sub ActionPerform()
+
+            If Unit Is Nothing Then
+                Stop
+                Exit Sub
+            End If
+            ActionPerformed = True
+            ActionCondition()
+            If Not ActionPerformed Then
+                Exit Sub
+            End If
+            ResultUnit = New clsMap.clsUnit(Unit)
+            _ActionPerform()
+            If ResultUnit Is Nothing Then
+                ResultUnit = Unit
+            Else
+                Map.UnitSwap(Unit, ResultUnit)
+            End If
+        End Sub
+
+        Protected MustOverride Sub _ActionPerform()
     End Class
 
     Public Class clsApplyCliff
@@ -1237,7 +1260,7 @@
         Private PainterTerrainB As clsPainter.clsTerrain
         Private Texture As clsTerrain.Tile.sTexture
         Private ResultDirection As sTileDirection
-        Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Private PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Private OppositeDirection As sTileDirection
         Private BestNum As Integer
         Private BestCount As Integer
@@ -1437,7 +1460,7 @@
         Private PainterTerrainB As clsPainter.clsTerrain
         Private Texture As clsTerrain.Tile.sTexture
         Private ResultDirection As sTileDirection
-        Private PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Private PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Private OppositeDirection As sTileDirection
         Private Tile As clsTerrain.Tile
         Private Terrain As clsTerrain
@@ -1540,7 +1563,7 @@
         Protected PainterRoad As clsPainter.clsRoad
         Protected Texture As clsTerrain.Tile.sTexture
         Protected ResultDirection As sTileDirection
-        Protected PainterTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Protected PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Protected OppositeDirection As sTileDirection
         Protected Tile As clsTerrain.Tile
         Protected RoadCount() As Integer
@@ -1718,16 +1741,9 @@
 
         Public Angle As Integer
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             ResultUnit.Rotation = Angle
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectRotation")
         End Sub
     End Class
 
@@ -1736,16 +1752,9 @@
 
         Public UnitGroup As clsUnitGroup
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             ResultUnit.UnitGroup = UnitGroup
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectUnitGroup")
         End Sub
     End Class
 
@@ -1754,16 +1763,9 @@
 
         Public Priority As Integer
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             ResultUnit.SavePriority = Priority
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
         End Sub
     End Class
 
@@ -1772,16 +1774,9 @@
 
         Public Health As Double
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             ResultUnit.Health = Health
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
         End Sub
     End Class
 
@@ -1792,18 +1787,11 @@
 
         Private NewPos As sXY_int
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             NewPos.X = Unit.Pos.Horizontal.X + Offset.X
             NewPos.Y = Unit.Pos.Horizontal.Y + Offset.Y
             ResultUnit.Pos = Map.TileAligned_Pos_From_MapPos(NewPos, ResultUnit.Type.GetFootprint)
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
         End Sub
     End Class
 
@@ -1814,10 +1802,7 @@
 
         Private NewPos As sXY_int
 
-        Public Overrides Sub ActionPerform()
-
-            ResultUnit = New clsMap.clsUnit(Unit)
-            ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
             ResultUnit.Rotation = Unit.Rotation + Offset
             If ResultUnit.Rotation < 0 Then
@@ -1825,48 +1810,33 @@
             ElseIf ResultUnit.Rotation >= 360 Then
                 ResultUnit.Rotation -= 360
             End If
-
-            Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-            Map.UnitID_Add_StoreChange(ResultUnit, ID)
-            ErrorIDChange(ID, ResultUnit, "ObjectPriority")
         End Sub
     End Class
 
     Public Class clsObjectTemplateToDesign
         Inherits clsObjectAction
 
-        Public Changed As Boolean
-
         Private OldDroidType As clsDroidDesign
         Private NewDroidType As clsDroidDesign
-        Private DoUnit As Boolean
 
-        Public Overrides Sub ActionPerform()
+        Protected Overrides Sub ActionCondition()
+            MyBase.ActionCondition()
 
             If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
                 OldDroidType = CType(Unit.Type, clsDroidDesign)
-                DoUnit = OldDroidType.IsTemplate
+                ActionPerformed = OldDroidType.IsTemplate
             Else
                 OldDroidType = Nothing
-                DoUnit = False
+                ActionPerformed = False
             End If
-            If DoUnit Then
-                Changed = True
+        End Sub
 
-                ResultUnit = New clsMap.clsUnit(Unit)
-                ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
-                NewDroidType = New clsDroidDesign
-                ResultUnit.Type = NewDroidType
-                NewDroidType.CopyDesign(OldDroidType)
-                NewDroidType.UpdateAttachments()
-
-                Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-                Map.UnitID_Add_StoreChange(ResultUnit, ID)
-                ErrorIDChange(ID, ResultUnit, "TemplateToDesign")
-            Else
-                ResultUnit = Unit
-            End If
+            NewDroidType = New clsDroidDesign
+            ResultUnit.Type = NewDroidType
+            NewDroidType.CopyDesign(OldDroidType)
+            NewDroidType.UpdateAttachments()
         End Sub
     End Class
 
@@ -1877,39 +1847,30 @@
 
         Private OldDroidType As clsDroidDesign
         Protected NewDroidType As clsDroidDesign
-        Private DoUnit As Boolean
 
         Protected MustOverride Sub ChangeComponent()
 
-        Public Overrides Sub ActionPerform()
+        Protected Overrides Sub ActionCondition()
+            MyBase.ActionCondition()
 
             If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
                 OldDroidType = CType(Unit.Type, clsDroidDesign)
-                DoUnit = Not OldDroidType.IsTemplate
+                ActionPerformed = Not OldDroidType.IsTemplate
             Else
                 OldDroidType = Nothing
-                DoUnit = False
+                ActionPerformed = False
             End If
-            If DoUnit Then
-                Changed = True
+        End Sub
 
-                ResultUnit = New clsMap.clsUnit(Unit)
-                ID = Unit.ID
+        Protected Overrides Sub _ActionPerform()
 
-                NewDroidType = New clsDroidDesign
-                ResultUnit.Type = NewDroidType
-                NewDroidType.CopyDesign(OldDroidType)
+            NewDroidType = New clsDroidDesign
+            ResultUnit.Type = NewDroidType
+            NewDroidType.CopyDesign(OldDroidType)
 
-                ChangeComponent()
+            ChangeComponent()
 
-                NewDroidType.UpdateAttachments()
-
-                Map.Unit_Remove_StoreChange(Unit.Map_UnitNum)
-                Map.UnitID_Add_StoreChange(ResultUnit, ID)
-                ErrorIDChange(ID, ResultUnit, "ObjectComponent")
-            Else
-                ResultUnit = Unit
-            End If
+            NewDroidType.UpdateAttachments()
         End Sub
     End Class
 

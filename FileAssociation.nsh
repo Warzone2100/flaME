@@ -171,11 +171,12 @@ NoBackup:
   ReadRegStr $1 HKCR $R0 "backup_val"
   StrCmp $1 "" 0 Restore ; if backup="" then delete the whole key
   DeleteRegKey HKCR $R0
-  Goto NoOwn
+  Goto Own
  
 Restore:
   WriteRegStr HKCR $R0 "" $1
   DeleteRegValue HKCR $R0 "backup_val"
+Own:
   DeleteRegKey HKCR $R1 ;Delete key with association name settings
  
 NoOwn:

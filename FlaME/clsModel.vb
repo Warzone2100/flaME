@@ -48,6 +48,7 @@ Public Class clsModel
         Dim A As Integer
 
         GL.BindTexture(TextureTarget.Texture2D, GLTextureNum)
+        GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
 
         GL.Begin(BeginMode.Triangles)
         For A = 0 To TriangleCount - 1

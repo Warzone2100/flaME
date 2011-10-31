@@ -251,14 +251,16 @@ Partial Public Class clsMap
         Public SectorCount As Integer
 
         Public ID As UInteger
-        Public SavePriority As Integer
         Public Type As clsUnitType
         Public Pos As sWorldPos
         Public Rotation As Integer
         'Public Name As String = "NONAME"
         Public UnitGroup As clsMap.clsUnitGroup
+        Public SavePriority As Integer
         Public Health As Double = 1.0#
         Public PreferPartsOutput As Boolean = False
+
+        Private _Label As String
 
         Public Sub New()
 
@@ -287,6 +289,12 @@ Partial Public Class clsMap
             Health = UnitToCopy.Health
             PreferPartsOutput = UnitToCopy.PreferPartsOutput
         End Sub
+
+        Public ReadOnly Property Label As String
+            Get
+                Return _Label
+            End Get
+        End Property
 
         Public Sub Sectors_Remove()
 
@@ -332,6 +340,58 @@ Partial Public Class clsMap
                 Map.SelectedUnits.Remove(Map_SelectedUnitNum)
             End If
         End Sub
+
+        Public Function SetLabel(ByVal Text As String) As sResult
+            Dim Result As sResult
+
+            If Type.Type = clsUnitType.enumType.PlayerStructure Then
+                Dim tmpStructure As clsStructureType = CType(Type, clsStructureType)
+                Dim tmpType As clsStructureType.enumStructureType = tmpStructure.StructureType
+                If tmpType = clsStructureType.enumStructureType.FactoryModule _
+                    Or tmpType = clsStructureType.enumStructureType.PowerModule _
+                    Or tmpType = clsStructureType.enumStructureType.ResearchModule Then
+                    Result.Problem = "Error: Trying to assign label to structure module."
+                    Return Result
+                End If
+            End If
+
+            If Map_UnitNum < 0 Then
+                Stop
+                Result.Problem = "Error: Unit not on a map."
+                Return Result
+            End If
+
+            Result = Map.ScriptLabelIsValid(Text)
+            If Result.Success Then
+                _Label = Text
+            End If
+            Return Result
+        End Function
+
+        Public Sub WriteWZLabel(ByVal File As clsINIWrite, ByVal PlayerCount As Integer)
+
+            If _Label IsNot Nothing Then
+                Dim TypeNum As Integer
+                Select Case Type.Type
+                    Case clsUnitType.enumType.PlayerDroid
+                        TypeNum = 0
+                    Case clsUnitType.enumType.PlayerStructure
+                        TypeNum = 1
+                    Case clsUnitType.enumType.Feature
+                        TypeNum = 2
+                    Case Else
+                        Exit Sub
+                End Select
+                File.SectionName_Append("object_" & InvariantToString_int(Map_UnitNum))
+                File.Property_Append("id", InvariantToString_uint(ID))
+                If PlayerCount >= 0 Then 'not an FMap
+                    File.Property_Append("type", InvariantToString_int(TypeNum))
+                    File.Property_Append("player", InvariantToString_int(UnitGroup.GetPlayerNum(PlayerCount)))
+                End If
+                File.Property_Append("label", _Label)
+                File.Gap_Append()
+            End If
+        End Sub
     End Class
     Public Units(-1) As clsUnit
     Public UnitCount As Integer
@@ -349,6 +409,15 @@ Partial Public Class clsMap
                 Return InvariantToString_int(7)
             Else
                 Return InvariantToString_int(WZ_StartPos)
+            End If
+        End Function
+
+        Public Function GetPlayerNum(ByVal PlayerCount As Integer) As Integer
+
+            If WZ_StartPos < 0 Or WZ_StartPos >= PlayerCountMax Then
+                Return Math.Max(PlayerCount, 7)
+            Else
+                Return WZ_StartPos
             End If
         End Function
     End Class
@@ -445,9 +514,6 @@ Partial Public Class clsMap
     End Class
     Public Gateways(-1) As clsGateway
     Public GatewayCount As Integer
-
-    Public ScriptMarkers(-1) As clsScriptMarker
-    Public ScriptMarkerCount As Integer
 
     Public Class clsPointChanges
 
@@ -1004,8 +1070,8 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         For Y = 0 To SectorCount.Y - 1
@@ -1024,8 +1090,8 @@ Partial Public Class clsMap
 
     Public Overridable Sub Deallocate()
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         Do While UnitCount > 0
@@ -1051,6 +1117,16 @@ Partial Public Class clsMap
         Erase UnitChanges
         Erase GatewayChanges
         Erase Undos
+        Do While ScriptPositions.ItemCount > 0
+            ScriptPositions.Item(0).Deallocate()
+        Loop
+        Do While ScriptAreas.ItemCount > 0
+            ScriptAreas.Item(0).Deallocate()
+        Loop
+        ScriptPositions.Deallocate()
+        ScriptPositions = Nothing
+        ScriptAreas.Deallocate()
+        ScriptAreas = Nothing
     End Sub
 
     Public Sub Terrain_Resize(ByVal Offset As sXY_int, ByVal Size As sXY_int)
@@ -1213,12 +1289,20 @@ Partial Public Class clsMap
 
         Terrain = NewTerrain
 
-        Dim tmpScriptMarkers(ScriptMarkerCount - 1) As clsScriptMarker
-        For A = 0 To ScriptMarkerCount - 1
-            tmpScriptMarkers(A) = ScriptMarkers(A)
+        Dim tmpScriptPositions(ScriptPositions.ItemCount - 1) As clsScriptPosition
+        For A = 0 To ScriptPositions.ItemCount - 1
+            tmpScriptPositions(A) = ScriptPositions.Item(A)
         Next
-        For A = 0 To ScriptMarkerCount - 1
-            tmpScriptMarkers(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
+        For A = 0 To tmpScriptPositions.GetUpperBound(0)
+            tmpScriptPositions(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
+        Next
+
+        Dim tmpScriptAreas(ScriptAreas.ItemCount - 1) As clsScriptArea
+        For A = 0 To ScriptAreas.ItemCount - 1
+            tmpScriptAreas(A) = ScriptAreas.Item(A)
+        Next
+        For A = 0 To tmpScriptareas.GetUpperBound(0)
+            tmpScriptAreas(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
         Next
 
         InitializeForUserInput()
@@ -1233,8 +1317,8 @@ Partial Public Class clsMap
         Dim FinishY As Integer
         Dim UnitNum As Integer
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         If Sectors(X, Y).GLList_Textured > 0 Then
@@ -1419,6 +1503,7 @@ Partial Public Class clsMap
         Else
             GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
         End If
+        GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
 
         TileTerrainHeight(0) = Terrain.Vertices(TileX, TileY).Height
         TileTerrainHeight(1) = Terrain.Vertices(TileX + 1, TileY).Height
@@ -1518,9 +1603,9 @@ Partial Public Class clsMap
                 For Y = 0 To Terrain.TileSize.Y - 1
                     For X = 0 To Terrain.TileSize.X - 1
                         If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Terrain.Tiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
-                            sngTexture(Y, X, 0) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Red
-                            sngTexture(Y, X, 1) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Green
-                            sngTexture(Y, X, 2) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Average_Color.Blue
+                            sngTexture(Y, X, 0) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).AverageColour.Red
+                            sngTexture(Y, X, 1) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).AverageColour.Green
+                            sngTexture(Y, X, 2) = Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).AverageColour.Blue
                         End If
                     Next
                 Next
@@ -1735,8 +1820,8 @@ Partial Public Class clsMap
             Next
 #End If
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         Minimap_GLDelete()
@@ -1751,7 +1836,14 @@ Partial Public Class clsMap
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Minimap_Texture_Size, Minimap_Texture_Size, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Texture.Pixels)
 #Else
-        Minimap_GLTexture = BitmapGLTexture(TextureB, frmMainInstance.View.OpenGLControl, False, False)
+        Dim BitmapTextureArgs As sBitmapGLTextureArgs
+        BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
+        BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
+        BitmapTextureArgs.TextureNum = 0
+        BitmapTextureArgs.MipMapLevel = 0
+        BitmapTextureArgs.Texture = TextureB
+        BitmapGLTexture(BitmapTextureArgs)
+        Minimap_GLTexture = BitmapTextureArgs.TextureNum
 #End If
 
         frmMainInstance.View_DrawViewLater()
@@ -1877,9 +1969,11 @@ Partial Public Class clsMap
 
         UnitSectors_GLList(Units(Num))
 
-        Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
-        If MouseOverTerrain IsNot Nothing Then
-            MouseOverTerrain.Unit_FindRemove(Units(Num))
+        If ViewInfo IsNot Nothing Then
+            Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
+            If MouseOverTerrain IsNot Nothing Then
+                MouseOverTerrain.Unit_FindRemove(Units(Num))
+            End If
         End If
 
         If Units(Num).Map_SelectedUnitNum >= 0 Then
@@ -1903,6 +1997,16 @@ Partial Public Class clsMap
         Units(UnitCount) = Nothing
         If Units.GetUpperBound(0) + 1 > UnitCount * 3 Then
             ReDim Preserve Units(UnitCount - 1)
+        End If
+    End Sub
+
+    Public Sub UnitSwap(ByVal OldUnit As clsMap.clsUnit, ByVal NewUnit As clsMap.clsUnit)
+
+        Unit_Remove_StoreChange(OldUnit.Map_UnitNum)
+        UnitID_Add_StoreChange(NewUnit, OldUnit.ID)
+        ErrorIDChange(OldUnit.ID, NewUnit, "UnitSwap")
+        If OldUnit.Label IsNot Nothing Then
+            NewUnit.SetLabel(OldUnit.Label)
         End If
     End Sub
 
@@ -2128,8 +2232,8 @@ Partial Public Class clsMap
 
         Undo_Pos -= 1
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
@@ -2199,8 +2303,8 @@ Partial Public Class clsMap
         Dim tmpUnit As clsUnit
         Dim ID As UInteger
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.View.OpenGLControl.Context Then
-            frmMainInstance.View.OpenGLControl.MakeCurrent()
+        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
+            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
         For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
@@ -2893,7 +2997,7 @@ Partial Public Class clsMap
         If InterfaceOptions Is Nothing Then
             InterfaceOptions = New clsInterfaceOptions
         End If
-        ViewInfo = New clsViewInfo(Me, frmMainInstance.View)
+        ViewInfo = New clsViewInfo(Me, frmMainInstance.MapView)
 
         ReceivingUserChanges = True
     End Sub
@@ -3064,7 +3168,7 @@ Partial Public Class clsMap
         Private Terrain As clsTerrain
         Private ResultTiles As clsPainter.clsTileList
         Private ResultDirection As sTileDirection
-        Private ResultTexture As clsPainter.clsTileList.sTile_Orientation_Chance
+        Private ResultTexture As clsPainter.clsTileList.sTileOrientationChance
 
         Public Overrides Sub ActionPerform()
 

@@ -2,6 +2,7 @@
 View
 f1 - camera movement mode
 f2 - camera rotation mode
+f4 - script markers on/off
 f5 - terrain on/off
 f6 - grid on/off
 f7 - objects on/off

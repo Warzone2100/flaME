@@ -33,9 +33,12 @@ Public Class ctrlTextureView
         ' This call is required by the Windows Form Designer.
         InitializeComponent()
 
-        ' Add any initialization after the InitializeComponent() call.
         OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0))
-        OpenGLControl.MakeCurrent() 'mono version fails without this
+        Try
+            OpenGLControl.MakeCurrent()
+        Catch ex As Exception
+
+        End Try
         pnlDraw.Controls.Add(OpenGLControl)
 
         GLInitializeDelayTimer = New Timer
@@ -90,6 +93,10 @@ Public Class ctrlTextureView
     End Sub
 
     Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
+
+        If OpenGLControl.Context Is Nothing Then
+            Exit Sub
+        End If
 
         IsGLInitialized = True
 
@@ -175,7 +182,6 @@ Public Class ctrlTextureView
             GetTileRotatedTexCoords(TextureOrientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
 
             GL.Enable(EnableCap.Texture2D)
-            GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
             GL.Color4(0.0F, 0.0F, 0.0F, 1.0F)
 
             For Y = 0 To TextureCount.Y - 1
@@ -190,15 +196,16 @@ Public Class ctrlTextureView
                     Else
                         GL.BindTexture(TextureTarget.Texture2D, A)
                     End If
+                    GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Decal)
                     GL.Begin(BeginMode.Quads)
                     GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
-                    GL.Vertex2(X * 64.0#, Y * 64.0#)
+                    GL.Vertex2(X * 64, Y * 64)
                     GL.TexCoord2(TexCoord2.X, TexCoord2.Y)
-                    GL.Vertex2(X * 64.0#, Y * 64.0# + 64.0#)
+                    GL.Vertex2(X * 64, Y * 64 + 64)
                     GL.TexCoord2(TexCoord3.X, TexCoord3.Y)
-                    GL.Vertex2(X * 64.0# + 64.0#, Y * 64.0# + 64.0#)
+                    GL.Vertex2(X * 64 + 64, Y * 64 + 64)
                     GL.TexCoord2(TexCoord1.X, TexCoord1.Y)
-                    GL.Vertex2(X * 64.0# + 64.0#, Y * 64.0#)
+                    GL.Vertex2(X * 64 + 64, Y * 64)
                     GL.End()
                 Next
             Next
@@ -217,10 +224,10 @@ EndOfTextures1:
                         End If
                         A = Map.Tile_TypeNum(Num)
                         GL.Color3(TileTypes(A).DisplayColour.Red, TileTypes(A).DisplayColour.Green, TileTypes(A).DisplayColour.Blue)
-                        GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 24.0#)
-                        GL.Vertex2(X * 64.0# + 24.0#, Y * 64.0# + 40.0#)
-                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 40.0#)
-                        GL.Vertex2(X * 64.0# + 40.0#, Y * 64.0# + 24.0#)
+                        GL.Vertex2(X * 64 + 24, Y * 64 + 24)
+                        GL.Vertex2(X * 64 + 24, Y * 64 + 40)
+                        GL.Vertex2(X * 64 + 40, Y * 64 + 40)
+                        GL.Vertex2(X * 64 + 40, Y * 64 + 24)
                     Next
                 Next
 EndOfTextures2:
@@ -248,9 +255,9 @@ EndOfTextures2:
                         If Num >= Map.Tileset.TileCount Then
                             GoTo EndOfTextures3
                         End If
-                        GL.Vertex2(X * 64.0# + Vertex0.X * 64.0#, Y * 64.0# + Vertex0.Y * 64.0#)
-                        GL.Vertex2(X * 64.0# + Vertex2.X * 64.0#, Y * 64.0# + Vertex2.Y * 64.0#)
-                        GL.Vertex2(X * 64.0# + Vertex1.X * 64.0#, Y * 64.0# + Vertex1.Y * 64.0#)
+                        GL.Vertex2(X * 64 + Vertex0.X * 64, Y * 64 + Vertex0.Y * 64)
+                        GL.Vertex2(X * 64 + Vertex2.X * 64, Y * 64 + Vertex2.Y * 64)
+                        GL.Vertex2(X * 64 + Vertex1.X * 64, Y * 64 + Vertex1.Y * 64)
                     Next
                 Next
 EndOfTextures3:
@@ -259,7 +266,7 @@ EndOfTextures3:
                 GL.Enable(EnableCap.CullFace)
             End If
 
-            If DisplayTileNumbers And TextureViewFont IsNot Nothing Then
+            If DisplayTileNumbers And UnitLabelFont IsNot Nothing Then 'TextureViewFont IsNot Nothing Then
                 Dim TextLabel As clsTextLabel
                 GL.Enable(EnableCap.Texture2D)
                 For Y = 0 To TextureCount.Y - 1
@@ -277,7 +284,7 @@ EndOfTextures3:
                         TextLabel.Colour.Alpha = 1.0F
                         TextLabel.Pos.X = X * 64
                         TextLabel.Pos.Y = Y * 64
-                        TextLabel.TextFont = TextureViewFont
+                        TextLabel.TextFont = UnitLabelFont 'TextureViewFont
                         TextLabel.Draw()
                     Next
                 Next
@@ -291,10 +298,10 @@ EndOfTextures4:
                 XY_int.Y = CInt(Int(A / TextureCount.X))
                 GL.Begin(BeginMode.LineLoop)
                 GL.Color3(1.0F, 1.0F, 0.0F)
-                GL.Vertex2(XY_int.X * 64.0#, XY_int.Y * 64.0#)
-                GL.Vertex2(XY_int.X * 64.0#, XY_int.Y * 64.0# + 64.0#)
-                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0# + 64.0#)
-                GL.Vertex2(XY_int.X * 64.0# + 64.0#, XY_int.Y * 64.0#)
+                GL.Vertex2(XY_int.X * 64, XY_int.Y * 64)
+                GL.Vertex2(XY_int.X * 64, XY_int.Y * 64.0# + 64)
+                GL.Vertex2(XY_int.X * 64 + 64, XY_int.Y * 64 + 64)
+                GL.Vertex2(XY_int.X * 64 + 64, XY_int.Y * 64)
                 GL.End()
             End If
         End If

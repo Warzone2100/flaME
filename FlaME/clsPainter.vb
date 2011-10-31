@@ -8,20 +8,20 @@
     Public Terrains() As clsTerrain
     Public TerrainCount As Integer
     Public Class clsTileList
-        Public Structure sTile_Orientation_Chance
+        Public Structure sTileOrientationChance
             Public TextureNum As Integer
             Public Direction As sTileDirection
             Public Chance As UInteger
         End Structure
-        Public Tiles() As sTile_Orientation_Chance
+        Public Tiles() As sTileOrientationChance
         Public TileCount As Integer
         Public TileChanceTotal As Integer
 
-        Public Sub Tile_Add(ByVal Tile_Num As Integer, ByVal Tile_Outward_Orientation As sTileDirection, ByVal Chance As UInteger)
+        Public Sub Tile_Add(ByVal TileNum As Integer, ByVal TileOutwardOrientation As sTileDirection, ByVal Chance As UInteger)
 
             ReDim Preserve Tiles(TileCount)
-            Tiles(TileCount).TextureNum = Tile_Num
-            Tiles(TileCount).Direction = Tile_Outward_Orientation
+            Tiles(TileCount).TextureNum = TileNum
+            Tiles(TileCount).Direction = TileOutwardOrientation
             Tiles(TileCount).Chance = Chance
             TileCount += 1
 
@@ -39,8 +39,8 @@
             ReDim Preserve Tiles(TileCount - 1)
         End Sub
 
-        Public Function GetRandom() As sTile_Orientation_Chance
-            Dim ReturnResult As sTile_Orientation_Chance
+        Public Function GetRandom() As sTileOrientationChance
+            Dim ReturnResult As sTileOrientationChance
             Dim A As Integer
             Dim intRandom As Integer
             Dim Total As Integer

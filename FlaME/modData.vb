@@ -1,4 +1,6 @@
-﻿Public Module modData
+﻿Imports OpenTK.Graphics.OpenGL
+
+Public Module modData
 
     Public SubDirNames As String
     Public SubDirStructures As String
@@ -30,20 +32,20 @@
 
     Public Sub SetDataSubDirs()
 
-        SubDirNames = "messages" & PlatformPathSeperator & "strings" & PlatformPathSeperator & "names.txt"
-        SubDirStructures = "stats" & PlatformPathSeperator & "structures.txt"
-        SubDirBrain = "stats" & PlatformPathSeperator & "brain.txt"
-        SubDirBody = "stats" & PlatformPathSeperator & "body.txt"
-        SubDirPropulsion = "stats" & PlatformPathSeperator & "propulsion.txt"
-        SubDirBodyPropulsion = "stats" & PlatformPathSeperator & "bodypropulsionimd.txt"
-        SubDirConstruction = "stats" & PlatformPathSeperator & "construction.txt"
-        SubDirSensor = "stats" & PlatformPathSeperator & "sensor.txt"
-        SubDirRepair = "stats" & PlatformPathSeperator & "repair.txt"
-        SubDirTemplates = "stats" & PlatformPathSeperator & "templates.txt"
-        SubDirWeapons = "stats" & PlatformPathSeperator & "weapons.txt"
-        SubDirECM = "stats" & PlatformPathSeperator & "ecm.txt"
-        SubDirFeatures = "stats" & PlatformPathSeperator & "features.txt"
-        SubDirPIEs = "pies" & PlatformPathSeperator
+        SubDirNames = "messages" & PlatformPathSeparator & "strings" & PlatformPathSeparator & "names.txt"
+        SubDirStructures = "stats" & PlatformPathSeparator & "structures.txt"
+        SubDirBrain = "stats" & PlatformPathSeparator & "brain.txt"
+        SubDirBody = "stats" & PlatformPathSeparator & "body.txt"
+        SubDirPropulsion = "stats" & PlatformPathSeparator & "propulsion.txt"
+        SubDirBodyPropulsion = "stats" & PlatformPathSeparator & "bodypropulsionimd.txt"
+        SubDirConstruction = "stats" & PlatformPathSeparator & "construction.txt"
+        SubDirSensor = "stats" & PlatformPathSeparator & "sensor.txt"
+        SubDirRepair = "stats" & PlatformPathSeparator & "repair.txt"
+        SubDirTemplates = "stats" & PlatformPathSeparator & "templates.txt"
+        SubDirWeapons = "stats" & PlatformPathSeparator & "weapons.txt"
+        SubDirECM = "stats" & PlatformPathSeparator & "ecm.txt"
+        SubDirFeatures = "stats" & PlatformPathSeparator & "features.txt"
+        SubDirPIEs = "pies" & PlatformPathSeparator
         'SubDirStructurePIE = "structs" & ospathseperator
         SubDirStructurePIE = SubDirPIEs
         'SubDirBodiesPIE = "components" & ospathseperator & "bodies" & ospathseperator 
@@ -52,11 +54,11 @@
         SubDirPropPIE = SubDirPIEs
         'SubDirWeaponsPIE = "components" & ospathseperator & "weapons" & ospathseperator 
         SubDirWeaponsPIE = SubDirPIEs
-        SubdirTexpages = "texpages" & PlatformPathSeperator
-        SubDirAssignWeapons = "stats" & PlatformPathSeperator & "assignweapons.txt"
+        SubDirTexpages = "texpages" & PlatformPathSeparator
+        SubDirAssignWeapons = "stats" & PlatformPathSeparator & "assignweapons.txt"
         'SubDirFeaturePIE = "features" & ospathseperator 
         SubDirFeaturePIE = SubDirPIEs
-        SubDirStructureWeapons = "stats" & PlatformPathSeperator & "structureweapons.txt"
+        SubDirStructureWeapons = "stats" & PlatformPathSeparator & "structureweapons.txt"
     End Sub
 
     Public Bodies(-1) As clsBody
@@ -850,6 +852,7 @@
         Dim tmpString As String
         Dim tmpBitmap As Bitmap = Nothing
         Dim InstrPos2 As Integer
+        Dim BitmapTextureArgs As sBitmapGLTexture
 
         TexturePageCount = 0
         For TexFile_Num = 0 To TexFiles.GetUpperBound(0)
@@ -860,12 +863,18 @@
                     Result = LoadBitmap(tmpString, tmpBitmap)
                     If Result.Success Then
                         ReturnResult.AppendAsWarning(BitmapIsGLCompatible(tmpBitmap), "Texture " & ControlChars.Quote & tmpString & ControlChars.Quote & " compatability: ")
-                        TexturePages(TexturePageCount).GLTexture_Num = BitmapGLTexture(tmpBitmap, frmMainInstance.View.OpenGLControl, False, False)
+                        BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
+                        BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
+                        BitmapTextureArgs.TextureNum = 0
+                        BitmapTextureArgs.MipMapLevel = 0
+                        BitmapTextureArgs.Texture = tmpBitmap
+                        BitmapTextureArgs.Perform()
+                        TexturePages(TexturePageCount).GLTexture_Num = BitmapTextureArgs.TextureNum
                     Else
                         ReturnResult.Warning_Add("Unable to load " & tmpString & ": " & Result.Problem)
                     End If
-                    InstrPos2 = InStrRev(tmpString, PlatformPathSeperator)
-                    TexturePages(TexturePageCount).FileTitle = Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
+                    InstrPos2 = InStrRev(tmpString, PlatformPathSeparator)
+                    TexturePages(TexturePageCount).FileTitle = Strings.Mid(tmpString, InstrPos2 + 1, tmpString.Length - 4 - InstrPos2)
                     TexturePageCount += 1
                 Else
                     ReturnResult.Warning_Add("Texture page missing (" & tmpString & ").")

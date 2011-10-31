@@ -27,7 +27,11 @@ Public Class ctrlMapView
         UndoMessageTimer = New Timer
 
         OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 24, 0))
-        OpenGLControl.MakeCurrent() 'mono version fails without this
+        Try
+            OpenGLControl.MakeCurrent()
+        Catch ex As Exception
+
+        End Try
         pnlDraw.Controls.Add(OpenGLControl)
 
         GLInitializeDelayTimer = New Timer
@@ -83,6 +87,10 @@ Public Class ctrlMapView
 
     Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
 
+        If OpenGLControl.Context Is Nothing Then
+            Exit Sub
+        End If
+
         IsGLInitialized = True
 
         GLInitializeDelayTimer.Enabled = False
@@ -102,12 +110,13 @@ Public Class ctrlMapView
         AddHandler OpenGLControl.LostFocus, AddressOf OpenGL_LostFocus
         AddHandler OpenGLControl.PreviewKeyDown, AddressOf OpenGL_KeyDown
         AddHandler OpenGLControl.KeyUp, AddressOf OpenGL_KeyUp
-        AddHandler OpenGLControl.Paint, AddressOf OpenGL_Paint
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
         End If
 
+        GL.PixelStore(PixelStoreParameter.PackAlignment, 1)
+        GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
         GL.ClearColor(0.0F, 0.0F, 0.0F, 1.0F)
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.ShadeModel(ShadingModel.Smooth)
@@ -427,6 +436,10 @@ Public Class ctrlMapView
             Map.Update()
             DrawViewLater()
         End If
+        If Control_View_ScriptMarkers.Active Then
+            Draw_ScriptMarkers = Not Draw_ScriptMarkers
+            DrawViewLater()
+        End If
         If Control_View_Lighting.Active Then
             If Draw_Lighting = enumDrawLighting.Off Then
                 Draw_Lighting = enumDrawLighting.Half
@@ -740,11 +753,6 @@ Public Class ctrlMapView
         UndoMessageTimer.Enabled = True
     End Sub
 
-    Private Sub OpenGL_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
-
-        DrawViewLater()
-    End Sub
-
     Private Sub OpenGL_MouseLeave(sender As Object, e As System.EventArgs)
         Dim Map As clsMap = MainMap
 
@@ -824,15 +832,15 @@ Public Class ctrlMapView
         tabMaps.TabPages.Clear()
         For A = 0 To LoadedMapCount - 1
             Map = LoadedMaps(A)
-            frmMainInstance.View.tabMaps.TabPages.Add(Map.MapView_TabPage)
+            frmMainInstance.MapView.tabMaps.TabPages.Add(Map.MapView_TabPage)
         Next
         Map = MainMap
         If Map IsNot Nothing Then
-            frmMainInstance.View.tabMaps.SelectedIndex = Map.LoadedMap_Num
+            frmMainInstance.MapView.tabMaps.SelectedIndex = Map.LoadedMap_Num
         Else
-            frmMainInstance.View.tabMaps.SelectedIndex = -1
+            frmMainInstance.MapView.tabMaps.SelectedIndex = -1
         End If
-        frmMainInstance.View.tabMaps.Enabled = True
+        frmMainInstance.MapView.tabMaps.Enabled = True
     End Sub
 
 #If MonoDevelop <> 0.0# Then

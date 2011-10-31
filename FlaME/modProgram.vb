@@ -44,7 +44,7 @@ Public Module modProgram
     Public Const MinimapMaxSize As Integer = 512
     Public MinimapFeatureColour As sRGB_sng
 
-    Public PlatformPathSeperator As Char
+    Public PlatformPathSeparator As Char
 
     Public MyDocumentsProgramPath As String
 
@@ -54,15 +54,15 @@ Public Module modProgram
 
     Public Sub SetProgramSubDirs()
 
-        MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & PlatformPathSeperator & ".flaME"
+        MyDocumentsProgramPath = My.Computer.FileSystem.SpecialDirectories.MyDocuments & PlatformPathSeparator & ".flaME"
 #If Portable = 0.0# Then
-        SettingsPath = MyDocumentsProgramPath & OSPathSeperator & "settings.ini"
-        AutoSavePath = MyDocumentsProgramPath & OSPathSeperator & "autosave" & OSPathSeperator
+        SettingsPath = MyDocumentsProgramPath & PlatformPathSeparator & "settings.ini"
+        AutoSavePath = MyDocumentsProgramPath & PlatformPathSeparator & "autosave" & PlatformPathSeparator
 #Else
-        SettingsPath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "settings.ini"
-        AutoSavePath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "autosave" & PlatformPathSeperator
+        SettingsPath = My.Application.Info.DirectoryPath & PlatformPathSeparator & "settings.ini"
+        AutoSavePath = My.Application.Info.DirectoryPath & PlatformPathSeparator & "autosave" & PlatformPathSeparator
 #End If
-        InterfaceImagesPath = My.Application.Info.DirectoryPath & PlatformPathSeperator & "interface" & PlatformPathSeperator
+        InterfaceImagesPath = My.Application.Info.DirectoryPath & PlatformPathSeparator & "interface" & PlatformPathSeparator
     End Sub
 
     Public ProgramInitialized As Boolean = False
@@ -100,6 +100,7 @@ Public Module modProgram
     Public Control_View_Lighting As clsInputControl
     Public Control_View_Wireframe As clsInputControl
     Public Control_View_Units As clsInputControl
+    Public Control_View_ScriptMarkers As clsInputControl
     Public Control_View_Move_Type As clsInputControl
     Public Control_View_Rotate_Type As clsInputControl
     Public Control_View_Move_Left As clsInputControl
@@ -291,7 +292,6 @@ Public Module modProgram
             Dim CharSpacing As Single
             Dim A As Integer
 
-            GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
             GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
             PosY1 = Pos.Y
             PosY2 = Pos.Y + SizeY
@@ -305,6 +305,7 @@ Public Module modProgram
                     TexRatio.Y = CSng(TextFont.Height / TextFont.Character(CharCode).TexSize)
                     LetterPosB = LetterPosA + CharWidth
                     GL.BindTexture(TextureTarget.Texture2D, TextFont.Character(CharCode).GLTexture)
+                    GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
                     GL.Begin(BeginMode.Quads)
                     GL.TexCoord2(0.0F, 0.0F)
                     GL.Vertex2(LetterPosA, PosY1)
@@ -699,7 +700,7 @@ Public Module modProgram
     Public TexturePageCount As Integer
 
     Public UnitLabelFont As GLFont
-    Public TextureViewFont As GLFont
+    'Public TextureViewFont As GLFont
 
     Public Class clsPlayer
         Public Colour As sRGB_sng
@@ -726,11 +727,11 @@ Public Module modProgram
         Public Sub New(ByVal Path As String)
             Dim A As Integer
 
-            Parts = Path.Split(PlatformPathSeperator)
+            Parts = Path.Split(PlatformPathSeparator)
             PartCount = Parts.GetUpperBound(0) + 1
             FilePath = ""
             For A = 0 To PartCount - 2
-                FilePath &= Parts(A) & PlatformPathSeperator
+                FilePath &= Parts(A) & PlatformPathSeparator
             Next
             FileTitle = Parts(A)
             A = InStrRev(FileTitle, ".")
@@ -778,18 +779,18 @@ Public Module modProgram
     Public Sub VisionRadius_2E_Changed()
 
         VisionRadius = 256.0# * 2.0# ^ (VisionRadius_2E / 2.0#)
-        If frmMainInstance.View IsNot Nothing Then
+        If frmMainInstance.MapView IsNot Nothing Then
             View_Radius_Set(VisionRadius)
             frmMainInstance.View_DrawViewLater()
         End If
     End Sub
 
     Public Function Get_TexturePage_GLTexture(ByVal FileTitle As String) As Integer
-        Dim LCaseTitle As String = LCase(FileTitle)
+        Dim LCaseTitle As String = FileTitle.ToLower
         Dim A As Integer
 
         For A = 0 To TexturePageCount - 1
-            If LCase(TexturePages(A).FileTitle) = LCaseTitle Then
+            If TexturePages(A).FileTitle.ToLower = LCaseTitle Then
                 Return TexturePages(A).GLTexture_Num
             End If
         Next
@@ -816,10 +817,10 @@ Public Module modProgram
 
     Public Function EndWithPathSeperator(ByVal Text As String) As String
 
-        If Strings.Right(Text, 1) = PlatformPathSeperator Then
+        If Strings.Right(Text, 1) = PlatformPathSeparator Then
             Return Text
         Else
-            Return Text & PlatformPathSeperator
+            Return Text & PlatformPathSeparator
         End If
     End Function
 
@@ -1322,7 +1323,7 @@ Public Module modProgram
                 ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
                 ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
             Case "gam"
-                ReturnResult.Append(ResultMap.Load_Game(Path), "Load gam: ")
+                ReturnResult.Append(ResultMap.Load_Game(Path), "Load Game: ")
                 ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
             Case "lnd"
                 ResultB = ResultMap.Load_LND(Path)
@@ -1456,6 +1457,7 @@ Public Module modProgram
     Public Draw_Units As Boolean = True
     Public Draw_VertexTerrain As Boolean
     Public Draw_Gateways As Boolean
+    Public Draw_ScriptMarkers As Boolean = True
 
     Enum enumView_Move_Type As Byte
         Free
@@ -1661,6 +1663,13 @@ Public Module modProgram
         Return Integer.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
     End Function
 
+    Public Function InvariantParse_intB(ByVal Text As String, ByRef Succeeded As Boolean) As Integer
+        Dim Result As Integer
+
+        Succeeded = Integer.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
+        Return Result
+    End Function
+
     Public Function InvariantParse_uint(ByVal Text As String, ByRef Result As UInteger) As Boolean
 
         Return UInteger.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
@@ -1817,17 +1826,50 @@ Public Module modProgram
     Public Function WorldPosFromINIText(ByVal Text As String, ByRef Result As clsWorldPos) As Boolean
         Dim VectorText As New clsSplitCommaText(Text)
         Dim A As Integer
+        Dim Success As Boolean
+        Dim B As Integer
 
         If VectorText.PartCount <> 3 Then
             Return False
         End If
         Dim tmpPositions(2) As Integer
         For A = 0 To 2
-            If Not InvariantParse_int(VectorText.Parts(A), tmpPositions(A)) Then
+            B = InvariantParse_intB(VectorText.Parts(A), Success)
+            If Success Then
+                tmpPositions(A) = B
+            Else
                 Return False
             End If
         Next
         Result = New clsWorldPos(New sWorldPos(New sXY_int(tmpPositions(0), tmpPositions(1)), tmpPositions(2)))
         Return True
     End Function
+
+    Public Class clsPositionFromText
+
+        Public Pos As sXY_int
+
+        Public Function Translate(ByVal Text As String) As Boolean
+            Dim A As Integer
+            Dim ParseSuccess As Boolean
+            Dim tmpPositions As New clsSplitCommaText(Text)
+
+            If tmpPositions.PartCount < 2 Then
+                Return False
+            End If
+            A = InvariantParse_intB(tmpPositions.Parts(0), ParseSuccess)
+            If ParseSuccess Then
+                Pos.X = A
+            Else
+                Return False
+            End If
+            A = InvariantParse_intB(tmpPositions.Parts(1), ParseSuccess)
+            If ParseSuccess Then
+                Pos.Y = A
+            Else
+                Return False
+            End If
+            Return True
+        End Function
+    End Class
 End Module

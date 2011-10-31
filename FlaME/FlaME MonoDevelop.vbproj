@@ -29,7 +29,7 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.23</ReleaseVersion>
+    <ReleaseVersion>1.24</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -40,6 +40,7 @@
     <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
     <AdditionalParameters />
     <DocumentationFile>FlaME MonoDevelop.xml</DocumentationFile>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <PropertyGroup>
     <OptionInfer>On</OptionInfer>
@@ -105,7 +106,6 @@
     <Compile Include="modBitmap.vb" />
     <Compile Include="modData.vb" />
     <Compile Include="modGenerator.vb" />
-    <Compile Include="modINI.vb" />
     <Compile Include="modMath.vb" />
     <Compile Include="modProgram.vb" />
     <Compile Include="modSettings.vb" />
@@ -148,6 +148,9 @@
     <Compile Include="modMaps.vb" />
     <Compile Include="clsViewInfo.vb" />
     <Compile Include="modPainters.vb" />
+    <Compile Include="INI.vb" />
+    <Compile Include="clsMapScriptMarkers.vb" />
+    <Compile Include="Lists.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

@@ -542,8 +542,6 @@ ExitLoop:
         Me.txtScrollMinX = New System.Windows.Forms.TextBox()
         Me.Label11 = New System.Windows.Forms.Label()
         Me.Label12 = New System.Windows.Forms.Label()
-        Me.SaveFileDialog = New System.Windows.Forms.SaveFileDialog()
-        Me.FolderBrowserDialog = New System.Windows.Forms.FolderBrowserDialog()
         Me.txtAuthor = New System.Windows.Forms.TextBox()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.Label13 = New System.Windows.Forms.Label()
@@ -616,26 +614,30 @@ ExitLoop:
         'Label3
         '
         Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(18, 22)
+        Me.Label3.Enabled = False
+        Me.Label3.Location = New System.Drawing.Point(261, 26)
         Me.Label3.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label3.Name = "Label3"
         Me.Label3.Size = New System.Drawing.Size(38, 20)
         Me.Label3.TabIndex = 12
         Me.Label3.Text = "Time:"
         Me.Label3.UseCompatibleTextRendering = True
+        Me.Label3.Visible = False
         '
         'txtCampTime
         '
-        Me.txtCampTime.Location = New System.Drawing.Point(70, 19)
+        Me.txtCampTime.Enabled = False
+        Me.txtCampTime.Location = New System.Drawing.Point(313, 23)
         Me.txtCampTime.Margin = New System.Windows.Forms.Padding(4)
         Me.txtCampTime.Name = "txtCampTime"
         Me.txtCampTime.Size = New System.Drawing.Size(68, 22)
         Me.txtCampTime.TabIndex = 11
+        Me.txtCampTime.Visible = False
         '
         'Label5
         '
         Me.Label5.AutoSize = True
-        Me.Label5.Location = New System.Drawing.Point(154, 22)
+        Me.Label5.Location = New System.Drawing.Point(15, 23)
         Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label5.Name = "Label5"
         Me.Label5.Size = New System.Drawing.Size(38, 20)
@@ -762,7 +764,7 @@ ExitLoop:
         'Label7
         '
         Me.Label7.AutoSize = True
-        Me.Label7.Location = New System.Drawing.Point(148, 27)
+        Me.Label7.Location = New System.Drawing.Point(151, 27)
         Me.Label7.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label7.Name = "Label7"
         Me.Label7.Size = New System.Drawing.Size(15, 20)
@@ -782,10 +784,13 @@ ExitLoop:
         '
         'cboCampType
         '
+        Me.cboCampType.DropDownHeight = 512
         Me.cboCampType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cboCampType.DropDownWidth = 384
         Me.cboCampType.FormattingEnabled = True
+        Me.cboCampType.IntegralHeight = False
         Me.cboCampType.Items.AddRange(New Object() {"Initial scenario state", "Scenario scroll area expansion", "Stand alone mission"})
-        Me.cboCampType.Location = New System.Drawing.Point(207, 19)
+        Me.cboCampType.Location = New System.Drawing.Point(68, 20)
         Me.cboCampType.Margin = New System.Windows.Forms.Padding(4)
         Me.cboCampType.Name = "cboCampType"
         Me.cboCampType.Size = New System.Drawing.Size(160, 24)
@@ -914,8 +919,6 @@ ExitLoop:
     Public WithEvents txtScrollMinX As System.Windows.Forms.TextBox
     Public WithEvents Label11 As System.Windows.Forms.Label
     Public WithEvents Label12 As System.Windows.Forms.Label
-    Public WithEvents SaveFileDialog As System.Windows.Forms.SaveFileDialog
-    Public WithEvents FolderBrowserDialog As System.Windows.Forms.FolderBrowserDialog
     Public WithEvents txtAuthor As System.Windows.Forms.TextBox
     Public WithEvents Label4 As System.Windows.Forms.Label
     Public WithEvents Label13 As System.Windows.Forms.Label

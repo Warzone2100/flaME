@@ -1,13 +1,13 @@
 ﻿Imports ICSharpCode.SharpZipLib
 Imports System.Security.Permissions
+Imports OpenTK.Graphics.OpenGL
 
 Partial Public Class frmMain
 #If MonoDevelop <> 0.0# Then
     Inherits Form
 #End If
 
-    Public View As ctrlMapView
-
+    Public MapView As ctrlMapView
     Public TextureView As ctrlTextureView
 
     Public lstFeatures_Objects() As clsUnitType
@@ -40,7 +40,7 @@ Partial Public Class frmMain
     Public Sub New()
         InitializeComponent() 'required for monodevelop too
 
-        PlatformPathSeperator = IO.Path.DirectorySeparatorChar
+        PlatformPathSeparator = IO.Path.DirectorySeparatorChar
 
         'these depend on ospathseperator
         SetProgramSubDirs()
@@ -55,7 +55,7 @@ Partial Public Class frmMain
         NewPlayerNum = New ctrlPlayerNum
         ObjectPlayerNum = New ctrlPlayerNum
 
-        View = New ctrlMapView
+        MapView = New ctrlMapView
         TextureView = New ctrlTextureView
     End Sub
 
@@ -130,7 +130,7 @@ Partial Public Class frmMain
             Stop
             Exit Sub
         End If
-        If Not (View.IsGLInitialized And TextureView.IsGLInitialized) Then
+        If Not (MapView.IsGLInitialized And TextureView.IsGLInitialized) Then
             Exit Sub
         End If
 
@@ -270,8 +270,8 @@ Partial Public Class frmMain
 
         SelectedObject_Changed()
 
-        View.Dock = DockStyle.Fill
-        pnlView.Controls.Add(View)
+        MapView.Dock = DockStyle.Fill
+        pnlView.Controls.Add(MapView)
 
         VisionRadius_2E = 10
         VisionRadius_2E_Changed()
@@ -306,7 +306,7 @@ Partial Public Class frmMain
 
         Tool = enumTool.Texture_Brush
 
-        View.DrawView_SetEnabled(True)
+        MapView.DrawView_SetEnabled(True)
         TextureView.DrawView_SetEnabled(True)
 
         WindowState = FormWindowState.Maximized
@@ -332,7 +332,7 @@ Partial Public Class frmMain
 #End If
 
         Try
-            ProgramIcon = New Icon(My.Application.Info.DirectoryPath & PlatformPathSeperator & "flaME.ico")
+            ProgramIcon = New Icon(My.Application.Info.DirectoryPath & PlatformPathSeparator & "flaME.ico")
         Catch ex As Exception
             InitializeResult.Warning_Add(ProgramName & " icon is missing: " & ex.Message)
         End Try
@@ -473,6 +473,11 @@ Partial Public Class frmMain
         Control_View_Units = InputControl_Create()
         With Control_View_Units
             .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F7)
+        End With
+
+        Control_View_ScriptMarkers = InputControl_Create()
+        With Control_View_ScriptMarkers
+            .DefaultKeys = New clsInputControl.clsKeyCombo(Keys.F4)
         End With
 
         Control_View_Move_Type = InputControl_Create()
@@ -1528,6 +1533,7 @@ Error_Exit:
         ObjectPlayerNum.Enabled = False
         txtObjectRotation.Enabled = False
         txtObjectID.Enabled = False
+        txtObjectLabel.Enabled = False
         txtObjectPriority.Enabled = False
         txtObjectHealth.Enabled = False
         btnDroidToDesign.Enabled = False
@@ -1551,6 +1557,7 @@ Error_Exit:
             ObjectPlayerNum.SelectedUnitGroup = Nothing
             txtObjectRotation.Text = ""
             txtObjectID.Text = ""
+            txtObjectLabel.Text = ""
             txtObjectPriority.Text = ""
             txtObjectHealth.Text = ""
             cboDroidType.SelectedIndex = -1
@@ -1579,6 +1586,7 @@ Error_Exit:
             End If
             txtObjectRotation.Text = ""
             txtObjectID.Text = ""
+            txtObjectLabel.Text = ""
             lblObjectType.Enabled = True
             ObjectPlayerNum.Enabled = True
             txtObjectRotation.Enabled = True
@@ -1641,6 +1649,21 @@ Error_Exit:
                 'txtObjectID.Enabled = True 'no known need to change IDs
                 txtObjectPriority.Enabled = True
                 txtObjectHealth.Enabled = True
+                Dim LabelEnabled As Boolean = True
+                If .Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    Dim tmpType As clsStructureType.enumStructureType = CType(.Type, clsStructureType).StructureType
+                    If tmpType = clsStructureType.enumStructureType.FactoryModule Or _
+                        tmpType = clsStructureType.enumStructureType.PowerModule Or _
+                        tmpType = clsStructureType.enumStructureType.ResearchModule Then
+                        LabelEnabled = False
+                    End If
+                End If
+                If LabelEnabled Then
+                    txtObjectLabel.Text = .Label
+                    txtObjectLabel.Enabled = True
+                Else
+                    txtObjectLabel.Text = ""
+                End If
                 Dim ClearDesignControls As Boolean = False
                 If .Type.Type = clsUnitType.enumType.PlayerDroid Then
                     Dim tmpDroid As clsDroidDesign = CType(.Type, clsDroidDesign)
@@ -1791,7 +1814,7 @@ Error_Exit:
             End With
         End If
         'this steals focus, so give it back
-        View.OpenGLControl.Focus()
+        MapView.OpenGLControl.Focus()
     End Sub
 
     Private Sub tsbSelection_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelection.Click
@@ -1909,13 +1932,24 @@ Error_Exit:
 
         Dim tmpBitmap As Bitmap = Nothing
 
+        Dim BitmapTextureArgs As sBitmapGLTexture
+
+        BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
+        BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
+        BitmapTextureArgs.TextureNum = 0
+        BitmapTextureArgs.MipMapLevel = 0
+
         If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "notile.png", tmpBitmap).Success Then
             ReturnResult.AppendAsWarning(BitmapIsGLCompatible(tmpBitmap), "notile.png compatability: ")
-            GLTexture_NoTile = BitmapGLTexture(tmpBitmap, View.OpenGLControl, False, False)
+            BitmapTextureArgs.Texture = tmpBitmap
+            BitmapTextureArgs.Perform()
+            GLTexture_NoTile = BitmapTextureArgs.TextureNum
         End If
         If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "overflow.png", tmpBitmap).Success Then
             ReturnResult.AppendAsWarning(BitmapIsGLCompatible(tmpBitmap), "overflow.png compatability: ")
-            GLTexture_OverflowTile = BitmapGLTexture(tmpBitmap, View.OpenGLControl, False, False)
+            BitmapTextureArgs.Texture = tmpBitmap
+            BitmapTextureArgs.Perform()
+            GLTexture_OverflowTile = BitmapTextureArgs.TextureNum
         End If
 
         Return ReturnResult
@@ -1942,7 +1976,7 @@ Error_Exit:
 
     Private Sub tsbDrawAutotexture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbDrawAutotexture.Click
 
-        If View IsNot Nothing Then
+        If MapView IsNot Nothing Then
             If Draw_VertexTerrain <> tsbDrawAutotexture.Checked Then
                 Draw_VertexTerrain = tsbDrawAutotexture.Checked
                 View_DrawViewLater()
@@ -1952,7 +1986,7 @@ Error_Exit:
 
     Private Sub tsbDrawTileOrientation_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbDrawTileOrientation.Click
 
-        If View IsNot Nothing Then
+        If MapView IsNot Nothing Then
             If DisplayTileOrientation <> tsbDrawTileOrientation.Checked Then
                 DisplayTileOrientation = tsbDrawTileOrientation.Checked
                 View_DrawViewLater()
@@ -2323,8 +2357,8 @@ Error_Exit:
 
     Public Sub View_DrawViewLater()
 
-        If View IsNot Nothing Then
-            View.DrawViewLater()
+        If MapView IsNot Nothing Then
+            MapView.DrawViewLater()
         End If
     End Sub
 
@@ -2565,7 +2599,7 @@ Error_Exit:
         Map.SelectedUnits.Clear()
         Map.SelectedUnits.AddArray(NewUnits)
         SelectedObject_Changed()
-        If ObjectTemplateToDesign.Changed Then
+        If ObjectTemplateToDesign.ActionPerformed Then
             Map.UndoStepCreate("Object Template Removed")
             View_DrawViewLater()
         End If
@@ -3082,7 +3116,7 @@ Error_Exit:
     Public Sub frmMain_MainMapBeforeChanged()
         Dim Map As clsMap = MainMap
 
-        View.OpenGLControl.Focus() 'take focus from controls to trigger their lostfocuses
+        MapView.OpenGLControl.Focus() 'take focus from controls to trigger their lostfocuses
 
         If Map Is Nothing Then
             Exit Sub
@@ -3093,8 +3127,8 @@ Error_Exit:
         Map.SectorAll_GLLists_Delete()
         Map.SectorGraphicsChanges.SetAllChanged()
 
-        If OpenTK.Graphics.GraphicsContext.CurrentContext IsNot View.OpenGLControl.Context Then
-            View.OpenGLControl.MakeCurrent()
+        If OpenTK.Graphics.GraphicsContext.CurrentContext IsNot MapView.OpenGLControl.Context Then
+            MapView.OpenGLControl.MakeCurrent()
         End If
     End Sub
 
@@ -3173,7 +3207,7 @@ Error_Exit:
 
         txtHeightSetL.Text = InvariantToString_byte(Map.Terrain.Vertices(MouseOverTerrain.Vertex.Normal.X, MouseOverTerrain.Vertex.Normal.Y).Height)
         txtHeightSetL.Focus()
-        View.OpenGLControl.Focus()
+        MapView.OpenGLControl.Focus()
     End Sub
 
     Public Sub HeightPickerR()
@@ -3186,7 +3220,7 @@ Error_Exit:
 
         txtHeightSetR.Text = InvariantToString_byte(Map.Terrain.Vertices(MouseOverTerrain.Vertex.Normal.X, MouseOverTerrain.Vertex.Normal.Y).Height)
         txtHeightSetR.Focus()
-        View.OpenGLControl.Focus()
+        MapView.OpenGLControl.Focus()
     End Sub
 
     Private Sub OpenGL_DragEnter(sender As Object, e As System.Windows.Forms.DragEventArgs) Handles Me.DragEnter
@@ -3307,11 +3341,12 @@ Error_Exit:
         NewArea.SetPositions(New sXY_int(Map.Selected_Area_VertexA.X * TerrainGridSpacing, _
         Map.Selected_Area_VertexA.Y * TerrainGridSpacing), _
         New sXY_int(Map.Selected_Area_VertexB.X * TerrainGridSpacing, _
-       Map.Selected_Area_VertexB.Y * TerrainGridSpacing))
+        Map.Selected_Area_VertexB.Y * TerrainGridSpacing))
 
         ScriptMarkerLists_Update()
 
         Map.SetChanged() 'todo: remove if areas become undoable
+        View_DrawViewLater()
     End Sub
 
     Private lstScriptPositions_Objects(-1) As clsMap.clsScriptPosition
@@ -3319,7 +3354,6 @@ Error_Exit:
 
     Public Sub ScriptMarkerLists_Update()
         Dim Map As clsMap = MainMap
-        Dim NewSelectedScriptMarker As clsMap.clsScriptMarker = Nothing
 
         lstScriptPositions.Enabled = False
         lstScriptAreas.Enabled = False
@@ -3328,7 +3362,7 @@ Error_Exit:
         lstScriptAreas.Items.Clear()
 
         If Map Is Nothing Then
-            SelectedScriptMarker = Nothing
+            _SelectedScriptMarker = Nothing
             Exit Sub
         End If
 
@@ -3336,52 +3370,60 @@ Error_Exit:
         Dim B As Integer
         Dim tmpPosition As clsMap.clsScriptPosition
         Dim tmpArea As clsMap.clsScriptArea
+        Dim NewSelectedScriptMarker As Object = Nothing
 
-        ReDim lstScriptPositions_Objects(Map.ScriptMarkerCount - 1)
-        ReDim lstScriptAreas_Objects(Map.ScriptMarkerCount - 1)
+        ReDim lstScriptPositions_Objects(Map.ScriptPositions.ItemCount - 1)
+        ReDim lstScriptAreas_Objects(Map.ScriptAreas.ItemCount - 1)
 
-        For A = 0 To Map.ScriptMarkerCount - 1
-            If TypeOf Map.ScriptMarkers(A) Is clsMap.clsScriptPosition Then
-                tmpPosition = CType(Map.ScriptMarkers(A), clsMap.clsScriptPosition)
-                B = lstScriptPositions.Items.Add(tmpPosition.Label)
-                lstScriptPositions_Objects(B) = tmpPosition
-                If tmpPosition Is SelectedScriptMarker Then
-                    NewSelectedScriptMarker = tmpPosition
-                    lstScriptPositions.SelectedIndex = B
-                End If
-            ElseIf TypeOf Map.ScriptMarkers(A) Is clsMap.clsScriptArea Then
-                tmpArea = CType(Map.ScriptMarkers(A), clsMap.clsScriptArea)
-                B = lstScriptAreas.Items.Add(tmpArea.Label)
-                lstScriptAreas_Objects(B) = tmpArea
-                If tmpArea Is SelectedScriptMarker Then
-                    NewSelectedScriptMarker = tmpArea
-                    lstScriptAreas.SelectedIndex = B
-                End If
+        For A = 0 To Map.ScriptPositions.ItemCount - 1
+            tmpPosition = Map.ScriptPositions.Item(A)
+            B = lstScriptPositions.Items.Add(tmpPosition.Label)
+            lstScriptPositions_Objects(B) = tmpPosition
+            If tmpPosition Is _SelectedScriptMarker Then
+                NewSelectedScriptMarker = tmpPosition
+                lstScriptPositions.SelectedIndex = B
+            End If
+        Next
+
+        For A = 0 To Map.ScriptAreas.ItemCount - 1
+            tmpArea = Map.ScriptAreas.Item(A)
+            B = lstScriptAreas.Items.Add(tmpArea.Label)
+            lstScriptAreas_Objects(B) = tmpArea
+            If tmpArea Is _SelectedScriptMarker Then
+                NewSelectedScriptMarker = tmpArea
+                lstScriptAreas.SelectedIndex = B
             End If
         Next
 
         lstScriptPositions.Enabled = True
         lstScriptAreas.Enabled = True
 
-        SelectedScriptMarker = NewSelectedScriptMarker
+        _SelectedScriptMarker = NewSelectedScriptMarker
 
         SelectedScriptMarker_Update()
     End Sub
 
-    Private SelectedScriptMarker As clsMap.clsScriptMarker
+    Private _SelectedScriptMarker As Object
+    Public ReadOnly Property SelectedScriptMarker As Object
+        Get
+            Return _SelectedScriptMarker
+        End Get
+    End Property
 
     Private Sub lstScriptPositions_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstScriptPositions.SelectedIndexChanged
         If Not lstScriptPositions.Enabled Then
             Exit Sub
         End If
 
-        SelectedScriptMarker = lstScriptPositions_Objects(lstScriptPositions.SelectedIndex)
+        _SelectedScriptMarker = lstScriptPositions_Objects(lstScriptPositions.SelectedIndex)
 
         lstScriptAreas.Enabled = False
         lstScriptAreas.SelectedIndex = -1
         lstScriptAreas.Enabled = True
 
         SelectedScriptMarker_Update()
+
+        View_DrawViewLater()
     End Sub
 
     Private Sub lstScriptAreas_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstScriptAreas.SelectedIndexChanged
@@ -3389,13 +3431,15 @@ Error_Exit:
             Exit Sub
         End If
 
-        SelectedScriptMarker = lstScriptAreas_Objects(lstScriptAreas.SelectedIndex)
+        _SelectedScriptMarker = lstScriptAreas_Objects(lstScriptAreas.SelectedIndex)
 
         lstScriptPositions.Enabled = False
         lstScriptPositions.SelectedIndex = -1
         lstScriptPositions.Enabled = True
 
         SelectedScriptMarker_Update()
+
+        View_DrawViewLater()
     End Sub
 
     Public Sub SelectedScriptMarker_Update()
@@ -3410,22 +3454,25 @@ Error_Exit:
         txtScriptMarkerY.Text = ""
         txtScriptMarkerX2.Text = ""
         txtScriptMarkerY2.Text = ""
-        If SelectedScriptMarker IsNot Nothing Then
-            txtScriptMarkerLabel.Text = SelectedScriptMarker.Label
-            txtScriptMarkerLabel.Enabled = True
-
-            txtScriptMarkerX.Enabled = True
-            txtScriptMarkerY.Enabled = True
-            If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
-                Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+        If _SelectedScriptMarker IsNot Nothing Then
+            If TypeOf _SelectedScriptMarker Is clsMap.clsScriptPosition Then
+                Dim tmpPosition As clsMap.clsScriptPosition = CType(_SelectedScriptMarker, clsMap.clsScriptPosition)
+                txtScriptMarkerLabel.Text = tmpPosition.Label
                 txtScriptMarkerX.Text = InvariantToString_int(tmpPosition.PosX)
                 txtScriptMarkerY.Text = InvariantToString_int(tmpPosition.PosY)
-            ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
-                Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+                txtScriptMarkerLabel.Enabled = True
+                txtScriptMarkerX.Enabled = True
+                txtScriptMarkerY.Enabled = True
+            ElseIf TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+                Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
+                txtScriptMarkerLabel.Text = tmpArea.Label
                 txtScriptMarkerX.Text = InvariantToString_int(tmpArea.PosAX)
                 txtScriptMarkerY.Text = InvariantToString_int(tmpArea.PosAY)
                 txtScriptMarkerX2.Text = InvariantToString_int(tmpArea.PosBX)
                 txtScriptMarkerY2.Text = InvariantToString_int(tmpArea.PosBY)
+                txtScriptMarkerLabel.Enabled = True
+                txtScriptMarkerX.Enabled = True
+                txtScriptMarkerY.Enabled = True
                 txtScriptMarkerX2.Enabled = True
                 txtScriptMarkerY2.Enabled = True
             End If
@@ -3433,28 +3480,48 @@ Error_Exit:
     End Sub
 
     Private Sub btnScriptMarkerRemove_Click(sender As System.Object, e As System.EventArgs) Handles btnScriptMarkerRemove.Click
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        SelectedScriptMarker.Deallocate()
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(_SelectedScriptMarker, clsMap.clsScriptPosition)
+            tmpPosition.ParentMap.Disconnect()
+        ElseIf TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
+            tmpArea.ParentMap.Disconnect()
+        End If
+        _SelectedScriptMarker = Nothing
 
         ScriptMarkerLists_Update()
+
+        View_DrawViewLater()
     End Sub
 
     Private Sub txtScriptMarkerLabel_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtScriptMarkerLabel.LostFocus
         If Not txtScriptMarkerLabel.Enabled Then
             Exit Sub
         End If
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        If SelectedScriptMarker.Label = txtScriptMarkerLabel.Text Then
+        Dim Result As sResult
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(_SelectedScriptMarker, clsMap.clsScriptPosition)
+            If tmpPosition.Label = txtScriptMarkerLabel.Text Then
+                Exit Sub
+            End If
+            Result = tmpPosition.SetLabel(txtScriptMarkerLabel.Text)
+        ElseIf TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
+            If tmpArea.Label = txtScriptMarkerLabel.Text Then
+                Exit Sub
+            End If
+            Result = tmpArea.SetLabel(txtScriptMarkerLabel.Text)
+        Else
             Exit Sub
         End If
-
-        Dim Result As sResult = SelectedScriptMarker.SetLabel(txtScriptMarkerLabel.Text)
 
         If Not Result.Success Then
             MsgBox("Unable to change label: " & Result.Problem)
@@ -3469,15 +3536,15 @@ Error_Exit:
         If Not txtScriptMarkerX.Enabled Then
             Exit Sub
         End If
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
-            Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(_SelectedScriptMarker, clsMap.clsScriptPosition)
             InvariantParse_int(txtScriptMarkerX.Text, tmpPosition.PosX)
-        ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
-            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+        ElseIf TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
             InvariantParse_int(txtScriptMarkerX.Text, tmpArea.PosAX)
         Else
             MsgBox("Error: unhandled type.")
@@ -3491,15 +3558,15 @@ Error_Exit:
         If Not txtScriptMarkerY.Enabled Then
             Exit Sub
         End If
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        If TypeOf SelectedScriptMarker Is clsMap.clsScriptPosition Then
-            Dim tmpPosition As clsMap.clsScriptPosition = CType(SelectedScriptMarker, clsMap.clsScriptPosition)
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptPosition Then
+            Dim tmpPosition As clsMap.clsScriptPosition = CType(_SelectedScriptMarker, clsMap.clsScriptPosition)
             InvariantParse_int(txtScriptMarkerY.Text, tmpPosition.PosY)
-        ElseIf TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
-            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+        ElseIf TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
             InvariantParse_int(txtScriptMarkerY.Text, tmpArea.PosAY)
         Else
             MsgBox("Error: unhandled type.")
@@ -3513,12 +3580,12 @@ Error_Exit:
         If Not txtScriptMarkerX2.Enabled Then
             Exit Sub
         End If
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        If TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
-            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
             InvariantParse_int(txtScriptMarkerX2.Text, tmpArea.PosBX)
         Else
             MsgBox("Error: unhandled type.")
@@ -3532,18 +3599,50 @@ Error_Exit:
         If Not txtScriptMarkerY2.Enabled Then
             Exit Sub
         End If
-        If SelectedScriptMarker Is Nothing Then
+        If _SelectedScriptMarker Is Nothing Then
             Exit Sub
         End If
 
-        If TypeOf SelectedScriptMarker Is clsMap.clsScriptArea Then
-            Dim tmpArea As clsMap.clsScriptArea = CType(SelectedScriptMarker, clsMap.clsScriptArea)
+        If TypeOf _SelectedScriptMarker Is clsMap.clsScriptArea Then
+            Dim tmpArea As clsMap.clsScriptArea = CType(_SelectedScriptMarker, clsMap.clsScriptArea)
             InvariantParse_int(txtScriptMarkerY2.Text, tmpArea.PosBY)
         Else
             MsgBox("Error: unhandled type.")
         End If
 
         SelectedScriptMarker_Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub txtObjectLabel_LostFocus(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtObjectLabel.LostFocus
+        If Not txtObjectLabel.Enabled Then
+            Exit Sub
+        End If
+        Dim Map As clsMap = MainMap
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+        If Map.SelectedUnits.UnitCount <> 1 Then
+            Exit Sub
+        End If
+
+        If txtObjectLabel.Text = Map.SelectedUnits.Units(0).Label Then
+            Exit Sub
+        End If
+
+        Dim OldUnit As clsMap.clsUnit = Map.SelectedUnits.Units(0)
+        Dim ResultUnit As clsMap.clsUnit = New clsMap.clsUnit(OldUnit)
+        Map.UnitSwap(OldUnit, ResultUnit)
+        Dim Result As sResult = ResultUnit.SetLabel(txtObjectLabel.Text)
+        If Not Result.Success Then
+            MsgBox("Unable to set label: " & Result.Problem)
+        End If
+
+        Map.SelectedUnits.Clear()
+        Map.SelectedUnits.Add(ResultUnit)
+        SelectedObject_Changed()
+
+        Map.UndoStepCreate("Object Label Changed")
         View_DrawViewLater()
     End Sub
 End Class
