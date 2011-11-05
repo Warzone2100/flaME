@@ -5,20 +5,7 @@
 
     Public tsbNumber(10) As ToolStripButton
 
-    Private _SelectedUnitGroup As clsMap.clsUnitGroup
-    Public Property SelectedUnitGroup As clsMap.clsUnitGroup
-        Get
-            Return _SelectedUnitGroup
-        End Get
-        Set(ByVal value As clsMap.clsUnitGroup)
-            If value Is _SelectedUnitGroup Then
-                Exit Property
-            End If
-            ChangeSelected(value)
-        End Set
-    End Property
-
-    Public Event SelectedUnitGroupChanged()
+    Private _Target As clsMap.clsUnitGroupContainer
 
     Public Const ScavButtonNum As Integer = 10
 
@@ -62,33 +49,59 @@
     End Sub
 
     Private Sub tsbNumber_Clicked(ByVal sender As Object, ByVal e As EventArgs)
+
+        If _Target Is Nothing Then
+            Exit Sub
+        End If
+
         Dim tsb As ToolStripButton = CType(sender, ToolStripButton)
         Dim tmpUnitGroup As clsMap.clsUnitGroup = CType(tsb.Tag, clsMap.clsUnitGroup)
 
-        If tmpUnitGroup Is _SelectedUnitGroup Then
-            Exit Sub
-        End If
-        ChangeSelected(tmpUnitGroup)
+        _Target.Item = tmpUnitGroup
     End Sub
 
-    Private Sub ChangeSelected(ByVal NewSelectedUnitGroup As clsMap.clsUnitGroup)
-        Dim A As Integer
+    Public Property Target As clsMap.clsUnitGroupContainer
+        Get
+            Return _Target
+        End Get
+        Set(value As clsMap.clsUnitGroupContainer)
+            If value Is _Target Then
+                Exit Property
+            End If
+            If _Target IsNot Nothing Then
+                RemoveHandler _Target.Changed, AddressOf SelectedChanged
+            End If
+            _Target = value
+            If _Target IsNot Nothing Then
+                AddHandler _Target.Changed, AddressOf SelectedChanged
+            End If
+            SelectedChanged()
+        End Set
+    End Property
 
-        _SelectedUnitGroup = NewSelectedUnitGroup
-        If NewSelectedUnitGroup Is Nothing Then
+    Private Sub SelectedChanged()
+
+        Dim A As Integer
+        Dim tmpUnitGroup As clsMap.clsUnitGroup
+
+        If _Target Is Nothing Then
+            tmpUnitGroup = Nothing
+        Else
+            tmpUnitGroup = _Target.Item
+        End If
+
+        If tmpUnitGroup Is Nothing Then
             For A = 0 To 10
                 tsbNumber(A).Checked = False
             Next
         Else
             For A = 0 To 10
-                tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is NewSelectedUnitGroup)
+                tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is tmpUnitGroup)
             Next
         End If
-
-        RaiseEvent SelectedUnitGroupChanged()
     End Sub
 
-    Public Sub SetButtonUnitGroups(ByVal NewMap As clsMap)
+    Public Sub SetMap(ByVal NewMap As clsMap)
         Dim A As Integer
 
         If NewMap Is Nothing Then
@@ -96,16 +109,13 @@
                 tsbNumber(A).Tag = Nothing
             Next
             tsbNumber(ScavButtonNum).Tag = Nothing
-
-            SelectedUnitGroup = Nothing
         Else
             For A = 0 To PlayerCountMax - 1
                 tsbNumber(A).Tag = NewMap.UnitGroups(A)
             Next
             tsbNumber(ScavButtonNum).Tag = NewMap.ScavengerUnitGroup
-
-            SelectedUnitGroup = NewMap.ScavengerUnitGroup
         End If
+        SelectedChanged()
     End Sub
 
 #If MonoDevelop <> 0.0# Then

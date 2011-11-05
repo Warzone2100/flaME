@@ -51,6 +51,13 @@ Partial Public Class clsMap
         Dim DrawCentre As sXY_dbl
         Dim dblTemp2 As Double
 
+        dblTemp = Settings.MinimapSize
+        ViewInfo.Tiles_Per_Minimap_Pixel = Math.Sqrt(Terrain.TileSize.X * Terrain.TileSize.X + Terrain.TileSize.Y * Terrain.TileSize.Y) / (RootTwo * dblTemp)
+        If Minimap_Texture_Size > 0 And ViewInfo.Tiles_Per_Minimap_Pixel > 0.0# Then
+            MinimapSizeXY.X = CInt(Terrain.TileSize.X / ViewInfo.Tiles_Per_Minimap_Pixel)
+            MinimapSizeXY.Y = CInt(Terrain.TileSize.Y / ViewInfo.Tiles_Per_Minimap_Pixel)
+        End If
+
         If Not ViewInfo.ScreenXY_Get_ViewPlanePos(New sXY_int(CInt(GLSize.X / 2.0#), CInt(GLSize.Y / 2.0#)), dblTemp, DrawCentre) Then
             Matrix3D.VectorForwardsRotationByMatrix(ViewInfo.ViewAngleMatrix, XYZ_dbl)
             dblTemp2 = VisionRadius * 2.0# / Math.Sqrt(XYZ_dbl.X * XYZ_dbl.X + XYZ_dbl.Z * XYZ_dbl.Z)
@@ -230,18 +237,21 @@ Partial Public Class clsMap
             End If
         End If
 
+        Dim tmpGateway As clsGateway
+
         If Draw_Gateways Then
             GL.LineWidth(2.0F)
-            For A = 0 To GatewayCount - 1
-                If Gateways(A).PosA.X = Gateways(A).PosB.X Then
-                    If Gateways(A).PosA.Y <= Gateways(A).PosB.Y Then
-                        C = Gateways(A).PosA.Y
-                        D = Gateways(A).PosB.Y
+            For A = 0 To Gateways.ItemCount - 1
+                tmpGateway = Gateways.Item(A)
+                If tmpGateway.PosA.X = tmpGateway.PosB.X Then
+                    If tmpGateway.PosA.Y <= tmpGateway.PosB.Y Then
+                        C = tmpGateway.PosA.Y
+                        D = tmpGateway.PosB.Y
                     Else
-                        C = Gateways(A).PosB.Y
-                        D = Gateways(A).PosA.Y
+                        C = tmpGateway.PosB.Y
+                        D = tmpGateway.PosA.Y
                     End If
-                    X2 = Gateways(A).PosA.X
+                    X2 = tmpGateway.PosA.X
                     For Y2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
                         Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -263,15 +273,15 @@ Partial Public Class clsMap
                         GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                         GL.End()
                     Next
-                ElseIf Gateways(A).PosA.Y = Gateways(A).PosB.Y Then
-                    If Gateways(A).PosA.X <= Gateways(A).PosB.X Then
-                        C = Gateways(A).PosA.X
-                        D = Gateways(A).PosB.X
+                ElseIf tmpGateway.PosA.Y = tmpGateway.PosB.Y Then
+                    If tmpGateway.PosA.X <= tmpGateway.PosB.X Then
+                        C = tmpGateway.PosA.X
+                        D = tmpGateway.PosB.X
                     Else
-                        C = Gateways(A).PosB.X
-                        D = Gateways(A).PosA.X
+                        C = tmpGateway.PosB.X
+                        D = tmpGateway.PosA.X
                     End If
-                    Y2 = Gateways(A).PosA.Y
+                    Y2 = tmpGateway.PosA.Y
                     For X2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
                         Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -295,8 +305,8 @@ Partial Public Class clsMap
                     Next
                 Else
                     'draw invalid gateways as red tile borders
-                    X2 = Gateways(A).PosA.X
-                    Y2 = Gateways(A).PosA.Y
+                    X2 = tmpGateway.PosA.X
+                    Y2 = tmpGateway.PosA.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
                     Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -318,8 +328,8 @@ Partial Public Class clsMap
                     GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                     GL.End()
 
-                    X2 = Gateways(A).PosB.X
-                    Y2 = Gateways(A).PosB.Y
+                    X2 = tmpGateway.PosB.X
+                    Y2 = tmpGateway.PosB.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
                     Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -720,11 +730,31 @@ Partial Public Class clsMap
             GL.PopMatrix()
         End If
 
+        Dim MessageTextLabels As New clsTextLabels(24)
+
+        B = 0
+        For A = Math.Max(Messages.ItemCount - MessageTextLabels.MaxCount, 0) To Messages.ItemCount - 1
+            If Not MessageTextLabels.AtMaxCount Then
+                tmpTextLabel = New clsTextLabel
+                tmpTextLabel.Colour.Red = 0.875F
+                tmpTextLabel.Colour.Green = 0.875F
+                tmpTextLabel.Colour.Blue = 1.0F
+                tmpTextLabel.Colour.Alpha = 1.0F
+                tmpTextLabel.TextFont = UnitLabelFont
+                tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                tmpTextLabel.Pos.X = 32 + MinimapSizeXY.X
+                tmpTextLabel.Pos.Y = 32 + CInt(Math.Ceiling(B * tmpTextLabel.SizeY))
+                tmpTextLabel.Text = Messages.Item(A).Text
+                MessageTextLabels.Add(tmpTextLabel)
+                B += 1
+            End If
+        Next
+
         'draw unit selection
 
         GL.Begin(BeginMode.Quads)
-        For A = 0 To SelectedUnits.UnitCount - 1
-            tmpUnit = SelectedUnits.Units(A)
+        For A = 0 To SelectedUnits.ItemCount - 1
+            tmpUnit = SelectedUnits.Item(A)
             XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
             XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
             XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
@@ -735,9 +765,9 @@ Partial Public Class clsMap
             DrawUnitRectangle(XYZ_dbl, Footprint, 8.0#, ColourA, ColourB)
         Next
         If MouseOverTerrain IsNot Nothing Then
-            For A = 0 To MouseOverTerrain.UnitCount - 1
-                If MouseOverTerrain.Units(A) IsNot Nothing And Tool = enumTool.None Then
-                    tmpUnit = MouseOverTerrain.Units(A)
+            For A = 0 To MouseOverTerrain.Units.ItemCount - 1
+                tmpUnit = MouseOverTerrain.Units.Item(A)
+                If tmpUnit IsNot Nothing And Tool = enumTool.None Then
                     XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
                     XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
                     XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
@@ -762,6 +792,7 @@ Partial Public Class clsMap
         ScriptMarkerTextLabels.Draw()
         DrawObjects.UnitTextLabels.Draw()
         SelectionLabel.Draw()
+        MessageTextLabels.Draw()
 
         GL.Disable(EnableCap.Texture2D)
 
@@ -774,13 +805,7 @@ Partial Public Class clsMap
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
 
-        dblTemp = Settings.MinimapSize
-        ViewInfo.Tiles_Per_Minimap_Pixel = Math.Sqrt(Terrain.TileSize.X * Terrain.TileSize.X + Terrain.TileSize.Y * Terrain.TileSize.Y) / (RootTwo * dblTemp)
-
         If Minimap_Texture_Size > 0 And ViewInfo.Tiles_Per_Minimap_Pixel > 0.0# Then
-
-            MinimapSizeXY.X = CInt(Terrain.TileSize.X / ViewInfo.Tiles_Per_Minimap_Pixel)
-            MinimapSizeXY.Y = CInt(Terrain.TileSize.Y / ViewInfo.Tiles_Per_Minimap_Pixel)
 
             GL.Translate(0.0F, GLSize.Y - MinimapSizeXY.Y, 0.0F)
 
@@ -975,6 +1000,8 @@ Partial Public Class clsMap
         Private Vertex1 As sXYZ_int
 
         Public Sub ActionPerform()
+	        Dim X As Integer
+	        Dim Y As Integer
 
             GL.Begin(BeginMode.Lines)
             GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)
@@ -1300,7 +1327,7 @@ Partial Public Class clsMap
 
         Public Sub Start()
 
-            ReDim UnitDrawn(Map.UnitCount - 1)
+            ReDim UnitDrawn(Map.Units.ItemCount - 1)
 
             Started = True
         End Sub
@@ -1323,10 +1350,10 @@ Partial Public Class clsMap
             Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
             Dim ScreenPos As sXY_int
 
-            For A = 0 To tmpSector.UnitCount - 1
-                tmpUnit = tmpSector.Units(A)
-                If Not UnitDrawn(tmpUnit.Map_UnitNum) Then
-                    UnitDrawn(tmpUnit.Map_UnitNum) = True
+            For A = 0 To tmpSector.Units.ItemCount - 1
+                tmpUnit = tmpSector.Units.Item(A).Unit
+                If Not UnitDrawn(tmpUnit.MapLink.ArrayPosition) Then
+                    UnitDrawn(tmpUnit.MapLink.ArrayPosition) = True
                     XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
                     XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
                     XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
@@ -1344,8 +1371,8 @@ Partial Public Class clsMap
                             End If
                         End If
                         If MouseOverTerrain IsNot Nothing Then
-                            If MouseOverTerrain.UnitCount > 0 Then
-                                If MouseOverTerrain.Units(0) Is tmpUnit Then
+                            If MouseOverTerrain.Units.ItemCount > 0 Then
+                                If MouseOverTerrain.Units.Item(0) Is tmpUnit Then
                                     DrawUnitLabel = True
                                 End If
                             End If

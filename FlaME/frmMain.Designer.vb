@@ -172,6 +172,7 @@ Partial Class frmMain
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Panel14 = New System.Windows.Forms.Panel()
+        Me.Label17 = New System.Windows.Forms.Label()
         Me.txtObjectLabel = New System.Windows.Forms.TextBox()
         Me.Label35 = New System.Windows.Forms.Label()
         Me.btnDroidToDesign = New System.Windows.Forms.Button()
@@ -279,8 +280,6 @@ Partial Class frmMain
         Me.TabPage22 = New System.Windows.Forms.TabPage()
         Me.TabPage23 = New System.Windows.Forms.TabPage()
         Me.TabPage24 = New System.Windows.Forms.TabPage()
-        Me.Label17 = New System.Windows.Forms.Label()
-        CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SplitContainer1.Panel1.SuspendLayout()
         Me.SplitContainer1.Panel2.SuspendLayout()
         Me.SplitContainer1.SuspendLayout()
@@ -459,9 +458,9 @@ Partial Class frmMain
         '
         'pnlTextureBrush
         '
-        Me.pnlTextureBrush.Location = New System.Drawing.Point(25, 47)
+        Me.pnlTextureBrush.Location = New System.Drawing.Point(25, 44)
         Me.pnlTextureBrush.Name = "pnlTextureBrush"
-        Me.pnlTextureBrush.Size = New System.Drawing.Size(341, 27)
+        Me.pnlTextureBrush.Size = New System.Drawing.Size(341, 36)
         Me.pnlTextureBrush.TabIndex = 45
         '
         'chkTextureOrientationRandomize
@@ -2153,6 +2152,17 @@ Partial Class frmMain
         Me.Panel14.Size = New System.Drawing.Size(404, 344)
         Me.Panel14.TabIndex = 1
         '
+        'Label17
+        '
+        Me.Label17.Location = New System.Drawing.Point(21, 180)
+        Me.Label17.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label17.Name = "Label17"
+        Me.Label17.Size = New System.Drawing.Size(62, 25)
+        Me.Label17.TabIndex = 43
+        Me.Label17.Text = "Label:"
+        Me.Label17.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        Me.Label17.UseCompatibleTextRendering = True
+        '
         'txtObjectLabel
         '
         Me.txtObjectLabel.Location = New System.Drawing.Point(91, 181)
@@ -3078,17 +3088,6 @@ Partial Class frmMain
         Me.TabPage24.Text = "8"
         Me.TabPage24.UseVisualStyleBackColor = True
         '
-        'Label17
-        '
-        Me.Label17.Location = New System.Drawing.Point(21, 180)
-        Me.Label17.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label17.Name = "Label17"
-        Me.Label17.Size = New System.Drawing.Size(62, 25)
-        Me.Label17.TabIndex = 43
-        Me.Label17.Text = "Label:"
-        Me.Label17.TextAlign = System.Drawing.ContentAlignment.MiddleRight
-        Me.Label17.UseCompatibleTextRendering = True
-        '
         'frmMain
         '
         Me.AllowDrop = True
@@ -3101,71 +3100,70 @@ Partial Class frmMain
         Me.WindowState = System.Windows.Forms.FormWindowState.Minimized
         Me.SplitContainer1.Panel1.ResumeLayout(False)
         Me.SplitContainer1.Panel2.ResumeLayout(False)
-        CType(Me.SplitContainer1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.SplitContainer1.ResumeLayout(False)
-        Me.TabControl.ResumeLayout(False)
-        Me.tpTextures.ResumeLayout(False)
-        Me.TableLayoutPanel6.ResumeLayout(False)
-        Me.Panel5.ResumeLayout(False)
-        Me.Panel5.PerformLayout()
-        Me.Panel6.ResumeLayout(False)
-        Me.tpAutoTexture.ResumeLayout(False)
-        Me.tpAutoTexture.PerformLayout()
-        Me.Panel15.ResumeLayout(False)
-        Me.Panel15.PerformLayout()
-        Me.tpHeight.ResumeLayout(False)
-        Me.tpHeight.PerformLayout()
-        Me.tabHeightSetR.ResumeLayout(False)
-        Me.tabHeightSetL.ResumeLayout(False)
-        Me.tpAutoHeight.ResumeLayout(False)
-        Me.tpResize.ResumeLayout(False)
-        Me.tpResize.PerformLayout()
-        Me.tpObjects.ResumeLayout(False)
-        Me.TableLayoutPanel1.ResumeLayout(False)
-        Me.TableLayoutPanel4.ResumeLayout(False)
-        Me.Panel4.ResumeLayout(False)
-        Me.TableLayoutPanel3.ResumeLayout(False)
-        Me.Panel3.ResumeLayout(False)
-        Me.Panel1.ResumeLayout(False)
-        Me.Panel1.PerformLayout()
-        Me.TableLayoutPanel2.ResumeLayout(False)
-        Me.Panel2.ResumeLayout(False)
-        Me.tpObject.ResumeLayout(False)
-        Me.TableLayoutPanel8.ResumeLayout(False)
-        Me.TableLayoutPanel9.ResumeLayout(False)
-        Me.Panel13.ResumeLayout(False)
-        Me.Panel13.PerformLayout()
-        Me.Panel12.ResumeLayout(False)
-        Me.Panel12.PerformLayout()
-        Me.Panel11.ResumeLayout(False)
-        Me.Panel11.PerformLayout()
-        Me.Panel10.ResumeLayout(False)
-        Me.Panel9.ResumeLayout(False)
-        Me.Panel8.ResumeLayout(False)
-        Me.Panel14.ResumeLayout(False)
-        Me.Panel14.PerformLayout()
-        Me.tpCampaignMarkers.ResumeLayout(False)
-        Me.tpCampaignMarkers.PerformLayout()
-        Me.GroupBox1.ResumeLayout(False)
-        Me.GroupBox1.PerformLayout()
-        Me.TableLayoutPanel7.ResumeLayout(False)
-        Me.Panel7.ResumeLayout(False)
-        Me.Panel7.PerformLayout()
-        Me.tsTools.ResumeLayout(False)
-        Me.tsTools.PerformLayout()
-        Me.tsFile.ResumeLayout(False)
-        Me.tsFile.PerformLayout()
-        Me.tsSelection.ResumeLayout(False)
-        Me.tsSelection.PerformLayout()
-        Me.tsMinimap.ResumeLayout(False)
-        Me.tsMinimap.PerformLayout()
-        Me.menuMain.ResumeLayout(False)
-        Me.menuMain.PerformLayout()
-        Me.TableLayoutPanel5.ResumeLayout(False)
-        Me.TableLayoutPanel5.PerformLayout()
-        Me.ResumeLayout(False)
+        Me.TabControl.ResumeLayout(false)
+        Me.tpTextures.ResumeLayout(false)
+        Me.TableLayoutPanel6.ResumeLayout(false)
+        Me.Panel5.ResumeLayout(false)
+        Me.Panel5.PerformLayout
+        Me.Panel6.ResumeLayout(false)
+        Me.tpAutoTexture.ResumeLayout(false)
+        Me.tpAutoTexture.PerformLayout
+        Me.Panel15.ResumeLayout(false)
+        Me.Panel15.PerformLayout
+        Me.tpHeight.ResumeLayout(false)
+        Me.tpHeight.PerformLayout
+        Me.tabHeightSetR.ResumeLayout(false)
+        Me.tabHeightSetL.ResumeLayout(false)
+        Me.tpAutoHeight.ResumeLayout(false)
+        Me.tpResize.ResumeLayout(false)
+        Me.tpResize.PerformLayout
+        Me.tpObjects.ResumeLayout(false)
+        Me.TableLayoutPanel1.ResumeLayout(false)
+        Me.TableLayoutPanel4.ResumeLayout(false)
+        Me.Panel4.ResumeLayout(false)
+        Me.TableLayoutPanel3.ResumeLayout(false)
+        Me.Panel3.ResumeLayout(false)
+        Me.Panel1.ResumeLayout(false)
+        Me.Panel1.PerformLayout
+        Me.TableLayoutPanel2.ResumeLayout(false)
+        Me.Panel2.ResumeLayout(false)
+        Me.tpObject.ResumeLayout(false)
+        Me.TableLayoutPanel8.ResumeLayout(false)
+        Me.TableLayoutPanel9.ResumeLayout(false)
+        Me.Panel13.ResumeLayout(false)
+        Me.Panel13.PerformLayout
+        Me.Panel12.ResumeLayout(false)
+        Me.Panel12.PerformLayout
+        Me.Panel11.ResumeLayout(false)
+        Me.Panel11.PerformLayout
+        Me.Panel10.ResumeLayout(false)
+        Me.Panel9.ResumeLayout(false)
+        Me.Panel8.ResumeLayout(false)
+        Me.Panel14.ResumeLayout(false)
+        Me.Panel14.PerformLayout
+        Me.tpCampaignMarkers.ResumeLayout(false)
+        Me.tpCampaignMarkers.PerformLayout
+        Me.GroupBox1.ResumeLayout(false)
+        Me.GroupBox1.PerformLayout
+        Me.TableLayoutPanel7.ResumeLayout(false)
+        Me.Panel7.ResumeLayout(false)
+        Me.Panel7.PerformLayout
+        Me.tsTools.ResumeLayout(false)
+        Me.tsTools.PerformLayout
+        Me.tsFile.ResumeLayout(false)
+        Me.tsFile.PerformLayout
+        Me.tsSelection.ResumeLayout(false)
+        Me.tsSelection.PerformLayout
+        Me.tsMinimap.ResumeLayout(false)
+        Me.tsMinimap.PerformLayout
+        Me.menuMain.ResumeLayout(false)
+        Me.menuMain.PerformLayout
+        Me.TableLayoutPanel5.ResumeLayout(false)
+        Me.TableLayoutPanel5.PerformLayout
+        Me.ResumeLayout(false)
 
-    End Sub
+End Sub
     Public WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
     Public WithEvents tpTextures As System.Windows.Forms.TabPage
     Public WithEvents tpHeight As System.Windows.Forms.TabPage

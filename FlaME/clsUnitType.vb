@@ -16,80 +16,59 @@ Public Class clsUnitType
     Public Class clsAttachment
         Public Pos_Offset As sXYZ_sng
         Public AngleOffsetMatrix As New Matrix3D.Matrix3D
-        Public Models() As clsModel
-        Public ModelCount As Integer
-        Public Attachments() As clsAttachment
-        Public AttachmentCount As Integer
+        Public Models As New SimpleClassList(Of clsModel)
+        Public Attachments As New SimpleClassList(Of clsAttachment)
 
         Public Sub New()
 
+            Models.AddNothingAction = SimpleClassList_AddNothingAction.DisallowIgnore
             Matrix3D.MatrixSetToIdentity(AngleOffsetMatrix)
         End Sub
 
         Public Sub GLDraw()
             Dim AngleRPY As Matrix3D.AngleRPY
             Dim matrixA As New Matrix3D.Matrix3D
+            Dim tmpAttachment As clsAttachment
             Dim A As Integer
 
-            'Matrix_Invert(Angle_Matrix, matrixA)
-            'Matrix_Get_RPY(matrixA, AngleRPY)
-            'gl.Rotatef(-AngleRPY.Roll / Rad1Deg, 0.0F, 0.0F, 1.0F)
-            'gl.Rotatef(AngleRPY.Pitch / Rad1Deg, 1.0F, 0.0F, 0.0F)
-            'gl.Rotatef(AngleRPY.Yaw / Rad1Deg, 0.0F, 1.0F, 0.0F)
-
-            For A = 0 To ModelCount - 1
-                Models(A).GLDraw()
+            For A = 0 To Models.ItemCount - 1
+                Models.Item(A).GLDraw()
             Next
 
-            For A = 0 To AttachmentCount - 1
+            For A = 0 To Attachments.ItemCount - 1
+                tmpAttachment = Attachments.Item(A)
                 GL.PushMatrix()
-                Matrix3D.MatrixInvert(Attachments(A).AngleOffsetMatrix, matrixA)
+                Matrix3D.MatrixInvert(tmpAttachment.AngleOffsetMatrix, matrixA)
                 Matrix3D.MatrixToRPY(matrixA, AngleRPY)
-                GL.Translate(Attachments(A).Pos_Offset.X, Attachments(A).Pos_Offset.Y, -Attachments(A).Pos_Offset.Z)
+                GL.Translate(tmpAttachment.Pos_Offset.X, tmpAttachment.Pos_Offset.Y, -tmpAttachment.Pos_Offset.Z)
                 GL.Rotate(-AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, 1.0F)
                 GL.Rotate(AngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
                 GL.Rotate(AngleRPY.Yaw / RadOf1Deg, 0.0F, 1.0F, 0.0F)
-                Attachments(A).GLDraw()
+                tmpAttachment.GLDraw()
                 GL.PopMatrix()
             Next
         End Sub
 
         Public Function CreateAttachment() As clsAttachment
 
-            ReDim Preserve Attachments(AttachmentCount)
-            CreateAttachment = New clsAttachment
-            Attachments(AttachmentCount) = CreateAttachment
-            AttachmentCount += 1
+            Dim Result As New clsAttachment
+            Attachments.Add(Result)
+            Return Result
         End Function
 
         Public Function AddCopyOfAttachment(ByVal AttachmentToCopy As clsAttachment) As clsAttachment
             Dim tmpAttachment As New clsAttachment
             Dim A As Integer
 
-            ReDim Preserve Attachments(AttachmentCount)
+            Attachments.Add(tmpAttachment)
             Matrix3D.MatrixCopy(AttachmentToCopy.AngleOffsetMatrix, tmpAttachment.AngleOffsetMatrix)
-            For A = 0 To AttachmentToCopy.ModelCount - 1
-                tmpAttachment.AddModel(AttachmentToCopy.Models(A))
+            AttachmentToCopy.Models.SendItems(tmpAttachment.Models)
+            For A = 0 To AttachmentToCopy.Attachments.ItemCount - 1
+                tmpAttachment.AddCopyOfAttachment(AttachmentToCopy.Attachments.Item(A))
             Next
-            For A = 0 To AttachmentToCopy.AttachmentCount - 1
-                tmpAttachment.AddCopyOfAttachment(AttachmentToCopy.Attachments(A))
-            Next
-            Attachments(AttachmentCount) = tmpAttachment
-            AttachmentCount += 1
 
             Return tmpAttachment
         End Function
-
-        Public Sub AddModel(ByVal NewModel As clsModel)
-
-            If NewModel Is Nothing Then
-                Exit Sub
-            End If
-
-            ReDim Preserve Models(ModelCount)
-            Models(ModelCount) = NewModel
-            ModelCount += 1
-        End Sub
     End Class
 
     Public Sub GLDraw(ByVal RotationDegrees As Single)
@@ -251,6 +230,13 @@ Public Class clsStructureType
             StructureBasePlate.GLDraw()
         End If
     End Sub
+
+    Public Function IsModule() As Boolean
+
+        Return (StructureType = clsStructureType.enumStructureType.FactoryModule _
+               Or StructureType = clsStructureType.enumStructureType.PowerModule _
+               Or StructureType = clsStructureType.enumStructureType.ResearchModule)
+    End Function
 End Class
 
 Public Class clsDroidDesign
@@ -321,7 +307,7 @@ Public Class clsDroidDesign
 
         Dim NewBody As clsUnitType.clsAttachment = BaseAttachment.AddCopyOfAttachment(Body.Attachment)
 
-        AlwaysDrawTextLabel = (NewBody.ModelCount = 0)
+        AlwaysDrawTextLabel = (NewBody.Models.ItemCount = 0)
 
         If Propulsion IsNot Nothing Then
             If Body.Num >= 0 Then
@@ -330,17 +316,17 @@ Public Class clsDroidDesign
             End If
         End If
 
-        If NewBody.ModelCount = 0 Then
+        If NewBody.Models.ItemCount = 0 Then
             Exit Sub
         End If
 
-        If NewBody.Models(0).ConnectorCount <= 0 Then
+        If NewBody.Models.Item(0).ConnectorCount <= 0 Then
             Exit Sub
         End If
 
         Dim TurretConnector As sXYZ_sng
 
-        TurretConnector = Body.Attachment.Models(0).Connectors(0)
+        TurretConnector = Body.Attachment.Models.Item(0).Connectors(0)
 
         If TurretCount >= 1 Then
             If Turret1 IsNot Nothing Then
@@ -349,11 +335,11 @@ Public Class clsDroidDesign
             End If
         End If
 
-        If Body.Attachment.Models(0).ConnectorCount <= 1 Then
+        If Body.Attachment.Models.Item(0).ConnectorCount <= 1 Then
             Exit Sub
         End If
 
-        TurretConnector = Body.Attachment.Models(0).Connectors(1)
+        TurretConnector = Body.Attachment.Models.Item(0).Connectors(1)
 
         If TurretCount >= 2 Then
             If Turret2 IsNot Nothing Then
@@ -470,7 +456,7 @@ Public Class clsDroidDesign
             End If
         End If
         If Args.Sensor IsNot Nothing Then
-            If Args.Sensor.Code <> "ZNULLSENSOR" And Args.Sensor.Code <> "DefaultSensor1Mk1" And Args.Sensor.Code <> "NavGunSensor" Then
+            If Args.Sensor.Location = clsSensor.enumLocation.Turret Then
                 If Turret1 IsNot Nothing Then
                     TurretConflict = True
                 End If

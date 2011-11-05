@@ -26,6 +26,10 @@
             Exit Sub
         End If
 
+        If Not NewMap.ReadyForUserInput Then
+            NewMap.InitializeUserInput()
+        End If
+
         NewMap.LoadedMap_Num = _LoadedMapCount
 
         NewMap.MapView_TabPage = New TabPage
@@ -93,9 +97,9 @@
         If _MainMap Is Map Then
             Exit Sub
         End If
-        frmMainInstance.frmMain_MainMapBeforeChanged()
+        frmMainInstance.MainMapBeforeChanged()
         _MainMap = Map
-        frmMainInstance.frmMain_MainMapAfterChanged()
+        frmMainInstance.MainMapAfterChanged()
     End Sub
 
     Public ReadOnly Property LoadedMapCount As Integer

@@ -381,7 +381,6 @@ Partial Public Class clsMap
             File.Property_Append("XPlayerLev", InvariantToString_bool(InterfaceOptions.CompileMultiXPlayers))
             File.Property_Append("Author", InterfaceOptions.CompileMultiAuthor)
             File.Property_Append("License", InterfaceOptions.CompileMultiLicense)
-            'File.Property_Append("CampTime", InvariantToString_int(InterfaceOptions.CampaignGameTime))
             If InterfaceOptions.CampaignGameType >= 0 Then
                 File.Property_Append("CampType", InvariantToString_int(InterfaceOptions.CampaignGameType))
             End If
@@ -633,8 +632,8 @@ Partial Public Class clsMap
         Dim strTemp As String = Nothing
 
         Try
-            For A = 0 To UnitCount - 1
-                tmpUnit = Units(A)
+            For A = 0 To Units.ItemCount - 1
+                tmpUnit = Units.Item(A)
                 File.SectionName_Append(InvariantToString_int(A))
                 Select Case tmpUnit.Type.Type
                     Case clsUnitType.enumType.Feature
@@ -708,14 +707,16 @@ Partial Public Class clsMap
     Public Function Data_FMap_Gateways(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
         Dim A As Integer
+        Dim tmpGateway As clsGateway
 
         Try
-            For A = 0 To GatewayCount - 1
+            For A = 0 To Gateways.ItemCount - 1
+                tmpGateway = Gateways.Item(A)
                 File.SectionName_Append(InvariantToString_int(A))
-                File.Property_Append("AX", InvariantToString_int(Gateways(A).PosA.X))
-                File.Property_Append("AY", InvariantToString_int(Gateways(A).PosA.Y))
-                File.Property_Append("BX", InvariantToString_int(Gateways(A).PosB.X))
-                File.Property_Append("BY", InvariantToString_int(Gateways(A).PosB.Y))
+                File.Property_Append("AX", InvariantToString_int(tmpGateway.PosA.X))
+                File.Property_Append("AY", InvariantToString_int(tmpGateway.PosA.Y))
+                File.Property_Append("BX", InvariantToString_int(tmpGateway.PosB.X))
+                File.Property_Append("BY", InvariantToString_int(tmpGateway.PosB.Y))
                 File.Gap_Append()
             Next
         Catch ex As Exception
@@ -963,9 +964,6 @@ Partial Public Class clsMap
                     InterfaceOptions.CompileMultiLicense = INIProperty.Value
                 Case "camptime"
                     'allow and ignore
-                    'If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.CampaignGameTime) Then
-                    '    Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    'End If
                 Case "camptype"
                     If Not InvariantParse_int(INIProperty.Value, InterfaceOptions.CampaignGameType) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
@@ -1304,11 +1302,14 @@ Partial Public Class clsMap
 
         Dim tmpDroidDesign As clsDroidDesign
         Dim NewObject As clsUnit
+        Dim UnitAdd As New clsMap.clsUnitAdd
         Dim tmpUnitType As clsUnitType
         Dim IsDesign As Boolean
         Dim tmpUnitGroup As clsUnitGroup
         Dim ZeroPos As New sXY_int(0, 0)
         Dim AvailableID As UInteger
+
+        UnitAdd.Map = Me
 
         AvailableID = 1UI
         For A = 0 To INIObjects.ObjectCount - 1
@@ -1424,12 +1425,14 @@ Partial Public Class clsMap
                         INIObjects.Objects(A).ID = AvailableID
                         ZeroIDWarning(NewObject, INIObjects.Objects(A).ID)
                     End If
-                    UnitID_Add(NewObject, INIObjects.Objects(A).ID)
+                    UnitAdd.NewUnit = NewObject
+                    UnitAdd.ID = INIObjects.Objects(A).ID
+                    UnitAdd.Label = INIObjects.Objects(A).Label
+                    UnitAdd.Perform()
                     ErrorIDChange(INIObjects.Objects(A).ID, NewObject, "Read_FMap_Objects")
                     If AvailableID = INIObjects.Objects(A).ID Then
                         AvailableID = NewObject.ID + 1UI
                     End If
-                    NewObject.SetLabel(INIObjects.Objects(A).Label)
                 End If
             End If
         Next

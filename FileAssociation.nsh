@@ -119,11 +119,11 @@ _____________________________________________________________________________
   Push $0
   Push $1
  
-  ReadRegStr $1 HKCR $R1 ""  ; read current file association
-  StrCmp "$1" "" NoBackup  ; is it empty
-  StrCmp "$1" "$R0" NoBackup  ; is it our own
-    WriteRegStr HKCR $R1 "backup_val" "$1"  ; backup current value
-NoBackup:
+;  ReadRegStr $1 HKCR $R1 ""  ; read current file association
+;  StrCmp "$1" "" NoBackup  ; is it empty
+;  StrCmp "$1" "$R0" NoBackup  ; is it our own
+;    WriteRegStr HKCR $R1 "backup_val" "$1"  ; backup current value
+;NoBackup:
   WriteRegStr HKCR $R1 "" "$R0"  ; set our file association
  
 ;  ReadRegStr $0 HKCR $R0 ""
@@ -168,8 +168,8 @@ NoBackup:
  
   ReadRegStr $1 HKCR $R0 ""
   StrCmp $1 $R1 0 NoOwn ; only do this if we own it
-  ReadRegStr $1 HKCR $R0 "backup_val"
-  StrCmp $1 "" 0 Restore ; if backup="" then delete the whole key
+;  ReadRegStr $1 HKCR $R0 "backup_val"
+;  StrCmp $1 "" 0 Restore ; if backup="" then delete the whole key
   DeleteRegKey HKCR $R0
   Goto Own
  

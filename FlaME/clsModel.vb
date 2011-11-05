@@ -30,18 +30,18 @@ Public Class clsModel
     Public QuadCount As Integer
 
     Public Function GLList_Create() As Integer
+        Dim Result As Integer
 
-        GLList_Create = GL.GenLists(1)
-
-        If GLList_Create = 0 Then
-            Exit Function
+        Result = GL.GenLists(1)
+        If Result = 0 Then
+            Return Result
         End If
 
-        GL.NewList(GLList_Create, ListMode.Compile)
-
+        GL.NewList(Result, ListMode.Compile)
         GLDraw()
-
         GL.EndList()
+
+        Return Result
     End Function
 
     Public Sub GLDraw()

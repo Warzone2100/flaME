@@ -15,17 +15,12 @@ Public Module modData
     Public SubDirWeapons As String
     Public SubDirECM As String
     Public SubDirFeatures As String
-    'public SubDirStructurePIE As String
     Public SubDirStructurePIE As String
-    'public SubDirBodiesPIE As String
     Public SubDirBodiesPIE As String
-    'public SubDirPropPIE As String
     Public SubDirPropPIE As String
-    'public SubDirWeaponsPIE As String
     Public SubDirWeaponsPIE As String
     Public SubDirTexpages As String
     Public SubDirAssignWeapons As String
-    'public SubDirFeaturePIE As String
     Public SubDirFeaturePIE As String
     Public SubDirStructureWeapons As String
     Public SubDirPIEs As String
@@ -175,6 +170,7 @@ Public Module modData
         Public PIE2 As String
         Public HitPoints As Integer
         Public Designable As Boolean
+        Public Location As String
     End Structure
     Public Structure sSensor_List
         Public Sensors() As sSensor
@@ -631,6 +627,7 @@ Public Module modData
                     InvariantParse_int(DataSensor.Entries(Sensor_Num).FieldValues(7), .Sensors(Sensor_Num).HitPoints)
                     .Sensors(Sensor_Num).PIE = LCase(DataSensor.Entries(Sensor_Num).FieldValues(8))
                     .Sensors(Sensor_Num).PIE2 = LCase(DataSensor.Entries(Sensor_Num).FieldValues(9))
+                    .Sensors(Sensor_Num).Location = DataSensor.Entries(Sensor_Num).FieldValues(11)
                     .Sensors(Sensor_Num).Designable = (DataSensor.Entries(Sensor_Num).FieldValues(15) <> "0")
                 Next
             End With
@@ -941,7 +938,7 @@ Public Module modData
                 tmpBody.Name = .Body_List.Bodies(A).Name
                 tmpBody.Hitpoints = .Body_List.Bodies(A).HitPoints
                 tmpBody.Designable = .Body_List.Bodies(A).Designable
-                tmpBody.Attachment.AddModel(GetModelForPIE(PIE_List, .Body_List.Bodies(A).PIE, ReturnResult))
+                tmpBody.Attachment.Models.Add(GetModelForPIE(PIE_List, .Body_List.Bodies(A).PIE, ReturnResult))
             Next
 
             PropulsionCount = .Propulsion_List.PropulsionCount
@@ -955,9 +952,9 @@ Public Module modData
                 tmpPropulsion.Designable = .Propulsion_List.Propulsions(A).Designable
                 For B = 0 To BodyCount - 1
                     tmpPropulsion.Bodies(B).LeftAttachment = New clsUnitType.clsAttachment
-                    tmpPropulsion.Bodies(B).LeftAttachment.AddModel(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).LeftPIE, ReturnResult))
+                    tmpPropulsion.Bodies(B).LeftAttachment.Models.Add(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).LeftPIE, ReturnResult))
                     tmpPropulsion.Bodies(B).RightAttachment = New clsUnitType.clsAttachment
-                    tmpPropulsion.Bodies(B).RightAttachment.AddModel(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).RightPIE, ReturnResult))
+                    tmpPropulsion.Bodies(B).RightAttachment.Models.Add(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).RightPIE, ReturnResult))
                 Next
             Next
 
@@ -970,7 +967,7 @@ Public Module modData
                 tmpConstruct.Name = .Construction_List.Constructions(A).Name
                 tmpConstruct.HitPoints = .Construction_List.Constructions(A).HitPoints
                 tmpConstruct.Designable = .Construction_List.Constructions(A).Designable
-                tmpConstruct.Attachment.AddModel(GetModelForPIE(PIE_List, .Construction_List.Constructions(A).PIE, ReturnResult))
+                tmpConstruct.Attachment.Models.Add(GetModelForPIE(PIE_List, .Construction_List.Constructions(A).PIE, ReturnResult))
             Next
 
             WeaponCount = .Weapon_List.WeaponCount
@@ -982,8 +979,8 @@ Public Module modData
                 tmpWeapon.Name = .Weapon_List.Weapons(A).Name
                 tmpWeapon.HitPoints = .Weapon_List.Weapons(A).HitPoints
                 tmpWeapon.Designable = .Weapon_List.Weapons(A).Designable
-                tmpWeapon.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE, ReturnResult))
-                tmpWeapon.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE2, ReturnResult))
+                tmpWeapon.Attachment.Models.Add(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE, ReturnResult))
+                tmpWeapon.Attachment.Models.Add(GetModelForPIE(PIE_List, .Weapon_List.Weapons(A).PIE2, ReturnResult))
             Next
 
             RepairCount = .Repair_List.RepairCount
@@ -995,8 +992,8 @@ Public Module modData
                 tmpRepair.Name = .Repair_List.Repairs(A).Name
                 tmpRepair.HitPoints = .Repair_List.Repairs(A).HitPoints
                 tmpRepair.Designable = .Repair_List.Repairs(A).Designable
-                tmpRepair.Attachment.AddModel(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE, ReturnResult))
-                tmpRepair.Attachment.AddModel(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE2, ReturnResult))
+                tmpRepair.Attachment.Models.Add(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE, ReturnResult))
+                tmpRepair.Attachment.Models.Add(GetModelForPIE(PIE_List, .Repair_List.Repairs(A).PIE2, ReturnResult))
             Next
 
             SensorCount = .Sensor_List.SensorCount
@@ -1008,8 +1005,16 @@ Public Module modData
                 tmpSensor.Name = .Sensor_List.Sensors(A).Name
                 tmpSensor.HitPoints = .Sensor_List.Sensors(A).HitPoints
                 tmpSensor.Designable = .Sensor_List.Sensors(A).Designable
-                tmpSensor.Attachment.AddModel(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE, ReturnResult))
-                tmpSensor.Attachment.AddModel(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE2, ReturnResult))
+                Select Case .Sensor_List.Sensors(A).Location.ToLower
+                    Case "turret"
+                        tmpSensor.Location = clsSensor.enumLocation.Turret
+                    Case "default"
+                        tmpSensor.Location = clsSensor.enumLocation.Invisible
+                    Case Else
+                        tmpSensor.Location = clsSensor.enumLocation.Invisible
+                End Select
+                tmpSensor.Attachment.Models.Add(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE, ReturnResult))
+                tmpSensor.Attachment.Models.Add(GetModelForPIE(PIE_List, .Sensor_List.Sensors(A).PIE2, ReturnResult))
             Next
 
             ECMCount = .ECM_List.ECMCount
@@ -1021,7 +1026,7 @@ Public Module modData
                 tmpECM.Name = .ECM_List.ECMs(A).Name
                 tmpECM.HitPoints = .ECM_List.ECMs(A).HitPoints
                 tmpECM.Designable = .ECM_List.ECMs(A).Designable
-                tmpECM.Attachment.AddModel(GetModelForPIE(PIE_List, .ECM_List.ECMs(A).PIE, ReturnResult))
+                tmpECM.Attachment.Models.Add(GetModelForPIE(PIE_List, .ECM_List.ECMs(A).PIE, ReturnResult))
             Next
 
             BrainCount = .Brain_List.BrainCount
@@ -1036,8 +1041,8 @@ Public Module modData
                 B = .Brain_List.Brains(A).Weapon_Num
                 If B >= 0 Then
                     tmpBrain.Weapon = Weapons(B)
-                    tmpBrain.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE, ReturnResult))
-                    tmpBrain.Attachment.AddModel(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE2, ReturnResult))
+                    tmpBrain.Attachment.Models.Add(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE, ReturnResult))
+                    tmpBrain.Attachment.Models.Add(GetModelForPIE(PIE_List, .Weapon_List.Weapons(B).PIE2, ReturnResult))
                 End If
             Next
 
@@ -1096,22 +1101,22 @@ Public Module modData
 
                 tmpBaseAttachment = tmpStructure.BaseAttachment
                 tmpString = .Structure_List.Structures(A).PIE
-                tmpBaseAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                tmpBaseAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                 tmpString = .Structure_List.Structures(A).BasePIE
                 tmpStructure.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, ReturnResult)
-                If tmpBaseAttachment.ModelCount = 1 Then
-                    If tmpBaseAttachment.Models(0).ConnectorCount >= 1 Then
-                        tmpConnector = tmpBaseAttachment.Models(0).Connectors(0)
+                If tmpBaseAttachment.Models.ItemCount = 1 Then
+                    If tmpBaseAttachment.Models.Item(0).ConnectorCount >= 1 Then
+                        tmpConnector = tmpBaseAttachment.Models.Item(0).Connectors(0)
                         If .Structure_List.Structures(A).Weapon1 >= 0 Then
                             If .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).Code <> "ZNULLWEAPON" Then
                                 tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                                 tmpAttachment.Pos_Offset = tmpConnector
 
                                 tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE2
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -1119,7 +1124,7 @@ Public Module modData
                             If .ECM_List.ECMs(.Structure_List.Structures(A).ECM).Code <> "ZNULLECM" Then
                                 tmpString = .ECM_List.ECMs(.Structure_List.Structures(A).ECM).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -1127,12 +1132,12 @@ Public Module modData
                             If .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).Code <> "ZNULLSENSOR" Then
                                 tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                                 tmpAttachment.Pos_Offset = tmpConnector
 
                                 tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE2
                                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                                 tmpAttachment.Pos_Offset = tmpConnector
                             End If
                         End If
@@ -1154,7 +1159,7 @@ Public Module modData
                 tmpBaseAttachment = tmpFeature.BaseAttachment
                 tmpString = .Feature_List.Features(A).PIE
                 tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                tmpAttachment.AddModel(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
                 C += 1
             Next
             Dim TurretConflictCount As Integer = 0

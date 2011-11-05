@@ -222,7 +222,7 @@
             Dim ar As Double
             Dim br As Double
 
-            y1dif = A1.Y - B1.Y
+            y1dif = B1.Y - A1.Y
             x1dif = B1.X - A1.X
             adifx = A2.X - A1.X
             adify = A2.Y - A1.Y
@@ -232,12 +232,11 @@
             If m = 0.0# Then
                 Result.Exists = False
             Else
-                ar = (x1dif * bdify + y1dif * bdifx) / m
-                br = (x1dif * adify + y1dif * adifx) / m
+                ar = (x1dif * bdify - y1dif * bdifx) / m
+                br = (x1dif * adify - y1dif * adifx) / m
                 If ar <= 0.0# Or ar >= 1.0# Or br <= 0.0# Or br >= 1.0# Then
                     Result.Exists = False
                 Else
-
                     Result.Pos.X = A1.X + CInt(ar * adifx)
                     Result.Pos.Y = A1.Y + CInt(ar * adify)
                     Result.Exists = True
@@ -249,7 +248,7 @@
 
     Public Function PointGetClosestPosOnLine(ByVal LinePointA As sXY_int, ByVal LinePointB As sXY_int, ByVal Point As sXY_int) As sXY_int
         Dim x1dif As Double = Point.X - LinePointA.X
-        Dim y1dif As Double = LinePointA.Y - Point.Y
+        Dim y1dif As Double = Point.Y - LinePointA.Y
         Dim adifx As Double = LinePointB.X - LinePointA.X
         Dim adify As Double = LinePointB.Y - LinePointA.Y
         Dim m As Double
@@ -259,7 +258,7 @@
             Return LinePointA
         Else
             Dim ar As Double
-            ar = (x1dif * adifx - y1dif * adify) / m
+            ar = (x1dif * adifx + y1dif * adify) / m
             If ar <= 0.0# Then
                 Return LinePointA
             ElseIf ar >= 1.0# Then

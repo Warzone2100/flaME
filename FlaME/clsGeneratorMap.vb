@@ -1726,7 +1726,11 @@ PointMakingFinished:
             NodeTag = CType(PosNode.Tag, clsNodeTag)
             If GetDist_XY_int(Pos, NodeTag.Pos) <= MaxDistFromPos Then
 
+                Dim NewUnitAdd As New clsMap.clsUnitAdd
+                NewUnitAdd.Map = Map
+                NewUnitAdd.StoreChange = True
                 Dim NewUnit As New clsMap.clsUnit
+                NewUnitAdd.NewUnit = NewUnit
                 NewUnit.Type = Type
                 NewUnit.UnitGroup = UnitGroup
 
@@ -1753,14 +1757,13 @@ PointMakingFinished:
                         NewUnit.Pos.Horizontal.Y = NodeTag.Pos.Y + CInt(TerrainGridSpacing / 2.0#)
                     End If
                 End If
-                'NewUnit.Pos.Altitude = GetTerrainHeight(NewUnit.Pos.Horizontal)
                 TilePosA.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.5#))
                 TilePosA.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.5#))
                 TilePosB.X = CInt(Int(NewUnit.Pos.Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.5#))
                 TilePosB.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#))
                 NewUnit.Rotation = Rotation
 
-                Map.Unit_Add_StoreChange(NewUnit)
+                NewUnitAdd.Perform()
 
                 For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, Map.Terrain.TileSize.Y - 1)
                     For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, Map.Terrain.TileSize.X - 1)
@@ -1787,7 +1790,11 @@ PointMakingFinished:
         Dim FinalTilePos As sXY_int
         Dim Footprint As sXY_int
 
+        Dim NewUnitAdd As New clsMap.clsUnitAdd
+        NewUnitAdd.Map = Map
+        NewUnitAdd.StoreChange = True
         Dim NewUnit As New clsMap.clsUnit
+        NewUnitAdd.NewUnit = NewUnit
         NewUnit.Type = Type
         NewUnit.UnitGroup = UnitGroup
 
@@ -1803,7 +1810,7 @@ PointMakingFinished:
         TilePosB.Y = CInt(Int(NewUnit.Pos.Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.5#))
         NewUnit.Rotation = Rotation
 
-        Map.Unit_Add_StoreChange(NewUnit)
+        NewUnitAdd.Perform()
 
         For Y2 = Math.Max(TilePosA.Y, 0) To Math.Min(TilePosB.Y, Map.Terrain.TileSize.Y - 1)
             For X2 = Math.Max(TilePosA.X, 0) To Math.Min(TilePosB.X, Map.Terrain.TileSize.X - 1)

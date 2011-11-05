@@ -30,6 +30,10 @@ Partial Class frmOptions
         Me.GroupBox6 = New System.Windows.Forms.GroupBox()
         Me.cbxPointerDirect = New System.Windows.Forms.CheckBox()
         Me.GroupBox5 = New System.Windows.Forms.GroupBox()
+        Me.Label6 = New System.Windows.Forms.Label()
+        Me.pnlMinimapSelectedObjectColour = New System.Windows.Forms.Panel()
+        Me.Label5 = New System.Windows.Forms.Label()
+        Me.pnlMinimapCliffColour = New System.Windows.Forms.Panel()
         Me.txtMinimapSize = New System.Windows.Forms.TextBox()
         Me.cbxMinimapTeamColourFeatures = New System.Windows.Forms.CheckBox()
         Me.cbxMinimapObjectColours = New System.Windows.Forms.CheckBox()
@@ -53,10 +57,6 @@ Partial Class frmOptions
         Me.cbxAskDirectories = New System.Windows.Forms.CheckBox()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.btnSave = New System.Windows.Forms.Button()
-        Me.pnlMinimapCliffColour = New System.Windows.Forms.Panel()
-        Me.Label5 = New System.Windows.Forms.Label()
-        Me.Label6 = New System.Windows.Forms.Label()
-        Me.pnlMinimapSelectedObjectColour = New System.Windows.Forms.Panel()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         Me.GroupBox7.SuspendLayout()
@@ -165,6 +165,42 @@ Partial Class frmOptions
         Me.GroupBox5.TabStop = False
         Me.GroupBox5.Text = "Minimap"
         Me.GroupBox5.UseCompatibleTextRendering = True
+        '
+        'Label6
+        '
+        Me.Label6.AutoSize = True
+        Me.Label6.Location = New System.Drawing.Point(8, 100)
+        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label6.Name = "Label6"
+        Me.Label6.Size = New System.Drawing.Size(99, 20)
+        Me.Label6.TabIndex = 45
+        Me.Label6.Text = "Object Highlight"
+        Me.Label6.UseCompatibleTextRendering = True
+        '
+        'pnlMinimapSelectedObjectColour
+        '
+        Me.pnlMinimapSelectedObjectColour.Location = New System.Drawing.Point(132, 100)
+        Me.pnlMinimapSelectedObjectColour.Name = "pnlMinimapSelectedObjectColour"
+        Me.pnlMinimapSelectedObjectColour.Size = New System.Drawing.Size(164, 29)
+        Me.pnlMinimapSelectedObjectColour.TabIndex = 44
+        '
+        'Label5
+        '
+        Me.Label5.AutoSize = True
+        Me.Label5.Location = New System.Drawing.Point(8, 67)
+        Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label5.Name = "Label5"
+        Me.Label5.Size = New System.Drawing.Size(71, 20)
+        Me.Label5.TabIndex = 43
+        Me.Label5.Text = "Cliff Colour"
+        Me.Label5.UseCompatibleTextRendering = True
+        '
+        'pnlMinimapCliffColour
+        '
+        Me.pnlMinimapCliffColour.Location = New System.Drawing.Point(132, 67)
+        Me.pnlMinimapCliffColour.Name = "pnlMinimapCliffColour"
+        Me.pnlMinimapCliffColour.Size = New System.Drawing.Size(164, 29)
+        Me.pnlMinimapCliffColour.TabIndex = 42
         '
         'txtMinimapSize
         '
@@ -276,7 +312,7 @@ Partial Class frmOptions
         'btnAutosaveOpen
         '
         Me.btnAutosaveOpen.DialogResult = System.Windows.Forms.DialogResult.Cancel
-        Me.btnAutosaveOpen.Location = New System.Drawing.Point(208, 71)
+        Me.btnAutosaveOpen.Location = New System.Drawing.Point(209, 71)
         Me.btnAutosaveOpen.Name = "btnAutosaveOpen"
         Me.btnAutosaveOpen.Size = New System.Drawing.Size(89, 29)
         Me.btnAutosaveOpen.TabIndex = 39
@@ -410,42 +446,6 @@ Partial Class frmOptions
         Me.btnSave.TabIndex = 40
         Me.btnSave.Text = "Accept"
         Me.btnSave.UseVisualStyleBackColor = True
-        '
-        'pnlMinimapCliffColour
-        '
-        Me.pnlMinimapCliffColour.Location = New System.Drawing.Point(132, 67)
-        Me.pnlMinimapCliffColour.Name = "pnlMinimapCliffColour"
-        Me.pnlMinimapCliffColour.Size = New System.Drawing.Size(164, 29)
-        Me.pnlMinimapCliffColour.TabIndex = 42
-        '
-        'Label5
-        '
-        Me.Label5.AutoSize = True
-        Me.Label5.Location = New System.Drawing.Point(8, 67)
-        Me.Label5.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(71, 20)
-        Me.Label5.TabIndex = 43
-        Me.Label5.Text = "Cliff Colour"
-        Me.Label5.UseCompatibleTextRendering = True
-        '
-        'Label6
-        '
-        Me.Label6.AutoSize = True
-        Me.Label6.Location = New System.Drawing.Point(8, 100)
-        Me.Label6.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label6.Name = "Label6"
-        Me.Label6.Size = New System.Drawing.Size(99, 20)
-        Me.Label6.TabIndex = 45
-        Me.Label6.Text = "Object Highlight"
-        Me.Label6.UseCompatibleTextRendering = True
-        '
-        'pnlMinimapSelectedObjectColour
-        '
-        Me.pnlMinimapSelectedObjectColour.Location = New System.Drawing.Point(132, 100)
-        Me.pnlMinimapSelectedObjectColour.Name = "pnlMinimapSelectedObjectColour"
-        Me.pnlMinimapSelectedObjectColour.Size = New System.Drawing.Size(164, 29)
-        Me.pnlMinimapSelectedObjectColour.TabIndex = 44
         '
         'frmOptions
         '

@@ -8,18 +8,14 @@ Public Module modProgram
 
     Public Const ProgramVersionNumber As String = "1.24"
 
-#If MonoDevelop = 0.0# Then
-    Public Const ProgramPlatform As String = "Windows"
-#Else
-    #If Mono <> 0.0# Then
-        #If Mono267 <> 0.0# Then
-            Public Const ProgramPlatform As String = "Mono 2.6.7"
-        #Else
-            Public Const ProgramPlatform As String = "Mono 2.10"
-        #End If 
+#If Mono <> 0.0# Then
+    #If Mono267 <> 0.0# Then
+        Public Const ProgramPlatform As String = "Mono 2.6.7"
     #Else
-        Public Const ProgramPlatform As String = "MonoDevelop Microsoft .NET"
-    #End If
+        Public Const ProgramPlatform As String = "Mono 2.10"
+    #End If 
+#Else
+    Public Const ProgramPlatform As String = "Windows"
 #End If
 
     Public Const PlayerCountMax As Integer = 10
@@ -28,11 +24,7 @@ Public Module modProgram
 
     Public Const DefaultHeightMultiplier As Integer = 2
 
-#If Mono = 0.0# Then
     Public Const MinimapDelay As Integer = 100
-#Else
-    Public Const MinimapDelay As Integer = 4000
-#End If
 
     Public Const SectorTileSize As Integer = 8
 
@@ -66,6 +58,7 @@ Public Module modProgram
     End Sub
 
     Public ProgramInitialized As Boolean = False
+    Public ProgramInitializeFinished As Boolean = False
 
     Public ProgramIcon As Icon
 
@@ -75,9 +68,6 @@ Public Module modProgram
     Public GLTexture_OverflowTile As Integer
 
     Public frmMainInstance As New frmMain
-#If MonoDevelop = 0.0# Then
-    Public frmSplashInstance As New frmSplash
-#End If
     Public frmGeneratorInstance As New frmGenerator
     Public frmDataInstance As New frmData
     Public frmOptionsInstance As frmOptions
@@ -1338,7 +1328,6 @@ Public Module modProgram
         If ReturnResult.HasProblems Then
             ResultMap.Deallocate()
         Else
-            ResultMap.InitializeForUserInput()
             NewMainMap(ResultMap)
             UpdateMapTabs()
         End If
@@ -1744,7 +1733,7 @@ Public Module modProgram
             ReturnResult.Problem_Add(ex.Message)
             Return ReturnResult
         End Try
-        
+
         Memory.Close()
         NewFile.Close()
 
@@ -1872,4 +1861,20 @@ Public Module modProgram
             Return True
         End Function
     End Class
+
+    Public Function GetUnitsCentrePos(ByVal Units As SimpleClassList(Of clsMap.clsUnit)) As sXY_dbl
+        Dim Result As sXY_dbl
+        Dim tmpUnit As clsMap.clsUnit
+        Dim A As Integer
+
+        For A = 0 To Units.ItemCount - 1
+            tmpUnit = Units.Item(A)
+            Result.X += tmpUnit.Pos.Horizontal.X
+            Result.Y += tmpUnit.Pos.Horizontal.Y
+        Next
+        Result.X /= Units.ItemCount
+        Result.Y /= Units.ItemCount
+
+        Return Result
+    End Function
 End Module

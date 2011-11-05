@@ -37,6 +37,9 @@
 
         Dim ResultInfo As New clsInterfaceOptions
 
+        Dim UnitAdd As New clsMap.clsUnitAdd
+        UnitAdd.Map = Me
+
         Try
 
             Version = File.ReadUInt32
@@ -273,7 +276,9 @@
                             TempUnit(A).ID = AvailableID
                             ZeroIDWarning(NewUnit, TempUnit(A).ID)
                         End If
-                        UnitID_Add(NewUnit, TempUnit(A).ID)
+                        UnitAdd.ID = TempUnit(A).ID
+                        UnitAdd.NewUnit = NewUnit
+                        UnitAdd.Perform()
                         ErrorIDChange(TempUnit(A).ID, NewUnit, "Read_FMEv5+")
                         If AvailableID = TempUnit(A).ID Then
                             AvailableID = NewUnit.ID + 1UI
@@ -346,11 +351,7 @@
                 End Select
                 ResultInfo.CompileMultiAuthor = ReadOldText(File)
                 ResultInfo.CompileMultiLicense = ReadOldText(File)
-                strTemp = ReadOldText(File)
-                'If Not InvariantParse_int(strTemp, ResultInfo.CampaignGameTime) Then
-                '    ReturnResult.Warning_Add("Compile campaign time was invalid.")
-                '    ResultInfo.CampaignGameTime = 2
-                'End If
+                strTemp = ReadOldText(File) 'game time
                 ResultInfo.CampaignGameType = File.ReadInt32
                 If ResultInfo.CampaignGameType < -1 Or ResultInfo.CampaignGameType >= GameTypeCount Then
                     ReturnResult.Warning_Add("Compile campaign type out of range.")
@@ -415,6 +416,9 @@
             Dim Line_Num As Integer
             Dim LNDTile() As sLNDTile
             Dim LNDObject(-1) As sLNDObject
+            Dim UnitAdd As New clsMap.clsUnitAdd
+
+            UnitAdd.Map = Me
 
             'load all bytes
             Bytes.Bytes = IO.File.ReadAllBytes(Path)
@@ -875,7 +879,9 @@ LineDone:
                         LNDObject(A).ID = AvailableID
                         ZeroIDWarning(NewUnit, LNDObject(A).ID)
                     End If
-                    UnitID_Add(NewUnit, LNDObject(A).ID)
+                    UnitAdd.NewUnit = NewUnit
+                    UnitAdd.ID = LNDObject(A).ID
+                    UnitAdd.Perform()
                     ErrorIDChange(LNDObject(A).ID, NewUnit, "Load_LND")
                     If AvailableID = LNDObject(A).ID Then
                         AvailableID = NewUnit.ID + 1UI
@@ -1065,21 +1071,23 @@ LineDone:
                 Text = "	FeatureSet " & EndChar
             End If
             File.Write(Text)
-            Text = "    NumObjects " & InvariantToString_int(UnitCount) & EndChar
+            Text = "    NumObjects " & InvariantToString_int(Units.ItemCount) & EndChar
             File.Write(Text)
             Text = "    Objects {" & EndChar
             File.Write(Text)
             Dim XYZ_int As sXYZ_int
             Dim strTemp As String = Nothing
             Dim CustomDroidCount As Integer = 0
-            For A = 0 To UnitCount - 1
-                Select Case Units(A).Type.Type
+            Dim tmpUnit As clsMap.clsUnit
+            For A = 0 To Units.ItemCount - 1
+                tmpUnit = Units.Item(A)
+                Select Case tmpUnit.Type.Type
                     Case clsUnitType.enumType.Feature
                         B = 0
                     Case clsUnitType.enumType.PlayerStructure
                         B = 1
                     Case clsUnitType.enumType.PlayerDroid
-                        If CType(Units(A).Type, clsDroidDesign).IsTemplate Then
+                        If CType(tmpUnit.Type, clsDroidDesign).IsTemplate Then
                             B = 2
                         Else
                             B = -1
@@ -1088,10 +1096,10 @@ LineDone:
                         B = -1
                         ReturnResult.Warning_Add("Unit type classification not accounted for.")
                 End Select
-                XYZ_int = LNDPos_From_MapPos(Units(A).Pos.Horizontal)
+                XYZ_int = LNDPos_From_MapPos(Units.Item(A).Pos.Horizontal)
                 If B >= 0 Then
-                    If Units(A).Type.GetCode(strTemp) Then
-                        Text = "        " & InvariantToString_uint(Units(A).ID) & " " & B & " " & Quote & strTemp & Quote & " " & Units(A).UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & InvariantToString_int(XYZ_int.X) & ".00 " & InvariantToString_int(XYZ_int.Y) & ".00 " & InvariantToString_int(XYZ_int.Z) & ".00 0.00 " & InvariantToString_int(Units(A).Rotation) & ".00 0.00" & EndChar
+                    If tmpUnit.Type.GetCode(strTemp) Then
+                        Text = "        " & InvariantToString_uint(tmpUnit.ID) & " " & B & " " & Quote & strTemp & Quote & " " & tmpUnit.UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & InvariantToString_int(XYZ_int.X) & ".00 " & InvariantToString_int(XYZ_int.Y) & ".00 " & InvariantToString_int(XYZ_int.Z) & ".00 0.00 " & InvariantToString_int(tmpUnit.Rotation) & ".00 0.00" & EndChar
                         File.Write(Text)
                     Else
                         ReturnResult.Warning_Add("Error. Code not found.")
@@ -1122,12 +1130,14 @@ LineDone:
             File.Write(Text)
             Text = "    Version 1" & EndChar
             File.Write(Text)
-            Text = "    NumGateways " & InvariantToString_int(GatewayCount) & EndChar
+            Text = "    NumGateways " & InvariantToString_int(Gateways.ItemCount) & EndChar
             File.Write(Text)
             Text = "    Gates {" & EndChar
             File.Write(Text)
-            For A = 0 To GatewayCount - 1
-                Text = "        " & InvariantToString_int(Gateways(A).PosA.X) & " " & InvariantToString_int(Gateways(A).PosA.Y) & " " & InvariantToString_int(Gateways(A).PosB.X) & " " & InvariantToString_int(Gateways(A).PosB.Y) & EndChar
+            Dim tmpGateway As clsGateway
+            For A = 0 To Gateways.ItemCount - 1
+                tmpGateway = Gateways.Item(A)
+                Text = "        " & InvariantToString_int(tmpGateway.PosA.X) & " " & InvariantToString_int(tmpGateway.PosA.Y) & " " & InvariantToString_int(tmpGateway.PosB.X) & " " & InvariantToString_int(tmpGateway.PosB.Y) & EndChar
                 File.Write(Text)
             Next
             Text = "    }" & EndChar
@@ -1430,14 +1440,14 @@ LineDone:
                 Next
             Next
 
-            Dim OutputUnits(UnitCount - 1) As clsUnit
-            Dim OutputUnitCode(UnitCount - 1) As String
+            Dim OutputUnits(Units.ItemCount - 1) As clsUnit
+            Dim OutputUnitCode(Units.ItemCount - 1) As String
             Dim OutputUnitCount As Integer = 0
             Dim tmpObject As clsUnit
             Dim A As Integer
 
-            For A = 0 To UnitCount - 1
-                tmpObject = Units(A)
+            For A = 0 To Units.ItemCount - 1
+                tmpObject = Units.Item(A)
                 If tmpObject.Type.GetCode(OutputUnitCode(OutputUnitCount)) Then
                     OutputUnits(OutputUnitCount) = tmpObject
                     OutputUnitCount += 1
@@ -1471,13 +1481,15 @@ LineDone:
                 End If
             Next
 
-            File.Write(CUInt(GatewayCount))
+            File.Write(CUInt(Gateways.ItemCount))
 
-            For A = 0 To GatewayCount - 1
-                File.Write(CUShort(Gateways(A).PosA.X))
-                File.Write(CUShort(Gateways(A).PosA.Y))
-                File.Write(CUShort(Gateways(A).PosB.X))
-                File.Write(CUShort(Gateways(A).PosB.Y))
+            Dim tmpGateway As clsGateway
+            For A = 0 To Gateways.ItemCount - 1
+                tmpGateway = Gateways.Item(A)
+                File.Write(CUShort(tmpGateway.PosA.X))
+                File.Write(CUShort(tmpGateway.PosA.Y))
+                File.Write(CUShort(tmpGateway.PosB.X))
+                File.Write(CUShort(tmpGateway.PosB.Y))
             Next
 
             If Tileset IsNot Nothing Then
@@ -1499,7 +1511,7 @@ LineDone:
             File.Write(InterfaceOptions.CompileMultiXPlayers)
             WriteText(File, True, InterfaceOptions.CompileMultiAuthor)
             WriteText(File, True, InterfaceOptions.CompileMultiLicense)
-            WriteText(File, True, "0") 'WriteText(File, True, InvariantToString_int(InterfaceOptions.CampaignGameTime))
+            WriteText(File, True, "0") 'game time
             Dim intTemp As Integer = InterfaceOptions.CampaignGameType
             File.Write(intTemp)
 

@@ -270,8 +270,6 @@
         Generator.Map.InterfaceOptions = New clsMap.clsInterfaceOptions
         Generator.Map.InterfaceOptions.CompileMultiPlayers = InvariantToString_int(Generator.GetTotalPlayerCount)
 
-        Generator.Map.InitializeForUserInput()
-
         NewMainMap(Generator.Map)
         UpdateMapTabs()
 
@@ -666,11 +664,11 @@
     Private Sub lstResult_AddResult(ByVal Result As clsResult)
 		Dim A As Integer
 
-        For A = 0 To Result.ProblemCount - 1
-            lstResult.Items.Add("Problem: " & Result.Problems(A))
+        For A = 0 To Result.Problems.ItemCount - 1
+            lstResult.Items.Add("Problem: " & Result.Problems.Item(A))
         Next
-        For A = 0 To Result.WarningCount - 1
-            lstResult.Items.Add("Warning: " & Result.Warnings(A))
+        For A = 0 To Result.Warnings.ItemCount - 1
+            lstResult.Items.Add("Warning: " & Result.Warnings.Item(A))
         Next
         lstResult.SelectedIndex = lstResult.Items.Count - 1
     End Sub

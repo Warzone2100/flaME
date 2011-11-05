@@ -29,7 +29,7 @@
             Case clsRGB_sng.enumType.RGBA
                 nudAlpha.Value = CDec(CType(Colour, clsRGBA_sng).Alpha)
                 AddHandler nudAlpha.ValueChanged, AddressOf nudAlpha_Changed
-                AddHandler nudAlpha.LostFocus, AddressOf nudAlpha_Changed
+                AddHandler nudAlpha.Leave, AddressOf nudAlpha_Changed
             Case Else
                 Stop
         End Select
@@ -73,7 +73,6 @@
     Private Sub InitializeComponent()
         Me.pnlColour = New System.Windows.Forms.Panel()
         Me.nudAlpha = New System.Windows.Forms.NumericUpDown()
-        CType(Me.nudAlpha, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'pnlColour
@@ -104,7 +103,6 @@
         Me.Margin = New System.Windows.Forms.Padding(0)
         Me.Name = "ctrlColour"
         Me.Size = New System.Drawing.Size(211, 39)
-        CType(Me.nudAlpha, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub

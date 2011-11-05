@@ -15,15 +15,12 @@
         Dim NewPosLimits As New sXY_int(NewTerrain.TileSize.X * TerrainGridSpacing - 1, NewTerrain.TileSize.Y * TerrainGridSpacing - 1)
         Dim OldTileLimits As New sXY_int(Terrain.TileSize.X - 1, Terrain.TileSize.Y - 1)
         Dim OldPosLimits As New sXY_int(Terrain.TileSize.X * TerrainGridSpacing - 1, Terrain.TileSize.Y * TerrainGridSpacing - 1)
-        Dim tmpGateways() As clsGateway
-        Dim tmpGatewayCount As Integer
         Dim ReverseOrientation As sTileOrientation
         Dim TriDirection As sTileDirection
+        Dim A As Integer
+
         ReverseOrientation = Orientation
         ReverseOrientation.Reverse()
-
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
 
         For Y = 0 To NewTerrain.TileSize.Y
             Pos.Y = Y
@@ -108,76 +105,62 @@
             Next
         End If
 
-        Dim A As Integer
+        Dim tmpUnit As clsMap.clsUnit
 
-        tmpGatewayCount = GatewayCount
-        ReDim tmpGateways(tmpGatewayCount - 1)
-        For A = 0 To GatewayCount - 1
-            tmpGateways(A) = New clsGateway
-            tmpGateways(A).PosA = GetRotatedPos(Orientation, Gateways(A).PosA, OldTileLimits)
-            tmpGateways(A).PosB = GetRotatedPos(Orientation, Gateways(A).PosB, OldTileLimits)
-        Next
-
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
+        For A = 0 To Units.ItemCount - 1
+            tmpUnit = Units.Item(A)
+            tmpUnit.Sectors.Clear()
             If ObjectRotateMode = enumObjectRotateMode.All Then
-                Units(A).Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - Units(A).Rotation * RadOf1Deg))) / RadOf1Deg)
-                If Units(A).Rotation < 0 Then
-                    Units(A).Rotation += 360
+                tmpUnit.Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - tmpUnit.Rotation * RadOf1Deg))) / RadOf1Deg)
+                If tmpUnit.Rotation < 0 Then
+                    tmpUnit.Rotation += 360
                 End If
             ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    If CType(Units(A).Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
-                        Units(A).Rotation = CInt(GetRotatedAngle(Orientation, Units(A).Rotation * RadOf1Deg) / RadOf1Deg)
-                        If Units(A).Rotation < 0 Then
-                            Units(A).Rotation += 360
+                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    If CType(tmpUnit.Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
+                        tmpUnit.Rotation = CInt(GetRotatedAngle(Orientation, tmpUnit.Rotation * RadOf1Deg) / RadOf1Deg)
+                        If tmpUnit.Rotation < 0 Then
+                            tmpUnit.Rotation += 360
                         End If
-                        If Units(A).Rotation = 180 Then
-                            Units(A).Rotation = 0
-                        ElseIf Units(A).Rotation = 270 Then
-                            Units(A).Rotation = 90
+                        If tmpUnit.Rotation = 180 Then
+                            tmpUnit.Rotation = 0
+                        ElseIf tmpUnit.Rotation = 270 Then
+                            tmpUnit.Rotation = 90
                         End If
                     End If
                 End If
             End If
-            Units(A).Pos.Horizontal = GetRotatedPos(Orientation, Units(A).Pos.Horizontal, OldPosLimits)
-        Next
-        Selected_Tile_A = Nothing
-        Selected_Tile_B = Nothing
-        Selected_Area_VertexA = Nothing
-        Selected_Area_VertexB = Nothing
-
-        Sectors_Deallocate()
-        SectorCount.X = CInt(Math.Ceiling(Terrain.TileSize.X / SectorTileSize))
-        SectorCount.Y = CInt(Math.Ceiling(Terrain.TileSize.Y / SectorTileSize))
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
-            Next
+            tmpUnit.Pos.Horizontal = GetRotatedPos(Orientation, tmpUnit.Pos.Horizontal, OldPosLimits)
         Next
 
         Dim ZeroPos As New sXY_int(0, 0)
 
-        A = 0
-        Do While A < UnitCount
-            If PosIsWithinTileArea(Units(A).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
-                Unit_Sectors_Calc(Units(A))
-                A += 1
-            Else
-                Unit_Remove(A)
-            End If
-        Loop
+        Dim tmpUnits As SimpleClassList(Of clsMap.clsUnit) = Units.GetItemsAsSimpleClassList
+        Dim Position As Integer
 
-        Terrain = NewTerrain
-        Do While GatewayCount > 0
-            Gateway_Remove(GatewayCount - 1)
-        Loop
-        For A = 0 To tmpGatewayCount - 1
-            Gateway_Create(tmpGateways(A).PosA, tmpGateways(A).PosB)
+        For A = 0 To tmpUnits.ItemCount - 1
+            tmpUnit = tmpUnits.Item(A)
+            Position = tmpUnit.MapLink.ArrayPosition
+            If Not PosIsWithinTileArea(Units.Item(Position).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+                Unit_Remove(Position)
+            End If
         Next
 
-        InitializeForUserInput()
+        Terrain = NewTerrain
+
+        Dim OldGatways As SimpleClassList(Of clsGateway) = Gateways.GetItemsAsSimpleClassList
+        Dim tmpGateway As clsGateway
+        For A = 0 To OldGatways.ItemCount - 1
+            tmpGateway = OldGatways.Item(A)
+            Gateway_Create(GetRotatedPos(Orientation, tmpGateway.PosA, OldTileLimits), _
+                           GetRotatedPos(Orientation, tmpGateway.PosB, OldTileLimits))
+            tmpGateway.Deallocate()
+        Next
+
+        If _ReadyForUserInput Then
+            CancelUserInput()
+            InitializeUserInput()
+        End If
     End Sub
 
     Public Sub RandomizeHeights(ByVal LevelCount As Integer)
@@ -668,18 +651,29 @@
     End Class
 
     Public MustInherit Class clsObjectAction
+        Implements SimpleListTool(Of clsMap.clsUnit)
 
         Public Map As clsMap
         Public Unit As clsUnit
-        Public ResultUnit As clsUnit
+        Private _ResultUnits As New SimpleClassList(Of clsMap.clsUnit)
         Public ActionPerformed As Boolean
+
+        Protected ResultUnit As clsMap.clsUnit
+
+        Public ReadOnly Property ResultUnits As SimpleClassList(Of clsMap.clsUnit)
+            Get
+                Return _ResultUnits
+            End Get
+        End Property
 
         Protected Overridable Sub ActionCondition()
 
         End Sub
 
-        Public Sub ActionPerform()
+        Public Sub ActionPerform() Implements SimpleListTool(Of clsUnit).ActionPerform
 
+            ResultUnit = Nothing
+            ActionPerformed = False
             If Unit Is Nothing Then
                 Stop
                 Exit Sub
@@ -689,16 +683,22 @@
             If Not ActionPerformed Then
                 Exit Sub
             End If
-            ResultUnit = New clsMap.clsUnit(Unit)
+            ResultUnit = New clsMap.clsUnit(Unit, Map)
             _ActionPerform()
             If ResultUnit Is Nothing Then
                 ResultUnit = Unit
             Else
+                _ResultUnits.Add(ResultUnit)
                 Map.UnitSwap(Unit, ResultUnit)
             End If
         End Sub
 
         Protected MustOverride Sub _ActionPerform()
+
+        Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem
+
+            Unit = Item
+        End Sub
     End Class
 
     Public Class clsApplyCliff
@@ -1843,8 +1843,6 @@
     Public MustInherit Class clsObjectComponent
         Inherits clsObjectAction
 
-        Public Changed As Boolean
-
         Private OldDroidType As clsDroidDesign
         Protected NewDroidType As clsDroidDesign
 
@@ -1934,6 +1932,103 @@
         Protected Overrides Sub ChangeComponent()
 
             NewDroidType.TemplateDroidType = DroidType
+        End Sub
+    End Class
+
+    Public Class clsObjectSelect
+        Implements SimpleListTool(Of clsUnit)
+
+        Private Unit As clsMap.clsUnit
+
+        Public Sub ActionPerform() Implements SimpleListTool(Of clsUnit).ActionPerform
+
+            Unit.MapSelect()
+        End Sub
+
+        Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem
+
+            Unit = Item
+        End Sub
+    End Class
+
+    Public Class clsObjectPriorityOrderList
+        Implements SimpleListTool(Of clsMap.clsUnit)
+
+        Private _Result As New SimpleClassList(Of clsMap.clsUnit)
+        Public ReadOnly Property Result As SimpleClassList(Of clsMap.clsUnit)
+            Get
+                Return _Result
+            End Get
+        End Property
+
+        Private Unit As clsMap.clsUnit
+
+        Public Sub New()
+
+            _Result.MaintainOrder = True
+        End Sub
+
+        Public Sub ActionPerform() Implements SimpleListTool(Of clsMap.clsUnit).ActionPerform
+            Dim A As Integer
+
+            For A = 0 To _Result.ItemCount - 1
+                If Unit.SavePriority > _Result.Item(A).SavePriority Then
+                    Exit For
+                End If
+            Next
+            _Result.Insert(Unit, A)
+        End Sub
+
+        Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem
+
+            Unit = Item
+        End Sub
+    End Class
+
+    Public Class clsStructureWriteWZ
+        Implements SimpleListTool(Of clsMap.clsUnit)
+
+        Public File As IO.BinaryWriter
+        Public CompileType As clsMap.sWrite_WZ_Args.enumCompileType
+        Public PlayerCount As Integer
+
+        Private Unit As clsMap.clsUnit
+
+        Private tmpStructure As clsStructureType
+
+        Public Sub ActionPerform() Implements SimpleListTool(Of clsUnit).ActionPerform
+
+            If CompileType = sWrite_WZ_Args.enumCompileType.Unspecified Then
+                Stop
+                Exit Sub
+            End If
+
+            tmpStructure = CType(Unit.Type, clsStructureType)
+            WriteTextOfLength(File, 40, tmpStructure.Code)
+            File.Write(Unit.ID)
+            File.Write(CUInt(Unit.Pos.Horizontal.X))
+            File.Write(CUInt(Unit.Pos.Horizontal.Y))
+            File.Write(CUInt(Unit.Pos.Altitude))
+            File.Write(CUInt(Unit.Rotation))
+            Select Case CompileType
+                Case sWrite_WZ_Args.enumCompileType.Multiplayer
+                    File.Write(Unit.GetBJOMultiplayerPlayerNum(PlayerCount))
+                Case sWrite_WZ_Args.enumCompileType.Campaign
+                    File.Write(Unit.GetBJOCampaignPlayerNum)
+                Case Else
+                    Stop
+            End Select
+            File.Write(New Byte(11) {})
+            File.Write(CByte(1))
+            File.Write(CByte(26))
+            File.Write(CByte(127))
+            File.Write(CByte(0))
+            File.Write(New Byte(39) {})
+        End Sub
+
+        Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem
+
+            Unit = Item
         End Sub
     End Class
 End Class

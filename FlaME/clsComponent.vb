@@ -127,6 +127,13 @@ End Class
 Public Class clsSensor
     Inherits clsTurret
 
+    Public Enum enumLocation
+        Unspecified
+        Turret
+        Invisible
+    End Enum
+    Public Location As enumLocation = enumLocation.Unspecified
+
     Public Sub New()
 
         TurretType = enumTurretType.Sensor

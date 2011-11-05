@@ -5,16 +5,28 @@
 
     Private Map As clsMap
 
-    Public Sub New(ByVal Map As clsMap)
+    Public Shared Function Create(ByVal Map As clsMap) As frmCompile
+
+        If Map Is Nothing Then
+            Stop
+            Return Nothing
+        End If
+
+        If Map.CompileScreen IsNot Nothing Then
+            Stop
+            Return Nothing
+        End If
+
+        Return New frmCompile(Map)
+    End Function
+
+    Private Sub New(ByVal Map As clsMap)
         InitializeComponent() 'required for monodevelop too
 
         Icon = ProgramIcon
 
-        If Map Is Nothing Then
-            Stop
-        End If
-
         Me.Map = Map
+        Map.CompileScreen = Me
 
         UpdateControls()
     End Sub
@@ -28,7 +40,6 @@
         txtAuthor.Text = Map.InterfaceOptions.CompileMultiAuthor
         cboLicense.Text = Map.InterfaceOptions.CompileMultiLicense
 
-        'txtCampTime.Text = InvariantToString_int(Map.InterfaceOptions.CampaignGameTime)
         cboCampType.SelectedIndex = Map.InterfaceOptions.CampaignGameType
 
         cbxAutoScrollLimits.Checked = Map.InterfaceOptions.AutoScrollLimits
@@ -48,11 +59,6 @@
         Map.InterfaceOptions.CompileMultiAuthor = txtAuthor.Text
         Map.InterfaceOptions.CompileMultiLicense = cboLicense.Text
 
-        'Try
-        '    Map.InterfaceOptions.CampaignGameTime = CInt(txtCampTime.Text)
-        'Catch ex As Exception
-        '    Map.InterfaceOptions.CampaignGameTime = 2
-        'End Try
         Map.InterfaceOptions.CampaignGameType = cboCampType.SelectedIndex
 
         Dim Invalid As Boolean = False
@@ -165,6 +171,12 @@
         End If
     End Sub
 
+    Private Sub frmCompile_FormClosed(sender As Object, e As System.Windows.Forms.FormClosedEventArgs) Handles Me.FormClosed
+
+        Map.CompileScreen = Nothing
+        Map = Nothing
+    End Sub
+
     Private Sub frmCompile_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
         SaveToMap()
@@ -188,26 +200,26 @@
         Dim StructureType As clsStructureType.enumStructureType
         Dim tmpStructure As clsStructureType
         Dim Footprint As sXY_int
-        Dim UnitIsStructureModule(Map.UnitCount - 1) As Boolean
+        Dim UnitIsStructureModule(Map.Units.ItemCount - 1) As Boolean
         Dim IsValid As Boolean
-        For A = 0 To Map.UnitCount - 1
-            If Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(Map.Units(A).Type, clsStructureType)
+        Dim tmpUnit As clsMap.clsUnit
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
+            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                tmpStructure = CType(tmpUnit.Type, clsStructureType)
                 StructureType = tmpStructure.StructureType
-                UnitIsStructureModule(A) = (StructureType = clsStructureType.enumStructureType.FactoryModule _
-                   Or StructureType = clsStructureType.enumStructureType.PowerModule _
-                   Or StructureType = clsStructureType.enumStructureType.ResearchModule _
-                   Or StructureType = clsStructureType.enumStructureType.ResourceExtractor)
+                UnitIsStructureModule(A) = (tmpStructure.IsModule Or StructureType = clsStructureType.enumStructureType.ResourceExtractor)
             End If
         Next
         'check and store non-module units first. modules need to check for the underlying unit.
-        For A = 0 To Map.UnitCount - 1
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
             If Not UnitIsStructureModule(A) Then
-                Footprint = Map.Units(A).Type.GetFootprint
-                Map.GetFootprintTileRange(Map.Units(A).Pos.Horizontal, Footprint, StartPos, FinishPos)
+                Footprint = tmpUnit.Type.GetFootprint
+                Map.GetFootprintTileRange(tmpUnit.Pos.Horizontal, Footprint, StartPos, FinishPos)
                 If StartPos.X < 0 Or FinishPos.X >= Map.Terrain.TileSize.X _
                   Or StartPos.Y < 0 Or FinishPos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.Problem_Add("Unit off map at position " & Map.Units(A).GetPosText & ".")
+                    Result.Problem_Add("Unit off map at position " & tmpUnit.GetPosText & ".")
                 Else
                     For Y = StartPos.Y To FinishPos.Y
                         For X = StartPos.X To FinishPos.X
@@ -215,12 +227,12 @@
                                 Result.Problem_Add("Bad unit overlap on tile " & X & ", " & Y & ".")
                             Else
                                 TileHasUnit(X, Y) = True
-                                If Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                                    TileStructureType(X, Y) = CType(Map.Units(A).Type, clsStructureType)
-                                ElseIf Map.Units(A).Type.Type = clsUnitType.enumType.Feature Then
-                                    TileFeatureType(X, Y) = CType(Map.Units(A).Type, clsFeatureType)
+                                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                                    TileStructureType(X, Y) = CType(tmpUnit.Type, clsStructureType)
+                                ElseIf tmpUnit.Type.Type = clsUnitType.enumType.Feature Then
+                                    TileFeatureType(X, Y) = CType(tmpUnit.Type, clsFeatureType)
                                 End If
-                                TileObjectGroup(X, Y) = Map.Units(A).UnitGroup
+                                TileObjectGroup(X, Y) = tmpUnit.UnitGroup
                             End If
                         Next
                     Next
@@ -228,17 +240,18 @@
             End If
         Next
         'check modules and extractors
-        For A = 0 To Map.UnitCount - 1
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
             If UnitIsStructureModule(A) Then
-                StructureType = CType(Map.Units(A).Type, clsStructureType).StructureType
-                CentrePos.X = CInt(Int(Map.Units(A).Pos.Horizontal.X / TerrainGridSpacing))
-                CentrePos.Y = CInt(Int(Map.Units(A).Pos.Horizontal.Y / TerrainGridSpacing))
+                StructureType = CType(tmpUnit.Type, clsStructureType).StructureType
+                CentrePos.X = CInt(Int(tmpUnit.Pos.Horizontal.X / TerrainGridSpacing))
+                CentrePos.Y = CInt(Int(tmpUnit.Pos.Horizontal.Y / TerrainGridSpacing))
                 If CentrePos.X < 0 Or CentrePos.X >= Map.Terrain.TileSize.X _
                   Or CentrePos.Y < 0 Or CentrePos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.Problem_Add("Module off map at position " & Map.Units(A).GetPosText & ".")
+                    Result.Problem_Add("Module off map at position " & tmpUnit.GetPosText & ".")
                 Else
                     If TileStructureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
-                        If TileObjectGroup(CentrePos.X, CentrePos.Y) Is Map.Units(A).UnitGroup Then
+                        If TileObjectGroup(CentrePos.X, CentrePos.Y) Is tmpUnit.UnitGroup Then
                             If StructureType = clsStructureType.enumStructureType.FactoryModule Then
                                 If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Factory _
                                   Or TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.VTOLFactory Then
@@ -307,38 +320,40 @@
         Dim tmpDroid As clsDroidDesign
         Dim tmpStructure As clsStructureType
         Dim UnusedPlayerUnitWarningCount As Integer = 0
+        Dim tmpUnit As clsMap.clsUnit
         Dim A As Integer
 
         ScavPlayerNum = Math.Max(PlayerCount, 7)
 
-        For A = 0 To Map.UnitCount - 1
-            If Map.Units(A).UnitGroup Is Map.ScavengerUnitGroup Then
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
+            If tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
 
             Else
-                If Map.Units(A).Type.Type = clsUnitType.enumType.PlayerDroid Then
-                    tmpDroid = CType(Map.Units(A).Type, clsDroidDesign)
+                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    tmpDroid = CType(tmpUnit.Type, clsDroidDesign)
                     If tmpDroid.Body IsNot Nothing And tmpDroid.Propulsion IsNot Nothing And tmpDroid.Turret1 IsNot Nothing And tmpDroid.TurretCount = 1 Then
                         If tmpDroid.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
-                            PlayerMasterTruckCount(Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                            PlayerMasterTruckCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
                             If tmpDroid.IsTemplate Then
-                                Player23TruckCount(Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                                Player23TruckCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
                             End If
                         End If
                     End If
-                ElseIf Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    tmpStructure = CType(Map.Units(A).Type, clsStructureType)
+                ElseIf tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    tmpStructure = CType(tmpUnit.Type, clsStructureType)
                     If tmpStructure.Code = "A0CommandCentre" Then
-                        PlayerHQCount(Map.Units(A).UnitGroup.WZ_StartPos) += 1
+                        PlayerHQCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
                     End If
                 End If
             End If
-            If Map.Units(A).Type.Type <> clsUnitType.enumType.Feature Then
-                If Map.Units(A).UnitGroup.WZ_StartPos = ScavPlayerNum Or Map.Units(A).UnitGroup Is Map.ScavengerUnitGroup Then
+            If tmpUnit.Type.Type <> clsUnitType.enumType.Feature Then
+                If tmpUnit.UnitGroup.WZ_StartPos = ScavPlayerNum Or tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
                     ScavObjectCount += 1
-                ElseIf Map.Units(A).UnitGroup.WZ_StartPos >= PlayerCount Then
+                ElseIf tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount Then
                     If UnusedPlayerUnitWarningCount < 32 Then
                         UnusedPlayerUnitWarningCount += 1
-                        Result.Problem_Add("An unused player (" & Map.Units(A).UnitGroup.WZ_StartPos & ") has a unit at " & Map.Units(A).GetPosText & ".")
+                        Result.Problem_Add("An unused player (" & tmpUnit.UnitGroup.WZ_StartPos & ") has a unit at " & tmpUnit.GetPosText & ".")
                     End If
                 End If
             End If
@@ -384,14 +399,16 @@
         Dim PlayerStructureTypeCount(PlayerCountMax - 1, UnitTypeCount - 1) As Integer
         Dim ScavStructureTypeCount(UnitTypeCount - 1) As Integer
         Dim tmpStructure As clsStructureType
+        Dim tmpUnit As clsMap.clsUnit
 
-        For A = 0 To Map.UnitCount - 1
-            If Map.Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(Map.Units(A).Type, clsStructureType)
-                If Map.Units(A).UnitGroup Is Map.ScavengerUnitGroup Then
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
+            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                tmpStructure = CType(tmpUnit.Type, clsStructureType)
+                If tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
                     ScavStructureTypeCount(tmpStructure.StructureNum) += 1
                 Else
-                    PlayerStructureTypeCount(Map.Units(A).UnitGroup.WZ_StartPos, tmpStructure.StructureNum) += 1
+                    PlayerStructureTypeCount(tmpUnit.UnitGroup.WZ_StartPos, tmpStructure.StructureNum) += 1
                 End If
             End If
         Next
@@ -408,7 +425,7 @@
                 End If
             End If
         Next
-ExitLoop:
+
         Return ReturnResult
     End Function
 

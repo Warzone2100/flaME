@@ -81,7 +81,6 @@
         Me.Label1 = New System.Windows.Forms.Label()
         Me.nudRadius = New System.Windows.Forms.NumericUpDown()
         Me.tabShape.SuspendLayout()
-        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'tabShape
@@ -154,7 +153,6 @@
         Me.Name = "ctrlBrush"
         Me.Size = New System.Drawing.Size(695, 87)
         Me.tabShape.ResumeLayout(False)
-        CType(Me.nudRadius, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub

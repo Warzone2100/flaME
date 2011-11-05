@@ -7,13 +7,12 @@
     </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{59A15906-263A-4A68-AF44-6AF69F431A99}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
     <StartupObject>FlaME.My.MyApplication</StartupObject>
     <RootNamespace>FlaME</RootNamespace>
     <AssemblyName>FlaME</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -30,6 +29,8 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <ReleaseVersion>1.24</ReleaseVersion>
+    <OptionStrict>On</OptionStrict>
+    <OutputType>WinExe</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -37,13 +38,9 @@
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\MonoDevelop</OutputPath>
-    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
+    <DefineConstants>MonoDevelop=0.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
     <AdditionalParameters />
-    <DocumentationFile>FlaME MonoDevelop.xml</DocumentationFile>
     <DebugType>pdbonly</DebugType>
-  </PropertyGroup>
-  <PropertyGroup>
-    <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
@@ -57,9 +54,6 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
       <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
@@ -82,8 +76,6 @@
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
-    <Import Include="System.Linq" />
-    <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
@@ -119,11 +111,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="My Project\Settings.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
     <Compile Include="PathfinderConnection.vb" />
     <Compile Include="PathfinderLayer.vb" />
     <Compile Include="PathfinderNetwork.vb" />
@@ -138,11 +125,9 @@
     <Compile Include="frmData.vb" />
     <Compile Include="frmGenerator.vb" />
     <Compile Include="frmMain.vb" />
-    <Compile Include="frmMainIC.vb" />
     <Compile Include="frmOptions.vb" />
     <Compile Include="frmWarnings.vb" />
     <Compile Include="frmWZLoad.vb" />
-    <Compile Include="frmGeneratorIC.vb" />
     <Compile Include="ctrlColour.vb" />
     <Compile Include="clsMapDraw.vb" />
     <Compile Include="modMaps.vb" />
@@ -151,6 +136,19 @@
     <Compile Include="INI.vb" />
     <Compile Include="clsMapScriptMarkers.vb" />
     <Compile Include="Lists.vb" />
+    <Compile Include="frmMain.Designer.vb" />
+    <Compile Include="ctrlBrush.Designer.vb" />
+    <Compile Include="ctrlColour.Designer.vb" />
+    <Compile Include="ctrlMapView.Designer.vb" />
+    <Compile Include="ctrlPathSet.Designer.vb" />
+    <Compile Include="ctrlPlayerNum.Designer.vb" />
+    <Compile Include="ctrlTextureView.Designer.vb" />
+    <Compile Include="frmData.Designer.vb" />
+    <Compile Include="frmGenerator.Designer.vb" />
+    <Compile Include="frmOptions.Designer.vb" />
+    <Compile Include="frmWarnings.Designer.vb" />
+    <Compile Include="frmWZLoad.Designer.vb" />
+    <Compile Include="frmCompile.Designer.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
@@ -165,11 +163,19 @@
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
     </None>
-    <None Include="My Project\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <CustomToolNamespace>My</CustomToolNamespace>
-      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
-    </None>
+    <None Include="ctrlBrush.resx" />
+    <None Include="ctrlColour.resx" />
+    <None Include="ctrlMapView.resx" />
+    <None Include="ctrlPathSet.resx" />
+    <None Include="ctrlPlayerNum.resx" />
+    <None Include="ctrlTextureView.resx" />
+    <None Include="frmData.resx" />
+    <None Include="frmGenerator.resx" />
+    <None Include="frmMain.resx" />
+    <None Include="frmOptions.resx" />
+    <None Include="frmWarnings.resx" />
+    <None Include="frmWZLoad.resx" />
+    <None Include="frmCompile.resx" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">

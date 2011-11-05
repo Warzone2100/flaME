@@ -144,42 +144,23 @@ Partial Public Class clsMap
         Public Pos As sXY_int
         Public GLList_Textured As Integer
         Public GLList_Wireframe As Integer
-        Public Units(-1) As clsUnit
-        Public Unit_SectorNum(-1) As Integer
-        Public UnitCount As Integer
+        Public Units As New ConnectedList(Of clsMap.clsUnitSectorConnection, clsMap.clsSector)(Me)
+
+        Public Sub DeleteLists()
+
+            If GLList_Textured <> 0 Then
+                GL.DeleteLists(GLList_Textured, 1)
+                GLList_Textured = 0
+            End If
+            If GLList_Wireframe <> 0 Then
+                GL.DeleteLists(GLList_Wireframe, 1)
+                GLList_Wireframe = 0
+            End If
+        End Sub
 
         Public Sub Deallocate()
 
-            ReDim Units(-1)
-            ReDim Unit_SectorNum(-1)
-            UnitCount = 0
-        End Sub
-
-        Public Function Unit_Add(ByVal NewUnit As clsMap.clsUnit, ByVal NewUnitSectorNum As Integer) As Integer
-            Dim ReturnResult As Integer
-
-            ReDim Preserve Units(UnitCount)
-            ReDim Preserve Unit_SectorNum(UnitCount)
-            Units(UnitCount) = NewUnit
-            Unit_SectorNum(UnitCount) = NewUnitSectorNum
-            ReturnResult = UnitCount
-            UnitCount += 1
-
-            Return ReturnResult
-        End Function
-
-        Public Sub Unit_Remove(ByVal Num As Integer)
-
-            Units(Num).Sectors_UnitNum(Unit_SectorNum(Num)) = -1
-
-            UnitCount = UnitCount - 1
-            If Num <> UnitCount Then
-                Units(UnitCount).Sectors_UnitNum(Unit_SectorNum(UnitCount)) = Num
-                Units(Num) = Units(UnitCount)
-                Unit_SectorNum(Num) = Unit_SectorNum(UnitCount)
-            End If
-            ReDim Preserve Units(UnitCount - 1)
-            ReDim Preserve Unit_SectorNum(UnitCount - 1)
+            Units.Deallocate()
         End Sub
 
         Public Sub New(ByVal NewPos As sXY_int)
@@ -196,46 +177,47 @@ Partial Public Class clsMap
     End Class
     Public ShadowSectors(-1, -1) As clsShadowSector
 
-    Public Structure sUnitChange
+    Public Class clsUnitChange
         Public Enum enumType As Byte
             Added
             Deleted
         End Enum
         Public Type As enumType
         Public Unit As clsUnit
-    End Structure
+    End Class
 
-    Public Structure sGatewayChange
+    Public Class clsGatewayChange
         Public Enum enumType As Byte
             Added
             Deleted
         End Enum
         Public Type As enumType
         Public Gateway As clsGateway
-    End Structure
+    End Class
 
     Public Class clsUndo
         Public Name As String
         Public ChangedSectors() As clsShadowSector
         Public ChangedSectorCount As Integer
-        Public UnitChanges() As sUnitChange
-        Public UnitChangeCount As Integer
-        Public GatewayChanges() As sGatewayChange
-        Public GatewayChangeCount As Integer
+        Public UnitChanges As SimpleClassList(Of clsMap.clsUnitChange)
+        Public GatewayChanges As SimpleClassList(Of clsMap.clsGatewayChange)
     End Class
-    Public Undos() As clsUndo
-    Public UndoCount As Integer
-    Public Undo_Pos As Integer
+    Public Undos As SimpleClassList(Of clsMap.clsUndo)
+    Public UndoPosition As Integer
 
-    Public UnitChanges(-1) As sUnitChange
-    Public UnitChangeCount As Integer
-
-    Public GatewayChanges(-1) As sGatewayChange
-    Public GatewayChangeCount As Integer
+    Public UnitChanges As SimpleClassList(Of clsMap.clsUnitChange)
+    Public GatewayChanges As SimpleClassList(Of clsMap.clsGatewayChange)
 
     Public HeightMultiplier As Integer = DefaultHeightMultiplier
 
-    Public SelectedUnits As clsSelectedUnits
+    Public ReadOnly Property ReadyForUserInput As Boolean
+        Get
+            Return _ReadyForUserInput
+        End Get
+    End Property
+    Private _ReadyForUserInput As Boolean = False
+
+    Public SelectedUnits As ConnectedList(Of clsMap.clsUnit, clsMap)
     Public Selected_Tile_A As clsXY_int
     Public Selected_Tile_B As clsXY_int
     Public Selected_Area_VertexA As clsXY_int
@@ -243,18 +225,14 @@ Partial Public Class clsMap
     Public Unit_Selected_Area_VertexA As clsXY_int
 
     Public Class clsUnit
-        Public Map As clsMap
-        Public Map_UnitNum As Integer = -1
-        Public Map_SelectedUnitNum As Integer = -1
-        Public Sectors(-1) As clsSector
-        Public Sectors_UnitNum(-1) As Integer
-        Public SectorCount As Integer
+        Public MapLink As New ConnectedListLink(Of clsUnit, clsMap)(Me)
+        Public MapSelectedUnitLink As New ConnectedListLink(Of clsUnit, clsMap)(Me)
+        Public Sectors As New ConnectedList(Of clsMap.clsUnitSectorConnection, clsMap.clsUnit)(Me)
 
         Public ID As UInteger
         Public Type As clsUnitType
         Public Pos As sWorldPos
         Public Rotation As Integer
-        'Public Name As String = "NONAME"
         Public UnitGroup As clsMap.clsUnitGroup
         Public SavePriority As Integer
         Public Health As Double = 1.0#
@@ -266,7 +244,7 @@ Partial Public Class clsMap
 
         End Sub
 
-        Public Sub New(ByVal UnitToCopy As clsUnit)
+        Public Sub New(ByVal UnitToCopy As clsUnit, ByVal TargetMap As clsMap)
             Dim IsDesign As Boolean
 
             If UnitToCopy.Type.Type = clsUnitType.enumType.PlayerDroid Then
@@ -284,7 +262,13 @@ Partial Public Class clsMap
             End If
             Pos = UnitToCopy.Pos
             Rotation = UnitToCopy.Rotation
-            UnitGroup = UnitToCopy.UnitGroup
+            Dim tmpUnitGroup As clsMap.clsUnitGroup
+            tmpUnitGroup = UnitToCopy.UnitGroup
+            If tmpUnitGroup.WZ_StartPos < 0 Then
+                UnitGroup = TargetMap.ScavengerUnitGroup
+            Else
+                UnitGroup = TargetMap.UnitGroups(tmpUnitGroup.WZ_StartPos)
+            End If
             SavePriority = UnitToCopy.SavePriority
             Health = UnitToCopy.Health
             PreferPartsOutput = UnitToCopy.PreferPartsOutput
@@ -295,13 +279,6 @@ Partial Public Class clsMap
                 Return _Label
             End Get
         End Property
-
-        Public Sub Sectors_Remove()
-
-            SectorCount = 0
-            ReDim Sectors(-1)
-            ReDim Sectors_UnitNum(-1)
-        End Sub
 
         Public Function GetINIPosition() As String
 
@@ -329,18 +306,6 @@ Partial Public Class clsMap
             Return InvariantToString_int(Pos.Horizontal.X) & ", " & InvariantToString_int(Pos.Horizontal.Y)
         End Function
 
-        Public Sub MapSelect()
-
-            Map.SelectedUnits.Add(Me)
-        End Sub
-
-        Public Sub MapDeselect()
-
-            If Map_SelectedUnitNum >= 0 Then
-                Map.SelectedUnits.Remove(Map_SelectedUnitNum)
-            End If
-        End Sub
-
         Public Function SetLabel(ByVal Text As String) As sResult
             Dim Result As sResult
 
@@ -355,13 +320,13 @@ Partial Public Class clsMap
                 End If
             End If
 
-            If Map_UnitNum < 0 Then
+            If Not MapLink.IsConnected Then
                 Stop
                 Result.Problem = "Error: Unit not on a map."
                 Return Result
             End If
 
-            Result = Map.ScriptLabelIsValid(Text)
+            Result = MapLink.Source.ScriptLabelIsValid(Text)
             If Result.Success Then
                 _Label = Text
             End If
@@ -382,7 +347,7 @@ Partial Public Class clsMap
                     Case Else
                         Exit Sub
                 End Select
-                File.SectionName_Append("object_" & InvariantToString_int(Map_UnitNum))
+                File.SectionName_Append("object_" & InvariantToString_int(MapLink.ArrayPosition))
                 File.Property_Append("id", InvariantToString_uint(ID))
                 If PlayerCount >= 0 Then 'not an FMap
                     File.Property_Append("type", InvariantToString_int(TypeNum))
@@ -392,9 +357,166 @@ Partial Public Class clsMap
                 File.Gap_Append()
             End If
         End Sub
+
+        Public Function GetBJOMultiplayerPlayerNum(ByVal PlayerCount As Integer) As UInteger
+            Dim PlayerNum As Integer
+
+            If UnitGroup Is MapLink.Source.ScavengerUnitGroup Or UnitGroup.WZ_StartPos < 0 Then
+                PlayerNum = Math.Max(PlayerCount, 7)
+            Else
+                PlayerNum = UnitGroup.WZ_StartPos
+            End If
+            Return CUInt(PlayerNum)
+        End Function
+
+        Public Function GetBJOCampaignPlayerNum() As UInteger
+            Dim PlayerNum As Integer
+
+            If UnitGroup Is MapLink.Source.ScavengerUnitGroup Or UnitGroup.WZ_StartPos < 0 Then
+                PlayerNum = 7
+            Else
+                PlayerNum = UnitGroup.WZ_StartPos
+            End If
+            Return CUInt(PlayerNum)
+        End Function
+
+        Public Sub MapSelect()
+
+            If MapSelectedUnitLink.IsConnected Then
+                Stop
+                Exit Sub
+            End If
+
+            MapSelectedUnitLink.Connect(MapLink.Source.SelectedUnits)
+        End Sub
+
+        Public Sub MapDeselect()
+
+            If Not MapSelectedUnitLink.IsConnected Then
+                Stop
+                Exit Sub
+            End If
+
+            MapSelectedUnitLink.Disconnect()
+        End Sub
+
+        Public Sub DisconnectFromMap()
+
+            If MapLink.IsConnected Then
+                MapLink.Disconnect()
+            End If
+            If MapSelectedUnitLink.IsConnected Then
+                MapSelectedUnitLink.Disconnect()
+            End If
+            Sectors.Clear()
+        End Sub
+
+        Public Sub Deallocate()
+
+            MapLink.Deallocate()
+            MapSelectedUnitLink.Deallocate()
+            Sectors.Deallocate()
+        End Sub
     End Class
-    Public Units(-1) As clsUnit
-    Public UnitCount As Integer
+    Public Units As New ConnectedList(Of clsMap.clsUnit, clsMap)(Me)
+
+    Public Class clsUnitSectorConnection
+
+        Protected Class Link(Of SourceType As Class)
+            Inherits ConnectedListLink(Of clsUnitSectorConnection, SourceType)
+
+            Public Sub New(ByVal Owner As clsUnitSectorConnection)
+                MyBase.New(Owner)
+
+            End Sub
+
+            Public Overrides Sub AfterRemove()
+                MyBase.AfterRemove()
+
+                Item.Deallocate()
+            End Sub
+        End Class
+
+        Protected _UnitLink As New Link(Of clsMap.clsUnit)(Me)
+        Protected _SectorLink As New Link(Of clsMap.clsSector)(Me)
+
+        Public Overridable ReadOnly Property Unit As clsMap.clsUnit
+            Get
+                Return _UnitLink.Source
+            End Get
+        End Property
+
+        Public Overridable ReadOnly Property Sector As clsMap.clsSector
+            Get
+                Return _SectorLink.Source
+            End Get
+        End Property
+
+        Public Shared Function Create(ByVal Unit As clsMap.clsUnit, ByVal Sector As clsMap.clsSector) As clsUnitSectorConnection
+
+            If Unit Is Nothing Then
+                Return Nothing
+            End If
+            If Unit.Sectors Is Nothing Then
+                Return Nothing
+            End If
+            If Unit.Sectors.IsBusy Then
+                Return Nothing
+            End If
+            If Sector Is Nothing Then
+                Return Nothing
+            End If
+            If Sector.Units Is Nothing Then
+                Return Nothing
+            End If
+            If Sector.Units.IsBusy Then
+                Return Nothing
+            End If
+
+            Dim Result As New clsUnitSectorConnection
+            Result._UnitLink.Connect(Unit.Sectors)
+            Result._SectorLink.Connect(Sector.Units)
+            Return Result
+        End Function
+
+        Protected Sub New()
+
+
+        End Sub
+
+        Public Sub Deallocate()
+
+            _UnitLink.Deallocate()
+            _SectorLink.Deallocate()
+        End Sub
+    End Class
+
+    Public Class clsUnitGroupContainer
+
+        Private _Item As clsUnitGroup
+
+        Public Property Item As clsUnitGroup
+            Get
+                Return _Item
+            End Get
+            Set(value As clsUnitGroup)
+                If value Is _Item Then
+                    Exit Property
+                End If
+                _Item = value
+                RaiseEvent Changed()
+            End Set
+        End Property
+
+        Public Event Changed()
+    End Class
+
+    Private _SelectedUnitGroup As clsUnitGroupContainer
+    Public ReadOnly Property SelectedUnitGroup As clsUnitGroupContainer
+        Get
+            Return _SelectedUnitGroup
+        End Get
+    End Property
 
     Public Class clsUnitGroup
 
@@ -428,7 +550,17 @@ Partial Public Class clsMap
     Public Minimap_GLTexture As Integer
     Public Minimap_Texture_Size As Integer
 
-    Public ReceivingUserChanges As Boolean = False
+    Public Class clsMessage
+        Public Text As String
+        Private _CreatedDate As Date = Now
+
+        Public ReadOnly Property CreatedDate As Date
+            Get
+                Return _CreatedDate
+            End Get
+        End Property
+    End Class
+    Public Messages As SimpleClassList(Of clsMessage)
 
     Public Event TilesetChanged(ByVal sender As clsMap)
 
@@ -508,12 +640,29 @@ Partial Public Class clsMap
     Public Tile_TypeNum(-1) As Byte
 
     Public Class clsGateway
-        Public Map_GatewayNum As Integer = -1
+        Public MapLink As New ConnectedListLink(Of clsGateway, clsMap)(Me)
         Public PosA As sXY_int
         Public PosB As sXY_int
+
+        Public Function IsOffMap() As Boolean
+            Dim TerrainSize As sXY_int = MapLink.Source.Terrain.TileSize
+
+            Return PosA.X < 0 _
+                Or PosA.X >= TerrainSize.X _
+                Or PosA.Y < 0 _
+                Or PosA.Y >= TerrainSize.Y _
+                Or PosB.X < 0 _
+                Or PosB.X >= TerrainSize.X _
+                Or PosB.Y < 0 _
+                Or PosB.Y >= TerrainSize.Y
+        End Function
+
+        Public Sub Deallocate()
+
+            MapLink.Deallocate()
+        End Sub
     End Class
-    Public Gateways(-1) As clsGateway
-    Public GatewayCount As Integer
+    Public Gateways As New ConnectedList(Of clsGateway, clsMap)(Me)
 
     Public Class clsPointChanges
 
@@ -757,7 +906,8 @@ Partial Public Class clsMap
         MakeMinimapTimer = New Timer
         MakeMinimapTimer.Interval = MinimapDelay
 
-        MakeDefaultUnitGroups()
+        AnyMapInitialization()
+        UserMapInitialization()
     End Sub
 
     Public Sub New(ByVal TileSize As sXY_int)
@@ -765,12 +915,22 @@ Partial Public Class clsMap
         MakeMinimapTimer = New Timer
         MakeMinimapTimer.Interval = MinimapDelay
 
-        MakeDefaultUnitGroups()
+        AnyMapInitialization()
+        UserMapInitialization()
 
         Terrain_Blank(TileSize)
         TileType_Reset()
+    End Sub
 
-        InitializeForUserInput()
+    Public Sub AnyMapInitialization()
+
+        MakeDefaultUnitGroups()
+    End Sub
+
+    Public Sub UserMapInitialization()
+
+        ScriptPositions.MaintainOrder = True
+        ScriptAreas.MaintainOrder = True
     End Sub
 
     Public Sub New(ByVal Map_To_Copy As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int)
@@ -781,7 +941,7 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        MakeDefaultUnitGroups()
+        AnyMapInitialization()
 
         'make some map data for selection
 
@@ -832,37 +992,34 @@ Partial Public Class clsMap
         Dim PosDifX As Integer
         Dim PosDifZ As Integer
         Dim A As Integer
-        Dim NewUnit As clsUnit
+        Dim NewUnitAdd As New clsMap.clsUnitAdd
+        NewUnitAdd.Map = Me
+        Dim NewUnit As clsMap.clsUnit
 
-        For A = 0 To Map_To_Copy.GatewayCount - 1
-            If (Map_To_Copy.Gateways(A).PosA.X >= Offset.X And Map_To_Copy.Gateways(A).PosA.Y >= Offset.Y And _
-              Map_To_Copy.Gateways(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosA.Y < Offset.Y + Area.Y) Or _
-              (Map_To_Copy.Gateways(A).PosB.X >= Offset.X And Map_To_Copy.Gateways(A).PosB.Y >= Offset.Y And _
-              Map_To_Copy.Gateways(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways(A).PosB.Y < Offset.Y + Area.Y) Then
-                Gateway_Create(New sXY_int(Map_To_Copy.Gateways(A).PosA.X - Offset.X, Map_To_Copy.Gateways(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways(A).PosB.X - Offset.X, Map_To_Copy.Gateways(A).PosB.Y - Offset.Y))
+        For A = 0 To Map_To_Copy.Gateways.ItemCount - 1
+            If (Map_To_Copy.Gateways.Item(A).PosA.X >= Offset.X And Map_To_Copy.Gateways.Item(A).PosA.Y >= Offset.Y And _
+              Map_To_Copy.Gateways.Item(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways.Item(A).PosA.Y < Offset.Y + Area.Y) Or _
+              (Map_To_Copy.Gateways.Item(A).PosB.X >= Offset.X And Map_To_Copy.Gateways.Item(A).PosB.Y >= Offset.Y And _
+              Map_To_Copy.Gateways.Item(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways.Item(A).PosB.Y < Offset.Y + Area.Y) Then
+                Gateway_Create(New sXY_int(Map_To_Copy.Gateways.Item(A).PosA.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways.Item(A).PosB.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosB.Y - Offset.Y))
             End If
         Next
 
         PosDifX = -Offset.X * TerrainGridSpacing
         PosDifZ = -Offset.Y * TerrainGridSpacing
-        For A = 0 To Map_To_Copy.UnitCount - 1
-            NewUnit = New clsUnit(Map_To_Copy.Units(A))
-            If NewUnit.UnitGroup.WZ_StartPos < 0 Then
-                NewUnit.UnitGroup = ScavengerUnitGroup
-            Else
-                NewUnit.UnitGroup = UnitGroups(NewUnit.UnitGroup.WZ_StartPos)
-            End If
+        For A = 0 To Map_To_Copy.Units.ItemCount - 1
+            NewUnit = New clsUnit(Map_To_Copy.Units.Item(A), Me)
             NewUnit.Pos.Horizontal.X += PosDifX
             NewUnit.Pos.Horizontal.Y += PosDifZ
             If Not (NewUnit.Pos.Horizontal.X < 0 _
               Or NewUnit.Pos.Horizontal.X >= Terrain.TileSize.X * TerrainGridSpacing _
               Or NewUnit.Pos.Horizontal.Y < 0 _
               Or NewUnit.Pos.Horizontal.Y >= Terrain.TileSize.Y * TerrainGridSpacing) Then
-                Unit_Add(NewUnit)
+                NewUnitAdd.NewUnit = NewUnit
+                NewUnitAdd.Label = Map_To_Copy.Units.Item(A).Label
+                NewUnitAdd.Perform()
             End If
         Next
-
-        InitializeForUserInput()
     End Sub
 
     Protected Sub Terrain_Blank(ByVal TileSize As sXY_int)
@@ -1070,61 +1227,38 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
-
         For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                If Sectors(X, Y).GLList_Textured > 0 Then
-                    GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
-                    Sectors(X, Y).GLList_Textured = 0
-                End If
-                If Sectors(X, Y).GLList_Wireframe > 0 Then
-                    GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
-                    Sectors(X, Y).GLList_Wireframe = 0
-                End If
+                Sectors(X, Y).DeleteLists()
             Next
         Next
     End Sub
 
     Public Overridable Sub Deallocate()
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
+        CancelUserInput()
 
-        Do While UnitCount > 0
-            Unit_Remove(UnitCount - 1)
+        Do While Units.ItemCount > 0
+            Units.Item(0).Deallocate()
         Loop
-        SectorAll_GLLists_Delete()
-        Minimap_GLDelete()
-        If SectorGraphicsChanges IsNot Nothing Then
-            SectorGraphicsChanges.Deallocate()
-        End If
-        If SectorUnitHeightsChanges IsNot Nothing Then
-            SectorUnitHeightsChanges.Deallocate()
-        End If
-        If SectorTerrainUndoChanges IsNot Nothing Then
-            SectorTerrainUndoChanges.Deallocate()
-        End If
-        If AutoTextureChanges IsNot Nothing Then
-            AutoTextureChanges.Deallocate()
-        End If
-        If TerrainInterpretChanges IsNot Nothing Then
-            TerrainInterpretChanges.Deallocate()
-        End If
-        Erase UnitChanges
-        Erase GatewayChanges
-        Erase Undos
+        Units.Deallocate()
+        Units = Nothing
+
+        Do While Gateways.ItemCount > 0
+            Gateways.Item(0).Deallocate()
+        Loop
+        Gateways.Deallocate()
+        Gateways = Nothing
+
         Do While ScriptPositions.ItemCount > 0
             ScriptPositions.Item(0).Deallocate()
         Loop
+        ScriptPositions.Deallocate()
+        ScriptPositions = Nothing
+
         Do While ScriptAreas.ItemCount > 0
             ScriptAreas.Item(0).Deallocate()
         Loop
-        ScriptPositions.Deallocate()
-        ScriptPositions = Nothing
         ScriptAreas.Deallocate()
         ScriptAreas = Nothing
     End Sub
@@ -1137,12 +1271,6 @@ Partial Public Class clsMap
         Dim X As Integer
         Dim Y As Integer
         Dim NewTerrain As New clsTerrain(Size)
-
-        If ViewInfo IsNot Nothing Then
-            ViewInfo.MouseOver = Nothing
-        End If
-        Undo_Clear()
-        SectorAll_GLLists_Delete()
 
         StartX = Math.Max(0 - Offset.X, 0)
         StartY = Math.Max(0 - Offset.Y, 0)
@@ -1180,132 +1308,63 @@ Partial Public Class clsMap
         Dim PosDifX As Integer
         Dim PosDifZ As Integer
         Dim A As Integer
+        Dim tmpUnit As clsUnit
+        Dim tmpGateway As clsGateway
 
         PosDifX = -Offset.X * TerrainGridSpacing
         PosDifZ = -Offset.Y * TerrainGridSpacing
-        For A = 0 To UnitCount - 1
-            Units(A).Sectors_Remove()
-            Units(A).Pos.Horizontal.X += PosDifX
-            Units(A).Pos.Horizontal.Y += PosDifZ
+        For A = 0 To Units.ItemCount - 1
+            tmpUnit = Units.Item(A)
+            tmpUnit.Pos.Horizontal.X += PosDifX
+            tmpUnit.Pos.Horizontal.Y += PosDifZ
         Next
-        For A = 0 To GatewayCount - 1
-            Gateways(A).PosA.X -= Offset.X
-            Gateways(A).PosA.Y -= Offset.Y
-            Gateways(A).PosB.X -= Offset.X
-            Gateways(A).PosB.Y -= Offset.Y
-        Next
-        If Selected_Tile_A IsNot Nothing Then
-            Selected_Tile_A.X -= Offset.X
-            Selected_Tile_A.Y -= Offset.Y
-            If Selected_Tile_A.X < 0 _
-                Or Selected_Tile_A.X >= NewTerrain.TileSize.X _
-                Or Selected_Tile_A.Y < 0 _
-                Or Selected_Tile_A.Y >= NewTerrain.TileSize.Y Then
-                Selected_Tile_A = Nothing
-                Selected_Tile_B = Nothing
-            End If
-        End If
-        If Selected_Tile_B IsNot Nothing Then
-            Selected_Tile_B.X -= Offset.X
-            Selected_Tile_B.Y -= Offset.Y
-            If Selected_Tile_B.X < 0 _
-                Or Selected_Tile_B.X >= NewTerrain.TileSize.X _
-                Or Selected_Tile_B.Y < 0 _
-                Or Selected_Tile_B.Y >= NewTerrain.TileSize.Y Then
-                Selected_Tile_A = Nothing
-                Selected_Tile_B = Nothing
-            End If
-        End If
-        If Selected_Area_VertexA IsNot Nothing Then
-            Selected_Area_VertexA.X -= Offset.X
-            Selected_Area_VertexA.Y -= Offset.Y
-            If Selected_Area_VertexA.X < 0 _
-                Or Selected_Area_VertexA.X > NewTerrain.TileSize.X _
-                Or Selected_Area_VertexA.Y < 0 _
-                Or Selected_Area_VertexA.Y > NewTerrain.TileSize.Y Then
-                Selected_Area_VertexA = Nothing
-                Selected_Area_VertexB = Nothing
-            End If
-        End If
-        If Selected_Area_VertexB IsNot Nothing Then
-            Selected_Area_VertexB.X -= Offset.X
-            Selected_Area_VertexB.Y -= Offset.Y
-            If Selected_Area_VertexB.X < 0 _
-                Or Selected_Area_VertexB.X > NewTerrain.TileSize.X _
-                Or Selected_Area_VertexB.Y < 0 _
-                Or Selected_Area_VertexB.Y > NewTerrain.TileSize.Y Then
-                Selected_Area_VertexA = Nothing
-                Selected_Area_VertexB = Nothing
-            End If
-        End If
-        If Unit_Selected_Area_VertexA IsNot Nothing Then
-            Unit_Selected_Area_VertexA.X -= Offset.X
-            Unit_Selected_Area_VertexA.Y -= Offset.Y
-            If Unit_Selected_Area_VertexA.X < 0 _
-                Or Unit_Selected_Area_VertexA.X > NewTerrain.TileSize.X _
-                Or Unit_Selected_Area_VertexA.Y < 0 _
-                Or Unit_Selected_Area_VertexA.Y > NewTerrain.TileSize.Y Then
-                Unit_Selected_Area_VertexA = Nothing
-            End If
-        End If
-
-        Sectors_Deallocate()
-        SectorCount.X = CInt(Math.Ceiling(NewTerrain.TileSize.X / SectorTileSize))
-        SectorCount.Y = CInt(Math.Ceiling(NewTerrain.TileSize.Y / SectorTileSize))
-        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
-            Next
+        For A = 0 To Gateways.ItemCount - 1
+            tmpGateway = Gateways.Item(A)
+            tmpGateway.PosA.X -= Offset.X
+            tmpGateway.PosA.Y -= Offset.Y
+            tmpGateway.PosB.X -= Offset.X
+            tmpGateway.PosB.Y -= Offset.Y
         Next
 
-        A = 0
-        Do While A < UnitCount
-            If Units(A).Pos.Horizontal.X < 0 _
-                Or Units(A).Pos.Horizontal.X >= NewTerrain.TileSize.X * TerrainGridSpacing _
-                Or Units(A).Pos.Horizontal.Y < 0 _
-                Or Units(A).Pos.Horizontal.Y >= NewTerrain.TileSize.Y * TerrainGridSpacing Then
-                Unit_Remove(A)
-            Else
-                Unit_Sectors_Calc(Units(A))
-                A += 1
+        Dim ZeroPos As New sXY_int(0, 0)
+
+        Dim tmpUnits As SimpleClassList(Of clsMap.clsUnit) = Units.GetItemsAsSimpleClassList
+        Dim Position As Integer
+
+        For A = 0 To tmpUnits.ItemCount - 1
+            tmpUnit = tmpUnits.Item(A)
+            Position = tmpUnit.MapLink.ArrayPosition
+            If Not PosIsWithinTileArea(Units.Item(Position).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+                Unit_Remove(Position)
             End If
-        Loop
-        A = 0
-        Do While A < GatewayCount
-            If Gateways(A).PosA.X < 0 _
-                Or Gateways(A).PosA.X >= NewTerrain.TileSize.X _
-                Or Gateways(A).PosA.Y < 0 _
-                Or Gateways(A).PosA.Y >= NewTerrain.TileSize.Y _
-                Or Gateways(A).PosB.X < 0 _
-                Or Gateways(A).PosB.X >= NewTerrain.TileSize.X _
-                Or Gateways(A).PosB.Y < 0 _
-                Or Gateways(A).PosB.Y >= NewTerrain.TileSize.Y Then
-                Gateway_Remove(A)
-            Else
-                A += 1
-            End If
-        Loop
+        Next
 
         Terrain = NewTerrain
 
-        Dim tmpScriptPositions(ScriptPositions.ItemCount - 1) As clsScriptPosition
-        For A = 0 To ScriptPositions.ItemCount - 1
-            tmpScriptPositions(A) = ScriptPositions.Item(A)
-        Next
-        For A = 0 To tmpScriptPositions.GetUpperBound(0)
-            tmpScriptPositions(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
-        Next
-
-        Dim tmpScriptAreas(ScriptAreas.ItemCount - 1) As clsScriptArea
-        For A = 0 To ScriptAreas.ItemCount - 1
-            tmpScriptAreas(A) = ScriptAreas.Item(A)
-        Next
-        For A = 0 To tmpScriptareas.GetUpperBound(0)
-            tmpScriptAreas(A).MapResizing(New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing))
+        Dim tmpGateways As SimpleClassList(Of clsMap.clsGateway) = Gateways.GetItemsAsSimpleClassList
+        For A = 0 To tmpGateways.ItemCount - 1
+            tmpGateway = tmpGateways.Item(A)
+            If tmpGateway.IsOffMap Then
+                tmpGateway.Deallocate()
+            End If
         Next
 
-        InitializeForUserInput()
+        Dim PosOffset As New sXY_int(Offset.X * TerrainGridSpacing, Offset.Y * TerrainGridSpacing)
+
+        Dim tmpScriptPositions As SimpleClassList(Of clsMap.clsScriptPosition) = ScriptPositions.GetItemsAsSimpleClassList
+        For A = 0 To tmpScriptPositions.ItemCount - 1
+            tmpScriptPositions.Item(A).MapResizing(PosOffset)
+        Next
+
+        Dim tmpScriptareas As SimpleClassList(Of clsMap.clsScriptArea) = ScriptAreas.GetItemsAsSimpleClassList
+        For A = 0 To tmpScriptareas.ItemCount - 1
+            tmpScriptareas.Item(A).MapResizing(PosOffset)
+        Next
+
+        If _ReadyForUserInput Then
+            CancelUserInput()
+            InitializeUserInput()
+        End If
     End Sub
 
     Public Sub Sector_GLList_Make(ByVal X As Integer, ByVal Y As Integer)
@@ -1317,18 +1376,7 @@ Partial Public Class clsMap
         Dim FinishY As Integer
         Dim UnitNum As Integer
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
-
-        If Sectors(X, Y).GLList_Textured > 0 Then
-            GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
-            Sectors(X, Y).GLList_Textured = 0
-        End If
-        If Sectors(X, Y).GLList_Wireframe > 0 Then
-            GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
-            Sectors(X, Y).GLList_Wireframe = 0
-        End If
+        Sectors(X, Y).DeleteLists()
 
         StartX = X * SectorTileSize
         StartY = Y * SectorTileSize
@@ -1344,8 +1392,8 @@ Partial Public Class clsMap
             Dim BaseOffset As sXY_int
             Dim tmpStructure As clsStructureType
             Dim Footprint As sXY_int
-            For UnitNum = 0 To Sectors(X, Y).UnitCount - 1
-                tmpUnit = Sectors(X, Y).Units(UnitNum)
+            For UnitNum = 0 To Sectors(X, Y).Units.ItemCount - 1
+                tmpUnit = Sectors(X, Y).Units.Item(UnitNum).Unit
                 If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
                     tmpStructure = CType(tmpUnit.Type, clsStructureType)
                     Footprint = tmpStructure.Footprint
@@ -1658,8 +1706,8 @@ Partial Public Class clsMap
             End If
         End If
         If frmMainInstance.menuMiniShowGateways.Checked Then
-            For A = 0 To GatewayCount - 1
-                XY_Reorder(Gateways(A).PosA, Gateways(A).PosB, Low, High)
+            For A = 0 To Gateways.ItemCount - 1
+                XY_Reorder(Gateways.Item(A).PosA, Gateways.Item(A).PosB, Low, High)
                 For Y = Low.Y To High.Y
                     For X = Low.X To High.X
                         sngTexture(Y, X, 0) = 1.0F
@@ -1671,26 +1719,26 @@ Partial Public Class clsMap
         End If
         If frmMainInstance.menuMiniShowUnits.Checked Then
             'units that are not selected
-            For A = 0 To UnitCount - 1
+            For A = 0 To Units.ItemCount - 1
                 Flag = True
-                If frmMainInstance.SelectedObjectType Is Units(A).Type Then
+                If frmMainInstance.SelectedObjectType Is Units.Item(A).Type Then
                     Flag = False
                 Else
-                    Footprint = Units(A).Type.GetFootprint
+                    Footprint = Units.Item(A).Type.GetFootprint
                 End If
                 If Flag Then
-                    GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
+                    GetFootprintTileRangeClamped(Units.Item(A).Pos.Horizontal, Footprint, Low, High)
                     For Y = Low.Y To High.Y
                         For X = Low.X To High.X
                             If Not UnitMap(Y, X) Then
                                 UnitMap(Y, X) = True
                                 If Settings.MinimapTeamColours Then
-                                    If Settings.MinimapTeamColoursExceptFeatures And Units(A).Type.Type = clsUnitType.enumType.Feature Then
+                                    If Settings.MinimapTeamColoursExceptFeatures And Units.Item(A).Type.Type = clsUnitType.enumType.Feature Then
                                         sngTexture(Y, X, 0) = MinimapFeatureColour.Red
                                         sngTexture(Y, X, 1) = MinimapFeatureColour.Green
                                         sngTexture(Y, X, 2) = MinimapFeatureColour.Blue
                                     Else
-                                        RGB_sng = GetUnitGroupMinimapColour(Units(A).UnitGroup)
+                                        RGB_sng = GetUnitGroupMinimapColour(Units.Item(A).UnitGroup)
                                         sngTexture(Y, X, 0) = RGB_sng.Red
                                         sngTexture(Y, X, 1) = RGB_sng.Green
                                         sngTexture(Y, X, 2) = RGB_sng.Blue
@@ -1714,16 +1762,16 @@ Partial Public Class clsMap
             'units that are selected and highlighted
             Alpha = Settings.MinimapSelectedObjectsColour.Alpha
             AntiAlpha = 1.0F - Alpha
-            For A = 0 To UnitCount - 1
+            For A = 0 To Units.ItemCount - 1
                 Flag = False
-                If frmMainInstance.SelectedObjectType Is Units(A).Type Then
+                If frmMainInstance.SelectedObjectType Is Units.Item(A).Type Then
                     Flag = True
-                    Footprint = Units(A).Type.GetFootprint
+                    Footprint = Units.Item(A).Type.GetFootprint
                     Footprint.X += 2
                     Footprint.Y += 2
                 End If
                 If Flag Then
-                    GetFootprintTileRangeClamped(Units(A).Pos.Horizontal, Footprint, Low, High)
+                    GetFootprintTileRangeClamped(Units.Item(A).Pos.Horizontal, Footprint, Low, High)
                     For Y = Low.Y To High.Y
                         For X = Low.X To High.X
                             If Not UnitMap(Y, X) Then
@@ -1827,7 +1875,6 @@ Partial Public Class clsMap
         Minimap_GLDelete()
 
 #If Mono = 0.0# Then
-        GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1)
         GL.GenTextures(1, Minimap_GLTexture)
         GL.BindTexture(TextureTarget.Texture2D, Minimap_GLTexture)
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
@@ -1836,13 +1883,13 @@ Partial Public Class clsMap
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest)
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Minimap_Texture_Size, Minimap_Texture_Size, 0, PixelFormat.Rgba, PixelType.UnsignedByte, Texture.Pixels)
 #Else
-        Dim BitmapTextureArgs As sBitmapGLTextureArgs
+        Dim BitmapTextureArgs As sBitmapGLTexture
         BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
         BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
         BitmapTextureArgs.TextureNum = 0
         BitmapTextureArgs.MipMapLevel = 0
         BitmapTextureArgs.Texture = TextureB
-        BitmapGLTexture(BitmapTextureArgs)
+        BitmapTextureArgs.Perform()
         Minimap_GLTexture = BitmapTextureArgs.TextureNum
 #End If
 
@@ -1857,157 +1904,143 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Function Unit_Add_StoreChange(ByVal NewUnit As clsUnit) As Integer
-        Dim ReturnResult As Integer
-
-        ReDim Preserve UnitChanges(UnitChangeCount)
-        UnitChanges(UnitChangeCount).Type = sUnitChange.enumType.Added
-        UnitChanges(UnitChangeCount).Unit = NewUnit
-        UnitChangeCount += 1
-
-        ReturnResult = Unit_Add(NewUnit)
-        Return ReturnResult
-    End Function
-
-    Public Function UnitID_Add_StoreChange(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
-        Dim ReturnResult As Integer
-
-        ReDim Preserve UnitChanges(UnitChangeCount)
-        UnitChanges(UnitChangeCount).Type = sUnitChange.enumType.Added
-        UnitChanges(UnitChangeCount).Unit = NewUnit
-        UnitChangeCount += 1
-
-        ReturnResult = UnitID_Add(NewUnit, ID)
-        Return ReturnResult
-    End Function
-
     Public Function GetAvailableID() As UInteger
         Dim A As Integer
         Dim ID As UInteger
 
         ID = 1UI
-        For A = 0 To UnitCount - 1
-            If Units(A).ID >= ID Then
-                ID = Units(A).ID + 1UI
+        For A = 0 To Units.ItemCount - 1
+            If Units.Item(A).ID >= ID Then
+                ID = Units.Item(A).ID + 1UI
             End If
         Next
 
         Return ID
     End Function
 
-    Public Function Unit_Add(ByVal NewUnit As clsUnit) As Integer
+    Public Class clsUnitAdd
+        Public Map As clsMap
+        Public NewUnit As clsUnit
+        Public ID As UInteger = 0UI
+        Public Label As String = Nothing
+        Public StoreChange As Boolean = False
 
-        Return UnitID_Add(NewUnit, GetAvailableID)
-    End Function
+        Public Function Perform() As Boolean
+            Dim A As Integer
 
-    Public Function UnitID_Add(ByVal NewUnit As clsUnit, ByVal ID As UInteger) As Integer
-        Dim ReturnResult As Integer
-        Dim A As Integer
-
-        If NewUnit.Map IsNot Me And NewUnit.Map IsNot Nothing Then
-            MsgBox("Error: Added object already has a map assigned.")
-            Return -1
-        End If
-        If NewUnit.UnitGroup Is Nothing Then
-            MsgBox("Error: Added object has no group.")
-            NewUnit.UnitGroup = ScavengerUnitGroup
-            Return -1
-        End If
-        If NewUnit.UnitGroup.ParentMap IsNot Me Then
-            MsgBox("Error: Something terrible happened.")
-            Return -1
-        End If
-
-        If ID <= 0UI Then
-            ID = 1UI
-        End If
-
-        For A = 0 To UnitCount - 1
-            If ID = Units(A).ID Then
-                Exit For
+            If Map Is Nothing Then
+                Stop
+                Return False
             End If
-        Next
-        If A < UnitCount Then
-            ID = GetAvailableID()
-        End If
+            If NewUnit Is Nothing Then
+                Stop
+                Return False
+            End If
 
-        NewUnit.ID = ID
+            If NewUnit.MapLink.IsConnected Then
+                MsgBox("Error: Added object already has a map assigned.")
+                Return False
+            End If
+            If NewUnit.UnitGroup Is Nothing Then
+                MsgBox("Error: Added object has no group.")
+                NewUnit.UnitGroup = Map.ScavengerUnitGroup
+                Return False
+            End If
+            If NewUnit.UnitGroup.ParentMap IsNot Map Then
+                MsgBox("Error: Something terrible happened.")
+                Return False
+            End If
 
-        NewUnit.Map = Me
-        NewUnit.Map_UnitNum = UnitCount
+            If StoreChange Then
+                Dim UnitChange As New clsMap.clsUnitChange
+                UnitChange.Type = clsUnitChange.enumType.Added
+                UnitChange.Unit = NewUnit
+                Map.UnitChanges.Add(UnitChange)
+            End If
 
-        NewUnit.Pos.Horizontal.X = Clamp_int(NewUnit.Pos.Horizontal.X, 0, Terrain.TileSize.X * TerrainGridSpacing - 1)
-        NewUnit.Pos.Horizontal.Y = Clamp_int(NewUnit.Pos.Horizontal.Y, 0, Terrain.TileSize.Y * TerrainGridSpacing - 1)
-        NewUnit.Pos.Altitude = CInt(Math.Ceiling(GetTerrainHeight(NewUnit.Pos.Horizontal)))
+            If ID <= 0UI Then
+                ID = Map.GetAvailableID
+            Else
+                For A = 0 To Map.Units.ItemCount - 1
+                    If ID = Map.Units.Item(A).ID Then
+                        Exit For
+                    End If
+                Next
+                If A < Map.Units.ItemCount Then
+                    ID = Map.GetAvailableID
+                End If
+            End If
 
-        If Units.GetUpperBound(0) < UnitCount Then
-            ReDim Preserve Units(UnitCount * 2 + 1)
-        End If
-        Units(UnitCount) = NewUnit
-        ReturnResult = UnitCount
-        UnitCount += 1
+            NewUnit.ID = ID
 
-        Unit_Sectors_Calc(NewUnit)
+            NewUnit.MapLink.Connect(Map.Units)
 
-        UnitSectors_GLList(NewUnit)
+            NewUnit.Pos.Horizontal.X = Clamp_int(NewUnit.Pos.Horizontal.X, 0, Map.Terrain.TileSize.X * TerrainGridSpacing - 1)
+            NewUnit.Pos.Horizontal.Y = Clamp_int(NewUnit.Pos.Horizontal.Y, 0, Map.Terrain.TileSize.Y * TerrainGridSpacing - 1)
+            NewUnit.Pos.Altitude = CInt(Math.Ceiling(Map.GetTerrainHeight(NewUnit.Pos.Horizontal)))
 
-        Return ReturnResult
-    End Function
+            If Label IsNot Nothing Then
+                NewUnit.SetLabel(Label)
+            End If
+
+            Map.UnitSectorsCalc(NewUnit)
+
+            If Map.SectorGraphicsChanges IsNot Nothing Then
+                Map.UnitSectors_GLList(NewUnit)
+            End If
+
+            Return True
+        End Function
+    End Class
 
     Public Sub Unit_Remove_StoreChange(ByVal Num As Integer)
 
-        ReDim Preserve UnitChanges(UnitChangeCount)
-        UnitChanges(UnitChangeCount).Type = sUnitChange.enumType.Deleted
-        UnitChanges(UnitChangeCount).Unit = Units(Num)
-        UnitChangeCount += 1
+        Dim UnitChange As New clsMap.clsUnitChange
+        UnitChange.Type = clsUnitChange.enumType.Deleted
+        UnitChange.Unit = Units.Item(Num)
+        UnitChanges.Add(UnitChange)
 
         Unit_Remove(Num)
     End Sub
 
     Public Sub Unit_Remove(ByVal Num As Integer)
-        Dim A As Integer
+        Dim tmpUnit As clsMap.clsUnit
 
-        UnitSectors_GLList(Units(Num))
+        tmpUnit = Units.Item(Num)
+
+        If SectorGraphicsChanges IsNot Nothing Then
+            UnitSectors_GLList(tmpUnit)
+        End If
 
         If ViewInfo IsNot Nothing Then
             Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
             If MouseOverTerrain IsNot Nothing Then
-                MouseOverTerrain.Unit_FindRemove(Units(Num))
+                Dim Pos As Integer = MouseOverTerrain.Units.FindFirstItemPosition(tmpUnit)
+                If Pos >= 0 Then
+                    MouseOverTerrain.Units.Remove(Pos)
+                End If
             End If
         End If
 
-        If Units(Num).Map_SelectedUnitNum >= 0 Then
-            SelectedUnits.Remove(Units(Num).Map_SelectedUnitNum)
-        End If
-
-        If Units(Num).SectorCount > 0 Then
-            For A = 0 To Units(Num).SectorCount - 1
-                Units(Num).Sectors(A).Unit_Remove(Units(Num).Sectors_UnitNum(A))
-            Next
-            Units(Num).Sectors_Remove()
-        End If
-
-        Units(Num).Map_UnitNum = -1
-
-        UnitCount -= 1
-        If Num < UnitCount Then
-            Units(Num) = Units(UnitCount)
-            Units(Num).Map_UnitNum = Num
-        End If
-        Units(UnitCount) = Nothing
-        If Units.GetUpperBound(0) + 1 > UnitCount * 3 Then
-            ReDim Preserve Units(UnitCount - 1)
-        End If
+        tmpUnit.DisconnectFromMap()
     End Sub
 
     Public Sub UnitSwap(ByVal OldUnit As clsMap.clsUnit, ByVal NewUnit As clsMap.clsUnit)
 
-        Unit_Remove_StoreChange(OldUnit.Map_UnitNum)
-        UnitID_Add_StoreChange(NewUnit, OldUnit.ID)
-        ErrorIDChange(OldUnit.ID, NewUnit, "UnitSwap")
-        If OldUnit.Label IsNot Nothing Then
-            NewUnit.SetLabel(OldUnit.Label)
+        If OldUnit.MapLink.Source IsNot Me Then
+            Stop
+            Exit Sub
         End If
+
+        Unit_Remove_StoreChange(OldUnit.MapLink.ArrayPosition)
+        Dim UnitAdd As New clsMap.clsUnitAdd
+        UnitAdd.Map = Me
+        UnitAdd.StoreChange = True
+        UnitAdd.ID = OldUnit.ID
+        UnitAdd.NewUnit = NewUnit
+        UnitAdd.Label = OldUnit.Label
+        UnitAdd.Perform()
+        ErrorIDChange(OldUnit.ID, NewUnit, "UnitSwap")
     End Sub
 
     Public Function GetTileSectorNum(ByVal Tile As sXY_int) As sXY_int
@@ -2039,14 +2072,14 @@ Partial Public Class clsMap
         Return Result
     End Function
 
-    Public Sub Unit_Sectors_Calc(ByVal Unit As clsUnit)
+    Public Sub UnitSectorsCalc(ByVal Unit As clsUnit)
         Dim Start As sXY_int
         Dim Finish As sXY_int
         Dim TileStart As sXY_int
         Dim TileFinish As sXY_int
+        Dim tmpConnection As clsMap.clsUnitSectorConnection
         Dim X As Integer
         Dim Y As Integer
-        Dim A As Integer
 
         GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Unit.Type.GetFootprint, TileStart, TileFinish)
         Start = GetTileSectorNum(TileStart)
@@ -2055,15 +2088,10 @@ Partial Public Class clsMap
         Start.Y = Clamp_int(Start.Y, 0, SectorCount.Y - 1)
         Finish.X = Clamp_int(Finish.X, 0, SectorCount.X - 1)
         Finish.Y = Clamp_int(Finish.Y, 0, SectorCount.Y - 1)
-        Unit.SectorCount = (Finish.X - Start.X + 1) * (Finish.Y - Start.Y + 1)
-        ReDim Unit.Sectors(Unit.SectorCount - 1)
-        ReDim Unit.Sectors_UnitNum(Unit.SectorCount - 1)
-        A = 0
+        Unit.Sectors.Clear()
         For Y = Start.Y To Finish.Y
             For X = Start.X To Finish.X
-                Unit.Sectors(A) = Sectors(X, Y)
-                Unit.Sectors_UnitNum(A) = Sectors(X, Y).Unit_Add(Unit, A)
-                A += 1
+                tmpConnection = clsMap.clsUnitSectorConnection.Create(Unit, Sectors(X, Y))
             Next
         Next
     End Sub
@@ -2106,7 +2134,7 @@ Partial Public Class clsMap
         ShowWarnings(Result, "Autosave")
     End Sub
 
-    Public Overridable Sub UndoStepCreate(ByVal StepName As String)
+    Public Sub UndoStepCreate(ByVal StepName As String)
         Dim A As Integer
         Dim SectorNum As sXY_int
         Dim NewUndo As New clsUndo
@@ -2122,30 +2150,21 @@ Partial Public Class clsMap
         Next
         SectorTerrainUndoChanges.Clear()
 
-        ReDim NewUndo.UnitChanges(UnitChanges.GetUpperBound(0))
-        For A = 0 To UnitChanges.GetUpperBound(0)
-            NewUndo.UnitChanges(A) = UnitChanges(A)
-        Next
-        NewUndo.UnitChangeCount = UnitChangeCount
+        NewUndo.UnitChanges = New SimpleClassList(Of clsMap.clsUnitChange)
+        UnitChanges.SendItems(NewUndo.UnitChanges)
+        UnitChanges.Clear()
 
-        UnitChangeCount = 0
-        ReDim UnitChanges(-1)
+        NewUndo.GatewayChanges = New SimpleClassList(Of clsMap.clsGatewayChange)
+        GatewayChanges.SendItems(NewUndo.GatewayChanges)
+        GatewayChanges.Clear()
 
-        ReDim NewUndo.GatewayChanges(GatewayChanges.GetUpperBound(0))
-        For A = 0 To GatewayChanges.GetUpperBound(0)
-            NewUndo.GatewayChanges(A) = GatewayChanges(A)
-        Next
-        NewUndo.GatewayChangeCount = GatewayChangeCount
+        If NewUndo.ChangedSectorCount + NewUndo.UnitChanges.ItemCount + NewUndo.GatewayChanges.ItemCount > 0 Then
+            Do While Undos.ItemCount > UndoPosition 'a new line has been started so remove redos
+                Undos.Remove(Undos.ItemCount - 1)
+            Loop
 
-        GatewayChangeCount = 0
-        ReDim GatewayChanges(-1)
-
-        If NewUndo.ChangedSectorCount + NewUndo.UnitChangeCount + NewUndo.GatewayChangeCount > 0 Then
-            UndoCount = Undo_Pos
-            ReDim Preserve Undos(UndoCount - 1) 'a new line has been started so remove redos
-
-            Undo_Append(NewUndo)
-            Undo_Pos = UndoCount
+            Undos.Add(NewUndo)
+            UndoPosition = Undos.ItemCount
 
             SetChanged()
         End If
@@ -2200,24 +2219,18 @@ Partial Public Class clsMap
         Next
     End Sub
 
-    Public Sub ShadowSectors_CreateAll()
-        Dim X As Integer
-        Dim Y As Integer
-
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                ShadowSector_Create(New sXY_int(X, Y))
-            Next
-        Next
-    End Sub
-
     Public Sub Undo_Clear()
 
         UndoStepCreate("") 'absorb current changes
-        UndoCount = 0
-        ReDim Undos(-1)
-        Undo_Pos = UndoCount
-        SectorTerrainUndoChanges.Clear()
+        Dim A As Integer
+        Dim B As Integer
+        For A = 0 To Undos.ItemCount - 1
+            For B = 0 To Undos.Item(A).UnitChanges.ItemCount - 1
+                Undos.Item(A).UnitChanges.Item(B).Unit.Deallocate()
+            Next
+        Next
+        Undos.Clear()
+        UndoPosition = Undos.ItemCount
     End Sub
 
     Public Sub Undo_Perform()
@@ -2227,64 +2240,64 @@ Partial Public Class clsMap
         Dim Y As Integer
         Dim tmpUnit As clsUnit
         Dim ID As UInteger
+        Dim UnitAdd As New clsMap.clsUnitAdd
+        Dim tmpUndo As clsMap.clsUndo
+
+        UnitAdd.Map = Me
 
         UndoStepCreate("Incomplete Action") 'make another redo step incase something has changed, such as if user presses undo while still dragging a tool
 
-        Undo_Pos -= 1
+        UndoPosition -= 1
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
             frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
-        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Y = Undos(Undo_Pos).ChangedSectors(A).Num.Y
+        tmpUndo = Undos.Item(UndoPosition)
+        For A = 0 To tmpUndo.ChangedSectorCount - 1
+            X = tmpUndo.ChangedSectors(A).Num.X
+            Y = tmpUndo.ChangedSectors(A).Num.Y
             'store existing state for redo
             tmpShadow = ShadowSectors(X, Y)
             'remove graphics from sector
-            If Sectors(X, Y).GLList_Textured > 0 Then
-                GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
-                Sectors(X, Y).GLList_Textured = 0
-            End If
-            If Sectors(X, Y).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
-                Sectors(X, Y).GLList_Wireframe = 0
-            End If
+            Sectors(X, Y).DeleteLists()
             'perform the undo
-            Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
+            Undo_Sector_Rejoin(tmpUndo.ChangedSectors(A))
             'update the backup
             ShadowSector_Create(New sXY_int(X, Y))
             'add old state to the redo step (that was this undo step)
-            Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
+            tmpUndo.ChangedSectors(A) = tmpShadow
         Next
-        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorGraphicsChanges.Changed(Undos(Undo_Pos).ChangedSectors(A).Num)
+        For A = 0 To tmpUndo.ChangedSectorCount - 1
+            SectorGraphicsChanges.Changed(tmpUndo.ChangedSectors(A).Num)
         Next
 
-        For A = Undos(Undo_Pos).UnitChangeCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
-            Select Case Undos(Undo_Pos).UnitChanges(A).Type
-                Case sUnitChange.enumType.Added
+        For A = tmpUndo.UnitChanges.ItemCount - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
+            tmpUnit = tmpUndo.UnitChanges.Item(A).Unit
+            Select Case tmpUndo.UnitChanges.Item(A).Type
+                Case clsUnitChange.enumType.Added
                     'remove the unit from the map
-                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Map_UnitNum)
-                Case sUnitChange.enumType.Deleted
+                    Unit_Remove(tmpUnit.MapLink.ArrayPosition)
+                Case clsUnitChange.enumType.Deleted
                     'add the unit back on to the map
-                    tmpUnit = Undos(Undo_Pos).UnitChanges(A).Unit
                     ID = tmpUnit.ID
-                    UnitID_Add(tmpUnit, ID)
+                    UnitAdd.ID = ID
+                    UnitAdd.NewUnit = tmpUnit
+                    UnitAdd.Perform()
                     ErrorIDChange(ID, tmpUnit, "Undo_Perform")
                 Case Else
                     Stop
             End Select
         Next
 
-        For A = Undos(Undo_Pos).GatewayChangeCount - 1 To 0 Step -1
-            Select Case Undos(Undo_Pos).GatewayChanges(A).Type
-                Case sGatewayChange.enumType.Added
+        For A = tmpUndo.GatewayChanges.ItemCount - 1 To 0 Step -1
+            Select Case tmpUndo.GatewayChanges.Item(A).Type
+                Case clsGatewayChange.enumType.Added
                     'remove the unit from the map
-                    Gateway_Remove(Undos(Undo_Pos).GatewayChanges(A).Gateway.Map_GatewayNum)
-                Case sGatewayChange.enumType.Deleted
+                    tmpUndo.GatewayChanges.Item(A).Gateway.MapLink.Disconnect()
+                Case clsGatewayChange.enumType.Deleted
                     'add the unit back on to the map
-                    Gateway_Add(Undos(Undo_Pos).GatewayChanges(A).Gateway)
+                    tmpUndo.GatewayChanges.Item(A).Gateway.MapLink.Connect(Gateways)
                 Case Else
                     Stop
             End Select
@@ -2302,66 +2315,67 @@ Partial Public Class clsMap
         Dim Y As Integer
         Dim tmpUnit As clsUnit
         Dim ID As UInteger
+        Dim UnitAdd As New clsMap.clsUnitAdd
+        Dim tmpUndo As clsMap.clsUndo
+
+        tmpUndo = Undos.Item(UndoPosition)
+
+        UnitAdd.Map = Me
 
         If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
             frmMainInstance.MapView.OpenGLControl.MakeCurrent()
         End If
 
-        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            X = Undos(Undo_Pos).ChangedSectors(A).Num.X
-            Y = Undos(Undo_Pos).ChangedSectors(A).Num.Y
+        For A = 0 To tmpUndo.ChangedSectorCount - 1
+            X = tmpUndo.ChangedSectors(A).Num.X
+            Y = tmpUndo.ChangedSectors(A).Num.Y
             'store existing state for undo
             tmpShadow = ShadowSectors(X, Y)
             'remove graphics from sector
-            If Sectors(X, Y).GLList_Textured > 0 Then
-                GL.DeleteLists(Sectors(X, Y).GLList_Textured, 1)
-                Sectors(X, Y).GLList_Textured = 0
-            End If
-            If Sectors(X, Y).GLList_Wireframe > 0 Then
-                GL.DeleteLists(Sectors(X, Y).GLList_Wireframe, 1)
-                Sectors(X, Y).GLList_Wireframe = 0
-            End If
+            Sectors(X, Y).DeleteLists()
             'perform the redo
-            Undo_Sector_Rejoin(Undos(Undo_Pos).ChangedSectors(A))
+            Undo_Sector_Rejoin(tmpUndo.ChangedSectors(A))
             'update the backup
             ShadowSector_Create(New sXY_int(X, Y))
             'add old state to the undo step (that was this redo step)
-            Undos(Undo_Pos).ChangedSectors(A) = tmpShadow
+            tmpUndo.ChangedSectors(A) = tmpShadow
         Next
-        For A = 0 To Undos(Undo_Pos).ChangedSectorCount - 1
-            SectorGraphicsChanges.Changed(Undos(Undo_Pos).ChangedSectors(A).Num)
+        For A = 0 To tmpUndo.ChangedSectorCount - 1
+            SectorGraphicsChanges.Changed(tmpUndo.ChangedSectors(A).Num)
         Next
 
-        For A = 0 To Undos(Undo_Pos).UnitChangeCount - 1
-            Select Case Undos(Undo_Pos).UnitChanges(A).Type
-                Case sUnitChange.enumType.Added
+        For A = 0 To tmpUndo.UnitChanges.ItemCount - 1
+            tmpUnit = tmpUndo.UnitChanges.Item(A).Unit
+            Select Case tmpUndo.UnitChanges.Item(A).Type
+                Case clsUnitChange.enumType.Added
                     'add the unit back on to the map
-                    tmpUnit = Undos(Undo_Pos).UnitChanges(A).Unit
                     ID = tmpUnit.ID
-                    UnitID_Add(tmpUnit, ID)
+                    UnitAdd.ID = ID
+                    UnitAdd.NewUnit = tmpUnit
+                    UnitAdd.Perform()
                     ErrorIDChange(ID, tmpUnit, "Redo_Perform")
-                Case sUnitChange.enumType.Deleted
+                Case clsUnitChange.enumType.Deleted
                     'remove the unit from the map
-                    Unit_Remove(Undos(Undo_Pos).UnitChanges(A).Unit.Map_UnitNum)
+                    Unit_Remove(tmpUnit.MapLink.ArrayPosition)
                 Case Else
                     Stop
             End Select
         Next
 
-        For A = 0 To Undos(Undo_Pos).GatewayChangeCount - 1
-            Select Case Undos(Undo_Pos).GatewayChanges(A).Type
-                Case sGatewayChange.enumType.Added
+        For A = 0 To tmpUndo.GatewayChanges.ItemCount - 1
+            Select Case tmpUndo.GatewayChanges.Item(A).Type
+                Case clsGatewayChange.enumType.Added
                     'add the unit back on to the map
-                    Gateway_Add(Undos(Undo_Pos).GatewayChanges(A).Gateway)
-                Case sGatewayChange.enumType.Deleted
+                    tmpUndo.GatewayChanges.Item(A).Gateway.MapLink.Connect(Gateways)
+                Case clsGatewayChange.enumType.Deleted
                     'remove the unit from the map
-                    Gateway_Remove(Undos(Undo_Pos).GatewayChanges(A).Gateway.Map_GatewayNum)
+                    tmpUndo.GatewayChanges.Item(A).Gateway.MapLink.Disconnect()
                 Case Else
                     Stop
             End Select
         Next
 
-        Undo_Pos += 1
+        UndoPosition += 1
 
         SectorsUpdateGraphics()
         MinimapMakeLater()
@@ -2411,28 +2425,6 @@ Partial Public Class clsMap
                 Terrain.SideV(TileX, TileZ).Road = Shadow_Sector_To_Rejoin.Terrain.SideV(X, Y).Road
             Next
         Next
-    End Sub
-
-    Public Function Undo_Append(ByVal NewUndo As clsUndo) As Integer
-        Dim ReturnResult As Integer
-
-        ReDim Preserve Undos(UndoCount)
-        Undos(UndoCount) = NewUndo
-        ReturnResult = UndoCount
-        UndoCount += 1
-
-        Return ReturnResult
-    End Function
-
-    Public Sub Undo_Insert(ByVal Pos As Integer, ByVal NewUndo As clsUndo)
-        Dim A As Integer
-
-        ReDim Preserve Undos(UndoCount)
-        For A = UndoCount - 1 To Pos
-            Undos(A + 1) = Undos(A)
-        Next
-        Undos(Pos) = NewUndo
-        UndoCount += 1
     End Sub
 
     Public Sub Map_Insert(ByVal Map_To_Insert As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int, ByVal Insert_Heights As Boolean, ByVal Insert_Textures As Boolean, ByVal Insert_Units As Boolean, ByVal Delete_Units As Boolean, ByVal Insert_Gateways As Boolean, ByVal Delete_Gateways As Boolean)
@@ -2501,11 +2493,11 @@ Partial Public Class clsMap
         If Delete_Gateways Then
             Dim A As Integer
             A = 0
-            Do While A < GatewayCount
-                If (Gateways(A).PosA.X >= Offset.X And Gateways(A).PosA.Y >= Offset.Y And _
-                    Gateways(A).PosA.X < Offset.X + AreaAdjusted.X And Gateways(A).PosA.Y < Offset.Y + AreaAdjusted.Y) Or _
-                    (Gateways(A).PosB.X >= Offset.X And Gateways(A).PosB.Y >= Offset.Y And _
-                    Gateways(A).PosB.X < Offset.X + AreaAdjusted.X And Gateways(A).PosB.Y < Offset.Y + AreaAdjusted.Y) Then
+            Do While A < Gateways.ItemCount
+                If (Gateways.Item(A).PosA.X >= Offset.X And Gateways.Item(A).PosA.Y >= Offset.Y And _
+                    Gateways.Item(A).PosA.X < Offset.X + AreaAdjusted.X And Gateways.Item(A).PosA.Y < Offset.Y + AreaAdjusted.Y) Or _
+                    (Gateways.Item(A).PosB.X >= Offset.X And Gateways.Item(A).PosB.Y >= Offset.Y And _
+                    Gateways.Item(A).PosB.X < Offset.X + AreaAdjusted.X And Gateways.Item(A).PosB.Y < Offset.Y + AreaAdjusted.Y) Then
                     Gateway_Remove_StoreChange(A)
                 Else
                     A += 1
@@ -2516,11 +2508,11 @@ Partial Public Class clsMap
             Dim A As Integer
             Dim GateStart As sXY_int
             Dim GateFinish As sXY_int
-            For A = 0 To Map_To_Insert.GatewayCount - 1
-                GateStart.X = Offset.X + Map_To_Insert.Gateways(A).PosA.X
-                GateStart.Y = Offset.Y + Map_To_Insert.Gateways(A).PosA.Y
-                GateFinish.X = Offset.X + Map_To_Insert.Gateways(A).PosB.X
-                GateFinish.Y = Offset.Y + Map_To_Insert.Gateways(A).PosB.Y
+            For A = 0 To Map_To_Insert.Gateways.ItemCount - 1
+                GateStart.X = Offset.X + Map_To_Insert.Gateways.Item(A).PosA.X
+                GateStart.Y = Offset.Y + Map_To_Insert.Gateways.Item(A).PosA.Y
+                GateFinish.X = Offset.X + Map_To_Insert.Gateways.Item(A).PosB.X
+                GateFinish.Y = Offset.Y + Map_To_Insert.Gateways.Item(A).PosB.Y
                 If (GateStart.X >= Offset.X And GateStart.Y >= Offset.Y And _
                     GateStart.X < Offset.X + AreaAdjusted.X And GateStart.Y < Offset.Y + AreaAdjusted.Y) Or _
                     (GateFinish.X >= Offset.X And GateFinish.Y >= Offset.Y And _
@@ -2537,8 +2529,8 @@ Partial Public Class clsMap
             Dim UnitToDeleteCount As Integer = 0
             For Y = SectorStart.Y To SectorFinish.Y
                 For X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Sectors(X, Y).UnitCount - 1
-                        TempUnit = Sectors(X, Y).Units(A)
+                    For A = 0 To Sectors(X, Y).Units.ItemCount - 1
+                        TempUnit = Sectors(X, Y).Units.Item(A).Unit
                         If PosIsWithinTileArea(TempUnit.Pos.Horizontal, Offset, Finish) Then
                             ReDim Preserve UnitsToDelete(UnitToDeleteCount)
                             UnitsToDelete(UnitToDeleteCount) = TempUnit
@@ -2548,8 +2540,8 @@ Partial Public Class clsMap
                 Next
             Next
             For A = 0 To UnitToDeleteCount - 1
-                If UnitsToDelete(A).Map_UnitNum >= 0 Then 'units may be in the list multiple times and already be deleted
-                    Unit_Remove_StoreChange(UnitsToDelete(A).Map_UnitNum)
+                If UnitsToDelete(A).MapLink.IsConnected Then 'units may be in the list multiple times and already be deleted
+                    Unit_Remove_StoreChange(UnitsToDelete(A).MapLink.ArrayPosition)
                 End If
             Next
         End If
@@ -2559,21 +2551,22 @@ Partial Public Class clsMap
             Dim NewUnit As clsUnit
             Dim tmpUnit As clsUnit
             Dim ZeroPos As New sXY_int(0, 0)
+            Dim UnitAdd As New clsMap.clsUnitAdd
+
+            UnitAdd.Map = Me
+            UnitAdd.StoreChange = True
 
             PosDif.X = Offset.X * TerrainGridSpacing
             PosDif.Y = Offset.Y * TerrainGridSpacing
-            For A = 0 To Map_To_Insert.UnitCount - 1
-                tmpUnit = Map_To_Insert.Units(A)
+            For A = 0 To Map_To_Insert.Units.ItemCount - 1
+                tmpUnit = Map_To_Insert.Units.Item(A)
                 If PosIsWithinTileArea(tmpUnit.Pos.Horizontal, ZeroPos, AreaAdjusted) Then
-                    NewUnit = New clsUnit(Map_To_Insert.Units(A))
-                    If NewUnit.UnitGroup.WZ_StartPos < 0 Then
-                        NewUnit.UnitGroup = ScavengerUnitGroup
-                    Else
-                        NewUnit.UnitGroup = UnitGroups(NewUnit.UnitGroup.WZ_StartPos)
-                    End If
+                    NewUnit = New clsUnit(Map_To_Insert.Units.Item(A), Me)
                     NewUnit.Pos.Horizontal.X += PosDif.X
                     NewUnit.Pos.Horizontal.Y += PosDif.Y
-                    Unit_Add_StoreChange(NewUnit)
+                    UnitAdd.NewUnit = NewUnit
+                    UnitAdd.Label = tmpUnit.Label
+                    UnitAdd.Perform()
                 End If
             Next
         End If
@@ -2581,18 +2574,6 @@ Partial Public Class clsMap
         SectorsUpdateGraphics()
         SectorsUpdateUnitHeights()
         MinimapMakeLater()
-    End Sub
-
-    Public Sub Gateway_Remove(ByVal Num As Integer)
-
-        Gateways(Num).Map_GatewayNum = -1
-
-        GatewayCount -= 1
-        If Num < GatewayCount Then
-            Gateways(Num) = Gateways(GatewayCount)
-            Gateways(Num).Map_GatewayNum = Num
-        End If
-        ReDim Preserve Gateways(GatewayCount - 1)
     End Sub
 
     Public Function Gateway_Create(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As clsGateway
@@ -2608,7 +2589,7 @@ Partial Public Class clsMap
                 tmpGateway.PosA = PosA
                 tmpGateway.PosB = PosB
 
-                Gateway_Add(tmpGateway)
+                tmpGateway.MapLink.Connect(Gateways)
 
                 Return tmpGateway
             Else
@@ -2619,47 +2600,27 @@ Partial Public Class clsMap
         End If
     End Function
 
-    Private Sub Gateway_Add(ByVal NewGateway As clsGateway)
-
-        NewGateway.Map_GatewayNum = GatewayCount
-
-        ReDim Preserve Gateways(GatewayCount)
-        Gateways(GatewayCount) = NewGateway
-        GatewayCount += 1
-    End Sub
-
     Public Function Gateway_Create_StoreChange(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As clsGateway
         Dim tmpGateway As clsGateway
 
         tmpGateway = Gateway_Create(PosA, PosB)
 
-        ReDim Preserve GatewayChanges(GatewayChangeCount)
-        GatewayChanges(GatewayChangeCount).Type = sGatewayChange.enumType.Added
-        GatewayChanges(GatewayChangeCount).Gateway = tmpGateway
-        GatewayChangeCount += 1
+        Dim GatewayChange As New clsGatewayChange
+        GatewayChange.Type = clsGatewayChange.enumType.Added
+        GatewayChange.Gateway = tmpGateway
+        GatewayChanges.Add(GatewayChange)
 
         Return tmpGateway
     End Function
 
     Public Sub Gateway_Remove_StoreChange(ByVal Num As Integer)
 
-        ReDim Preserve GatewayChanges(GatewayChangeCount)
-        GatewayChanges(GatewayChangeCount).Type = sGatewayChange.enumType.Deleted
-        GatewayChanges(GatewayChangeCount).Gateway = Gateways(Num)
-        GatewayChangeCount += 1
+        Dim GatewayChange As New clsGatewayChange
+        GatewayChange.Type = clsGatewayChange.enumType.Deleted
+        GatewayChange.Gateway = Gateways.Item(Num)
+        GatewayChanges.Add(GatewayChange)
 
-        Gateway_Remove(Num)
-    End Sub
-
-    Public Sub Sectors_Deallocate()
-        Dim X As Integer
-        Dim Y As Integer
-
-        For Y = 0 To SectorCount.Y - 1
-            For X = 0 To SectorCount.X - 1
-                Sectors(X, Y).Deallocate()
-            Next
-        Next
+        Gateways.Item(Num).MapLink.Disconnect()
     End Sub
 
     Public Sub TileType_Reset()
@@ -2676,94 +2637,6 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Class clsUnitArray
-        Public Units(-1) As clsMap.clsUnit
-        Public UnitCount As Integer
-
-        Public Function GetCopy() As clsUnitArray
-            Dim NewArray As New clsUnitArray
-            Dim A As Integer
-
-            NewArray.UnitCount = UnitCount
-            ReDim NewArray.Units(NewArray.UnitCount - 1)
-            For A = 0 To UnitCount - 1
-                NewArray.Units(A) = Units(A)
-            Next
-            Return NewArray
-        End Function
-
-        Public Overridable Sub Add(ByVal NewUnit As clsUnit)
-
-            If Units.GetUpperBound(0) < UnitCount Then
-                ReDim Preserve Units(UnitCount * 2 + 1)
-            End If
-            Units(UnitCount) = NewUnit
-            UnitCount += 1
-        End Sub
-
-        Public Overridable Sub AddArray(ByVal NewUnits As clsUnitArray)
-            Dim A As Integer
-
-            If Units.GetUpperBound(0) < UnitCount + NewUnits.UnitCount Then
-                ReDim Preserve Units(UnitCount * 2 + 1)
-            End If
-            For A = 0 To NewUnits.UnitCount - 1
-                Add(NewUnits.Units(A))
-            Next
-        End Sub
-
-        Public Overridable Sub Remove(ByVal Num As Integer)
-
-            UnitCount -= 1
-            If Num < UnitCount Then
-                Move(UnitCount, Num)
-            End If
-            Units(UnitCount) = Nothing
-            If UnitCount < (Units.GetUpperBound(0) + 1) * 3 Then
-                ReDim Preserve Units(UnitCount * 2 - 1)
-            End If
-        End Sub
-
-        Protected Overridable Sub Move(ByVal Source As Integer, ByVal Destination As Integer)
-
-            Units(Destination) = Units(Source)
-        End Sub
-
-        Public Sub Clear()
-
-            Do While UnitCount > 0
-                Remove(UnitCount - 1)
-            Loop
-        End Sub
-
-        Public Function PerformTool(ByVal Tool As clsMap.clsObjectAction) As clsUnitArray
-            Dim ReturnResult As New clsUnitArray
-            Dim A As Integer
-
-            For A = 0 To UnitCount - 1
-                Tool.Unit = Units(A)
-                Tool.ActionPerform()
-                ReturnResult.Add(Tool.ResultUnit)
-            Next
-
-            Return ReturnResult
-        End Function
-
-        Public Function GetCentrePos() As sXY_dbl
-            Dim Result As sXY_dbl
-            Dim A As Integer
-
-            For A = 0 To UnitCount - 1
-                Result.X += Units(A).Pos.Horizontal.X
-                Result.Y += Units(A).Pos.Horizontal.Y
-            Next
-            Result.X /= UnitCount
-            Result.Y /= UnitCount
-
-            Return Result
-        End Function
-    End Class
-
     Public Sub SetPainterToDefaults()
 
         If Tileset Is Tileset_Arizona Then
@@ -2777,54 +2650,7 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Class clsSelectedUnits
-        Inherits clsUnitArray
-
-        Public Overrides Sub Add(ByVal NewUnit As clsUnit)
-
-            If NewUnit.Map_SelectedUnitNum >= 0 Then
-                Exit Sub
-            End If
-            NewUnit.Map_SelectedUnitNum = UnitCount
-
-            MyBase.Add(NewUnit)
-        End Sub
-
-        Public Overrides Sub AddArray(ByVal NewUnits As clsUnitArray)
-            Dim NewArray As clsUnitArray = NewUnits.GetCopy
-            Dim A As Integer
-
-            A = 0
-            Do While A < NewArray.UnitCount
-                If NewArray.Units(A).Map_SelectedUnitNum >= 0 Then
-                    NewArray.Remove(A)
-                Else
-                    A += 1
-                End If
-            Loop
-
-            MyBase.AddArray(NewArray)
-        End Sub
-
-        Public Overrides Sub Remove(ByVal Num As Integer)
-
-            Units(Num).Map_SelectedUnitNum = -1
-
-            MyBase.Remove(Num)
-        End Sub
-
-        Protected Overrides Sub Move(Source As Integer, Destination As Integer)
-            MyBase.Move(Source, Destination)
-
-            Units(Destination).Map_SelectedUnitNum = Destination
-        End Sub
-    End Class
-
     Private Sub UnitSectors_GLList(ByVal UnitToUpdateFor As clsUnit)
-
-        If Not ReceivingUserChanges Then
-            Exit Sub
-        End If
 
         If SectorGraphicsChanges Is Nothing Then
             Stop
@@ -2833,8 +2659,8 @@ Partial Public Class clsMap
 
         Dim A As Integer
 
-        For A = 0 To UnitToUpdateFor.SectorCount - 1
-            SectorGraphicsChanges.Changed(UnitToUpdateFor.Sectors(A).Pos)
+        For A = 0 To UnitToUpdateFor.Sectors.ItemCount - 1
+            SectorGraphicsChanges.Changed(UnitToUpdateFor.Sectors.Item(A).Sector.Pos)
         Next
     End Sub
 
@@ -2960,46 +2786,125 @@ Partial Public Class clsMap
         End If
     End Function
 
-    Public Sub InitializeForUserInput()
+    Public CompileScreen As frmCompile
+
+    Public Sub CancelUserInput()
+
+        If Not _ReadyForUserInput Then
+            Exit Sub
+        End If
+
+        _ReadyForUserInput = False
+
+        Dim X As Integer
+        Dim Y As Integer
+
+        If CompileScreen IsNot Nothing Then
+            CompileScreen.Close()
+            CompileScreen = Nothing
+        End If
+
+        SectorAll_GLLists_Delete()
+        Minimap_GLDelete()
+
+        ShadowSectors = Nothing
+        For Y = 0 To SectorCount.Y - 1
+            For X = 0 To SectorCount.X - 1
+                Sectors(X, Y).Deallocate()
+            Next
+        Next
+        Sectors = Nothing
+        SectorGraphicsChanges.Deallocate()
+        SectorGraphicsChanges = Nothing
+        SectorUnitHeightsChanges.Deallocate()
+        SectorUnitHeightsChanges = Nothing
+        SectorTerrainUndoChanges.Deallocate()
+        SectorTerrainUndoChanges = Nothing
+        AutoTextureChanges.Deallocate()
+        AutoTextureChanges = Nothing
+        TerrainInterpretChanges.Deallocate()
+        TerrainInterpretChanges = Nothing
+
+        UnitChanges = Nothing
+        GatewayChanges = Nothing
+        Undos = Nothing
+
+        SelectedUnits.Deallocate()
+        SelectedUnits = Nothing
+
+        Selected_Tile_A = Nothing
+        Selected_Tile_B = Nothing
+        Selected_Area_VertexA = Nothing
+        Selected_Area_VertexB = Nothing
+        Unit_Selected_Area_VertexA = Nothing
+
+        ViewInfo = Nothing
+
+        _SelectedUnitGroup = Nothing
+
+        Messages = Nothing
+    End Sub
+
+    Public Sub InitializeUserInput()
+
+        If _ReadyForUserInput Then
+            Exit Sub
+        End If
+
+        _ReadyForUserInput = True
+
+        Dim X As Integer
+        Dim Y As Integer
+        Dim A As Integer
+
+        SectorCount.X = CInt(Math.Ceiling(Terrain.TileSize.X / SectorTileSize))
+        SectorCount.Y = CInt(Math.Ceiling(Terrain.TileSize.Y / SectorTileSize))
+        ReDim Sectors(SectorCount.X - 1, SectorCount.Y - 1)
+        For Y = 0 To SectorCount.Y - 1
+            For X = 0 To SectorCount.X - 1
+                Sectors(X, Y) = New clsSector(New sXY_int(X, Y))
+            Next
+        Next
+
+        For A = 0 To Units.ItemCount - 1
+            UnitSectorsCalc(Units.Item(A))
+        Next
 
         ReDim ShadowSectors(SectorCount.X - 1, SectorCount.Y - 1)
-        ShadowSectors_CreateAll()
+        For Y = 0 To SectorCount.Y - 1
+            For X = 0 To SectorCount.X - 1
+                ShadowSector_Create(New sXY_int(X, Y))
+            Next
+        Next
 
-        If SectorGraphicsChanges IsNot Nothing Then
-            SectorGraphicsChanges.Deallocate()
-        End If
         SectorGraphicsChanges = New clsSectorChanges(Me)
-
-        If SectorUnitHeightsChanges IsNot Nothing Then
-            SectorUnitHeightsChanges.Deallocate()
-        End If
+        SectorGraphicsChanges.SetAllChanged()
         SectorUnitHeightsChanges = New clsSectorChanges(Me)
-
-        If SectorTerrainUndoChanges IsNot Nothing Then
-            SectorTerrainUndoChanges.Deallocate()
-        End If
         SectorTerrainUndoChanges = New clsSectorChanges(Me)
-
-        If AutoTextureChanges IsNot Nothing Then
-            AutoTextureChanges.Deallocate()
-        End If
         AutoTextureChanges = New clsAutoTextureChanges(Me)
-
-        If TerrainInterpretChanges IsNot Nothing Then
-            TerrainInterpretChanges.Deallocate()
-        End If
         TerrainInterpretChanges = New clsMap.clsTerrainUpdate(Terrain.TileSize)
 
-        Undo_Clear()
+        UnitChanges = New SimpleClassList(Of clsMap.clsUnitChange)
+        UnitChanges.MaintainOrder = True
+        GatewayChanges = New SimpleClassList(Of clsMap.clsGatewayChange)
+        GatewayChanges.MaintainOrder = True
+        Undos = New SimpleClassList(Of clsMap.clsUndo)
+        Undos.MaintainOrder = True
+        UndoPosition = 0
 
-        SelectedUnits = New clsSelectedUnits
+        SelectedUnits = New ConnectedList(Of clsMap.clsUnit, clsMap)(Me)
 
         If InterfaceOptions Is Nothing Then
             InterfaceOptions = New clsInterfaceOptions
         End If
+
         ViewInfo = New clsViewInfo(Me, frmMainInstance.MapView)
 
-        ReceivingUserChanges = True
+        _SelectedUnitGroup = New clsMap.clsUnitGroupContainer
+        SelectedUnitGroup.Item = ScavengerUnitGroup
+
+        Messages = New SimpleClassList(Of clsMessage)
+        Messages.MaintainOrder = True
     End Sub
 
     Public Function GetDirectory() As String
@@ -3082,8 +2987,6 @@ Partial Public Class clsMap
     Public Class clsUpdateSectorUnitHeights
         Inherits clsMap.clsAction
 
-        Private B As Integer
-        Private C As Integer
         Private NewUnit As clsUnit
         Private ID As UInteger
         Private tmpUnit As clsUnit
@@ -3095,7 +2998,7 @@ Partial Public Class clsMap
 
         Public Sub Start()
 
-            ReDim OldUnits(Map.UnitCount - 1)
+            ReDim OldUnits(Map.Units.ItemCount - 1)
 
             Started = True
         End Sub
@@ -3108,17 +3011,23 @@ Partial Public Class clsMap
             End If
 
             Dim A As Integer
+            Dim UnitAdd As New clsMap.clsUnitAdd
+
+            UnitAdd.Map = Map
+            UnitAdd.StoreChange = True
 
             For A = 0 To OldUnitCount - 1
                 tmpUnit = OldUnits(A)
                 NewAltitude = CInt(Map.GetTerrainHeight(tmpUnit.Pos.Horizontal))
                 If NewAltitude <> tmpUnit.Pos.Altitude Then
-                    NewUnit = New clsUnit(tmpUnit)
+                    NewUnit = New clsUnit(tmpUnit, Map)
                     ID = tmpUnit.ID
                     'NewUnit.Pos.Altitude = NewAltitude
                     'these create changed sectors and must be done before drawing the new sectors
-                    Map.Unit_Remove_StoreChange(tmpUnit.Map_UnitNum)
-                    Map.UnitID_Add_StoreChange(NewUnit, ID)
+                    Map.Unit_Remove_StoreChange(tmpUnit.MapLink.ArrayPosition)
+                    UnitAdd.NewUnit = NewUnit
+                    UnitAdd.ID = ID
+                    UnitAdd.Perform()
                     ErrorIDChange(ID, NewUnit, "UpdateSectorUnitHeights")
                 End If
             Next
@@ -3133,16 +3042,19 @@ Partial Public Class clsMap
                 Exit Sub
             End If
 
+            Dim A As Integer
+            Dim B As Integer
+
             tmpSector = Map.Sectors(PosNum.X, PosNum.Y)
-            For Me.B = 0 To tmpSector.UnitCount - 1
-                tmpUnit = tmpSector.Units(B)
+            For A = 0 To tmpSector.Units.ItemCount - 1
+                tmpUnit = tmpSector.Units.Item(A).Unit
                 'units can be in multiple sectors, so dont include multiple times
-                For Me.C = 0 To OldUnitCount - 1
-                    If OldUnits(C) Is tmpUnit Then
+                For B = 0 To OldUnitCount - 1
+                    If OldUnits(B) Is tmpUnit Then
                         Exit For
                     End If
                 Next
-                If C = OldUnitCount Then
+                If B = OldUnitCount Then
                     OldUnits(OldUnitCount) = tmpUnit
                     OldUnitCount += 1
                 End If
@@ -3682,7 +3594,6 @@ Partial Public Class clsMap
         Public AutoScrollLimits As Boolean
         Public ScrollMin As sXY_int
         Public ScrollMax As sXY_uint
-        'Public CampaignGameTime As Integer
         Public CampaignGameType As Integer
 
         Public Sub New()
@@ -3698,7 +3609,6 @@ Partial Public Class clsMap
             ScrollMin.Y = 0
             ScrollMax.X = 0UI
             ScrollMax.Y = 0UI
-            'CampaignGameTime = 2
             CampaignGameType = -1
         End Sub
     End Class
@@ -3846,5 +3756,30 @@ Partial Public Class clsMap
             End If
         End If
         Return False
+    End Function
+
+    Public Sub SelectedUnitsAction(ByVal Tool As clsObjectAction)
+        Dim SelectAction As New clsObjectSelect
+
+        SelectedUnits.GetItemsAsSimpleClassList.PerformTool(Tool)
+        SelectedUnits.Clear()
+        Tool.ResultUnits.PerformTool(SelectAction)
+    End Sub
+
+    Public Function CheckMessages() As Boolean
+        Dim A As Integer
+        Dim DateNow As Date = Now
+        Dim Changed As Boolean = False
+
+        A = 0
+        Do While A < Messages.ItemCount
+            If DateDiff(DateInterval.Second, Messages.Item(A).CreatedDate, DateNow) >= 6L Then
+                Messages.Remove(A)
+                Changed = True
+            Else
+                A += 1
+            End If
+        Loop
+        Return Changed
     End Function
 End Class

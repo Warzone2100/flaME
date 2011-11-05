@@ -107,7 +107,7 @@ Public Class ctrlMapView
         AddHandler OpenGLControl.MouseEnter, AddressOf OpenGL_MouseEnter
         AddHandler OpenGLControl.MouseLeave, AddressOf OpenGL_MouseLeave
         AddHandler OpenGLControl.Resize, AddressOf OpenGL_Resize
-        AddHandler OpenGLControl.LostFocus, AddressOf OpenGL_LostFocus
+        AddHandler OpenGLControl.Leave, AddressOf OpenGL_LostFocus
         AddHandler OpenGLControl.PreviewKeyDown, AddressOf OpenGL_KeyDown
         AddHandler OpenGLControl.KeyUp, AddressOf OpenGL_KeyUp
 
@@ -293,10 +293,10 @@ Public Class ctrlMapView
         If ListSelectIsPicker Then
             frmMainInstance.ObjectPicker(tmpUnit.Type)
         Else
-            If tmpUnit.Map_SelectedUnitNum < 0 Then
-                tmpUnit.MapSelect()
-            Else
+            If tmpUnit.MapSelectedUnitLink.IsConnected Then
                 tmpUnit.MapDeselect()
+            Else
+                tmpUnit.MapSelect()
             End If
             frmMainInstance.SelectedObject_Changed()
             DrawViewLater()
@@ -344,44 +344,54 @@ Public Class ctrlMapView
         Next
 
         If Control_Undo.Active Then
-            If Map.Undo_Pos > 0 Then
-                DisplayUndoMessage("Undid: " & Map.Undos(Map.Undo_Pos - 1).Name)
+            Dim Message As String
+            If Map.UndoPosition > 0 Then
+                Message = "Undid: " & Map.Undos.Item(Map.UndoPosition - 1).Name
+                Dim MapMessage As New clsMap.clsMessage
+                MapMessage.Text = Message
+                Map.Messages.Add(MapMessage)
                 Map.Undo_Perform()
                 DrawViewLater()
             Else
-                DisplayUndoMessage("Nothing to undo")
+                Message = "Nothing to undo"
             End If
+            DisplayUndoMessage(Message)
         End If
         If Control_Redo.Active Then
-            If Map.Undo_Pos < Map.UndoCount Then
-                DisplayUndoMessage("Redid: " & Map.Undos(Map.Undo_Pos).Name)
+            Dim Message As String
+            If Map.UndoPosition < Map.Undos.ItemCount Then
+                Message = "Redid: " & Map.Undos.Item(Map.UndoPosition).Name
+                Dim MapMessage As New clsMap.clsMessage
+                MapMessage.Text = Message
+                Map.Messages.Add(MapMessage)
                 Map.Redo_Perform()
                 DrawViewLater()
             Else
-                DisplayUndoMessage("Nothing to redo")
+                Message = "Nothing to redo"
             End If
+            DisplayUndoMessage(Message)
         End If
         If IsViewKeyDown.Keys(Keys.ControlKey) Then
             If e.KeyCode = Keys.D1 Then
-                VisionRadius_2E = 7
+                VisionRadius_2E = 6
             ElseIf e.KeyCode = Keys.D2 Then
-                VisionRadius_2E = 8
+                VisionRadius_2E = 7
             ElseIf e.KeyCode = Keys.D3 Then
-                VisionRadius_2E = 9
+                VisionRadius_2E = 8
             ElseIf e.KeyCode = Keys.D4 Then
-                VisionRadius_2E = 10
+                VisionRadius_2E = 9
             ElseIf e.KeyCode = Keys.D5 Then
-                VisionRadius_2E = 11
+                VisionRadius_2E = 10
             ElseIf e.KeyCode = Keys.D6 Then
-                VisionRadius_2E = 12
+                VisionRadius_2E = 11
             ElseIf e.KeyCode = Keys.D7 Then
-                VisionRadius_2E = 13
+                VisionRadius_2E = 12
             ElseIf e.KeyCode = Keys.D8 Then
-                VisionRadius_2E = 14
+                VisionRadius_2E = 13
             ElseIf e.KeyCode = Keys.D9 Then
-                VisionRadius_2E = 15
+                VisionRadius_2E = 14
             ElseIf e.KeyCode = Keys.D0 Then
-                VisionRadius_2E = 16
+                VisionRadius_2E = 15
             End If
             VisionRadius_2E_Changed()
         End If
@@ -419,11 +429,13 @@ Public Class ctrlMapView
             Dim X As Integer
             Dim Y As Integer
             Dim SectorNum As sXY_int
+            Dim tmpUnit As clsMap.clsUnit
             For Y = 0 To Map.SectorCount.Y - 1
                 For X = 0 To Map.SectorCount.X - 1
-                    For A = 0 To Map.Sectors(X, Y).UnitCount - 1
-                        If Map.Sectors(X, Y).Units(A).Type.Type = clsUnitType.enumType.PlayerStructure Then
-                            If CType(Map.Sectors(X, Y).Units(A).Type, clsStructureType).StructureBasePlate IsNot Nothing Then
+                    For A = 0 To Map.Sectors(X, Y).Units.ItemCount - 1
+                        tmpUnit = Map.Sectors(X, Y).Units.Item(A).Unit
+                        If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                            If CType(tmpUnit.Type, clsStructureType).StructureBasePlate IsNot Nothing Then
                                 SectorNum.X = X
                                 SectorNum.Y = Y
                                 Map.SectorGraphicsChanges.Changed(SectorNum)
@@ -468,12 +480,11 @@ Public Class ctrlMapView
         End If
         If Tool = enumTool.None Then
             If Control_Unit_Delete.Active Then
-                If Map.SelectedUnits.UnitCount > 0 Then
-                    Dim OldUnits As clsMap.clsUnitArray = Map.SelectedUnits.GetCopy
-                    For A = 0 To OldUnits.UnitCount - 1
-                        Map.Unit_Remove_StoreChange(OldUnits.Units(A).Map_UnitNum)
+                If Map.SelectedUnits.ItemCount > 0 Then
+                    Dim OldUnits As SimpleClassList(Of clsMap.clsUnit) = Map.SelectedUnits.GetItemsAsSimpleClassList
+                    For A = 0 To OldUnits.ItemCount - 1
+                        Map.Unit_Remove_StoreChange(OldUnits.Item(A).MapLink.ArrayPosition)
                     Next
-                    Map.SelectedUnits.Clear()
                     frmMainInstance.SelectedObject_Changed()
                     Map.UndoStepCreate("Object Deleted")
                     Map.Update()
@@ -483,19 +494,16 @@ Public Class ctrlMapView
             End If
             If Control_Unit_Move.Active Then
                 If MouseOverTerrain IsNot Nothing Then
-                    If Map.SelectedUnits.UnitCount > 0 Then
-                        Dim Centre As sXY_dbl = Map.SelectedUnits.GetCentrePos
-                        Dim UnitsToMove As clsMap.clsUnitArray = Map.SelectedUnits.GetCopy
-                        Dim NewUnits As clsMap.clsUnitArray
+                    If Map.SelectedUnits.ItemCount > 0 Then
+                        Dim Centre As sXY_dbl = GetUnitsCentrePos(Map.SelectedUnits.GetItemsAsSimpleClassList)
                         Dim Offset As sXY_int
                         Offset.X = CInt(Math.Round((MouseOverTerrain.Pos.Horizontal.X - Centre.X) / TerrainGridSpacing)) * TerrainGridSpacing
                         Offset.Y = CInt(Math.Round((MouseOverTerrain.Pos.Horizontal.Y - Centre.Y) / TerrainGridSpacing)) * TerrainGridSpacing
                         Dim ObjectPosOffset As New clsMap.clsObjectPosOffset
                         ObjectPosOffset.Map = Map
                         ObjectPosOffset.Offset = Offset
-                        NewUnits = UnitsToMove.PerformTool(ObjectPosOffset)
-                        Map.SelectedUnits.Clear()
-                        Map.SelectedUnits.AddArray(NewUnits)
+                        Map.SelectedUnitsAction(ObjectPosOffset)
+
                         Map.UndoStepCreate("Objects Moved")
                         Map.Update()
                         Map.MinimapMakeLater()
@@ -505,26 +513,20 @@ Public Class ctrlMapView
                 End If
             End If
             If Control_Clockwise.Active Then
-                Dim OldUnits As clsMap.clsUnitArray = Map.SelectedUnits.GetCopy
                 Dim ObjectRotationOffset As New clsMap.clsObjectRotationOffset
                 ObjectRotationOffset.Map = Map
                 ObjectRotationOffset.Offset = -90
-                Dim NewUnits As clsMap.clsUnitArray = OldUnits.PerformTool(ObjectRotationOffset)
-                Map.SelectedUnits.Clear()
-                Map.SelectedUnits.AddArray(NewUnits)
+                Map.SelectedUnitsAction(ObjectRotationOffset)
                 Map.Update()
                 frmMainInstance.SelectedObject_Changed()
                 Map.UndoStepCreate("Object Rotated")
                 DrawViewLater()
             End If
             If Control_CounterClockwise.Active Then
-                Dim OldUnits As clsMap.clsUnitArray = Map.SelectedUnits.GetCopy
                 Dim ObjectRotationOffset As New clsMap.clsObjectRotationOffset
                 ObjectRotationOffset.Map = Map
                 ObjectRotationOffset.Offset = 90
-                Dim NewUnits As clsMap.clsUnitArray = OldUnits.PerformTool(ObjectRotationOffset)
-                Map.SelectedUnits.Clear()
-                Map.SelectedUnits.AddArray(NewUnits)
+                Map.SelectedUnitsAction(ObjectRotationOffset)
                 Map.Update()
                 frmMainInstance.SelectedObject_Changed()
                 Map.UndoStepCreate("Object Rotated")
@@ -623,24 +625,25 @@ Public Class ctrlMapView
         If Math.Abs(VertexA.X - VertexB.X) <= 1 And _
           Math.Abs(VertexA.Y - VertexB.Y) <= 1 And _
           MouseOverTerrain IsNot Nothing Then
-            If MouseOverTerrain.UnitCount > 0 Then
-                If MouseOverTerrain.UnitCount = 1 Then
-                    If MouseOverTerrain.Units(0).Map_SelectedUnitNum < 0 Then
-                        MouseOverTerrain.Units(0).MapSelect()
+            If MouseOverTerrain.Units.ItemCount > 0 Then
+                If MouseOverTerrain.Units.ItemCount = 1 Then
+                    tmpUnit = MouseOverTerrain.Units.Item(0)
+                    If tmpUnit.MapSelectedUnitLink.IsConnected Then
+                        tmpUnit.MapDeselect()
                     Else
-                        MouseOverTerrain.Units(0).MapDeselect()
+                        tmpUnit.MapSelect()
                     End If
                 Else
                     ListSelect.Close()
                     ListSelect.Items.Clear()
-                    ReDim ListSelectItems(MouseOverTerrain.UnitCount - 1)
-                    For A = 0 To MouseOverTerrain.UnitCount - 1
-                        If MouseOverTerrain.Units(A).Type Is Nothing Then
+                    ReDim ListSelectItems(MouseOverTerrain.Units.ItemCount - 1)
+                    For A = 0 To MouseOverTerrain.Units.ItemCount - 1
+                        If MouseOverTerrain.Units.Item(A).Type Is Nothing Then
                             ListSelectItems(A) = New ToolStripButton("<nothing>")
                         Else
-                            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units(A).Type.GetDisplayText)
+                            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units.Item(A).Type.GetDisplayText)
                         End If
-                        ListSelectItems(A).Tag = MouseOverTerrain.Units(A)
+                        ListSelectItems(A).Tag = MouseOverTerrain.Units.Item(A)
                         ListSelect.Items.Add(ListSelectItems(A))
                     Next
                     ListSelectIsPicker = False
@@ -659,11 +662,13 @@ Public Class ctrlMapView
             SectorFinish.Y = Math.Min(CInt(Int(FinishVertex.Y / SectorTileSize)), Map.SectorCount.Y - 1)
             For SectorNum.Y = SectorStart.Y To SectorFinish.Y
                 For SectorNum.X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
-                        tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
+                    For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
+                        tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units.Item(A).Unit
                         If tmpUnit.Pos.Horizontal.X >= StartPos.X And tmpUnit.Pos.Horizontal.Y >= StartPos.Y And _
                             tmpUnit.Pos.Horizontal.X <= FinishPos.X And tmpUnit.Pos.Horizontal.Y <= FinishPos.Y Then
-                            tmpUnit.MapSelect()
+                            If Not tmpUnit.MapSelectedUnitLink.IsConnected Then
+                                tmpUnit.MapSelect()
+                            End If
                         End If
                     Next
                 Next
@@ -776,10 +781,10 @@ Public Class ctrlMapView
 
         ListSelect.Close()
         ListSelect.Items.Clear()
-        ReDim ListSelectItems(MouseOverTerrain.UnitCount - 1)
-        For A = 0 To MouseOverTerrain.UnitCount - 1
-            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units(A).Type.GetDisplayText)
-            ListSelectItems(A).Tag = MouseOverTerrain.Units(A)
+        ReDim ListSelectItems(MouseOverTerrain.Units.ItemCount - 1)
+        For A = 0 To MouseOverTerrain.Units.ItemCount - 1
+            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units.Item(A).Type.GetDisplayText)
+            ListSelectItems(A).Tag = MouseOverTerrain.Units.Item(A)
             ListSelect.Items.Add(ListSelectItems(A))
         Next
         ListSelectIsPicker = True

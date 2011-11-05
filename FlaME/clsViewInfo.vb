@@ -504,14 +504,14 @@
                 End If
                 Dim SectorNum As sXY_int = Map.GetPosSectorNum(MouseOverTerrain.Pos.Horizontal)
                 Dim tmpUnit As clsMap.clsUnit
-                For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).UnitCount - 1
-                    tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units(A)
+                For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
+                    tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units.Item(A).Unit
                     XY_dbl.X = tmpUnit.Pos.Horizontal.X - MouseOverTerrain.Pos.Horizontal.X
                     XY_dbl.Y = tmpUnit.Pos.Horizontal.Y - MouseOverTerrain.Pos.Horizontal.Y
                     Footprint = tmpUnit.Type.GetFootprint
                     If Math.Abs(XY_dbl.X) <= Math.Max(Footprint.X / 2.0#, 0.5#) * TerrainGridSpacing _
                     And Math.Abs(XY_dbl.Y) <= Math.Max(Footprint.Y / 2.0#, 0.5#) * TerrainGridSpacing Then
-                        MouseOverTerrain.Unit_Add(tmpUnit)
+                        MouseOverTerrain.Units.Add(tmpUnit)
                     End If
                 Next
 
@@ -603,48 +603,12 @@
         Public ScreenPos As sXY_int
         Public Class clsOverTerrain
             Public Pos As sWorldPos
-            Public Units(-1) As clsMap.clsUnit
-            Public UnitCount As Integer
+            Public Units As New SimpleClassList(Of clsMap.clsUnit)
             Public Tile As clsBrush.sPosNum
             Public Vertex As clsBrush.sPosNum
             Public Triangle As Boolean
             Public Side_Num As sXY_int
             Public Side_IsV As Boolean
-
-            Public Sub Unit_FindRemove(ByVal UnitToRemove As clsMap.clsUnit)
-                Dim A As Integer
-
-                A = 0
-                Do While A < UnitCount
-                    If Units(A) Is UnitToRemove Then
-                        Unit_Remove(A)
-                    Else
-                        A += 1
-                    End If
-                Loop
-            End Sub
-
-            Public Sub Units_Clear()
-
-                ReDim Preserve Units(-1)
-                UnitCount = 0
-            End Sub
-
-            Public Sub Unit_Add(ByVal UnitToAdd As clsMap.clsUnit)
-
-                ReDim Preserve Units(UnitCount)
-                Units(UnitCount) = UnitToAdd
-                UnitCount += 1
-            End Sub
-
-            Public Sub Unit_Remove(ByVal Num As Integer)
-
-                UnitCount -= 1
-                If Num <> UnitCount Then
-                    Units(Num) = Units(UnitCount)
-                End If
-                ReDim Preserve Units(UnitCount - 1)
-            End Sub
         End Class
         Public OverTerrain As clsOverTerrain
     End Class
@@ -1294,14 +1258,14 @@
             Dim Low As sXY_int
             Dim High As sXY_int
             A = 0
-            Do While A < Map.GatewayCount
-                XY_Reorder(Map.Gateways(A).PosA, Map.Gateways(A).PosB, Low, High)
+            Do While A < Map.Gateways.ItemCount
+                XY_Reorder(Map.Gateways.Item(A).PosA, Map.Gateways.Item(A).PosB, Low, High)
                 If Low.X <= Tile.X _
                 And High.X >= Tile.X _
                 And Low.Y <= Tile.Y _
                 And High.Y >= Tile.Y Then
                     Map.Gateway_Remove_StoreChange(A)
-                    map.UndoStepCreate("Gateway Delete")
+                    Map.UndoStepCreate("Gateway Delete")
                     Map.MinimapMakeLater()
                     MapView.DrawViewLater()
                     Exit Do
@@ -1349,9 +1313,9 @@
                     Select Case Tool
                         Case enumTool.None
                             If Control_Picker.Active Then
-                                If MouseOverTerrain.UnitCount > 0 Then
-                                    If MouseOverTerrain.UnitCount = 1 Then
-                                        frmMainInstance.ObjectPicker(MouseOverTerrain.Units(0).Type)
+                                If MouseOverTerrain.Units.ItemCount > 0 Then
+                                    If MouseOverTerrain.Units.ItemCount = 1 Then
+                                        frmMainInstance.ObjectPicker(MouseOverTerrain.Units.Item(0).Type)
                                     Else
                                         MapView.ListSelectBegin()
                                     End If
@@ -1422,10 +1386,10 @@
                         Case enumTool.AutoRoad_Remove
                             Apply_Road_Remove()
                         Case enumTool.ObjectPlace
-                            If frmMainInstance.SelectedObjectType IsNot Nothing And frmMainInstance.NewPlayerNum.SelectedUnitGroup IsNot Nothing Then
+                            If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
                                 NewUnitType = frmMainInstance.SelectedObjectType
                                 NewUnit = New clsMap.clsUnit
-                                NewUnit.UnitGroup = frmMainInstance.NewPlayerNum.SelectedUnitGroup
+                                NewUnit.UnitGroup = Map.SelectedUnitGroup.Item
                                 NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
                                 If frmMainInstance.cbxObjectRandomRotation.Checked Then
                                     NewUnit.Rotation = CInt(Int(Rnd() * 360.0#))
@@ -1433,7 +1397,11 @@
                                     NewUnit.Rotation = 0
                                 End If
                                 NewUnit.Type = NewUnitType
-                                Map.Unit_Add_StoreChange(NewUnit)
+                                Dim UnitAdd As New clsMap.clsUnitAdd
+                                UnitAdd.Map = Map
+                                UnitAdd.NewUnit = NewUnit
+                                UnitAdd.StoreChange = True
+                                UnitAdd.Perform()
                                 Map.UndoStepCreate("Place Object")
                                 Map.Update()
                                 Map.MinimapMakeLater()

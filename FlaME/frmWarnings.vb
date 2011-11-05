@@ -12,11 +12,11 @@
 
         Dim A As Integer
         lstWarnings.Items.Clear()
-        For A = 0 To Result.ProblemCount - 1
-            lstWarnings.Items.Add("(Problem) " & Result.Problems(A))
+        For A = 0 To Result.Problems.ItemCount - 1
+            lstWarnings.Items.Add("(Problem) " & Result.Problems.Item(A))
         Next
-        For A = 0 To Result.WarningCount - 1
-            lstWarnings.Items.Add("(Warning) " & Result.Warnings(A))
+        For A = 0 To Result.Warnings.ItemCount - 1
+            lstWarnings.Items.Add("(Warning) " & Result.Warnings.Item(A))
         Next
     End Sub
 

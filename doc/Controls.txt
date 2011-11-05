@@ -38,4 +38,4 @@ Other
 ctrl-z - undo
 ctrl-y - redo
 hold ctrl + left click - texture/ground/object picker tool
-
+p + left click - create script position
