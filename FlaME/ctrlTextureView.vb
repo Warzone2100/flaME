@@ -6,6 +6,8 @@ Public Class ctrlTextureView
     Inherits UserControl
 #End If
 
+    Private _Owner As frmMain
+
     Public DrawPending As Boolean
 
     Public OpenGLControl As OpenTK.GLControl
@@ -29,8 +31,10 @@ Public Class ctrlTextureView
     Private WithEvents tmrDraw As Timer
     Private WithEvents tmrDrawDelay As Timer
 
-    Public Sub New()
-        ' This call is required by the Windows Form Designer.
+    Public Sub New(ByVal Owner As frmMain)
+
+        _Owner = Owner
+
         InitializeComponent()
 
         OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0))
@@ -109,7 +113,6 @@ Public Class ctrlTextureView
 
         AddHandler OpenGLControl.MouseDown, AddressOf OpenGL_MouseDown
         AddHandler OpenGLControl.Resize, AddressOf OpenGL_Resize
-        AddHandler OpenGLControl.Paint, AddressOf OpenGL_Paint
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
@@ -419,19 +422,11 @@ EndOfTextures4:
         DrawViewLater()
     End Sub
 
-    Public Function CreateGLFont(ByVal BaseFont As Font) As GLFont
-
-        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
-            OpenGLControl.MakeCurrent()
-        End If
-
-        Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
-    End Function
-
-    Private Sub OpenGL_Paint(ByVal sender As Object, ByVal e As PaintEventArgs)
-
-        DrawViewLater()
-    End Sub
+    Private ReadOnly Property MainMap As clsMap
+        Get
+            Return _Owner.MainMap
+        End Get
+    End Property
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()

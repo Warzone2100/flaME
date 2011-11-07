@@ -7,6 +7,87 @@ Partial Public Class frmMain
     Inherits Form
 #End If
 
+    Public Class clsMaps
+        Inherits ConnectedList(Of clsMap, frmMain)
+
+        Private _MainMap As clsMap
+
+        Protected Overrides Function _BeforeConnect() As Boolean
+
+            Dim NewMap As clsMap = _tmpItem.Item
+
+            If NewMap Is Nothing Then
+                Return False
+            End If
+
+            If Not NewMap.ReadyForUserInput Then
+                NewMap.InitializeUserInput()
+            End If
+
+            NewMap.MapView_TabPage = New TabPage
+            NewMap.MapView_TabPage.Tag = NewMap
+
+            NewMap.SetTabText()
+
+            Return True
+        End Function
+
+        Protected Overrides Sub _AfterAdd()
+
+            Owner.MapView.UpdateTabs()
+        End Sub
+
+        Protected Overrides Sub _AfterDisconnect()
+
+            Dim Map As clsMap = _tmpItem.Item
+
+            If Map Is _MainMap Then
+                Dim NewNum As Integer = Math.Min(Owner.MapView.tabMaps.SelectedIndex, ItemCount - 1)
+                If NewNum < 0 Then
+                    MainMap = Nothing
+                Else
+                    MainMap = Item(NewNum)
+                End If
+            End If
+
+            Map.MapView_TabPage.Tag = Nothing
+            Map.MapView_TabPage = Nothing
+
+            Owner.MapView.UpdateTabs()
+        End Sub
+
+        Public Property MainMap As clsMap
+            Get
+                Return _MainMap
+            End Get
+            Set(value As clsMap)
+                If value Is _MainMap Then
+                    Exit Property
+                End If
+                Dim MainForm As frmMain = Owner
+                MainForm.MainMapBeforeChanged()
+                If value Is Nothing Then
+                    _MainMap = Nothing
+                Else
+                    If value.frmMainLink.Source IsNot Owner Then
+                        MsgBox("Error: Assigning map to wrong main form.")
+                        _MainMap = Nothing
+                    Else
+                        _MainMap = value
+                    End If
+                End If
+                MainForm.MainMapAfterChanged()
+            End Set
+        End Property
+
+        Public Sub New(ByVal Owner As frmMain)
+            MyBase.New(Owner)
+
+            MaintainOrder = True
+        End Sub
+    End Class
+    Private _LoadedMaps As New clsMaps(Me)
+
     Public MapView As ctrlMapView
     Public TextureView As ctrlTextureView
 
@@ -55,8 +136,10 @@ Partial Public Class frmMain
         NewPlayerNum = New ctrlPlayerNum
         ObjectPlayerNum = New ctrlPlayerNum
 
-        MapView = New ctrlMapView
-        TextureView = New ctrlTextureView
+        MapView = New ctrlMapView(Me)
+        TextureView = New ctrlTextureView(Me)
+
+        frmGeneratorInstance = New frmGenerator(Me)
     End Sub
 
     Private InterfaceImage_DisplayAutoTexture As Bitmap
@@ -110,12 +193,12 @@ Partial Public Class frmMain
     Private Sub frmMain_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
         Dim A As Integer
 
-        For A = 0 To LoadedMapCount - 1
-            If LoadedMaps(A).ChangedSinceSave Then
+        For A = 0 To _LoadedMaps.ItemCount - 1
+            If _LoadedMaps.Item(A).ChangedSinceSave Then
                 Exit For
             End If
         Next
-        If A < LoadedMapCount Then
+        If A < _LoadedMaps.ItemCount Then
             If MsgBox("Lose any unsaved changes to open maps?", CType(MsgBoxStyle.Question + MsgBoxStyle.OkCancel, MsgBoxStyle), "") <> MsgBoxResult.Ok Then
                 e.Cancel = True
                 Exit Sub
@@ -694,7 +777,6 @@ Partial Public Class frmMain
             Next
 
             NewMainMap(NewMap)
-            UpdateMapTabs()
 
             NewMap.Update()
 
@@ -1187,7 +1269,6 @@ Error_Exit:
 
         Dim NewMap As New clsMap(New sXY_int(64, 64))
         NewMainMap(NewMap)
-        UpdateMapTabs()
 
         NewMap.RandomizeTileOrientations()
         NewMap.Update()
@@ -1524,6 +1605,8 @@ Error_Exit:
             'todo
             Exit Sub
         End If
+
+        Angle = Clamp_int(Angle, 0, 359)
 
         If Map.SelectedUnits.ItemCount > 1 Then
             If MsgBox("Change rotation of multiple objects?", MsgBoxStyle.OkCancel, "") <> MsgBoxResult.Ok Then
@@ -3081,10 +3164,11 @@ Error_Exit:
 
         Dim Map As clsMap = MainMap
 
+        MapView.UpdateTabs()
+
         SelectedTerrain = Nothing
         SelectedRoad = Nothing
 
-        SelectedObject_Changed()
         Resize_Update()
         MainMapTilesetChanged()
         PainterTerrains_Refresh(-1, -1)
@@ -3133,11 +3217,9 @@ Error_Exit:
 
         RemoveHandler MainMap.Changed, AddressOf MainMap_Modified
 
-        Map.SectorAll_GLLists_Delete()
-        Map.SectorGraphicsChanges.SetAllChanged()
-
-        If OpenTK.Graphics.GraphicsContext.CurrentContext IsNot MapView.OpenGLControl.Context Then
-            MapView.OpenGLControl.MakeCurrent()
+        If Map.ReadyForUserInput Then
+            Map.SectorAll_GLLists_Delete()
+            Map.SectorGraphicsChanges.SetAllChanged()
         End If
     End Sub
 
@@ -3248,7 +3330,7 @@ Error_Exit:
         Dim Result As New clsResult
 
         For A = 0 To Paths.GetUpperBound(0)
-            Result.Append(LoadMap(Paths(A)), "")
+            Result.Append(LoadMap(Paths(A)), New sSplitPath(Paths(A)).FileTitle & ": ")
         Next
         ShowWarnings(Result, "Load Drag-dropped Maps")
     End Sub
@@ -3671,5 +3753,86 @@ Error_Exit:
 
         Map.UndoStepCreate("Object Label Changed")
         View_DrawViewLater()
+    End Sub
+
+    Public Sub NewMainMap(ByVal NewMap As clsMap)
+
+        NewMap.frmMainLink.Connect(_LoadedMaps)
+        SetMainMap(NewMap)
+    End Sub
+
+    Public ReadOnly Property MainMap As clsMap
+        Get
+            Return _LoadedMaps.MainMap
+        End Get
+    End Property
+
+    Public ReadOnly Property LoadedMaps As clsMaps
+        Get
+            Return _LoadedMaps
+        End Get
+    End Property
+
+    Public Sub SetMainMap(ByVal Map As clsMap)
+
+        _LoadedMaps.MainMap = Map
+    End Sub
+
+    Public Function LoadMap(ByVal Path As String) As clsResult
+        Dim ReturnResult As New clsResult
+        Dim ResultB As sResult
+        Dim SplitPath As New sSplitPath(Path)
+        Dim ResultMap As New clsMap
+        Dim Extension As String = SplitPath.FileExtension.ToLower
+
+        Select Case Extension
+            Case "fmap"
+                ReturnResult.Append(ResultMap.Load_FMap(Path), "Load FMap: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, True)
+            Case "fme", "wzme"
+                ReturnResult.Append(ResultMap.Load_FME(Path), "")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "wz"
+                ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "gam"
+                ReturnResult.Append(ResultMap.Load_Game(Path), "Load Game: ")
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case "lnd"
+                ResultB = ResultMap.Load_LND(Path)
+                If Not ResultB.Success Then
+                    ReturnResult.Problem_Add("Load LND: " & ResultB.Problem)
+                End If
+                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
+            Case Else
+                ReturnResult.Problem_Add("File extension not recognised.")
+        End Select
+
+        If ReturnResult.HasProblems Then
+            ResultMap.Deallocate()
+        Else
+            NewMainMap(ResultMap)
+        End If
+
+        Return ReturnResult
+    End Function
+
+    Public Sub Load_Autosave_Prompt()
+
+        If Not IO.Directory.Exists(AutoSavePath) Then
+            MsgBox("Autosave directory does not exist. There are no autosaves.", MsgBoxStyle.OkOnly, "")
+            Exit Sub
+        End If
+        Dim Dialog As New OpenFileDialog
+
+        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.FileName = ""
+        Dialog.Filter = ProgramName & " Files (*.fmap, *.fme)|*.fmap;*.fme|All Files (*.*)|*.*"
+        Dialog.InitialDirectory = AutoSavePath
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+        Dim Result As clsResult = LoadMap(Dialog.FileName)
+        ShowWarnings(Result, "Load Map")
     End Sub
 End Class

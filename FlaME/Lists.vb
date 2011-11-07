@@ -26,24 +26,23 @@
         End Get
     End Property
 
-    Public Sub Add(ByVal NewItem As ItemType)
+    Public Overridable Function Add(ByVal NewItem As ItemType) As Boolean
 
         If _IsBusy Then
             Stop
-            Exit Sub
+            Return False
         End If
 
         _IsBusy = True
 
         Dim Position As Integer = _ItemCount
 
-        _tmpitem = NewItem
+        _tmpItem = NewItem
+
         If Not _BeforeAdd(Position) Then
-            _tmpItem = Nothing
             _IsBusy = False
-            Exit Sub
+            Return False
         End If
-        _tmpItem = Nothing
 
         If UBound(_Items) < _ItemCount Then
             ReDim Preserve _Items(_ItemCount * 2 + 1)
@@ -52,9 +51,13 @@
         _ItemCount += 1
 
         _IsBusy = False
-    End Sub
 
-    Public Sub Insert(ByVal NewItem As ItemType, ByVal Position As Integer)
+        _AfterAdd()
+        _tmpItem = Nothing
+        Return True
+    End Function
+
+    Public Overridable Sub Insert(ByVal NewItem As ItemType, ByVal Position As Integer)
 
         If _IsBusy Then
             Stop
@@ -69,12 +72,11 @@
         _IsBusy = True
 
         _tmpItem = NewItem
+
         If Not _BeforeAdd(Position) Then
-            _tmpItem = Nothing
             _IsBusy = False
             Exit Sub
         End If
-        _tmpItem = Nothing
 
         If UBound(_Items) < _ItemCount Then
             ReDim Preserve _Items(_ItemCount * 2 + 1)
@@ -95,6 +97,9 @@
         _ItemCount += 1
 
         _IsBusy = False
+
+        _AfterAdd()
+        _tmpItem = Nothing
     End Sub
 
     Protected Overridable Function _BeforeAdd(ByVal Position As Integer) As Boolean
@@ -102,7 +107,7 @@
         Return True
     End Function
 
-    Public Sub Remove(ByVal Position As Integer)
+    Public Overridable Sub Remove(ByVal Position As Integer)
 
         If _IsBusy Then
             Stop
@@ -115,6 +120,8 @@
         End If
 
         _IsBusy = True
+
+        _tmpItem = _Items(Position)
 
         _BeforeRemove(Position)
 
@@ -142,9 +149,16 @@
         _IsBusy = False
 
         _AfterRemove()
+
+        _tmpItem = Nothing
     End Sub
 
     Protected Overridable Sub _BeforeRemove(ByVal Position As Integer)
+
+
+    End Sub
+
+    Protected Overridable Sub _AfterAdd()
 
 
     End Sub
@@ -218,24 +232,29 @@ Public Class SimpleClassList(Of ItemType As Class)
 
     Public AddNothingAction As SimpleClassList_AddNothingAction = SimpleClassList_AddNothingAction.Allow
 
-    Protected Overrides Function _BeforeAdd(Position As Integer) As Boolean
+    Protected NotOverridable Overrides Function _BeforeAdd(Position As Integer) As Boolean
 
         Select Case AddNothingAction
             Case SimpleClassList_AddNothingAction.Allow
-                Return True
+                Return _BeforeAddClass(Position)
             Case SimpleClassList_AddNothingAction.DisallowIgnore
-                Return (_tmpitem IsNot Nothing)
+                Return (_tmpItem IsNot Nothing)
             Case SimpleClassList_AddNothingAction.DisallowError
-                If _tmpitem Is Nothing Then
+                If _tmpItem Is Nothing Then
                     Stop
                     Return False
                 Else
-                    Return True
+                    Return _BeforeAddClass(Position)
                 End If
             Case Else
                 Stop
                 Return False
         End Select
+    End Function
+
+    Protected Overridable Function _BeforeAddClass(ByVal Position As Integer) As Boolean
+
+        Return True
     End Function
 
     Public Function FindFirstItemPosition(ByVal ItemToFind As ItemType) As Integer
@@ -264,6 +283,22 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
     Public Sub New(ByVal Owner As SourceType)
 
         _Owner = Owner
+        AddNothingAction = SimpleClassList_AddNothingAction.DisallowError
+    End Sub
+
+    Public Overrides Function Add(NewItem As ConnectedListItem(Of ItemType, SourceType)) As Boolean
+        Return MyBase.Add(NewItem)
+        'do not refer to this
+    End Function
+
+    Public Overrides Sub Insert(NewItem As ConnectedListItem(Of ItemType, SourceType), Position As Integer)
+        MyBase.Insert(NewItem, Position)
+        'do not refer to this
+    End Sub
+
+    Public Overrides Sub Remove(Position As Integer)
+        MyBase.Remove(Position)
+        'do not refer to this
     End Sub
 
     Public ReadOnly Property Owner As SourceType
@@ -284,25 +319,48 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
-    Protected Overrides Function _BeforeAdd(ByVal Position As Integer) As Boolean
+    Protected NotOverridable Overrides Function _BeforeAddClass(ByVal Position As Integer) As Boolean
 
-        Return _tmpItem.BeforeAdd(Position)
+        If _BeforeConnect() Then
+            If _tmpItem Is Nothing Then
+                Return True
+            Else
+                'Return _tmpItem.BeforeAdd(Me, Position) ' -- mono is unable to do this
+                Return _tmpItem.BeforeAdd(Nothing, Position)
+            End If
+        Else
+            Return False
+        End If
     End Function
 
-    Protected Overrides Sub _BeforeRemove(Position As Integer)
+    Protected Overridable Function _BeforeConnect() As Boolean
 
-        _tmpItem = ItemContainer(Position)
+        Return True
+    End Function
+
+    Protected NotOverridable Overrides Sub _BeforeRemove(Position As Integer)
+
+        _BeforeDisconnect()
         _tmpItem.BeforeRemove()
     End Sub
 
-    Protected Overrides Sub _AfterRemove()
+    Protected Overridable Sub _BeforeDisconnect()
 
-        _tmpItem.AfterRemove()
-        _tmpItem = Nothing
+
     End Sub
 
-    Protected Overrides Sub _AfterMove(Position As Integer)
-        MyBase._AfterMove(Position)
+    Protected NotOverridable Overrides Sub _AfterRemove()
+
+        _tmpItem.AfterRemove()
+        _AfterDisconnect()
+    End Sub
+
+    Protected Overridable Sub _AfterDisconnect()
+
+
+    End Sub
+
+    Protected NotOverridable Overrides Sub _AfterMove(Position As Integer)
 
         ItemContainer(Position).AfterMove(Position)
     End Sub
@@ -320,7 +378,7 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         Return Nothing
     End Function
 
-    Protected Overrides Sub _Deallocate()
+    Protected NotOverridable Overrides Sub _Deallocate()
         MyBase._Deallocate()
 
         _Owner = Nothing
@@ -341,7 +399,7 @@ Public Interface ConnectedListItem(Of ItemType As Class, SourceType As Class)
 
     ReadOnly Property Item As ItemType
     ReadOnly Property Source As SourceType
-    Function BeforeAdd(ByVal NewPosition As Integer) As Boolean
+    Function BeforeAdd(ByVal NewList As ConnectedList(Of ItemType, SourceType), ByVal NewPosition As Integer) As Boolean
     Sub BeforeRemove()
     Sub AfterRemove()
     Sub AfterMove(ByVal NewPosition As Integer)
@@ -404,16 +462,20 @@ Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
-    Public Sub Connect(ByVal List As ConnectedList(Of ItemType, SourceType))
+    Public Function Connect(ByVal List As ConnectedList(Of ItemType, SourceType)) As Boolean
 
         If IsConnected Then
             Stop
-            Exit Sub
+            Return False
         End If
 
-        List.Add(Me)
-        _ConnectedList = List
-    End Sub
+        If List.Add(Me) Then
+            _ConnectedList = List
+            Return True
+        Else
+            Return False
+        End If
+    End Function
 
     Public Sub Disconnect()
 
@@ -438,11 +500,12 @@ Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
 
     End Sub
 
-    Public Function BeforeAdd(NewPosition As Integer) As Boolean Implements ConnectedListItem(Of ItemType, SourceType).BeforeAdd
+    Public Function BeforeAdd(NewList As ConnectedList(Of ItemType, SourceType), NewPosition As Integer) As Boolean Implements ConnectedListItem(Of ItemType, SourceType).BeforeAdd
 
         If IsConnected Then
             Return False
         End If
+        '_ConnectedList = NewList -- mono is unable to pass newlist
         _ArrayPosition = NewPosition
         Return True
     End Function
@@ -450,39 +513,39 @@ End Class
 
 #If False Then
 	Public Class ConnectedListsConnection(Of SourceTypeA As Class, SourceTypeB As Class)
-	
+
 	    Protected Class Link(Of SourceType As Class)
 	        Inherits ConnectedListLink(Of ConnectedListsConnection(Of SourceTypeA, SourceTypeB), SourceType)
-	
+
 	        Public Sub New(ByVal Owner As ConnectedListsConnection(Of SourceTypeA, SourceTypeB))
 	            MyBase.New(Owner)
-	
+
 	        End Sub
-	
+
 	        Public Overrides Sub AfterRemove()
 	            MyBase.AfterRemove()
-	
+
 	            Item.Deallocate()
 	        End Sub
 	    End Class
-	
+
 	    Protected _LinkA As New Link(Of SourceTypeA)(Me)
 	    Protected _LinkB As New Link(Of SourceTypeB)(Me)
-	
+
 	    Public Overridable ReadOnly Property ItemA As SourceTypeA
 	        Get
 	            Return _LinkA.Source
 	        End Get
 	    End Property
-	
+
 	    Public Overridable ReadOnly Property ItemB As SourceTypeB
 	        Get
 	            Return _LinkB.Source
 	        End Get
 	    End Property
-	
+
 	    Public Shared Function Create(ByVal ListA As ConnectedList(Of ConnectedListsConnection(Of SourceTypeA, SourceTypeB), SourceTypeA), ByVal ListB As ConnectedList(Of ConnectedListsConnection(Of SourceTypeA, SourceTypeB), SourceTypeB)) As ConnectedListsConnection(Of SourceTypeA, SourceTypeB)
-	
+
 	        If ListA Is Nothing Then
 	            Return Nothing
 	        End If
@@ -495,20 +558,20 @@ End Class
 	        If ListB.IsBusy Then
 	            Return Nothing
 	        End If
-	
+
 	        Dim Result As New ConnectedListsConnection(Of SourceTypeA, SourceTypeB)
 	        Result._LinkA.Connect(ListA)
 	        Result._LinkB.Connect(ListB)
 	        Return Result
 	    End Function
-	
+
 	    Protected Sub New()
-	
-	
+
+
 	    End Sub
-	
+
 	    Public Sub Deallocate()
-	
+
 	        _LinkA.Deallocate()
 	        _LinkB.Deallocate()
 	    End Sub

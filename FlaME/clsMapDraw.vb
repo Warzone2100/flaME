@@ -1000,8 +1000,8 @@ Partial Public Class clsMap
         Private Vertex1 As sXYZ_int
 
         Public Sub ActionPerform()
-	        Dim X As Integer
-	        Dim Y As Integer
+            Dim X As Integer
+            Dim Y As Integer
 
             GL.Begin(BeginMode.Lines)
             GL.Color4(Colour.Red, Colour.Green, Colour.Blue, Colour.Alpha)

@@ -71,7 +71,7 @@
 
         UpdateSettings(NewSettings)
 
-        Dim Map As clsMap = MainMap
+        Dim Map As clsMap = frmMainInstance.MainMap
         If Map IsNot Nothing Then
             Map.MinimapMakeLater()
         End If
@@ -106,7 +106,7 @@
 
     Private Sub btnAutosaveOpen_Click(sender As System.Object, e As System.EventArgs) Handles btnAutosaveOpen.Click
 
-        Load_Autosave_Prompt()
+        frmMainInstance.Load_Autosave_Prompt()
     End Sub
 
     Private Sub btnDirectories_Click(sender As System.Object, e As System.EventArgs) Handles btnDirectories.Click

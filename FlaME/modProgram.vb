@@ -68,7 +68,7 @@ Public Module modProgram
     Public GLTexture_OverflowTile As Integer
 
     Public frmMainInstance As New frmMain
-    Public frmGeneratorInstance As New frmGenerator
+    Public frmGeneratorInstance As frmGenerator
     Public frmDataInstance As New frmData
     Public frmOptionsInstance As frmOptions
 
@@ -175,6 +175,9 @@ Public Module modProgram
 
     Public TemplateDroidTypes(-1) As clsDroidDesign.clsTemplateDroidType
     Public TemplateDroidTypeCount As Integer
+
+    Public ReadOnly UTF8Encoding As New System.Text.UTF8Encoding(False, False)
+    Public ReadOnly ASCIIEncoding As New System.Text.ASCIIEncoding
 
     Public Const INIRotationMax As Integer = 65536
 
@@ -1276,65 +1279,6 @@ Public Module modProgram
         Return Nothing
     End Function
 
-    Public Sub Load_Autosave_Prompt()
-
-        If Not IO.Directory.Exists(AutoSavePath) Then
-            MsgBox("Autosave directory does not exist. There are no autosaves.", MsgBoxStyle.OkOnly, "")
-            Exit Sub
-        End If
-        Dim Dialog As New OpenFileDialog
-
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
-        Dialog.FileName = ""
-        Dialog.Filter = ProgramName & " Files (*.fmap, *.fme)|*.fmap;*.fme|All Files (*.*)|*.*"
-        Dialog.InitialDirectory = AutoSavePath
-        If Dialog.ShowDialog(frmMainInstance) <> Windows.Forms.DialogResult.OK Then
-            Exit Sub
-        End If
-        Dim Result As clsResult = LoadMap(Dialog.FileName)
-        ShowWarnings(Result, "Load Map")
-    End Sub
-
-    Public Function LoadMap(ByVal Path As String) As clsResult
-        Dim ReturnResult As New clsResult
-        Dim ResultB As sResult
-        Dim SplitPath As New sSplitPath(Path)
-        Dim ResultMap As New clsMap
-        Dim Extension As String = SplitPath.FileExtension.ToLower
-
-        Select Case Extension
-            Case "fmap"
-                ReturnResult.Append(ResultMap.Load_FMap(Path), "Load FMap: ")
-                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, True)
-            Case "fme", "wzme"
-                ReturnResult.Append(ResultMap.Load_FME(Path), "")
-                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-            Case "wz"
-                ReturnResult.Append(ResultMap.Load_WZ(Path), "Load WZ: ")
-                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-            Case "gam"
-                ReturnResult.Append(ResultMap.Load_Game(Path), "Load Game: ")
-                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-            Case "lnd"
-                ResultB = ResultMap.Load_LND(Path)
-                If Not ResultB.Success Then
-                    ReturnResult.Problem_Add("Load LND: " & ResultB.Problem)
-                End If
-                ResultMap.PathInfo = New clsMap.clsPathInfo(Path, False)
-            Case Else
-                ReturnResult.Problem_Add("File extension not recognised.")
-        End Select
-
-        If ReturnResult.HasProblems Then
-            ResultMap.Deallocate()
-        Else
-            NewMainMap(ResultMap)
-            UpdateMapTabs()
-        End If
-
-        Return ReturnResult
-    End Function
-
     Public Class clsKeysActive
         Public Keys(255) As Boolean
 
@@ -1707,8 +1651,8 @@ Public Module modProgram
     End Sub
 
     Public Sub WriteTextOfLength(ByVal File As IO.BinaryWriter, ByVal Length As Integer, ByVal Text As String)
-
         Dim A As Integer
+
         For A = 0 To Math.Min(Text.Length, Length) - 1
             File.Write(CByte(Asc(Text(A))))
         Next
@@ -1780,8 +1724,24 @@ Public Module modProgram
         If VectorText.PartCount <> 3 Then
             Return False
         End If
+
         If Not InvariantParse_ushort(VectorText.Parts(0), WZAngle.Direction) Then
-            Return False
+            Dim ErrorValue As Integer
+            If Not InvariantParse_int(VectorText.Parts(0), ErrorValue) Then
+                Return False
+            End If
+            Dim Remainder As Integer
+            Dim Multiplier As Integer = Math.DivRem(ErrorValue, INIRotationMax, Remainder)
+            Try
+                If Remainder < 0 Then
+                    WZAngle.Direction = CUShort(Remainder + INIRotationMax)
+                Else
+                    WZAngle.Direction = CUShort(Remainder)
+                End If
+            Catch ex As Exception
+                Return False
+            End Try
+            Return True
         End If
         If Not InvariantParse_ushort(VectorText.Parts(1), WZAngle.Pitch) Then
             Return False

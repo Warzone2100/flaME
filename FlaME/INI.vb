@@ -263,9 +263,8 @@ Public Class clsINIWrite
 
     Public Shared Function CreateFile(ByVal Output As IO.Stream) As clsINIWrite
         Dim NewINI As New clsINIWrite
-        Dim Encoding As New System.Text.UTF8Encoding(False, False)
 
-        NewINI.File = New IO.StreamWriter(Output, Encoding)
+        NewINI.File = New IO.StreamWriter(Output, UTF8Encoding)
 
         Return NewINI
     End Function

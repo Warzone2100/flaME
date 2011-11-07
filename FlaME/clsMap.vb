@@ -3,7 +3,7 @@ Imports OpenTK.Graphics.OpenGL
 
 Partial Public Class clsMap
 
-    Public LoadedMap_Num As Integer = -1
+    Public frmMainLink As New ConnectedListLink(Of clsMap, frmMain)(Me)
 
     Public Class clsTerrain
 
@@ -267,7 +267,7 @@ Partial Public Class clsMap
             If tmpUnitGroup.WZ_StartPos < 0 Then
                 UnitGroup = TargetMap.ScavengerUnitGroup
             Else
-                UnitGroup = TargetMap.UnitGroups(tmpUnitGroup.WZ_StartPos)
+                UnitGroup = TargetMap.UnitGroups.Item(tmpUnitGroup.WZ_StartPos)
             End If
             SavePriority = UnitToCopy.SavePriority
             Health = UnitToCopy.Health
@@ -326,11 +326,18 @@ Partial Public Class clsMap
                 Return Result
             End If
 
-            Result = MapLink.Source.ScriptLabelIsValid(Text)
-            If Result.Success Then
-                _Label = Text
+            If Text Is Nothing Then
+                _Label = Nothing
+                Result.Success = True
+                Result.Problem = ""
+                Return Result
+            Else
+                Result = MapLink.Source.ScriptLabelIsValid(Text)
+                If Result.Success Then
+                    _Label = Text
+                End If
+                Return Result
             End If
-            Return Result
         End Function
 
         Public Sub WriteWZLabel(ByVal File As clsINIWrite, ByVal PlayerCount As Integer)
@@ -520,10 +527,18 @@ Partial Public Class clsMap
 
     Public Class clsUnitGroup
 
-        Public ParentMap As clsMap
-        Public Map_UnitGroupNum As Integer = -1
+        Public MapLink As New ConnectedListLink(Of clsUnitGroup, clsMap)(Me)
 
         Public WZ_StartPos As Integer = -1
+
+        Public Function GetFMapINIPlayerText() As String
+
+            If WZ_StartPos < 0 Or WZ_StartPos >= PlayerCountMax Then
+                Return "scavenger"
+            Else
+                Return InvariantToString_int(WZ_StartPos)
+            End If
+        End Function
 
         Public Function GetLNDPlayerText() As String
 
@@ -543,9 +558,8 @@ Partial Public Class clsMap
             End If
         End Function
     End Class
-    Public UnitGroups(-1) As clsUnitGroup
+    Public UnitGroups As New ConnectedList(Of clsUnitGroup, clsMap)(Me)
     Public ScavengerUnitGroup As clsUnitGroup
-    Public FeatureUnitGroup As clsUnitGroup
 
     Public Minimap_GLTexture As Integer
     Public Minimap_Texture_Size As Integer
@@ -903,50 +917,37 @@ Partial Public Class clsMap
 
     Public Sub New()
 
-        MakeMinimapTimer = New Timer
-        MakeMinimapTimer.Interval = MinimapDelay
-
-        AnyMapInitialization()
-        UserMapInitialization()
+        Initialize()
     End Sub
 
     Public Sub New(ByVal TileSize As sXY_int)
 
-        MakeMinimapTimer = New Timer
-        MakeMinimapTimer.Interval = MinimapDelay
-
-        AnyMapInitialization()
-        UserMapInitialization()
+        Initialize()
 
         Terrain_Blank(TileSize)
         TileType_Reset()
     End Sub
 
-    Public Sub AnyMapInitialization()
+    Public Sub Initialize()
+
+        MakeMinimapTimer = New Timer
+        MakeMinimapTimer.Interval = MinimapDelay
 
         MakeDefaultUnitGroups()
-    End Sub
-
-    Public Sub UserMapInitialization()
-
         ScriptPositions.MaintainOrder = True
         ScriptAreas.MaintainOrder = True
     End Sub
 
     Public Sub New(ByVal Map_To_Copy As clsMap, ByVal Offset As sXY_int, ByVal Area As sXY_int)
-        Dim StartX As Integer
-        Dim StartY As Integer
         Dim EndX As Integer
         Dim EndY As Integer
         Dim X As Integer
         Dim Y As Integer
 
-        AnyMapInitialization()
+        Initialize()
 
         'make some map data for selection
 
-        StartX = Math.Max(0 - Offset.X, 0)
-        StartY = Math.Max(0 - Offset.Y, 0)
         EndX = Math.Min(Map_To_Copy.Terrain.TileSize.X - Offset.X, Area.X)
         EndY = Math.Min(Map_To_Copy.Terrain.TileSize.Y - Offset.Y, Area.Y)
 
@@ -958,24 +959,24 @@ Partial Public Class clsMap
             Next
         Next
 
-        For Y = StartY To EndY
-            For X = StartX To EndX
+        For Y = 0 To EndY
+            For X = 0 To EndX
                 Terrain.Vertices(X, Y).Height = Map_To_Copy.Terrain.Vertices(Offset.X + X, Offset.Y + Y).Height
                 Terrain.Vertices(X, Y).Terrain = Map_To_Copy.Terrain.Vertices(Offset.X + X, Offset.Y + Y).Terrain
             Next
         Next
-        For Y = StartY To EndY - 1
-            For X = StartX To EndX - 1
+        For Y = 0 To EndY - 1
+            For X = 0 To EndX - 1
                 Terrain.Tiles(X, Y).Copy(Map_To_Copy.Terrain.Tiles(Offset.X + X, Offset.Y + Y))
             Next
         Next
-        For Y = StartY To EndY
-            For X = StartX To EndX - 1
+        For Y = 0 To EndY
+            For X = 0 To EndX - 1
                 Terrain.SideH(X, Y).Road = Map_To_Copy.Terrain.SideH(Offset.X + X, Offset.Y + Y).Road
             Next
         Next
-        For Y = StartY To EndY - 1
-            For X = StartX To EndX
+        For Y = 0 To EndY - 1
+            For X = 0 To EndX
                 Terrain.SideV(X, Y).Road = Map_To_Copy.Terrain.SideV(Offset.X + X, Offset.Y + Y).Road
             Next
         Next
@@ -997,12 +998,7 @@ Partial Public Class clsMap
         Dim NewUnit As clsMap.clsUnit
 
         For A = 0 To Map_To_Copy.Gateways.ItemCount - 1
-            If (Map_To_Copy.Gateways.Item(A).PosA.X >= Offset.X And Map_To_Copy.Gateways.Item(A).PosA.Y >= Offset.Y And _
-              Map_To_Copy.Gateways.Item(A).PosA.X < Offset.X + Area.X And Map_To_Copy.Gateways.Item(A).PosA.Y < Offset.Y + Area.Y) Or _
-              (Map_To_Copy.Gateways.Item(A).PosB.X >= Offset.X And Map_To_Copy.Gateways.Item(A).PosB.Y >= Offset.Y And _
-              Map_To_Copy.Gateways.Item(A).PosB.X < Offset.X + Area.X And Map_To_Copy.Gateways.Item(A).PosB.Y < Offset.Y + Area.Y) Then
-                Gateway_Create(New sXY_int(Map_To_Copy.Gateways.Item(A).PosA.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways.Item(A).PosB.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosB.Y - Offset.Y))
-            End If
+            Gateway_Create(New sXY_int(Map_To_Copy.Gateways.Item(A).PosA.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosA.Y - Offset.Y), New sXY_int(Map_To_Copy.Gateways.Item(A).PosB.X - Offset.X, Map_To_Copy.Gateways.Item(A).PosB.Y - Offset.Y))
         Next
 
         PosDifX = -Offset.X * TerrainGridSpacing
@@ -1237,6 +1233,16 @@ Partial Public Class clsMap
     Public Overridable Sub Deallocate()
 
         CancelUserInput()
+
+        MakeMinimapTimer.Enabled = False
+        MakeMinimapTimer.Dispose()
+        MakeMinimapTimer = Nothing
+
+        frmMainLink.Deallocate()
+        frmMainLink = Nothing
+
+        UnitGroups.Deallocate()
+        UnitGroups = Nothing
 
         Do While Units.ItemCount > 0
             Units.Item(0).Deallocate()
@@ -1868,10 +1874,6 @@ Partial Public Class clsMap
             Next
 #End If
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
-
         Minimap_GLDelete()
 
 #If Mono = 0.0# Then
@@ -1898,7 +1900,7 @@ Partial Public Class clsMap
 
     Public Sub Minimap_GLDelete()
 
-        If Minimap_GLTexture > 0 Then
+        If Minimap_GLTexture <> 0 Then
             GL.DeleteTextures(1, Minimap_GLTexture)
             Minimap_GLTexture = 0
         End If
@@ -1946,7 +1948,7 @@ Partial Public Class clsMap
                 NewUnit.UnitGroup = Map.ScavengerUnitGroup
                 Return False
             End If
-            If NewUnit.UnitGroup.ParentMap IsNot Map Then
+            If NewUnit.UnitGroup.MapLink.Source IsNot Map Then
                 MsgBox("Error: Something terrible happened.")
                 Return False
             End If
@@ -2120,7 +2122,7 @@ Partial Public Class clsMap
             Try
                 IO.Directory.CreateDirectory(AutoSavePath)
             Catch ex As Exception
-                MsgBox("Failed to create autosave directory during autosave.", CType(MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation, MsgBoxStyle), "")
+                MsgBox("Unable to create autosave directory during autosave.", CType(MsgBoxStyle.OkOnly + MsgBoxStyle.Exclamation, MsgBoxStyle), "")
             End Try
         End If
 
@@ -2249,10 +2251,6 @@ Partial Public Class clsMap
 
         UndoPosition -= 1
 
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
-
         tmpUndo = Undos.Item(UndoPosition)
         For A = 0 To tmpUndo.ChangedSectorCount - 1
             X = tmpUndo.ChangedSectors(A).Num.X
@@ -2321,10 +2319,6 @@ Partial Public Class clsMap
         tmpUndo = Undos.Item(UndoPosition)
 
         UnitAdd.Map = Me
-
-        If GraphicsContext.CurrentContext IsNot frmMainInstance.MapView.OpenGLControl.Context Then
-            frmMainInstance.MapView.OpenGLControl.MakeCurrent()
-        End If
 
         For A = 0 To tmpUndo.ChangedSectorCount - 1
             X = tmpUndo.ChangedSectors(A).Num.X
@@ -2639,7 +2633,9 @@ Partial Public Class clsMap
 
     Public Sub SetPainterToDefaults()
 
-        If Tileset Is Tileset_Arizona Then
+        If Tileset Is Nothing Then
+            Painter = New clsPainter
+        ElseIf Tileset Is Tileset_Arizona Then
             Painter = Painter_Arizona
         ElseIf Tileset Is Tileset_Urban Then
             Painter = Painter_Urban
@@ -2749,26 +2745,22 @@ Partial Public Class clsMap
 
     Public Sub MakeDefaultUnitGroups()
         Dim A As Integer
+        Dim NewGroup As clsMap.clsUnitGroup
 
-        ReDim UnitGroups(PlayerCountMax - 1)
+        UnitGroups.Clear()
         For A = 0 To PlayerCountMax - 1
-            UnitGroups(A) = New clsUnitGroup
-            UnitGroups(A).ParentMap = Me
-            UnitGroups(A).Map_UnitGroupNum = A
-            UnitGroups(A).WZ_StartPos = A
+            NewGroup = New clsUnitGroup
+            NewGroup.WZ_StartPos = A
+            NewGroup.MapLink.Connect(UnitGroups)
         Next
         ScavengerUnitGroup = New clsUnitGroup
-        ScavengerUnitGroup.ParentMap = Me
-        FeatureUnitGroup = New clsUnitGroup
-        FeatureUnitGroup.ParentMap = Me
-        FeatureUnitGroup.WZ_StartPos = 0
+        ScavengerUnitGroup.MapLink.Connect(UnitGroups)
+        ScavengerUnitGroup.WZ_StartPos = -1
     End Sub
 
     Public Function GetUnitGroupColour(ByVal ColourUnitGroup As clsUnitGroup) As sRGB_sng
 
-        If ColourUnitGroup Is ScavengerUnitGroup Then
-            Return New sRGB_sng(1.0F, 1.0F, 1.0F)
-        ElseIf ColourUnitGroup Is FeatureUnitGroup Then
+        If ColourUnitGroup.WZ_StartPos < 0 Then
             Return New sRGB_sng(1.0F, 1.0F, 1.0F)
         Else
             Return PlayerColour(ColourUnitGroup.WZ_StartPos).Colour
@@ -2777,9 +2769,7 @@ Partial Public Class clsMap
 
     Public Function GetUnitGroupMinimapColour(ByVal ColourUnitGroup As clsUnitGroup) As sRGB_sng
 
-        If ColourUnitGroup Is ScavengerUnitGroup Then
-            Return New sRGB_sng(1.0F, 1.0F, 1.0F)
-        ElseIf ColourUnitGroup Is FeatureUnitGroup Then
+        If ColourUnitGroup.WZ_StartPos < 0 Then
             Return New sRGB_sng(1.0F, 1.0F, 1.0F)
         Else
             Return PlayerColour(ColourUnitGroup.WZ_StartPos).MinimapColour
@@ -3782,4 +3772,14 @@ Partial Public Class clsMap
         Loop
         Return Changed
     End Function
+
+    Public ReadOnly Property MainMap As clsMap
+        Get
+            If Not frmMainLink.IsConnected Then
+                Return Nothing
+            Else
+                Return frmMainLink.Source.MainMap
+            End If
+        End Get
+    End Property
 End Class

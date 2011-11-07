@@ -3,6 +3,8 @@
     Inherits Form
 #End If
 
+    Private _Owner As frmMain
+
     Private PlayerCount As Integer = 4
     Private StopTrying As Boolean
 
@@ -270,8 +272,7 @@
         Generator.Map.InterfaceOptions = New clsMap.clsInterfaceOptions
         Generator.Map.InterfaceOptions.CompileMultiPlayers = InvariantToString_int(Generator.GetTotalPlayerCount)
 
-        NewMainMap(Generator.Map)
-        UpdateMapTabs()
+        _Owner.NewMainMap(Generator.Map)
 
         Return ReturnResult
     End Function
@@ -385,7 +386,7 @@
 
         Generator.Map.UndoStepCreate("Generated Textures")
 
-        If Generator.Map Is MainMap Then
+        If Generator.Map Is _Owner.MainMap Then
             frmMainInstance.PainterTerrains_Refresh(-1, -1)
             frmMainInstance.MainMapTilesetChanged()
         End If
@@ -398,7 +399,7 @@
         If Generator.Map Is Nothing Or Generator.GenerateTileset Is Nothing Then
             Exit Sub
         End If
-        If Generator.Map.LoadedMap_Num < 0 Then
+        If Not Generator.Map.frmMainLink.IsConnected Then
             Exit Sub
         End If
 
@@ -470,7 +471,7 @@
         If Generator.Map Is Nothing Then
             Exit Sub
         End If
-        If Generator.Map.LoadedMap_Num < 0 Then
+        If Not Generator.Map.frmMainLink.IsConnected Then
             Exit Sub
         End If
 
@@ -655,10 +656,10 @@
         End If
     End Sub
 
-    Public Sub New()
+    Public Sub New(ByVal Owner As frmMain)
         InitializeComponent()
 
-
+        _Owner = Owner
     End Sub
 
     Private Sub lstResult_AddResult(ByVal Result As clsResult)

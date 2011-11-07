@@ -6,6 +6,8 @@ Public Class ctrlMapView
     Inherits UserControl
 #End If
 
+    Private _Owner As frmMain
+
     Public DrawPending As Boolean
 
     Public OpenGLControl As OpenTK.GLControl
@@ -21,8 +23,12 @@ Public Class ctrlMapView
     Private WithEvents tmrDraw As Timer
     Private WithEvents tmrDrawDelay As Timer
 
-    Public Sub New()
+    Public Sub New(ByVal Owner As frmMain)
+
+        _Owner = Owner
+
         InitializeComponent()
+
         ListSelect = New ContextMenuStrip
         UndoMessageTimer = New Timer
 
@@ -737,9 +743,6 @@ Public Class ctrlMapView
 
     Public Function CreateGLFont(ByVal BaseFont As Font) As GLFont
 
-        If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
-            OpenGLControl.MakeCurrent()
-        End If
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
     End Function
 
@@ -798,13 +801,13 @@ Public Class ctrlMapView
         End If
 
         If tabMaps.SelectedTab Is Nothing Then
-            SetMainMap(Nothing)
+            _Owner.SetMainMap(Nothing)
             Exit Sub
         End If
 
         Dim Map As clsMap = CType(tabMaps.SelectedTab.Tag, clsMap)
 
-        SetMainMap(Map)
+        _Owner.SetMainMap(Map)
     End Sub
 
     Private Sub btnClose_Click(sender As System.Object, e As System.EventArgs) Handles btnClose.Click
@@ -813,7 +816,7 @@ Public Class ctrlMapView
         If Map Is Nothing Then
             Exit Sub
         End If
-        If Map.LoadedMap_Num < 0 Then
+        If Not Map.frmMainLink.IsConnected Then
             MsgBox("Error: Map should be closed already.")
             Exit Sub
         End If
@@ -824,9 +827,7 @@ Public Class ctrlMapView
             End If
         End If
 
-        LoadedMap_Remove(Map.LoadedMap_Num)
         Map.Deallocate()
-        UpdateMapTabs()
     End Sub
 
     Public Sub UpdateTabs()
@@ -835,18 +836,24 @@ Public Class ctrlMapView
 
         tabMaps.Enabled = False
         tabMaps.TabPages.Clear()
-        For A = 0 To LoadedMapCount - 1
-            Map = LoadedMaps(A)
-            frmMainInstance.MapView.tabMaps.TabPages.Add(Map.MapView_TabPage)
+        For A = 0 To _Owner.LoadedMaps.ItemCount - 1
+            Map = _Owner.LoadedMaps.Item(A)
+            tabMaps.TabPages.Add(Map.MapView_TabPage)
         Next
         Map = MainMap
         If Map IsNot Nothing Then
-            frmMainInstance.MapView.tabMaps.SelectedIndex = Map.LoadedMap_Num
+            tabMaps.SelectedIndex = Map.frmMainLink.ArrayPosition
         Else
-            frmMainInstance.MapView.tabMaps.SelectedIndex = -1
+            tabMaps.SelectedIndex = -1
         End If
-        frmMainInstance.MapView.tabMaps.Enabled = True
+        tabMaps.Enabled = True
     End Sub
+
+    Private ReadOnly Property MainMap As clsMap
+        Get
+            Return _Owner.MainMap
+        End Get
+    End Property
 
 #If MonoDevelop <> 0.0# Then
     Private Sub InitializeComponent()

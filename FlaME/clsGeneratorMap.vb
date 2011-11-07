@@ -1915,52 +1915,52 @@ PointMakingFinished:
 
         For A = 0 To TotalPlayerCount - 1
             PlayerNum = A
-            tmpUnit = PlaceUnitNear(UnitType_CommandCentre, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 3, 0, BasePlaceRange)
+            tmpUnit = PlaceUnitNear(UnitType_CommandCentre, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 3, 0, BasePlaceRange)
             If tmpUnit Is Nothing Then
                 ReturnResult.Problem_Add("No room for base structures")
                 Return ReturnResult
             End If
-            tmpUnit = PlaceUnitNear(UnitType_PowerGenerator, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 3, 0, BasePlaceRange)
+            tmpUnit = PlaceUnitNear(UnitType_PowerGenerator, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 3, 0, BasePlaceRange)
             If tmpUnit Is Nothing Then
                 ReturnResult.Problem_Add("No room for base structures.")
                 Return ReturnResult
             End If
-            tmpUnit = PlaceUnit(UnitType_PowerModule, tmpUnit.Pos, Map.UnitGroups(PlayerNum), 0)
+            tmpUnit = PlaceUnit(UnitType_PowerModule, tmpUnit.Pos, Map.UnitGroups.Item(PlayerNum), 0)
             If tmpUnit Is Nothing Then
                 ReturnResult.Problem_Add("No room for module.")
                 Return ReturnResult
             End If
             For B = 1 To 2
-                tmpUnit = PlaceUnitNear(UnitType_ResearchFacility, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 3, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_ResearchFacility, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 3, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
                     ReturnResult.Problem_Add("No room for base structures")
                     Return ReturnResult
                 End If
-                tmpUnit = PlaceUnit(UnitType_ResearchModule, tmpUnit.Pos, Map.UnitGroups(PlayerNum), 0)
+                tmpUnit = PlaceUnit(UnitType_ResearchModule, tmpUnit.Pos, Map.UnitGroups.Item(PlayerNum), 0)
                 If tmpUnit Is Nothing Then
                     ReturnResult.Problem_Add("No room for module.")
                     Return ReturnResult
                 End If
             Next
             For B = 1 To 2
-                tmpUnit = PlaceUnitNear(UnitType_Factory, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 4, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_Factory, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 4, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
                     ReturnResult.Problem_Add("No room for base structures")
                     Return ReturnResult
                 End If
-                tmpUnit = PlaceUnit(UnitType_FactoryModule, tmpUnit.Pos, Map.UnitGroups(PlayerNum), 0)
+                tmpUnit = PlaceUnit(UnitType_FactoryModule, tmpUnit.Pos, Map.UnitGroups.Item(PlayerNum), 0)
                 If tmpUnit Is Nothing Then
                     ReturnResult.Problem_Add("No room for module.")
                     Return ReturnResult
                 End If
             Next
-            tmpUnit = PlaceUnitNear(UnitType_CyborgFactory, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 3, 0, BasePlaceRange)
+            tmpUnit = PlaceUnitNear(UnitType_CyborgFactory, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 3, 0, BasePlaceRange)
             If tmpUnit Is Nothing Then
                 ReturnResult.Problem_Add("No room for base structures")
                 Return ReturnResult
             End If
             For B = 1 To BaseTruckCount
-                tmpUnit = PlaceUnitNear(UnitType_Truck, PlayerBases(A).Pos, Map.UnitGroups(PlayerNum), 2, 0, BasePlaceRange)
+                tmpUnit = PlaceUnitNear(UnitType_Truck, PlayerBases(A).Pos, Map.UnitGroups.Item(PlayerNum), 2, 0, BasePlaceRange)
                 If tmpUnit Is Nothing Then
                     ReturnResult.Problem_Add("No room for trucks")
                     Return ReturnResult
@@ -1993,7 +1993,7 @@ PointMakingFinished:
                     tmpUnit.Pos.Altitude = AverageHeight * Map.HeightMultiplier
                     If PassageNodes(D, A).PlayerBaseNum >= 0 Then
                         'place base derrick
-                        tmpUnit = PlaceUnit(UnitType_Derrick, tmpUnit.Pos, Map.UnitGroups(PassageNodes(D, A).PlayerBaseNum), 0)
+                        tmpUnit = PlaceUnit(UnitType_Derrick, tmpUnit.Pos, Map.UnitGroups.Item(PassageNodes(D, A).PlayerBaseNum), 0)
                         If tmpUnit Is Nothing Then
                             ReturnResult.Problem_Add("No room for derrick.")
                             Return ReturnResult

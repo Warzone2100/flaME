@@ -1995,6 +1995,8 @@
         Private Unit As clsMap.clsUnit
 
         Private tmpStructure As clsStructureType
+        Private StruZeroBytesA(11) As Byte
+        Private StruZeroBytesB(39) As Byte
 
         Public Sub ActionPerform() Implements SimpleListTool(Of clsUnit).ActionPerform
 
@@ -2018,12 +2020,12 @@
                 Case Else
                     Stop
             End Select
-            File.Write(New Byte(11) {})
+            File.Write(StruZeroBytesA)
             File.Write(CByte(1))
             File.Write(CByte(26))
             File.Write(CByte(127))
             File.Write(CByte(0))
-            File.Write(New Byte(39) {})
+            File.Write(StruZeroBytesB)
         End Sub
 
         Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem

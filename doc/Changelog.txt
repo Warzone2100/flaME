@@ -1,16 +1,22 @@
 1.24:
+bug fixes
+terrain-fill options
+ability to load .gam files
 
 1.23:
 bug fixes
 multiple maps in one window
 gateways undoable
+
 1.22:
 bug fixes and small improvements
 changes for Mono 2.6.7
 options window
+
 1.21:
 bug fixes
 ability to select where to load data from
+
 1.20:
 many bug fixes
 new .fmap editor format
@@ -27,22 +33,27 @@ improved compile screen
 some new warnings when things go wrong
 random rotation box for new objects
 loads the basics of PIE 3
+
 1.19:
 wall-only rotation option
 bug fixes
 changes to error handling
+
 1.18:
 fixed an undo bug
+
 1.17:
 seperated the data files
 changed rotation and its controls
 merged fRMG
 improved selecting multiple units
 bug fixes
+
 1.16:
 flaME:
 improved display of units
 bug fixes
+
 1.15:
 flaME:
 rotate copied units option
@@ -52,6 +63,7 @@ gateway selection paste/delete
 list to select from multiple units on a tile
 fRMG:
 fixed occasional, passable holes in cliffs
+
 1.14:
 flaME:
 updated objects to master
@@ -60,6 +72,7 @@ re-handled .wz file player numbers that are too high
 minor changes/fixes
 fRMG:
 added a save dialog
+
 1.13:
 new installer by milo christiansen
 includes fRMG in the installer
@@ -73,8 +86,10 @@ improved ramp placement
 variable ramp distance at distance from bases
 fixed/removed ability to make non-square quarters rotation maps
 fixed water not being reflected
+
 1.12:
 fixed compile and loading bugs
+
 1.11:
 splash screen
 changed tile graphics
@@ -82,6 +97,7 @@ show tile texture numbers
 multiplayer scroll limits
 file format includes compile info
 select texture or terrain with ctrl-click
+
 1.10:
 texture orientation markers
 orientation setting
@@ -89,13 +105,16 @@ orientation setting
 ability to change font
 bug fixes
 increased allowed name length by 3
+
 1.08:
 modules can be put on vtol factories.
 displays size of selection rectangle.
 changed some unit code and possibly made some more bugs.
+
 1.07:
 Changed structure limit to be per type.
 Removed bad factory limit.
+
 1.06:
 changed 3 tile type defaults on the rockies tileset
 might load maps as a default program
@@ -110,18 +129,24 @@ optional water tile correct triangle alignment
 255 structure limit, 5 factory limit, per player
 modules compiled last to fix missing modules
 optional new pointer mode
+
 1.05:
 ?
+
 1.04:
 compile error checking of units
 select and change multiple units
 small changes
+
 1.03:
 small changes and bugfixes, plus a button to interpret the terrain of loaded .wz maps
+
 1.02:
-small changes and bugfixes.
+small changes and bugfixes
+
 1.01:
-small changes and bugfixes.
+small changes and bugfixes
+
 1.00:
 autosave
 quicksave

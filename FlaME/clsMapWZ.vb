@@ -2,26 +2,13 @@
 
 Partial Public Class clsMap
 
-    Public Class clsWZBJOUnits
-        Public Structure sUnit
-            Public Code As String
-            Public ID As UInteger
-            Public Pos As sWorldPos
-            Public Rotation As UInteger
-            Public Player As UInteger
-            Public ObjectType As clsUnitType.enumType
-        End Structure
-        Public Units(0) As sUnit
-        Public UnitCount As Integer = 0
-
-        Public Sub Unit_Add(ByVal NewUnit As sUnit)
-
-            If Units.GetUpperBound(0) < UnitCount Then
-                ReDim Preserve Units(UnitCount * 2 + 1)
-            End If
-            Units(UnitCount) = NewUnit
-            UnitCount += 1
-        End Sub
+    Public Class clsWZBJOUnit
+        Public Code As String
+        Public ID As UInteger
+        Public Pos As sWorldPos
+        Public Rotation As UInteger
+        Public Player As UInteger
+        Public ObjectType As clsUnitType.enumType
     End Class
 
     Public Function Load_WZ(ByVal Path As String) As clsResult
@@ -192,7 +179,7 @@ Partial Public Class clsMap
             End If
         End If
 
-        Dim BJOUnits As New clsMap.clsWZBJOUnits
+        Dim BJOUnits As New SimpleClassList(Of clsMap.clsWZBJOUnit)
 
         Dim INIFeatures As clsINIFeatures = Nothing
 
@@ -376,7 +363,7 @@ Partial Public Class clsMap
             Return ReturnResult
         End If
 
-        Dim BJOUnits As New clsMap.clsWZBJOUnits
+        Dim BJOUnits As New SimpleClassList(Of clsMap.clsWZBJOUnit)
 
         Dim INIFeatures As clsINIFeatures = Nothing
 
@@ -497,7 +484,7 @@ Partial Public Class clsMap
     End Function
 
     Public Structure sCreateWZObjectsArgs
-        Public BJOUnits As clsWZBJOUnits
+        Public BJOUnits As SimpleClassList(Of clsMap.clsWZBJOUnit)
         Public INIStructures As clsINIStructures
         Public INIDroids As clsINIDroids
         Public INIFeatures As clsINIFeatures
@@ -507,7 +494,7 @@ Partial Public Class clsMap
         Dim ReturnResult As New clsResult
         Dim NewUnit As clsUnit
         Dim AvailableID As UInteger
-        Dim BJOUnits As clsWZBJOUnits = Args.BJOUnits
+        Dim BJOUnits As SimpleClassList(Of clsMap.clsWZBJOUnit) = Args.BJOUnits
         Dim INIStructures As clsINIStructures = Args.INIStructures
         Dim INIDroids As clsINIDroids = Args.INIDroids
         Dim INIFeatures As clsINIFeatures = Args.INIFeatures
@@ -518,9 +505,9 @@ Partial Public Class clsMap
         UnitAdd.Map = Me
 
         AvailableID = 1UI
-        For A = 0 To BJOUnits.UnitCount - 1
-            If BJOUnits.Units(A).ID >= AvailableID Then
-                AvailableID = BJOUnits.Units(A).ID + 1UI
+        For A = 0 To BJOUnits.ItemCount - 1
+            If BJOUnits.Item(A).ID >= AvailableID Then
+                AvailableID = BJOUnits.Item(A).ID + 1UI
             End If
         Next
         If INIStructures IsNot Nothing Then
@@ -545,30 +532,33 @@ Partial Public Class clsMap
             Next
         End If
 
-        For A = 0 To BJOUnits.UnitCount - 1
+        Dim tmpBJOUnit As clsMap.clsWZBJOUnit
+
+        For A = 0 To BJOUnits.ItemCount - 1
+            tmpBJOUnit = BJOUnits.Item(A)
             NewUnit = New clsUnit
-            NewUnit.ID = BJOUnits.Units(A).ID
-            NewUnit.Type = FindOrCreateUnitType(BJOUnits.Units(A).Code, BJOUnits.Units(A).ObjectType)
+            NewUnit.ID = tmpBJOUnit.ID
+            NewUnit.Type = FindOrCreateUnitType(tmpBJOUnit.Code, tmpBJOUnit.ObjectType)
             If NewUnit.Type Is Nothing Then
                 ReturnResult.Problem_Add("Unable to create object type.")
                 Return ReturnResult
             End If
-            If BJOUnits.Units(A).Player >= PlayerCountMax Then
+            If tmpBJOUnit.Player >= PlayerCountMax Then
                 NewUnit.UnitGroup = ScavengerUnitGroup
             Else
-                NewUnit.UnitGroup = UnitGroups(CInt(BJOUnits.Units(A).Player))
+                NewUnit.UnitGroup = UnitGroups.Item(CInt(tmpBJOUnit.Player))
             End If
-            NewUnit.Pos = BJOUnits.Units(A).Pos
-            NewUnit.Rotation = CInt(Math.Min(BJOUnits.Units(A).Rotation, 359UI))
-            If BJOUnits.Units(A).ID = 0UI Then
-                BJOUnits.Units(A).ID = AvailableID
-                ZeroIDWarning(NewUnit, BJOUnits.Units(A).ID)
+            NewUnit.Pos = tmpBJOUnit.Pos
+            NewUnit.Rotation = CInt(Math.Min(tmpBJOUnit.Rotation, 359UI))
+            If tmpBJOUnit.ID = 0UI Then
+                tmpBJOUnit.ID = AvailableID
+                ZeroIDWarning(NewUnit, tmpBJOUnit.ID)
             End If
             UnitAdd.NewUnit = NewUnit
-            UnitAdd.ID = BJOUnits.Units(A).ID
+            UnitAdd.ID = tmpBJOUnit.ID
             UnitAdd.Perform()
-            ErrorIDChange(BJOUnits.Units(A).ID, NewUnit, "Load_WZ->BJOObjects")
-            If AvailableID = BJOUnits.Units(A).ID Then
+            ErrorIDChange(tmpBJOUnit.ID, NewUnit, "CreateWZObjects")
+            If AvailableID = tmpBJOUnit.ID Then
                 AvailableID = NewUnit.ID + 1UI
             End If
         Next
@@ -709,7 +699,7 @@ Partial Public Class clsMap
                     Else
                         NewUnit = New clsUnit
                         NewUnit.Type = tmpFeatureType
-                        NewUnit.UnitGroup = FeatureUnitGroup
+                        NewUnit.UnitGroup = ScavengerUnitGroup
                         NewUnit.Pos = INIFeatures.Features(A).Pos.WorldPos
                         NewUnit.Rotation = CInt(INIFeatures.Features(A).Rotation.Direction * 360.0# / INIRotationMax)
                         If NewUnit.Rotation = 360 Then
@@ -942,7 +932,7 @@ Partial Public Class clsMap
                     If StartPos < 0 Or StartPos >= PlayerCountMax Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    Structures(INISectionNum).UnitGroup = ParentMap.UnitGroups(StartPos)
+                    Structures(INISectionNum).UnitGroup = ParentMap.UnitGroups.Item(StartPos)
                 Case "player"
                     If INIProperty.Value.ToLower <> "scavenger" Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
@@ -1038,7 +1028,7 @@ Partial Public Class clsMap
                     If StartPos < 0 Or StartPos >= PlayerCountMax Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
-                    Droids(INISectionNum).UnitGroup = ParentMap.UnitGroups(StartPos)
+                    Droids(INISectionNum).UnitGroup = ParentMap.UnitGroups.Item(StartPos)
                 Case "player"
                     If INIProperty.Value.ToLower <> "scavenger" Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
@@ -1107,7 +1097,7 @@ Partial Public Class clsMap
         Public FeatureCount As Integer
 
         Public Sub New(ByVal NewFeatureCount As Integer)
-			Dim A As Integer
+            Dim A As Integer
 
             FeatureCount = NewFeatureCount
             ReDim Features(FeatureCount - 1)
@@ -1294,7 +1284,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Features(ByVal File As IO.BinaryReader, ByRef WZUnits As clsMap.clsWZBJOUnits) As sResult
+    Private Function Read_WZ_Features(ByVal File As IO.BinaryReader, ByVal WZUnits As SimpleClassList(Of clsWZBJOUnit)) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1304,7 +1294,7 @@ Partial Public Class clsMap
         Dim uintTemp As UInteger
         Dim A As Integer
         Dim B As Integer
-        Dim WZBJOUnit As clsMap.clsWZBJOUnits.sUnit
+        Dim WZBJOUnit As clsMap.clsWZBJOUnit
 
         Try
             strTemp = ReadOldTextOfLength(File, 4)
@@ -1323,7 +1313,7 @@ Partial Public Class clsMap
 
             uintTemp = File.ReadUInt32
             For A = 0 To CInt(uintTemp) - 1
-                WZBJOUnit = New clsMap.clsWZBJOUnits.sUnit
+                WZBJOUnit = New clsMap.clsWZBJOUnit
                 WZBJOUnit.ObjectType = clsUnitType.enumType.Feature
                 WZBJOUnit.Code = ReadOldTextOfLength(File, 40)
                 B = Strings.InStr(WZBJOUnit.Code, Chr(0))
@@ -1337,7 +1327,7 @@ Partial Public Class clsMap
                 WZBJOUnit.Rotation = File.ReadUInt32
                 WZBJOUnit.Player = File.ReadUInt32
                 File.ReadBytes(12)
-                WZUnits.Unit_Add(WZBJOUnit)
+                WZUnits.Add(WZBJOUnit)
             Next
         Catch ex As Exception
             ReturnResult.Problem = ex.Message
@@ -1397,7 +1387,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Structures(ByVal File As IO.BinaryReader, ByRef WZUnits As clsMap.clsWZBJOUnits) As sResult
+    Private Function Read_WZ_Structures(ByVal File As IO.BinaryReader, ByRef WZUnits As SimpleClassList(Of clsWZBJOUnit)) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1407,7 +1397,7 @@ Partial Public Class clsMap
         Dim uintTemp As UInteger
         Dim A As Integer
         Dim B As Integer
-        Dim WZBJOUnit As clsMap.clsWZBJOUnits.sUnit
+        Dim WZBJOUnit As clsMap.clsWZBJOUnit
 
         Try
             strTemp = ReadOldTextOfLength(File, 4)
@@ -1426,7 +1416,7 @@ Partial Public Class clsMap
 
             uintTemp = File.ReadUInt32
             For A = 0 To CInt(uintTemp) - 1
-                WZBJOUnit = New clsWZBJOUnits.sUnit
+                WZBJOUnit = New clsMap.clsWZBJOUnit
                 WZBJOUnit.ObjectType = clsUnitType.enumType.PlayerStructure
                 WZBJOUnit.Code = ReadOldTextOfLength(File, 40)
                 B = Strings.InStr(WZBJOUnit.Code, Chr(0))
@@ -1440,7 +1430,7 @@ Partial Public Class clsMap
                 WZBJOUnit.Rotation = File.ReadUInt32
                 WZBJOUnit.Player = File.ReadUInt32
                 File.ReadBytes(56)
-                WZUnits.Unit_Add(WZBJOUnit)
+                WZUnits.Add(WZBJOUnit)
             Next
         Catch ex As Exception
             ReturnResult.Problem = ex.Message
@@ -1451,7 +1441,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Private Function Read_WZ_Droids(ByVal File As IO.BinaryReader, ByVal WZUnits As clsWZBJOUnits) As sResult
+    Private Function Read_WZ_Droids(ByVal File As IO.BinaryReader, ByVal WZUnits As SimpleClassList(Of clsWZBJOUnit)) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1461,7 +1451,7 @@ Partial Public Class clsMap
         Dim uintTemp As UInteger
         Dim A As Integer
         Dim B As Integer
-        Dim WZBJOUnit As clsWZBJOUnits.sUnit
+        Dim WZBJOUnit As clsWZBJOUnit
 
         Try
             strTemp = ReadOldTextOfLength(File, 4)
@@ -1480,7 +1470,7 @@ Partial Public Class clsMap
 
             uintTemp = File.ReadUInt32
             For A = 0 To CInt(uintTemp) - 1
-                WZBJOUnit = New clsWZBJOUnits.sUnit
+                WZBJOUnit = New clsWZBJOUnit
                 WZBJOUnit.ObjectType = clsUnitType.enumType.PlayerDroid
                 WZBJOUnit.Code = ReadOldTextOfLength(File, 40)
                 B = Strings.InStr(WZBJOUnit.Code, Chr(0))
@@ -1494,7 +1484,7 @@ Partial Public Class clsMap
                 WZBJOUnit.Rotation = File.ReadUInt32
                 WZBJOUnit.Player = File.ReadUInt32
                 File.ReadBytes(12)
-                WZUnits.Unit_Add(WZBJOUnit)
+                WZUnits.Add(WZBJOUnit)
             Next
         Catch ex As Exception
             ReturnResult.Problem = ex.Message
@@ -1652,6 +1642,7 @@ Partial Public Class clsMap
         Dim UnderneathTypes(1) As clsStructureType.enumStructureType
         Dim UnderneathTypeCount As Integer
         Dim BadModuleCount As Integer = 0
+        Dim PriorityOrder As New clsObjectPriorityOrderList
 
         For A = 0 To Units.ItemCount - 1
             tmpUnit = Units.Item(A)
@@ -1671,7 +1662,10 @@ Partial Public Class clsMap
                     Case Else
                         UnderneathTypeCount = 0
                 End Select
-                If UnderneathTypeCount > 0 Then
+                If UnderneathTypeCount = 0 Then
+                    PriorityOrder.SetItem(tmpUnit)
+                    PriorityOrder.ActionPerform()
+                Else
                     UnitIsModule(A) = True
                     SectorNum = GetPosSectorNum(tmpUnit.Pos.Horizontal)
                     For B = 0 To Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
@@ -1715,50 +1709,48 @@ Partial Public Class clsMap
         Dim ModuleCount As Integer
         Dim ModuleLimit As Integer
 
-        For A = 0 To Units.ItemCount - 1
-            tmpUnit = Units.Item(A)
-            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure And Not UnitIsModule(A) Then
-                tmpStructure = CType(tmpUnit.Type, clsStructureType)
-                If tmpUnit.ID <= 0 Then
-                    ReturnResult.Warning_Add("Error. A structure's ID was zero. It was NOT saved. Delete and replace it to allow save.")
+        For A = 0 To PriorityOrder.Result.ItemCount - 1
+            tmpUnit = PriorityOrder.Result.Item(A)
+            tmpStructure = CType(tmpUnit.Type, clsStructureType)
+            If tmpUnit.ID <= 0 Then
+                ReturnResult.Warning_Add("Error. A structure's ID was zero. It was NOT saved. Delete and replace it to allow save.")
+            Else
+                File.SectionName_Append("structure_" & InvariantToString_sng(tmpUnit.ID))
+                File.Property_Append("id", InvariantToString_sng(tmpUnit.ID))
+                If tmpUnit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount) Then
+                    File.Property_Append("player", "scavenger")
                 Else
-                    File.SectionName_Append("structure_" & InvariantToString_sng(tmpUnit.ID))
-                    File.Property_Append("id", InvariantToString_sng(tmpUnit.ID))
-                    If tmpUnit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount) Then
-                        File.Property_Append("player", "scavenger")
-                    Else
-                        File.Property_Append("startpos", InvariantToString_int(tmpUnit.UnitGroup.WZ_StartPos))
-                    End If
-                    File.Property_Append("name", tmpStructure.Code)
-                    File.Property_Append("position", tmpUnit.GetINIPosition)
-                    File.Property_Append("rotation", tmpUnit.GetINIRotation)
-                    If tmpUnit.Health < 1.0# Then
-                        File.Property_Append("health", tmpUnit.GetINIHealthPercent)
-                    End If
-                    Select Case tmpStructure.StructureType
-                        Case clsStructureType.enumStructureType.Factory
-                            ModuleLimit = 2
-                        Case clsStructureType.enumStructureType.VTOLFactory
-                            ModuleLimit = 2
-                        Case clsStructureType.enumStructureType.PowerGenerator
-                            ModuleLimit = 1
-                        Case clsStructureType.enumStructureType.Research
-                            ModuleLimit = 1
-                        Case Else
-                            ModuleLimit = 0
-                    End Select
-                    If UnitModuleCount(A) > ModuleLimit Then
-                        ModuleCount = ModuleLimit
-                        If TooManyModulesWarningCount < TooManyModulesWarningMaxCount Then
-                            ReturnResult.Warning_Add("Structure " & tmpStructure.GetDisplayText & " at " & tmpUnit.GetPosText & " has too many modules (" & UnitModuleCount(A) & ").")
-                        End If
-                        TooManyModulesWarningCount += 1
-                    Else
-                        ModuleCount = UnitModuleCount(A)
-                    End If
-                    File.Property_Append("modules", InvariantToString_int(UnitModuleCount(A)))
-                    File.Gap_Append()
+                    File.Property_Append("startpos", InvariantToString_int(tmpUnit.UnitGroup.WZ_StartPos))
                 End If
+                File.Property_Append("name", tmpStructure.Code)
+                File.Property_Append("position", tmpUnit.GetINIPosition)
+                File.Property_Append("rotation", tmpUnit.GetINIRotation)
+                If tmpUnit.Health < 1.0# Then
+                    File.Property_Append("health", tmpUnit.GetINIHealthPercent)
+                End If
+                Select Case tmpStructure.StructureType
+                    Case clsStructureType.enumStructureType.Factory
+                        ModuleLimit = 2
+                    Case clsStructureType.enumStructureType.VTOLFactory
+                        ModuleLimit = 2
+                    Case clsStructureType.enumStructureType.PowerGenerator
+                        ModuleLimit = 1
+                    Case clsStructureType.enumStructureType.Research
+                        ModuleLimit = 1
+                    Case Else
+                        ModuleLimit = 0
+                End Select
+                If UnitModuleCount(tmpUnit.MapLink.ArrayPosition) > ModuleLimit Then
+                    ModuleCount = ModuleLimit
+                    If TooManyModulesWarningCount < TooManyModulesWarningMaxCount Then
+                        ReturnResult.Warning_Add("Structure " & tmpStructure.GetDisplayText & " at " & tmpUnit.GetPosText & " has too many modules (" & UnitModuleCount(tmpUnit.MapLink.ArrayPosition) & ").")
+                    End If
+                    TooManyModulesWarningCount += 1
+                Else
+                    ModuleCount = UnitModuleCount(tmpUnit.MapLink.ArrayPosition)
+                End If
+                File.Property_Append("modules", InvariantToString_int(ModuleCount))
+                File.Gap_Append()
             End If
         Next
 
@@ -2034,26 +2026,24 @@ Partial Public Class clsMap
             Dim EndChar As Char = Chr(10)
             Dim Text As String
 
-            Dim Encoding As New System.Text.UTF8Encoding(False, False)
-
             Dim File_LEV_Memory As New IO.MemoryStream
-            Dim File_LEV As New IO.StreamWriter(File_LEV_Memory, Encoding)
+            Dim File_LEV As New IO.StreamWriter(File_LEV_Memory, UTF8Encoding)
             Dim File_MAP_Memory As New IO.MemoryStream
-            Dim File_MAP As New IO.BinaryWriter(File_MAP_Memory)
+            Dim File_MAP As New IO.BinaryWriter(File_MAP_Memory, ASCIIEncoding)
             Dim File_GAM_Memory As New IO.MemoryStream
-            Dim File_GAM As New IO.BinaryWriter(File_GAM_Memory)
+            Dim File_GAM As New IO.BinaryWriter(File_GAM_Memory, ASCIIEncoding)
             Dim File_featBJO_Memory As New IO.MemoryStream
-            Dim File_featBJO As New IO.BinaryWriter(File_featBJO_Memory)
+            Dim File_featBJO As New IO.BinaryWriter(File_featBJO_Memory, ASCIIEncoding)
             Dim INI_feature_Memory As New IO.MemoryStream
             Dim INI_feature As clsINIWrite = clsINIWrite.CreateFile(INI_feature_Memory)
             Dim File_TTP_Memory As New IO.MemoryStream
-            Dim File_TTP As New IO.BinaryWriter(File_TTP_Memory)
+            Dim File_TTP As New IO.BinaryWriter(File_TTP_Memory, ASCIIEncoding)
             Dim File_structBJO_Memory As New IO.MemoryStream
-            Dim File_structBJO As New IO.BinaryWriter(File_structBJO_Memory)
+            Dim File_structBJO As New IO.BinaryWriter(File_structBJO_Memory, ASCIIEncoding)
             Dim INI_struct_Memory As New IO.MemoryStream
             Dim INI_struct As clsINIWrite = clsINIWrite.CreateFile(INI_struct_Memory)
             Dim File_droidBJO_Memory As New IO.MemoryStream
-            Dim File_droidBJO As New IO.BinaryWriter(File_droidBJO_Memory)
+            Dim File_droidBJO As New IO.BinaryWriter(File_droidBJO_Memory, ASCIIEncoding)
             Dim INI_droid_Memory As New IO.MemoryStream
             Dim INI_droid As clsINIWrite = clsINIWrite.CreateFile(INI_droid_Memory)
             Dim INI_Labels_Memory As New IO.MemoryStream
@@ -2144,6 +2134,8 @@ Partial Public Class clsMap
                 File_LEV.Write(Text)
             End If
 
+            Dim GameZeroBytes(19) As Byte
+
             WriteText(File_GAM, False, "game")
             File_GAM.Write(8UI)
             File_GAM.Write(0UI) 'Time
@@ -2156,7 +2148,7 @@ Partial Public Class clsMap
             File_GAM.Write(Args.ScrollMin.Y)
             File_GAM.Write(Args.ScrollMax.X)
             File_GAM.Write(Args.ScrollMax.Y)
-            File_GAM.Write(New Byte(19) {})
+            File_GAM.Write(GameZeroBytes)
 
             Dim A As Integer
             Dim X As Integer
@@ -2223,6 +2215,8 @@ Partial Public Class clsMap
                 StructureWrite.PlayerCount = 0
             End If
 
+            Dim FeatZeroBytes(11) As Byte
+
             WriteText(File_featBJO, False, "feat")
             File_featBJO.Write(8UI)
             Dim FeatureOrder As New clsObjectPriorityOrderList
@@ -2251,7 +2245,7 @@ Partial Public Class clsMap
                     Case Else
                         Stop
                 End Select
-                File_featBJO.Write(New Byte(11) {})
+                File_featBJO.Write(FeatZeroBytes)
             Next
 
             WriteText(File_TTP, False, "ttyp")
@@ -2291,6 +2285,8 @@ Partial Public Class clsMap
             NonModuleStructureOrder.Result.PerformTool(StructureWrite)
             ModuleStructureOrder.Result.PerformTool(StructureWrite)
 
+            Dim DintZeroBytes(11) As Byte
+
             WriteText(File_droidBJO, False, "dint")
             File_droidBJO.Write(8UI)
             Dim Droids As New clsObjectPriorityOrderList
@@ -2316,13 +2312,13 @@ Partial Public Class clsMap
                 File_droidBJO.Write(CUInt(tmpUnit.Rotation))
                 Select Case Args.CompileType
                     Case sWrite_WZ_Args.enumCompileType.Multiplayer
-                        File_featBJO.Write(tmpUnit.GetBJOMultiplayerPlayerNum(Args.Multiplayer.PlayerCount))
+                        File_droidBJO.Write(tmpUnit.GetBJOMultiplayerPlayerNum(Args.Multiplayer.PlayerCount))
                     Case sWrite_WZ_Args.enumCompileType.Campaign
-                        File_featBJO.Write(tmpUnit.GetBJOCampaignPlayerNum)
+                        File_droidBJO.Write(tmpUnit.GetBJOCampaignPlayerNum)
                     Case Else
                         Stop
                 End Select
-                File_droidBJO.Write(New Byte(11) {})
+                File_droidBJO.Write(DintZeroBytes)
             Next
 
             ReturnResult.Append(Data_WZ_FeaturesINI(INI_feature), "Features INI: ")

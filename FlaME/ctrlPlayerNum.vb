@@ -111,7 +111,7 @@
             tsbNumber(ScavButtonNum).Tag = Nothing
         Else
             For A = 0 To PlayerCountMax - 1
-                tsbNumber(A).Tag = NewMap.UnitGroups(A)
+                tsbNumber(A).Tag = NewMap.UnitGroups.Item(A)
             Next
             tsbNumber(ScavButtonNum).Tag = NewMap.ScavengerUnitGroup
         End If

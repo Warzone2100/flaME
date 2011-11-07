@@ -35,7 +35,7 @@
                 Dim LoadResult As New clsResult
                 Dim A As Integer
                 For A = 0 To e.CommandLine.Count - 1
-                    LoadResult.Append(LoadMap(e.CommandLine.Item(A)), "")
+                    LoadResult.Append(frmMainInstance.LoadMap(e.CommandLine.Item(A)), New sSplitPath(e.CommandLine.Item(A)).FileTitle & ": ")
                 Next
                 ShowWarnings(LoadResult, "Load Command-line Map")
             Else

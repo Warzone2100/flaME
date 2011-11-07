@@ -266,7 +266,7 @@
                         If TempUnit(A).Player >= PlayerCountMax Then
                             NewUnit.UnitGroup = ScavengerUnitGroup
                         Else
-                            NewUnit.UnitGroup = UnitGroups(TempUnit(A).Player)
+                            NewUnit.UnitGroup = UnitGroups.Item(TempUnit(A).Player)
                         End If
                         NewUnit.Pos.Horizontal.X = CInt(TempUnit(A).X)
                         'NewUnit.Pos.Altitude = TempUnit(A).Y
@@ -868,7 +868,7 @@ LineDone:
                     If LNDObject(A).PlayerNum < 0 Or LNDObject(A).PlayerNum >= PlayerCountMax Then
                         NewUnit.UnitGroup = ScavengerUnitGroup
                     Else
-                        NewUnit.UnitGroup = UnitGroups(LNDObject(A).PlayerNum)
+                        NewUnit.UnitGroup = UnitGroups.Item(LNDObject(A).PlayerNum)
                     End If
                     XYZ_int.X = CInt(LNDObject(A).Pos.X)
                     XYZ_int.Y = CInt(LNDObject(A).Pos.Y)
@@ -961,8 +961,7 @@ LineDone:
             Quote = ControlChars.Quote
             EndChar = Chr(10)
 
-            Dim Encoding As New System.Text.UTF8Encoding(False, False)
-            File = New IO.StreamWriter(New IO.FileStream(Path, IO.FileMode.CreateNew), Encoding)
+            File = New IO.StreamWriter(New IO.FileStream(Path, IO.FileMode.CreateNew), New System.Text.UTF8Encoding(False, False))
 
             If Tileset Is Tileset_Arizona Then
                 Text = "DataSet WarzoneDataC1.eds" & EndChar
@@ -1269,7 +1268,7 @@ LineDone:
         Dim File_TTP As IO.BinaryWriter
 
         Try
-            File_TTP = New IO.BinaryWriter(New IO.FileStream(Path, IO.FileMode.CreateNew))
+            File_TTP = New IO.BinaryWriter(New IO.FileStream(Path, IO.FileMode.CreateNew), ASCIIEncoding)
         Catch ex As Exception
             ReturnResult.Problem = ex.Message
             Return ReturnResult
@@ -1477,7 +1476,7 @@ LineDone:
                 If tmpObject.UnitGroup Is ScavengerUnitGroup Then
                     File.Write(ScavengerPlayerNum)
                 Else
-                    File.Write(CByte(tmpObject.UnitGroup.Map_UnitGroupNum))
+                    File.Write(CByte(tmpObject.UnitGroup.WZ_StartPos))
                 End If
             Next
 

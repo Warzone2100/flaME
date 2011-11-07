@@ -130,7 +130,6 @@
     <Compile Include="frmWZLoad.vb" />
     <Compile Include="ctrlColour.vb" />
     <Compile Include="clsMapDraw.vb" />
-    <Compile Include="modMaps.vb" />
     <Compile Include="clsViewInfo.vb" />
     <Compile Include="modPainters.vb" />
     <Compile Include="INI.vb" />

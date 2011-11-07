@@ -44,7 +44,7 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -58,7 +58,7 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=0.0</DefineConstants>
+    <DefineConstants>MonoDevelop=0.0,Mono=0.0,Mono267=0.0,Portable=1.0</DefineConstants>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -229,7 +229,6 @@
     <Compile Include="modData.vb" />
     <Compile Include="modGenerator.vb" />
     <Compile Include="INI.vb" />
-    <Compile Include="modMaps.vb" />
     <Compile Include="modMath.vb" />
     <Compile Include="modPainters.vb" />
     <Compile Include="modProgram.vb" />

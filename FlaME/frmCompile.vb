@@ -21,6 +21,7 @@
     End Function
 
     Private Sub New(ByVal Map As clsMap)
+
         InitializeComponent() 'required for monodevelop too
 
         Icon = ProgramIcon
@@ -167,7 +168,7 @@
         ReturnResult.Append(Map.Write_WZ(WriteWZArgs), "")
         ShowWarnings(ReturnResult, "Compile Multiplayer")
         If Not ReturnResult.HasWarnings Then
-            Hide()
+            Close()
         End If
     End Sub
 
@@ -501,7 +502,7 @@
         ReturnResult.Append(Map.Write_WZ(WriteWZArgs), "")
         ShowWarnings(ReturnResult, "Compile Campaign")
         If Not ReturnResult.HasWarnings Then
-            Hide()
+            Close()
         End If
     End Sub
 

@@ -235,9 +235,8 @@ Partial Public Class clsMap
             WZStream.SetLevel(0)
         End If
 
-        Dim Encoding As New System.Text.UTF8Encoding(False, False)
-        Dim BinaryWriter As New IO.BinaryWriter(WZStream, Encoding)
-        Dim StreamWriter As New IO.StreamWriter(WZStream, Encoding)
+        Dim BinaryWriter As New IO.BinaryWriter(WZStream, UTF8Encoding)
+        Dim StreamWriter As New IO.StreamWriter(WZStream, UTF8Encoding)
         Dim ZipEntry As Zip.ZipEntry
         Dim ZipPath As String
 
@@ -679,12 +678,7 @@ Partial Public Class clsMap
                 File.Property_Append("Priority", InvariantToString_int(tmpUnit.SavePriority))
                 File.Property_Append("Pos", InvariantToString_int(tmpUnit.Pos.Horizontal.X) & ", " & InvariantToString_int(tmpUnit.Pos.Horizontal.Y))
                 File.Property_Append("Heading", InvariantToString_int(tmpUnit.Rotation))
-                If tmpUnit.UnitGroup.Map_UnitGroupNum < 0 Then
-                    strTemp = "scavenger"
-                Else
-                    strTemp = InvariantToString_int(tmpUnit.UnitGroup.Map_UnitGroupNum)
-                End If
-                File.Property_Append("UnitGroup", strTemp)
+                File.Property_Append("UnitGroup", tmpUnit.UnitGroup.GetFMapINIPlayerText)
                 If tmpUnit.Health < 1.0# Then
                     File.Property_Append("Health", InvariantToString_dbl(tmpUnit.Health))
                 End If
@@ -1398,7 +1392,7 @@ Partial Public Class clsMap
                         If INIObjects.Objects(A).Type <> clsUnitType.enumType.Feature Then
                             ObjectPlayerNumInvalidCount += 1
                         End If
-                        NewObject.UnitGroup = UnitGroups(0)
+                        NewObject.UnitGroup = ScavengerUnitGroup
                     Else
                         If INIObjects.Objects(A).UnitGroup.ToLower = "scavenger" Then
                             NewObject.UnitGroup = ScavengerUnitGroup
@@ -1409,7 +1403,7 @@ Partial Public Class clsMap
                                     Throw New Exception
                                 End If
                                 If PlayerNum < PlayerCountMax Then
-                                    tmpUnitGroup = UnitGroups(CInt(PlayerNum))
+                                    tmpUnitGroup = UnitGroups.Item(CInt(PlayerNum))
                                 Else
                                     tmpUnitGroup = ScavengerUnitGroup
                                     ObjectPlayerNumInvalidCount += 1
