@@ -2674,19 +2674,30 @@ Partial Public Class clsMap
     End Function
 
     Public Sub GetFootprintTileRangeClamped(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int, ByRef ResultStart As sXY_int, ByRef ResultFinish As sXY_int)
+        Dim Remainder As Integer
+        Dim Centre As sXY_int = GetPosTileNum(Horizontal)
+        Dim Half As Integer
 
-        ResultStart.X = Clamp_int(CInt(Int(Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.25#)), 0, Terrain.TileSize.X - 1)
-        ResultStart.Y = Clamp_int(CInt(Int(Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.25#)), 0, Terrain.TileSize.Y - 1)
-        ResultFinish.X = Clamp_int(CInt(Int(Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.25#)), 0, Terrain.TileSize.X - 1)
-        ResultFinish.Y = Clamp_int(CInt(Int(Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.25#)), 0, Terrain.TileSize.Y - 1)
+        Half = Math.DivRem(Footprint.X, 2, Remainder)
+        ResultStart.X = Clamp_int(Centre.X - Half, 0, Terrain.TileSize.X - 1)
+        ResultFinish.X = Clamp_int(ResultStart.X + Footprint.X - 1, 0, Terrain.TileSize.X - 1)
+        Half = Math.DivRem(Footprint.Y, 2, Remainder)
+        ResultStart.Y = Clamp_int(Centre.Y - Half, 0, Terrain.TileSize.Y - 1)
+        ResultFinish.Y = Clamp_int(ResultStart.Y + Footprint.Y - 1, 0, Terrain.TileSize.Y - 1)
     End Sub
 
     Public Sub GetFootprintTileRange(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int, ByRef ResultStart As sXY_int, ByRef ResultFinish As sXY_int)
 
-        ResultStart.X = CInt(Int(Horizontal.X / TerrainGridSpacing - Footprint.X / 2.0# + 0.25#))
-        ResultStart.Y = CInt(Int(Horizontal.Y / TerrainGridSpacing - Footprint.Y / 2.0# + 0.25#))
-        ResultFinish.X = CInt(Int(Horizontal.X / TerrainGridSpacing + Footprint.X / 2.0# - 0.25#))
-        ResultFinish.Y = CInt(Int(Horizontal.Y / TerrainGridSpacing + Footprint.Y / 2.0# - 0.25#))
+        Dim Remainder As Integer
+        Dim Centre As sXY_int = GetPosTileNum(Horizontal)
+        Dim Half As Integer
+
+        Half = Math.DivRem(Footprint.X, 2, Remainder)
+        ResultStart.X = Centre.X - Half
+        ResultFinish.X = ResultStart.X + Footprint.X - 1
+        Half = Math.DivRem(Footprint.Y, 2, Remainder)
+        ResultStart.Y = Centre.Y - Half
+        ResultFinish.Y = ResultStart.Y + Footprint.Y - 1
     End Sub
 
     Public Function GetPosTileNum(ByVal Horizontal As sXY_int) As sXY_int

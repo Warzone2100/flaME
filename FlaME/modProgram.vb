@@ -6,7 +6,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.24"
+    Public Const ProgramVersionNumber As String = "1.25"
 
 #If Mono <> 0.0# Then
     #If Mono267 <> 0.0# Then

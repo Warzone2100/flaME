@@ -703,8 +703,12 @@ Public Module modData
                         ReturnResult.Warning_Add("No name in names.txt for feature " & .Features(Feature_Num).Code & ".")
                     End If
                     .Features(Feature_Num).PIE = LCase(DataFeatures.Entries(Feature_Num).FieldValues(6))
-                    .Features(Feature_Num).Footprint.X = CInt(DataFeatures.Entries(Feature_Num).FieldValues(1))
-                    .Features(Feature_Num).Footprint.Y = CInt(DataFeatures.Entries(Feature_Num).FieldValues(2))
+                    If Not InvariantParse_int(DataFeatures.Entries(Feature_Num).FieldValues(1), .Features(Feature_Num).Footprint.X) Then
+                        ReturnResult.Warning_Add("Feature footprint-x was not an integer for " & .Features(Feature_Num).Code & ".")
+                    End If
+                    If Not InvariantParse_int(DataFeatures.Entries(Feature_Num).FieldValues(2), .Features(Feature_Num).Footprint.Y) Then
+                        ReturnResult.Warning_Add("Feature footprint-y was not an integer for " & .Features(Feature_Num).Code & ".")
+                    End If
                     .Features(Feature_Num).Type = DataFeatures.Entries(Feature_Num).FieldValues(7)
                 Next
             End With
@@ -794,8 +798,12 @@ Public Module modData
                         ReturnResult.Warning_Add("No name in names.txt for structure " & .Structures(Structure_Num).Code & ".")
                     End If
                     .Structures(Structure_Num).Type = DataStructures.Entries(Structure_Num).FieldValues(1)
-                    .Structures(Structure_Num).Footprint.X = CInt(DataStructures.Entries(Structure_Num).FieldValues(5))
-                    .Structures(Structure_Num).Footprint.Y = CInt(DataStructures.Entries(Structure_Num).FieldValues(6))
+                    If Not InvariantParse_int(DataStructures.Entries(Structure_Num).FieldValues(5), .Structures(Structure_Num).Footprint.X) Then
+                        ReturnResult.Warning_Add("Structure footprint-x was not an integer for " & .Structures(Structure_Num).Code & ".")
+                    End If
+                    If Not InvariantParse_int(DataStructures.Entries(Structure_Num).FieldValues(6), .Structures(Structure_Num).Footprint.Y) Then
+                        ReturnResult.Warning_Add("Structure footprint-y was not an integer for " & .Structures(Structure_Num).Code & ".")
+                    End If
                     .Structures(Structure_Num).PIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(21))
                     .Structures(Structure_Num).BasePIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(22))
                     .Structures(Structure_Num).Weapon1 = -1

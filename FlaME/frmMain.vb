@@ -12,13 +12,9 @@ Partial Public Class frmMain
 
         Private _MainMap As clsMap
 
-        Protected Overrides Function _BeforeConnect() As Boolean
+        Public Overrides Sub Add(ByVal NewItem As ConnectedListItem(Of clsMap, frmMain))
 
-            Dim NewMap As clsMap = _tmpItem.Item
-
-            If NewMap Is Nothing Then
-                Return False
-            End If
+            Dim NewMap As clsMap = NewItem.Item
 
             If Not NewMap.ReadyForUserInput Then
                 NewMap.InitializeUserInput()
@@ -29,17 +25,16 @@ Partial Public Class frmMain
 
             NewMap.SetTabText()
 
-            Return True
-        End Function
-
-        Protected Overrides Sub _AfterAdd()
+            MyBase.Add(NewItem)
 
             Owner.MapView.UpdateTabs()
         End Sub
 
-        Protected Overrides Sub _AfterDisconnect()
+        Public Overrides Sub Remove(ByVal Position As Integer)
 
-            Dim Map As clsMap = _tmpItem.Item
+            Dim Map As clsMap = Item(Position)
+
+            MyBase.Remove(Position)
 
             If Map Is _MainMap Then
                 Dim NewNum As Integer = Math.Min(Owner.MapView.tabMaps.SelectedIndex, ItemCount - 1)
@@ -2432,6 +2427,10 @@ Error_Exit:
     Private Sub tsbSelectionObjects_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tsbSelectionObjects.Click
         Dim Map As clsMap = MainMap
 
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
         If Map.Selected_Area_VertexA Is Nothing Or Map.Selected_Area_VertexB Is Nothing Then
             Exit Sub
         End If
@@ -2442,8 +2441,8 @@ Error_Exit:
         XY_Reorder(Map.Selected_Area_VertexA.XY, Map.Selected_Area_VertexB.XY, Start, Finish)
         For A = 0 To Map.Units.ItemCount - 1
             If PosIsWithinTileArea(Map.Units.Item(A).Pos.Horizontal, Start, Finish) Then
-                If Not Map.Units.Item(A).MapLink.IsConnected Then
-                    Map.Units.Item(A).MapLink.Connect(Map.SelectedUnits)
+                If Not Map.Units.Item(A).MapSelectedUnitLink.IsConnected Then
+                    Map.Units.Item(A).MapSelectedUnitLink.Connect(Map.SelectedUnits)
                 End If
             End If
         Next
@@ -3347,47 +3346,57 @@ Error_Exit:
             Exit Sub
         End If
 
-        Dim TilePos As sXY_int
-        Dim VertexPos As sXY_int
         Dim A As Integer
         Dim tmpUnit As clsMap.clsUnit
-        Dim Average As Byte
+        Dim OilList As New SimpleClassList(Of clsMap.clsUnit)
         For A = 0 To Map.Units.ItemCount - 1
             tmpUnit = Map.Units.Item(A)
             If tmpUnit.Type Is UnitType_OilResource Then
-                TilePos = Map.GetPosTileNum(tmpUnit.Pos.Horizontal)
-                Average = CByte(Clamp_int(CInt((CInt(Map.Terrain.Vertices(TilePos.X, TilePos.Y).Height) + Map.Terrain.Vertices(TilePos.X + 1, TilePos.Y).Height + Map.Terrain.Vertices(TilePos.X, TilePos.Y + 1).Height + Map.Terrain.Vertices(TilePos.X + 1, TilePos.Y + 1).Height) / 4.0#), Byte.MinValue, Byte.MaxValue))
-
-                VertexPos = TilePos
-                Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height = Average
-                Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexPos)
-                Map.SectorUnitHeightsChanges.VertexChanged(VertexPos)
-                Map.SectorTerrainUndoChanges.VertexChanged(VertexPos)
-
-                VertexPos.X = TilePos.X + 1
-                VertexPos.Y = TilePos.Y
-                Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height = Average
-                Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexPos)
-                Map.SectorUnitHeightsChanges.VertexChanged(VertexPos)
-                Map.SectorTerrainUndoChanges.VertexChanged(VertexPos)
-
-                VertexPos.X = TilePos.X
-                VertexPos.Y = TilePos.Y + 1
-                Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height = Average
-                Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexPos)
-                Map.SectorUnitHeightsChanges.VertexChanged(VertexPos)
-                Map.SectorTerrainUndoChanges.VertexChanged(VertexPos)
-
-                VertexPos.X = TilePos.X + 1
-                VertexPos.Y = TilePos.Y + 1
-                Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height = Average
-                Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexPos)
-                Map.SectorUnitHeightsChanges.VertexChanged(VertexPos)
-                Map.SectorTerrainUndoChanges.VertexChanged(VertexPos)
+                OilList.Add(tmpUnit)
             End If
         Next
+        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
+        OilList.PerformTool(FlattenTool)
+
         Map.Update()
         Map.UndoStepCreate("Flatten Under Oil")
+    End Sub
+
+    Private Sub btnFlatStructures_Click(sender As Object, e As EventArgs) Handles btnFlatStructures.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim A As Integer
+        Dim tmpUnit As clsMap.clsUnit
+        Dim StructureList As New SimpleClassList(Of clsMap.clsUnit)
+        For A = 0 To Map.Units.ItemCount - 1
+            tmpUnit = Map.Units.Item(A)
+            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                StructureList.Add(tmpUnit)
+            End If
+        Next
+        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
+        StructureList.PerformTool(FlattenTool)
+
+        Map.Update()
+        Map.UndoStepCreate("Flatten Under Structures")
+    End Sub
+
+    Private Sub btnFlatSelected_Click(sender As Object, e As EventArgs) Handles btnFlatSelected.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
+        Map.SelectedUnits.GetItemsAsSimpleClassList.PerformTool(FlattenTool)
+
+        Map.Update()
+        Map.UndoStepCreate("Flatten Under Structures")
     End Sub
 
     Private Sub rdoFillCliffIgnore_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoFillCliffIgnore.CheckedChanged
@@ -3834,5 +3843,20 @@ Error_Exit:
         End If
         Dim Result As clsResult = LoadMap(Dialog.FileName)
         ShowWarnings(Result, "Load Map")
+    End Sub
+
+    Private Sub btnAlignObjects_Click(sender As System.Object, e As System.EventArgs) Handles btnAlignObjects.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim AlignTool As New clsMap.clsObjectAlignment
+        AlignTool.Map = Map
+        Map.SelectedUnits.GetItemsAsSimpleClassList.PerformTool(AlignTool)
+
+        Map.Update()
+        Map.UndoStepCreate("Align Objects")
     End Sub
 End Class

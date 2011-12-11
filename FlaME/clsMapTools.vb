@@ -12,9 +12,8 @@
         Dim NewTileLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y - 1)
         Dim NewSideHLimits As New sXY_int(NewTerrain.TileSize.X - 1, NewTerrain.TileSize.Y)
         Dim NewSideVLimits As New sXY_int(NewTerrain.TileSize.X, NewTerrain.TileSize.Y - 1)
-        Dim NewPosLimits As New sXY_int(NewTerrain.TileSize.X * TerrainGridSpacing - 1, NewTerrain.TileSize.Y * TerrainGridSpacing - 1)
         Dim OldTileLimits As New sXY_int(Terrain.TileSize.X - 1, Terrain.TileSize.Y - 1)
-        Dim OldPosLimits As New sXY_int(Terrain.TileSize.X * TerrainGridSpacing - 1, Terrain.TileSize.Y * TerrainGridSpacing - 1)
+        Dim OldPosLimits As New sXY_int(Terrain.TileSize.X * TerrainGridSpacing, Terrain.TileSize.Y * TerrainGridSpacing)
         Dim ReverseOrientation As sTileOrientation
         Dim TriDirection As sTileDirection
         Dim A As Integer
@@ -1872,6 +1871,15 @@
         End Sub
     End Class
 
+    Public Class clsObjectAlignment
+        Inherits clsObjectAction
+
+        Protected Overrides Sub _ActionPerform()
+
+            ResultUnit.Pos = Unit.MapLink.Source.TileAligned_Pos_From_MapPos(Unit.Pos.Horizontal, Unit.Type.GetFootprint)
+        End Sub
+    End Class
+
     Public Class clsObjectBody
         Inherits clsObjectComponent
 
@@ -1977,6 +1985,57 @@
                 End If
             Next
             _Result.Insert(Unit, A)
+        End Sub
+
+        Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem
+
+            Unit = Item
+        End Sub
+    End Class
+
+    Public Class clsObjectFlattenTerrain
+        Implements SimpleListTool(Of clsUnit)
+
+        Private Unit As clsMap.clsUnit
+
+        Public Sub ActionPerform() Implements SimpleListTool(Of clsUnit).ActionPerform
+            Dim Map As clsMap = Unit.MapLink.Source
+            Dim VertexPos As sXY_int
+            Dim X As Integer
+            Dim Y As Integer
+            Dim Total As Double
+            Dim Average As Byte
+            Dim Footprint As sXY_int = Unit.Type.GetFootprint
+            Dim Start As sXY_int
+            Dim Finish As sXY_int
+            Dim Samples As Integer
+
+            Map.GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Footprint, Start, Finish)
+
+            For Y = Start.Y To Finish.Y + 1
+                VertexPos.Y = Y
+                For X = Start.X To Finish.X + 1
+                    VertexPos.X = X
+
+                    Total += Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height
+                    Samples += 1
+                Next
+            Next
+
+            If Samples >= 1 Then
+                Average = CByte(Clamp_int(CInt(Total / Samples), Byte.MinValue, Byte.MaxValue))
+                For Y = Start.Y To Finish.Y + 1
+                    VertexPos.Y = Y
+                    For X = Start.X To Finish.X + 1
+                        VertexPos.X = X
+
+                        Map.Terrain.Vertices(VertexPos.X, VertexPos.Y).Height = Average
+                        Map.SectorGraphicsChanges.VertexAndNormalsChanged(VertexPos)
+                        Map.SectorUnitHeightsChanges.VertexChanged(VertexPos)
+                        Map.SectorTerrainUndoChanges.VertexChanged(VertexPos)
+                    Next
+                Next
+            End If
         End Sub
 
         Public Sub SetItem(Item As clsUnit) Implements SimpleListTool(Of clsUnit).SetItem

@@ -28,7 +28,7 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.24</ReleaseVersion>
+    <ReleaseVersion>1.25</ReleaseVersion>
     <OptionStrict>On</OptionStrict>
     <OutputType>WinExe</OutputType>
   </PropertyGroup>

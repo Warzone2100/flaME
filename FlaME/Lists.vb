@@ -6,7 +6,7 @@
 
     Public MaintainOrder As Boolean = False
 
-    Protected _tmpItem As ItemType
+    Public AfterMoveAction As Action(Of Integer)
 
     Public ReadOnly Property IsBusy As Boolean
         Get
@@ -22,27 +22,24 @@
 
     Public ReadOnly Property Item(ByVal Number As Integer) As ItemType
         Get
+            If Number < 0 Or Number >= _ItemCount Then
+                Stop
+                Return Nothing
+            End If
             Return _Items(Number)
         End Get
     End Property
 
-    Public Overridable Function Add(ByVal NewItem As ItemType) As Boolean
+    Public Overridable Sub Add(ByVal NewItem As ItemType)
 
         If _IsBusy Then
             Stop
-            Return False
+            Exit Sub
         End If
 
         _IsBusy = True
 
         Dim Position As Integer = _ItemCount
-
-        _tmpItem = NewItem
-
-        If Not _BeforeAdd(Position) Then
-            _IsBusy = False
-            Return False
-        End If
 
         If UBound(_Items) < _ItemCount Then
             ReDim Preserve _Items(_ItemCount * 2 + 1)
@@ -51,13 +48,9 @@
         _ItemCount += 1
 
         _IsBusy = False
+    End Sub
 
-        _AfterAdd()
-        _tmpItem = Nothing
-        Return True
-    End Function
-
-    Public Overridable Sub Insert(ByVal NewItem As ItemType, ByVal Position As Integer)
+    Public Sub Insert(ByVal NewItem As ItemType, ByVal Position As Integer)
 
         If _IsBusy Then
             Stop
@@ -71,43 +64,33 @@
 
         _IsBusy = True
 
-        _tmpItem = NewItem
-
-        If Not _BeforeAdd(Position) Then
-            _IsBusy = False
-            Exit Sub
-        End If
-
         If UBound(_Items) < _ItemCount Then
             ReDim Preserve _Items(_ItemCount * 2 + 1)
         End If
+        Dim LastNum As Integer = _ItemCount
+        _ItemCount += 1
         If MaintainOrder Then
             Dim A As Integer
             Dim NewPos As Integer
-            For A = _ItemCount - 1 To Position Step -1
+            For A = LastNum - 1 To Position Step -1
                 NewPos = A + 1
                 _Items(NewPos) = _Items(A)
-                _AfterMove(NewPos)
+                If AfterMoveAction IsNot Nothing Then
+                    AfterMoveAction(NewPos)
+                End If
             Next
         Else
-            _Items(_ItemCount) = _Items(Position)
-            _AfterMove(_ItemCount)
+            _Items(LastNum) = _Items(Position)
+            If AfterMoveAction IsNot Nothing Then
+                AfterMoveAction(LastNum)
+            End If
         End If
         _Items(Position) = NewItem
-        _ItemCount += 1
 
         _IsBusy = False
-
-        _AfterAdd()
-        _tmpItem = Nothing
     End Sub
 
-    Protected Overridable Function _BeforeAdd(ByVal Position As Integer) As Boolean
-
-        Return True
-    End Function
-
-    Public Overridable Sub Remove(ByVal Position As Integer)
+    Public Sub Remove(ByVal Position As Integer)
 
         If _IsBusy Then
             Stop
@@ -121,10 +104,6 @@
 
         _IsBusy = True
 
-        _tmpItem = _Items(Position)
-
-        _BeforeRemove(Position)
-
         _ItemCount -= 1
         If MaintainOrder Then
             Dim A As Integer
@@ -132,13 +111,17 @@
             For A = Position + 1 To _ItemCount
                 NewPos = A - 1
                 _Items(NewPos) = _Items(A)
-                _AfterMove(NewPos)
+                If AfterMoveAction IsNot Nothing Then
+                    AfterMoveAction(NewPos)
+                End If
             Next
         Else
             If Position < _ItemCount Then
                 Dim LastItem As ItemType = _Items(_ItemCount)
                 _Items(Position) = LastItem
-                _AfterMove(Position)
+                If AfterMoveAction IsNot Nothing Then
+                    AfterMoveAction(Position)
+                End If
             End If
         End If
         _Items(_ItemCount) = Nothing
@@ -147,50 +130,54 @@
         End If
 
         _IsBusy = False
-
-        _AfterRemove()
-
-        _tmpItem = Nothing
     End Sub
 
-    Protected Overridable Sub _BeforeRemove(ByVal Position As Integer)
+    Public Sub Swap(ByVal SwapPositionA As Integer, ByVal SwapPositionB As Integer)
 
+        If _IsBusy Then
+            Stop
+            Exit Sub
+        End If
 
-    End Sub
+        If SwapPositionA = SwapPositionB Then
+            Stop
+            Exit Sub
+        End If
 
-    Protected Overridable Sub _AfterAdd()
+        If SwapPositionA < 0 Or SwapPositionA >= _ItemCount Then
+            Stop
+            Exit Sub
+        End If
+        If SwapPositionB < 0 Or SwapPositionB >= _ItemCount Then
+            Stop
+            Exit Sub
+        End If
 
+        _IsBusy = True
 
-    End Sub
+        Dim tmpItem As ItemType = _Items(SwapPositionA)
+        _Items(SwapPositionA) = _Items(SwapPositionB)
+        _Items(SwapPositionB) = tmpItem
+        If AfterMoveAction IsNot Nothing Then
+            AfterMoveAction(SwapPositionA)
+            AfterMoveAction(SwapPositionB)
+        End If
 
-    Protected Overridable Sub _AfterRemove()
-
-
-    End Sub
-
-    Protected Overridable Sub _AfterMove(ByVal Position As Integer)
-
-
+        _IsBusy = False
     End Sub
 
     Public Sub Clear()
 
-        Do While _ItemCount > 0
-            Remove(_ItemCount - 1)
-        Loop
+        ReDim _Items(0)
+        _ItemCount = 0
     End Sub
 
     Public Sub Deallocate()
 
-        _Deallocate()
+        Clear()
+        _Items = Nothing
 
         _IsBusy = True
-    End Sub
-
-    Protected Overridable Sub _Deallocate()
-
-        Clear()
-        Erase _Items
     End Sub
 
     Public Sub PerformTool(ByVal Tool As SimpleListTool(Of ItemType))
@@ -219,6 +206,19 @@
             OtherList.Add(_Items(A))
         Next
     End Sub
+
+    Public Sub SendItemsShuffled(ByVal OtherList As SimpleList(Of ItemType), ByVal NumberGenerator As Random)
+        Dim A As Integer
+        Dim Copy As New SimpleList(Of ItemType)
+        Dim Position As Integer
+
+        SendItems(Copy)
+        For A = 0 To _ItemCount - 1
+            Position = Math.Min(CInt(Int(NumberGenerator.NextDouble * Copy.ItemCount)), Copy.ItemCount - 1)
+            OtherList.Add(Copy.Item(Position))
+            Copy.Remove(Position)
+        Next
+    End Sub
 End Class
 
 Public Enum SimpleClassList_AddNothingAction As Byte
@@ -232,30 +232,25 @@ Public Class SimpleClassList(Of ItemType As Class)
 
     Public AddNothingAction As SimpleClassList_AddNothingAction = SimpleClassList_AddNothingAction.Allow
 
-    Protected NotOverridable Overrides Function _BeforeAdd(Position As Integer) As Boolean
+    Public Overrides Sub Add(ByVal NewItem As ItemType)
 
         Select Case AddNothingAction
             Case SimpleClassList_AddNothingAction.Allow
-                Return _BeforeAddClass(Position)
+                MyBase.Add(NewItem)
             Case SimpleClassList_AddNothingAction.DisallowIgnore
-                Return (_tmpItem IsNot Nothing)
+                If NewItem IsNot Nothing Then
+                    MyBase.Add(NewItem)
+                End If
             Case SimpleClassList_AddNothingAction.DisallowError
-                If _tmpItem Is Nothing Then
+                If NewItem Is Nothing Then
                     Stop
-                    Return False
                 Else
-                    Return _BeforeAddClass(Position)
+                    MyBase.Add(NewItem)
                 End If
             Case Else
                 Stop
-                Return False
         End Select
-    End Function
-
-    Protected Overridable Function _BeforeAddClass(ByVal Position As Integer) As Boolean
-
-        Return True
-    End Function
+    End Sub
 
     Public Function FindFirstItemPosition(ByVal ItemToFind As ItemType) As Integer
         Dim Position As Integer
@@ -276,29 +271,15 @@ Public Interface SimpleListTool(Of ItemType)
 End Interface
 
 Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
-    Inherits SimpleClassList(Of ConnectedListItem(Of ItemType, SourceType))
 
+    Private _Items As New SimpleClassList(Of ConnectedListItem(Of ItemType, SourceType))
     Private _Owner As SourceType
 
     Public Sub New(ByVal Owner As SourceType)
 
         _Owner = Owner
-        AddNothingAction = SimpleClassList_AddNothingAction.DisallowError
-    End Sub
-
-    Public Overrides Function Add(NewItem As ConnectedListItem(Of ItemType, SourceType)) As Boolean
-        Return MyBase.Add(NewItem)
-        'do not refer to this
-    End Function
-
-    Public Overrides Sub Insert(NewItem As ConnectedListItem(Of ItemType, SourceType), Position As Integer)
-        MyBase.Insert(NewItem, Position)
-        'do not refer to this
-    End Sub
-
-    Public Overrides Sub Remove(Position As Integer)
-        MyBase.Remove(Position)
-        'do not refer to this
+        _Items.AddNothingAction = SimpleClassList_AddNothingAction.DisallowError
+        _Items.AfterMoveAction = AddressOf _AfterMove
     End Sub
 
     Public ReadOnly Property Owner As SourceType
@@ -307,62 +288,65 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
+    Public Property MaintainOrder As Boolean
+        Get
+            Return _Items.MaintainOrder
+        End Get
+        Set(value As Boolean)
+            _Items.MaintainOrder = value
+        End Set
+    End Property
+
+    Public ReadOnly Property IsBusy As Boolean
+        Get
+            Return _Items.IsBusy
+        End Get
+    End Property
+
     Public ReadOnly Property ItemContainer(ByVal Position As Integer) As ConnectedListItem(Of ItemType, SourceType)
         Get
-            Return MyBase.Item(Position)
+            Return _Items.Item(Position)
         End Get
     End Property
 
-    Public Shadows ReadOnly Property Item(ByVal Position As Integer) As ItemType
+    Public ReadOnly Property Item(ByVal Position As Integer) As ItemType
         Get
-            Return MyBase.Item(Position).Item
+            Return _Items.Item(Position).Item
         End Get
     End Property
 
-    Protected NotOverridable Overrides Function _BeforeAddClass(ByVal Position As Integer) As Boolean
+    Public ReadOnly Property ItemCount() As Integer
+        Get
+            Return _Items.ItemCount
+        End Get
+    End Property
 
-        If _BeforeConnect() Then
-            If _tmpItem Is Nothing Then
-                Return True
-            Else
-                'Return _tmpItem.BeforeAdd(Me, Position) ' -- mono is unable to do this
-                Return _tmpItem.BeforeAdd(Nothing, Position)
-            End If
-        Else
-            Return False
-        End If
-    End Function
-
-    Protected Overridable Function _BeforeConnect() As Boolean
-
-        Return True
-    End Function
-
-    Protected NotOverridable Overrides Sub _BeforeRemove(Position As Integer)
-
-        _BeforeDisconnect()
-        _tmpItem.BeforeRemove()
-    End Sub
-
-    Protected Overridable Sub _BeforeDisconnect()
-
-
-    End Sub
-
-    Protected NotOverridable Overrides Sub _AfterRemove()
-
-        _tmpItem.AfterRemove()
-        _AfterDisconnect()
-    End Sub
-
-    Protected Overridable Sub _AfterDisconnect()
-
-
-    End Sub
-
-    Protected NotOverridable Overrides Sub _AfterMove(Position As Integer)
+    Private Sub _AfterMove(Position As Integer)
 
         ItemContainer(Position).AfterMove(Position)
+    End Sub
+
+    Public Overridable Sub Add(ByVal NewItem As ConnectedListItem(Of ItemType, SourceType))
+
+        If NewItem.BeforeAdd(Nothing, _Items.ItemCount) Then
+            _Items.Add(NewItem)
+        End If
+    End Sub
+
+    Public Overridable Sub Insert(ByVal NewItem As ConnectedListItem(Of ItemType, SourceType), ByVal Position As Integer)
+
+        If NewItem.BeforeAdd(Nothing, Position) Then
+            _Items.Insert(NewItem, Position)
+        End If
+    End Sub
+
+    Public Overridable Sub Remove(ByVal Position As Integer)
+        Dim tmpItem As ConnectedListItem(Of ItemType, SourceType)
+
+        tmpItem = _Items.Item(Position)
+        tmpItem.BeforeRemove()
+        _Items.Remove(Position)
+        tmpItem.AfterRemove()
     End Sub
 
     Public Function FindLink(ByVal ItemToFind As ItemType) As ConnectedListItem(Of ItemType, SourceType)
@@ -378,10 +362,13 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         Return Nothing
     End Function
 
-    Protected NotOverridable Overrides Sub _Deallocate()
-        MyBase._Deallocate()
+    Public Sub Deallocate()
 
+        Do While ItemCount > 0
+            Remove(0)
+        Loop
         _Owner = Nothing
+        _Items.AfterMoveAction = Nothing
     End Sub
 
     Public Function GetItemsAsSimpleClassList() As SimpleClassList(Of ItemType)
@@ -393,20 +380,28 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         Next
         Return Result
     End Function
+
+    Public Sub Clear()
+
+        Do While _Items.ItemCount > 0
+            _Items.Item(0).Disconnect()
+        Loop
+    End Sub
 End Class
 
-Public Interface ConnectedListItem(Of ItemType As Class, SourceType As Class)
+Public MustInherit Class ConnectedListItem(Of ItemType As Class, SourceType As Class)
 
-    ReadOnly Property Item As ItemType
-    ReadOnly Property Source As SourceType
-    Function BeforeAdd(ByVal NewList As ConnectedList(Of ItemType, SourceType), ByVal NewPosition As Integer) As Boolean
-    Sub BeforeRemove()
-    Sub AfterRemove()
-    Sub AfterMove(ByVal NewPosition As Integer)
-End Interface
+    MustOverride ReadOnly Property Item As ItemType
+    MustOverride ReadOnly Property Source As SourceType
+    MustOverride Function BeforeAdd(ByVal NewList As ConnectedList(Of ItemType, SourceType), ByVal NewPosition As Integer) As Boolean
+    MustOverride Sub BeforeRemove()
+    MustOverride Sub AfterRemove()
+    MustOverride Sub AfterMove(ByVal NewPosition As Integer)
+    MustOverride Sub Disconnect()
+End Class
 
 Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
-    Implements ConnectedListItem(Of ItemType, SourceType)
+    Inherits ConnectedListItem(Of ItemType, SourceType)
 
     Private _Item As ItemType
     Private _ConnectedList As ConnectedList(Of ItemType, SourceType)
@@ -435,24 +430,24 @@ Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
-    Public Sub AfterMove(ByVal NewPosition As Integer) Implements ConnectedListItem(Of ItemType, SourceType).AfterMove
+    Public Overrides Sub AfterMove(ByVal NewPosition As Integer)
 
         _ArrayPosition = NewPosition
     End Sub
 
-    Public Sub BeforeRemove() Implements ConnectedListItem(Of ItemType, SourceType).BeforeRemove
+    Public Overrides Sub BeforeRemove()
 
         _ConnectedList = Nothing
         _ArrayPosition = -1
     End Sub
 
-    Public ReadOnly Property Item As ItemType Implements ConnectedListItem(Of ItemType, SourceType).Item
+    Public Overrides ReadOnly Property Item As ItemType
         Get
             Return _Item
         End Get
     End Property
 
-    Public ReadOnly Property Source As SourceType Implements ConnectedListItem(Of ItemType, SourceType).Source
+    Public Overrides ReadOnly Property Source As SourceType
         Get
             If IsConnected Then
                 Return _ConnectedList.Owner
@@ -462,22 +457,29 @@ Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
-    Public Function Connect(ByVal List As ConnectedList(Of ItemType, SourceType)) As Boolean
+    Public Sub Connect(ByVal List As ConnectedList(Of ItemType, SourceType))
 
         If IsConnected Then
             Stop
-            Return False
+            Exit Sub
         End If
 
-        If List.Add(Me) Then
-            _ConnectedList = List
-            Return True
-        Else
-            Return False
-        End If
-    End Function
+        List.Add(Me)
+        _ConnectedList = List
+    End Sub
 
-    Public Sub Disconnect()
+    Public Sub ConnectInsert(ByVal List As ConnectedList(Of ItemType, SourceType), ByVal Position As Integer)
+
+        If IsConnected Then
+            Stop
+            Exit Sub
+        End If
+
+        List.Insert(Me, Position)
+        _ConnectedList = List
+    End Sub
+
+    Public Overrides Sub Disconnect()
 
         If _ConnectedList Is Nothing Then
             Stop
@@ -495,14 +497,16 @@ Public Class ConnectedListLink(Of ItemType As Class, SourceType As Class)
         _Item = Nothing
     End Sub
 
-    Public Overridable Sub AfterRemove() Implements ConnectedListItem(Of ItemType, SourceType).AfterRemove
+    Public Overrides Sub AfterRemove()
 
-
+        _ArrayPosition = -1
+        _ConnectedList = Nothing
     End Sub
 
-    Public Function BeforeAdd(NewList As ConnectedList(Of ItemType, SourceType), NewPosition As Integer) As Boolean Implements ConnectedListItem(Of ItemType, SourceType).BeforeAdd
+    Public Overrides Function BeforeAdd(NewList As ConnectedList(Of ItemType, SourceType), NewPosition As Integer) As Boolean
 
         If IsConnected Then
+            Stop
             Return False
         End If
         '_ConnectedList = NewList -- mono is unable to pass newlist

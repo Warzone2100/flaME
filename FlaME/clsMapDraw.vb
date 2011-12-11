@@ -755,28 +755,22 @@ Partial Public Class clsMap
         GL.Begin(BeginMode.Quads)
         For A = 0 To SelectedUnits.ItemCount - 1
             tmpUnit = SelectedUnits.Item(A)
-            XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
-            XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
-            XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
             Footprint = tmpUnit.Type.GetFootprint
             RGB_sng = GetUnitGroupColour(tmpUnit.UnitGroup)
             ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
             ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.75F)
-            DrawUnitRectangle(XYZ_dbl, Footprint, 8.0#, ColourA, ColourB)
+            DrawUnitRectangle(tmpUnit, 8, ColourA, ColourB)
         Next
         If MouseOverTerrain IsNot Nothing Then
             For A = 0 To MouseOverTerrain.Units.ItemCount - 1
                 tmpUnit = MouseOverTerrain.Units.Item(A)
                 If tmpUnit IsNot Nothing And Tool = enumTool.None Then
-                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
-                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
-                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
                     RGB_sng = GetUnitGroupColour(tmpUnit.UnitGroup)
                     GL.Color4((0.5F + RGB_sng.Red) / 1.5F, (0.5F + RGB_sng.Green) / 1.5F, (0.5F + RGB_sng.Blue) / 1.5F, 0.75F)
                     Footprint = tmpUnit.Type.GetFootprint
                     ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
                     ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.875F)
-                    DrawUnitRectangle(XYZ_dbl, Footprint, 16.0#, ColourA, ColourB)
+                    DrawUnitRectangle(tmpUnit, 16, ColourA, ColourB)
                 End If
             Next
         End If
@@ -907,51 +901,46 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Sub DrawUnitRectangle(ByVal Position As Matrix3D.XYZ_dbl, ByVal Footprint As sXY_int, ByVal BorderInsideThickness As Double, ByVal InsideColour As sRGBA_sng, ByVal OutsideColour As sRGBA_sng)
-        Dim PosA As sXY_dbl
-        Dim PosB As sXY_dbl
-        Dim PosC As sXY_dbl
-        Dim PosD As sXY_dbl
+    Public Sub DrawUnitRectangle(ByVal Unit As clsMap.clsUnit, ByVal BorderInsideThickness As Integer, ByVal InsideColour As sRGBA_sng, ByVal OutsideColour As sRGBA_sng)
+        Dim PosA As sXY_int
+        Dim PosB As sXY_int
+        Dim A As Integer
+        Dim Altitude As Integer = Unit.Pos.Altitude - ViewInfo.ViewPos.Y
 
-        PosA.X = Position.X - (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
-        PosA.Y = Position.Z - (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
-
-        PosB.X = Position.X + (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
-        PosB.Y = Position.Z - (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
-
-        PosC.X = Position.X - (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
-        PosC.Y = Position.Z + (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
-
-        PosD.X = Position.X + (Footprint.X - 0.125#) * TerrainGridSpacing / 2.0#
-        PosD.Y = Position.Z + (Footprint.Y - 0.125#) * TerrainGridSpacing / 2.0#
+        GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Unit.Type.GetFootprint, PosA, PosB)
+        A = PosA.Y
+        PosA.X = CInt((PosA.X + 0.125#) * TerrainGridSpacing - ViewInfo.ViewPos.X)
+        PosA.Y = CInt((PosB.Y + 0.875#) * -TerrainGridSpacing - ViewInfo.ViewPos.Z)
+        PosB.X = CInt((PosB.X + 0.875#) * TerrainGridSpacing - ViewInfo.ViewPos.X)
+        PosB.Y = CInt((A + 0.125#) * -TerrainGridSpacing - ViewInfo.ViewPos.Z)
 
         GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
-        GL.Vertex3(PosB.X, Position.Y, -PosB.Y)
-        GL.Vertex3(PosA.X, Position.Y, -PosA.Y)
+        GL.Vertex3(PosB.X, Altitude, -PosA.Y)
+        GL.Vertex3(PosA.X, Altitude, -PosA.Y)
         GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
-        GL.Vertex3(PosA.X + BorderInsideThickness, Position.Y, -(PosA.Y + BorderInsideThickness))
-        GL.Vertex3(PosB.X - BorderInsideThickness, Position.Y, -(PosB.Y + BorderInsideThickness))
+        GL.Vertex3(PosA.X + BorderInsideThickness, Altitude, -(PosA.Y + BorderInsideThickness))
+        GL.Vertex3(PosB.X - BorderInsideThickness, Altitude, -(PosA.Y + BorderInsideThickness))
 
         GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
-        GL.Vertex3(PosA.X, Position.Y, -PosA.Y)
-        GL.Vertex3(PosC.X, Position.Y, -PosC.Y)
+        GL.Vertex3(PosA.X, Altitude, -PosA.Y)
+        GL.Vertex3(PosA.X, Altitude, -PosB.Y)
         GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
-        GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
-        GL.Vertex3(PosA.X + BorderInsideThickness, Position.Y, -(PosA.Y + BorderInsideThickness))
+        GL.Vertex3(PosA.X + BorderInsideThickness, Altitude, -(PosB.Y - BorderInsideThickness))
+        GL.Vertex3(PosA.X + BorderInsideThickness, Altitude, -(PosA.Y + BorderInsideThickness))
 
         GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
-        GL.Vertex3(PosD.X, Position.Y, -PosD.Y)
-        GL.Vertex3(PosB.X, Position.Y, -PosA.Y)
+        GL.Vertex3(PosB.X, Altitude, -PosB.Y)
+        GL.Vertex3(PosB.X, Altitude, -PosA.Y)
         GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
-        GL.Vertex3(PosB.X - BorderInsideThickness, Position.Y, -(PosB.Y + BorderInsideThickness))
-        GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
+        GL.Vertex3(PosB.X - BorderInsideThickness, Altitude, -(PosA.Y + BorderInsideThickness))
+        GL.Vertex3(PosB.X - BorderInsideThickness, Altitude, -(PosB.Y - BorderInsideThickness))
 
         GL.Color4(OutsideColour.Red, OutsideColour.Green, OutsideColour.Blue, OutsideColour.Alpha)
-        GL.Vertex3(PosC.X, Position.Y, -PosC.Y)
-        GL.Vertex3(PosD.X, Position.Y, -PosD.Y)
+        GL.Vertex3(PosA.X, Altitude, -PosB.Y)
+        GL.Vertex3(PosB.X, Altitude, -PosB.Y)
         GL.Color4(InsideColour.Red, InsideColour.Green, InsideColour.Blue, InsideColour.Alpha)
-        GL.Vertex3(PosD.X - BorderInsideThickness, Position.Y, -(PosD.Y - BorderInsideThickness))
-        GL.Vertex3(PosC.X + BorderInsideThickness, Position.Y, -(PosC.Y - BorderInsideThickness))
+        GL.Vertex3(PosB.X - BorderInsideThickness, Altitude, -(PosB.Y - BorderInsideThickness))
+        GL.Vertex3(PosA.X + BorderInsideThickness, Altitude, -(PosB.Y - BorderInsideThickness))
     End Sub
 
     Public Class clsDrawTileOutline

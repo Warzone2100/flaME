@@ -112,7 +112,11 @@ Partial Class frmMain
         Me.txtHeightSetL = New System.Windows.Forms.TextBox()
         Me.Label5 = New System.Windows.Forms.Label()
         Me.tpAutoHeight = New System.Windows.Forms.TabPage()
+        Me.GroupBox2 = New System.Windows.Forms.GroupBox()
         Me.btnFlatOil = New System.Windows.Forms.Button()
+        Me.btnFlatSelected = New System.Windows.Forms.Button()
+        Me.btnFlatStructures = New System.Windows.Forms.Button()
+        Me.btnAlignObjects = New System.Windows.Forms.Button()
         Me.btnGenerator = New System.Windows.Forms.Button()
         Me.btnWaterTri = New System.Windows.Forms.Button()
         Me.btnReinterpretTerrain = New System.Windows.Forms.Button()
@@ -294,6 +298,7 @@ Partial Class frmMain
         Me.tabHeightSetR.SuspendLayout()
         Me.tabHeightSetL.SuspendLayout()
         Me.tpAutoHeight.SuspendLayout()
+        Me.GroupBox2.SuspendLayout()
         Me.tpResize.SuspendLayout()
         Me.tpObjects.SuspendLayout()
         Me.TableLayoutPanel1.SuspendLayout()
@@ -1399,7 +1404,8 @@ Partial Class frmMain
         '
         'tpAutoHeight
         '
-        Me.tpAutoHeight.Controls.Add(Me.btnFlatOil)
+        Me.tpAutoHeight.Controls.Add(Me.GroupBox2)
+        Me.tpAutoHeight.Controls.Add(Me.btnAlignObjects)
         Me.tpAutoHeight.Controls.Add(Me.btnGenerator)
         Me.tpAutoHeight.Controls.Add(Me.btnWaterTri)
         Me.tpAutoHeight.Controls.Add(Me.btnReinterpretTerrain)
@@ -1412,20 +1418,65 @@ Partial Class frmMain
         Me.tpAutoHeight.Text = "Misc"
         Me.tpAutoHeight.UseVisualStyleBackColor = True
         '
+        'GroupBox2
+        '
+        Me.GroupBox2.Controls.Add(Me.btnFlatOil)
+        Me.GroupBox2.Controls.Add(Me.btnFlatSelected)
+        Me.GroupBox2.Controls.Add(Me.btnFlatStructures)
+        Me.GroupBox2.Location = New System.Drawing.Point(4, 117)
+        Me.GroupBox2.Name = "GroupBox2"
+        Me.GroupBox2.Size = New System.Drawing.Size(237, 141)
+        Me.GroupBox2.TabIndex = 8
+        Me.GroupBox2.TabStop = False
+        Me.GroupBox2.Text = "Flatten Terrain"
+        '
         'btnFlatOil
         '
-        Me.btnFlatOil.Location = New System.Drawing.Point(4, 80)
+        Me.btnFlatOil.Location = New System.Drawing.Point(7, 22)
         Me.btnFlatOil.Margin = New System.Windows.Forms.Padding(4)
         Me.btnFlatOil.Name = "btnFlatOil"
         Me.btnFlatOil.Size = New System.Drawing.Size(223, 30)
         Me.btnFlatOil.TabIndex = 4
-        Me.btnFlatOil.Text = "Flatten Under Oils"
+        Me.btnFlatOil.Text = "All Oils"
         Me.btnFlatOil.UseCompatibleTextRendering = True
         Me.btnFlatOil.UseVisualStyleBackColor = True
         '
+        'btnFlatSelected
+        '
+        Me.btnFlatSelected.Location = New System.Drawing.Point(7, 98)
+        Me.btnFlatSelected.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnFlatSelected.Name = "btnFlatSelected"
+        Me.btnFlatSelected.Size = New System.Drawing.Size(223, 30)
+        Me.btnFlatSelected.TabIndex = 7
+        Me.btnFlatSelected.Text = "Selected Objects"
+        Me.btnFlatSelected.UseCompatibleTextRendering = True
+        Me.btnFlatSelected.UseVisualStyleBackColor = True
+        '
+        'btnFlatStructures
+        '
+        Me.btnFlatStructures.Location = New System.Drawing.Point(7, 60)
+        Me.btnFlatStructures.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnFlatStructures.Name = "btnFlatStructures"
+        Me.btnFlatStructures.Size = New System.Drawing.Size(223, 30)
+        Me.btnFlatStructures.TabIndex = 5
+        Me.btnFlatStructures.Text = "All Structures"
+        Me.btnFlatStructures.UseCompatibleTextRendering = True
+        Me.btnFlatStructures.UseVisualStyleBackColor = True
+        '
+        'btnAlignStructures
+        '
+        Me.btnAlignObjects.Location = New System.Drawing.Point(4, 80)
+        Me.btnAlignObjects.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnAlignObjects.Name = "btnAlignStructures"
+        Me.btnAlignObjects.Size = New System.Drawing.Size(223, 30)
+        Me.btnAlignObjects.TabIndex = 6
+        Me.btnAlignObjects.Text = "Realign Selected Objects"
+        Me.btnAlignObjects.UseCompatibleTextRendering = True
+        Me.btnAlignObjects.UseVisualStyleBackColor = True
+        '
         'btnGenerator
         '
-        Me.btnGenerator.Location = New System.Drawing.Point(4, 156)
+        Me.btnGenerator.Location = New System.Drawing.Point(4, 303)
         Me.btnGenerator.Margin = New System.Windows.Forms.Padding(4)
         Me.btnGenerator.Name = "btnGenerator"
         Me.btnGenerator.Size = New System.Drawing.Size(223, 30)
@@ -1458,7 +1509,7 @@ Partial Class frmMain
         '
         'btnAutoTri
         '
-        Me.btnAutoTri.Location = New System.Drawing.Point(4, 118)
+        Me.btnAutoTri.Location = New System.Drawing.Point(4, 265)
         Me.btnAutoTri.Margin = New System.Windows.Forms.Padding(4)
         Me.btnAutoTri.Name = "btnAutoTri"
         Me.btnAutoTri.Size = New System.Drawing.Size(223, 30)
@@ -3101,69 +3152,70 @@ Partial Class frmMain
         Me.SplitContainer1.Panel1.ResumeLayout(False)
         Me.SplitContainer1.Panel2.ResumeLayout(False)
         Me.SplitContainer1.ResumeLayout(False)
-        Me.TabControl.ResumeLayout(false)
-        Me.tpTextures.ResumeLayout(false)
-        Me.TableLayoutPanel6.ResumeLayout(false)
-        Me.Panel5.ResumeLayout(false)
-        Me.Panel5.PerformLayout
-        Me.Panel6.ResumeLayout(false)
-        Me.tpAutoTexture.ResumeLayout(false)
-        Me.tpAutoTexture.PerformLayout
-        Me.Panel15.ResumeLayout(false)
-        Me.Panel15.PerformLayout
-        Me.tpHeight.ResumeLayout(false)
-        Me.tpHeight.PerformLayout
-        Me.tabHeightSetR.ResumeLayout(false)
-        Me.tabHeightSetL.ResumeLayout(false)
-        Me.tpAutoHeight.ResumeLayout(false)
-        Me.tpResize.ResumeLayout(false)
-        Me.tpResize.PerformLayout
-        Me.tpObjects.ResumeLayout(false)
-        Me.TableLayoutPanel1.ResumeLayout(false)
-        Me.TableLayoutPanel4.ResumeLayout(false)
-        Me.Panel4.ResumeLayout(false)
-        Me.TableLayoutPanel3.ResumeLayout(false)
-        Me.Panel3.ResumeLayout(false)
-        Me.Panel1.ResumeLayout(false)
-        Me.Panel1.PerformLayout
-        Me.TableLayoutPanel2.ResumeLayout(false)
-        Me.Panel2.ResumeLayout(false)
-        Me.tpObject.ResumeLayout(false)
-        Me.TableLayoutPanel8.ResumeLayout(false)
-        Me.TableLayoutPanel9.ResumeLayout(false)
-        Me.Panel13.ResumeLayout(false)
-        Me.Panel13.PerformLayout
-        Me.Panel12.ResumeLayout(false)
-        Me.Panel12.PerformLayout
-        Me.Panel11.ResumeLayout(false)
-        Me.Panel11.PerformLayout
-        Me.Panel10.ResumeLayout(false)
-        Me.Panel9.ResumeLayout(false)
-        Me.Panel8.ResumeLayout(false)
-        Me.Panel14.ResumeLayout(false)
-        Me.Panel14.PerformLayout
-        Me.tpCampaignMarkers.ResumeLayout(false)
-        Me.tpCampaignMarkers.PerformLayout
-        Me.GroupBox1.ResumeLayout(false)
-        Me.GroupBox1.PerformLayout
-        Me.TableLayoutPanel7.ResumeLayout(false)
-        Me.Panel7.ResumeLayout(false)
-        Me.Panel7.PerformLayout
-        Me.tsTools.ResumeLayout(false)
-        Me.tsTools.PerformLayout
-        Me.tsFile.ResumeLayout(false)
-        Me.tsFile.PerformLayout
-        Me.tsSelection.ResumeLayout(false)
-        Me.tsSelection.PerformLayout
-        Me.tsMinimap.ResumeLayout(false)
-        Me.tsMinimap.PerformLayout
-        Me.menuMain.ResumeLayout(false)
-        Me.menuMain.PerformLayout
-        Me.TableLayoutPanel5.ResumeLayout(false)
-        Me.TableLayoutPanel5.PerformLayout
-        Me.ResumeLayout(false)
+        Me.TabControl.ResumeLayout(False)
+        Me.tpTextures.ResumeLayout(False)
+        Me.TableLayoutPanel6.ResumeLayout(False)
+        Me.Panel5.ResumeLayout(False)
+        Me.Panel5.PerformLayout()
+        Me.Panel6.ResumeLayout(False)
+        Me.tpAutoTexture.ResumeLayout(False)
+        Me.tpAutoTexture.PerformLayout()
+        Me.Panel15.ResumeLayout(False)
+        Me.Panel15.PerformLayout()
+        Me.tpHeight.ResumeLayout(False)
+        Me.tpHeight.PerformLayout()
+        Me.tabHeightSetR.ResumeLayout(False)
+        Me.tabHeightSetL.ResumeLayout(False)
+        Me.tpAutoHeight.ResumeLayout(False)
+        Me.GroupBox2.ResumeLayout(False)
+        Me.tpResize.ResumeLayout(False)
+        Me.tpResize.PerformLayout()
+        Me.tpObjects.ResumeLayout(False)
+        Me.TableLayoutPanel1.ResumeLayout(False)
+        Me.TableLayoutPanel4.ResumeLayout(False)
+        Me.Panel4.ResumeLayout(False)
+        Me.TableLayoutPanel3.ResumeLayout(False)
+        Me.Panel3.ResumeLayout(False)
+        Me.Panel1.ResumeLayout(False)
+        Me.Panel1.PerformLayout()
+        Me.TableLayoutPanel2.ResumeLayout(False)
+        Me.Panel2.ResumeLayout(False)
+        Me.tpObject.ResumeLayout(False)
+        Me.TableLayoutPanel8.ResumeLayout(False)
+        Me.TableLayoutPanel9.ResumeLayout(False)
+        Me.Panel13.ResumeLayout(False)
+        Me.Panel13.PerformLayout()
+        Me.Panel12.ResumeLayout(False)
+        Me.Panel12.PerformLayout()
+        Me.Panel11.ResumeLayout(False)
+        Me.Panel11.PerformLayout()
+        Me.Panel10.ResumeLayout(False)
+        Me.Panel9.ResumeLayout(False)
+        Me.Panel8.ResumeLayout(False)
+        Me.Panel14.ResumeLayout(False)
+        Me.Panel14.PerformLayout()
+        Me.tpCampaignMarkers.ResumeLayout(False)
+        Me.tpCampaignMarkers.PerformLayout()
+        Me.GroupBox1.ResumeLayout(False)
+        Me.GroupBox1.PerformLayout()
+        Me.TableLayoutPanel7.ResumeLayout(False)
+        Me.Panel7.ResumeLayout(False)
+        Me.Panel7.PerformLayout()
+        Me.tsTools.ResumeLayout(False)
+        Me.tsTools.PerformLayout()
+        Me.tsFile.ResumeLayout(False)
+        Me.tsFile.PerformLayout()
+        Me.tsSelection.ResumeLayout(False)
+        Me.tsSelection.PerformLayout()
+        Me.tsMinimap.ResumeLayout(False)
+        Me.tsMinimap.PerformLayout()
+        Me.menuMain.ResumeLayout(False)
+        Me.menuMain.PerformLayout()
+        Me.TableLayoutPanel5.ResumeLayout(False)
+        Me.TableLayoutPanel5.PerformLayout()
+        Me.ResumeLayout(False)
 
-End Sub
+    End Sub
     Public WithEvents SplitContainer1 As System.Windows.Forms.SplitContainer
     Public WithEvents tpTextures As System.Windows.Forms.TabPage
     Public WithEvents tpHeight As System.Windows.Forms.TabPage
@@ -3422,4 +3474,8 @@ End Sub
     Public WithEvents Label11 As System.Windows.Forms.Label
     Public WithEvents txtObjectLabel As System.Windows.Forms.TextBox
     Public WithEvents Label17 As System.Windows.Forms.Label
+    Public WithEvents btnAlignObjects As System.Windows.Forms.Button
+    Public WithEvents btnFlatStructures As System.Windows.Forms.Button
+    Friend WithEvents GroupBox2 As System.Windows.Forms.GroupBox
+    Public WithEvents btnFlatSelected As System.Windows.Forms.Button
 End Class
