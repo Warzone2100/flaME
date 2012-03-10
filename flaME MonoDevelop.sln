@@ -20,7 +20,7 @@ Global
 		$0.TextStylePolicy = $2
 		$2.inheritsSet = null
 		$2.scope = text/x-vb
-		version = 1.25
+		version = 1.26
 		outputpath = FlaME\bin\MonoDevelop\
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution

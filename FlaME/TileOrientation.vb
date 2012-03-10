@@ -335,8 +335,8 @@
         Return ReturnResult
     End Function
 
-    Public Function GetTileRotatedPos_dbl(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_dbl) As sXY_dbl
-        Dim ReturnResult As sXY_dbl
+    Public Function GetTileRotatedPos_dbl(ByVal TileOrientation As sTileOrientation, ByVal Pos As Matrix3D.XY_dbl) As Matrix3D.XY_dbl
+        Dim ReturnResult As Matrix3D.XY_dbl
 
         If TileOrientation.SwitchedAxes Then
             If TileOrientation.ResultXFlip Then
@@ -396,12 +396,12 @@
     End Function
 
     Public Function GetRotatedAngle(ByVal Orientation As sTileOrientation, ByVal Angle As Double) As Double
-        Dim XY_dbl As sXY_dbl
+        Dim XY_dbl As Matrix3D.XY_dbl
 
-        XY_dbl = GetTileRotatedPos_dbl(Orientation, New sXY_dbl((Math.Cos(Angle) + 1.0#) / 2.0#, (Math.Sin(Angle) + 1.0#) / 2.0#))
+        XY_dbl = GetTileRotatedPos_dbl(Orientation, New Matrix3D.XY_dbl((Math.Cos(Angle) + 1.0#) / 2.0#, (Math.Sin(Angle) + 1.0#) / 2.0#))
         XY_dbl.X = XY_dbl.X * 2.0# - 1.0#
         XY_dbl.Y = XY_dbl.Y * 2.0# - 1.0#
-        Return XY_dbl.GetAngle
+        Return Math.Atan2(XY_dbl.Y, XY_dbl.X)
     End Function
 
     Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)

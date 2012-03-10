@@ -55,7 +55,7 @@
 
         Public Sub CalcPos()
             Dim A As Integer
-            Dim Total As sXY_dbl
+            Dim Total As Matrix3D.XY_dbl
 
             For A = 0 To NodeCount - 1
                 Total.X += Nodes(A).Pos.X
@@ -307,7 +307,7 @@
         Dim EdgeOffset As Integer = 0 * 128
         Dim PointIsValid As Boolean
         Dim EdgeSections As sXY_int
-        Dim EdgeSectionSize As sXY_dbl
+        Dim EdgeSectionSize As Matrix3D.XY_dbl
         Dim NewPointPos As sXY_int
 
         If SymmetryBlockCountXY.X = 1 Then
@@ -955,7 +955,7 @@ PointMakingFinished:
         Return CSng(GetDist_XY_int(TagA.Pos, TagB.Pos))
     End Function
 
-    Public Sub CalcNodePos(ByVal Node As PathfinderNode, ByRef Pos As sXY_dbl, ByRef SampleCount As Integer)
+    Public Sub CalcNodePos(ByVal Node As PathfinderNode, ByRef Pos As Matrix3D.XY_dbl, ByRef SampleCount As Integer)
 
         If Node.GetLayer.GetNetwork_LayerNum = 0 Then
             Dim NodeTag As clsNodeTag
@@ -1055,7 +1055,7 @@ PointMakingFinished:
 
         'set position of jitter layer nodes
 
-        Dim XY_dbl As sXY_dbl
+        Dim XY_dbl As Matrix3D.XY_dbl
 
         If A > 0 Then
             For B = 0 To A

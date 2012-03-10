@@ -6,7 +6,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.25"
+    Public Const ProgramVersionNumber As String = "1.26"
 
 #If Mono <> 0.0# Then
     #If Mono267 <> 0.0# Then
@@ -37,6 +37,8 @@ Public Module modProgram
     Public MinimapFeatureColour As sRGB_sng
 
     Public PlatformPathSeparator As Char
+
+    Public Debug_GL As Boolean = False
 
     Public MyDocumentsProgramPath As String
 
@@ -123,10 +125,10 @@ Public Module modProgram
     'script marker controls
     Public Control_ScriptPosition As clsInputControl
 
-    Public TextureBrush As New clsBrush(0.125#, clsBrush.enumShape.Circle)
-    Public TerrainBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
-    Public HeightBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
-    Public CliffBrush As New clsBrush(1.875#, clsBrush.enumShape.Circle)
+    Public TextureBrush As New clsBrush(0.0#, clsBrush.enumShape.Circle)
+    Public TerrainBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
+    Public HeightBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
+    Public CliffBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
 
     Public SmoothRadius As New clsBrush(1.0#, clsBrush.enumShape.Square)
 
@@ -136,6 +138,8 @@ Public Module modProgram
     Public DisplayTileOrientation As Boolean
 
     Public Settings As clsSettings
+
+    Public ObjectData As New clsObjectData
 
     Public Enum enumTool As Byte
         None
@@ -180,6 +184,14 @@ Public Module modProgram
     Public ReadOnly ASCIIEncoding As New System.Text.ASCIIEncoding
 
     Public Const INIRotationMax As Integer = 65536
+
+    Public Enum enumTileWalls As Integer
+        None = 0
+        Left = 1
+        Right = 2
+        Top = 4
+        Bottom = 8
+    End Enum
 
     Public Enum enumObjectRotateMode As Byte
         None
@@ -446,224 +458,6 @@ Public Module modProgram
         End Function
     End Class
 
-    Public Class clsBrush
-
-        Public Structure sPosNum
-            Public Normal As sXY_int
-            Public Alignment As sXY_int
-        End Structure
-
-        Private _Radius As Double
-        Public Enum enumShape As Byte
-            Circle
-            Square
-        End Enum
-        Private _Shape As enumShape = enumShape.Circle
-
-        Public Tiles As sBrushTiles
-
-        Public ReadOnly Property Alignment As Boolean
-            Get
-                Return _Alignment
-            End Get
-        End Property
-        Private _Alignment As Boolean
-
-        Public Property Radius As Double
-            Get
-                Return _Radius
-            End Get
-            Set(ByVal value As Double)
-                If _Radius = value Then
-                    Exit Property
-                End If
-                _Radius = value
-                CreateTiles()
-            End Set
-        End Property
-
-        Public Property Shape As enumShape
-            Get
-                Return _Shape
-            End Get
-            Set(ByVal value As enumShape)
-                If _Shape = value Then
-                    Exit Property
-                End If
-                _Shape = value
-                CreateTiles()
-            End Set
-        End Property
-
-        Private Sub CreateTiles()
-            Dim AlignmentOffset As Double = _Radius - Int(_Radius)
-
-            _Alignment = (AlignmentOffset >= 0.25# And AlignmentOffset < 0.75#)
-            Select Case _Shape
-                Case enumShape.Circle
-                    Tiles.CreateCircle(_Radius, 1.0#, _Alignment)
-                Case enumShape.Square
-                    Tiles.CreateSquare(_Radius, 1.0#, _Alignment)
-            End Select
-        End Sub
-
-        Public Sub New(ByVal InitialRadius As Double, ByVal InitialShape As enumShape)
-
-            _Radius = InitialRadius
-            _Shape = InitialShape
-            CreateTiles()
-        End Sub
-
-        Public Sub PerformActionMapTiles(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
-
-            PerformAction(Tool, Centre, New sXY_int(Tool.Map.Terrain.TileSize.X - 1, Tool.Map.Terrain.TileSize.Y - 1))
-        End Sub
-
-        Public Sub PerformActionMapVertices(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
-
-            PerformAction(Tool, Centre, Tool.Map.Terrain.TileSize)
-        End Sub
-
-        Public Sub PerformActionMapSectors(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
-
-            PerformAction(Tool, Centre, New sXY_int(Tool.Map.SectorCount.X - 1, Tool.Map.SectorCount.Y - 1))
-        End Sub
-
-        Public Function GetPosNum(ByVal PosNum As sPosNum) As sXY_int
-
-            If _Alignment Then
-                Return PosNum.Alignment
-            Else
-                Return PosNum.Normal
-            End If
-        End Function
-
-        Private Sub PerformAction(ByVal Action As clsMap.clsAction, ByVal PosNum As sPosNum, ByVal LastValidNum As sXY_int)
-            Dim XNum As Integer
-            Dim X As Integer
-            Dim Y As Integer
-            Dim Centre As sXY_int
-
-            If Action.Map Is Nothing Then
-                Stop
-                Exit Sub
-            End If
-
-            Centre = GetPosNum(PosNum)
-
-            Action.Effect = 1.0#
-            For Y = Clamp_int(Tiles.YMin + Centre.Y, 0, LastValidNum.Y) - Centre.Y To Clamp_int(Tiles.YMax + Centre.Y, 0, LastValidNum.Y) - Centre.Y
-                Action.PosNum.Y = Centre.Y + Y
-                XNum = Y - Tiles.YMin
-                For X = Clamp_int(Tiles.XMin(XNum) + Centre.X, 0, LastValidNum.X) - Centre.X To Clamp_int(Tiles.XMax(XNum) + Centre.X, 0, LastValidNum.X) - Centre.X
-                    Action.PosNum.X = Centre.X + X
-                    If Action.UseEffect Then
-                        If Tiles.ResultRadius > 0.0# Then
-                            Select Case _Shape
-                                Case clsBrush.enumShape.Circle
-                                    If _Alignment Then
-                                        Action.Effect = 1.0# - GetDist_XY_dbl(New sXY_dbl(Centre.X - 0.5#, Centre.Y - 0.5#), New sXY_dbl(Action.PosNum)) / (Tiles.ResultRadius + 0.5#)
-                                    Else
-                                        Action.Effect = 1.0# - GetDist_XY_int(Centre, Action.PosNum) / (Tiles.ResultRadius + 0.5#)
-                                    End If
-                                Case clsBrush.enumShape.Square
-                                    If _Alignment Then
-                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - (Centre.X - 0.5#)), Math.Abs(Action.PosNum.Y - (Centre.Y - 0.5#))) / (Tiles.ResultRadius + 0.5#)
-                                    Else
-                                        Action.Effect = 1.0# - Math.Max(Math.Abs(Action.PosNum.X - Centre.X), Math.Abs(Action.PosNum.Y - Centre.Y)) / (Tiles.ResultRadius + 0.5#)
-                                    End If
-                            End Select
-                        End If
-                    End If
-                    Action.ActionPerform()
-                Next
-            Next
-        End Sub
-    End Class
-
-    Public Structure sBrushTiles
-        Public XMin() As Integer
-        Public XMax() As Integer
-        Public YMin As Integer
-        Public YMax As Integer
-        Public ResultRadius As Double
-
-        Public Sub CreateCircle(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
-            Dim X As Integer
-            Dim Y As Integer
-            Dim dblX As Double
-            Dim dblY As Double
-            Dim RadiusB As Double
-            Dim RadiusC As Double
-            Dim A As Integer
-            Dim B As Integer
-
-            RadiusB = Radius / TileSize + 0.5#
-            If Alignment Then
-                Y = CInt(Math.Round(RadiusB))
-                YMin = -Y
-                YMax = Y - 1
-                B = YMax - YMin
-                ReDim XMin(B)
-                ReDim XMax(B)
-                RadiusC = RadiusB * RadiusB
-                For Y = YMin To YMax
-                    dblY = Y + 0.5#
-                    dblX = Math.Sqrt(RadiusC - dblY * dblY) + 0.5#
-                    A = Y - YMin
-                    X = CInt(Int(dblX))
-                    XMin(A) = -X
-                    XMax(A) = X - 1
-                Next
-            Else
-                Y = CInt(Int(RadiusB))
-                YMin = -Y
-                YMax = Y
-                B = YMax - YMin
-                ReDim XMin(B)
-                ReDim XMax(B)
-                RadiusC = RadiusB * RadiusB
-                For Y = YMin To YMax
-                    dblX = Math.Sqrt(RadiusC - Y * Y)
-                    A = Y - YMin
-                    X = CInt(Int(dblX))
-                    XMin(A) = -X
-                    XMax(A) = X
-                Next
-            End If
-
-            ResultRadius = B / 2.0#
-        End Sub
-
-        Public Sub CreateSquare(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
-            Dim Y As Integer
-            Dim A As Integer
-            Dim B As Integer
-            Dim RadiusB As Double
-
-            RadiusB = Radius / TileSize + 0.5#
-            If Alignment Then
-                RadiusB += 0.5#
-                A = CInt(Int(RadiusB))
-                YMin = -A
-                YMax = A - 1
-            Else
-                A = CInt(Int(RadiusB))
-                YMin = -A
-                YMax = A
-            End If
-            B = YMax - YMin
-            ReDim XMin(B)
-            ReDim XMax(B)
-            For Y = 0 To B
-                XMin(Y) = YMin
-                XMax(Y) = YMax
-            Next
-
-            ResultRadius = B / 2.0#
-        End Sub
-    End Structure
-
     Public Const TerrainGridSpacing As Integer = 128
 
     Public VisionRadius_2E As Integer
@@ -681,9 +475,6 @@ Public Module modProgram
     Public Painter_Arizona As clsPainter
     Public Painter_Urban As clsPainter
     Public Painter_Rockies As clsPainter
-
-    Public UnitTypes(-1) As clsUnitType
-    Public UnitTypeCount As Integer
 
     Public Structure sTexturePage
         Public FileTitle As String
@@ -1145,16 +936,16 @@ Public Module modProgram
         Return tmpPropulsion
     End Function
 
-    Public Function FindOrCreateUnitType(ByVal Code As String, ByVal Type As clsUnitType.enumType) As clsUnitType
+    Public Function FindOrCreateUnitType(ByVal Code As String, ByVal Type As clsUnitType.enumType, WallType As Integer) As clsUnitType
         Dim A As Integer
 
         Select Case Type
             Case clsUnitType.enumType.Feature
-                For A = 0 To UnitTypeCount - 1
-                    If UnitTypes(A).Type = clsUnitType.enumType.Feature Then
-                        If CType(UnitTypes(A), clsFeatureType).Code = Code Then
-                            Return UnitTypes(A)
-                        End If
+                Dim FeatureType As clsFeatureType
+                For A = 0 To ObjectData.FeatureTypes.ItemCount - 1
+                    FeatureType = ObjectData.FeatureTypes(A)
+                    If FeatureType.Code = Code Then
+                        Return FeatureType
                     End If
                 Next
                 Dim tmpFeatureType As New clsFeatureType
@@ -1164,10 +955,16 @@ Public Module modProgram
                 tmpFeatureType.Footprint.Y = 1
                 Return tmpFeatureType
             Case clsUnitType.enumType.PlayerStructure
-                For A = 0 To UnitTypeCount - 1
-                    If UnitTypes(A).Type = clsUnitType.enumType.PlayerStructure Then
-                        If CType(UnitTypes(A), clsStructureType).Code = Code Then
-                            Return UnitTypes(A)
+                Dim StructureType As clsStructureType
+                For A = 0 To ObjectData.StructureTypes.ItemCount - 1
+                    StructureType = ObjectData.StructureTypes(A)
+                    If StructureType.Code = Code Then
+                        If WallType < 0 Then
+                            Return StructureType
+                        ElseIf StructureType.WallLink.IsConnected Then
+                            If StructureType.WallLink.ArrayPosition = WallType Then
+                                Return StructureType
+                            End If
                         End If
                     End If
                 Next
@@ -1178,14 +975,12 @@ Public Module modProgram
                 tmpStructureType.Footprint.Y = 1
                 Return tmpStructureType
             Case clsUnitType.enumType.PlayerDroid
-                Dim tmpDroidType As clsDroidDesign
-                For A = 0 To UnitTypeCount - 1
-                    If UnitTypes(A).Type = clsUnitType.enumType.PlayerDroid Then
-                        tmpDroidType = CType(UnitTypes(A), clsDroidDesign)
-                        If tmpDroidType.IsTemplate Then
-                            If CType(tmpDroidType, clsDroidTemplate).Code = Code Then
-                                Return UnitTypes(A)
-                            End If
+                Dim DroidType As clsDroidTemplate
+                For A = 0 To ObjectData.UnitTypes.ItemCount - 1
+                    DroidType = ObjectData.DroidTemplates(A)
+                    If DroidType.IsTemplate Then
+                        If DroidType.Code = Code Then
+                            Return DroidType
                         End If
                     End If
                 Next
@@ -1263,16 +1058,12 @@ Public Module modProgram
 
     Public Function FindFirstStructureType(ByVal FindType As clsStructureType.enumStructureType) As clsStructureType
         Dim A As Integer
-        Dim tmpObjectType As clsUnitType
         Dim tmpStructureType As clsStructureType
 
-        For A = 0 To UnitTypeCount - 1
-            tmpObjectType = UnitTypes(A)
-            If tmpObjectType.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructureType = CType(tmpObjectType, clsStructureType)
-                If tmpStructureType.StructureType = FindType Then
-                    Return tmpStructureType
-                End If
+        For A = 0 To ObjectData.StructureTypes.ItemCount - 1
+            tmpStructureType = ObjectData.StructureTypes(A)
+            If tmpStructureType.StructureType = FindType Then
+                Return tmpStructureType
             End If
         Next
 
@@ -1822,8 +1613,8 @@ Public Module modProgram
         End Function
     End Class
 
-    Public Function GetUnitsCentrePos(ByVal Units As SimpleClassList(Of clsMap.clsUnit)) As sXY_dbl
-        Dim Result As sXY_dbl
+    Public Function GetUnitsCentrePos(ByVal Units As SimpleClassList(Of clsMap.clsUnit)) As Matrix3D.XY_dbl
+        Dim Result As Matrix3D.XY_dbl
         Dim tmpUnit As clsMap.clsUnit
         Dim A As Integer
 

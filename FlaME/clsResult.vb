@@ -5,8 +5,8 @@
 
     Public Sub New()
 
-        Warnings.MaintainOrder = True
-        Problems.MaintainOrder = True
+        'Warnings.MaintainOrder = True
+        'Problems.MaintainOrder = True
     End Sub
 
     Public ReadOnly Property HasWarnings As Boolean

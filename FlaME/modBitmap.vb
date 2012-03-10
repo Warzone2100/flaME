@@ -71,7 +71,7 @@ Public Module modBitmap
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, MagFilter)
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, MinFilter)
             End If
-            GL.TexImage2D(TextureTarget.Texture2D, MipMapLevel, PixelInternalFormat.Rgba, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
+            GL.TexImage2D(TextureTarget.Texture2D, MipMapLevel, PixelInternalFormat.Rgba8, Texture.Width, Texture.Height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, tmpData.Scan0)
 
             Texture.UnlockBits(tmpData)
         End Sub

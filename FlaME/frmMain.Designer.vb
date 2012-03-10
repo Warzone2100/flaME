@@ -134,24 +134,21 @@ Partial Class frmMain
         Me.Label12 = New System.Windows.Forms.Label()
         Me.tpObjects = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
-        Me.TableLayoutPanel4 = New System.Windows.Forms.TableLayoutPanel()
-        Me.Panel4 = New System.Windows.Forms.Panel()
-        Me.Label31 = New System.Windows.Forms.Label()
-        Me.lstDroids = New System.Windows.Forms.ListBox()
-        Me.TableLayoutPanel3 = New System.Windows.Forms.TableLayoutPanel()
-        Me.Panel3 = New System.Windows.Forms.Panel()
-        Me.Label30 = New System.Windows.Forms.Label()
-        Me.lstStructures = New System.Windows.Forms.ListBox()
         Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.txtNewObjectRotation = New System.Windows.Forms.TextBox()
+        Me.Label19 = New System.Windows.Forms.Label()
+        Me.cbxAutoWalls = New System.Windows.Forms.CheckBox()
         Me.cbxObjectRandomRotation = New System.Windows.Forms.CheckBox()
         Me.btnPlayerSelectObjects = New System.Windows.Forms.Button()
         Me.Label32 = New System.Windows.Forms.Label()
-        Me.txtPlayerNum = New System.Windows.Forms.TextBox()
         Me.Label22 = New System.Windows.Forms.Label()
-        Me.TableLayoutPanel2 = New System.Windows.Forms.TableLayoutPanel()
+        Me.TabControl1 = New System.Windows.Forms.TabControl()
+        Me.TabPage1 = New System.Windows.Forms.TabPage()
         Me.lstFeatures = New System.Windows.Forms.ListBox()
-        Me.Panel2 = New System.Windows.Forms.Panel()
-        Me.Label19 = New System.Windows.Forms.Label()
+        Me.TabPage2 = New System.Windows.Forms.TabPage()
+        Me.lstStructures = New System.Windows.Forms.ListBox()
+        Me.TabPage3 = New System.Windows.Forms.TabPage()
+        Me.lstDroids = New System.Windows.Forms.ListBox()
         Me.tpObject = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel8 = New System.Windows.Forms.TableLayoutPanel()
         Me.TableLayoutPanel9 = New System.Windows.Forms.TableLayoutPanel()
@@ -302,13 +299,11 @@ Partial Class frmMain
         Me.tpResize.SuspendLayout()
         Me.tpObjects.SuspendLayout()
         Me.TableLayoutPanel1.SuspendLayout()
-        Me.TableLayoutPanel4.SuspendLayout()
-        Me.Panel4.SuspendLayout()
-        Me.TableLayoutPanel3.SuspendLayout()
-        Me.Panel3.SuspendLayout()
         Me.Panel1.SuspendLayout()
-        Me.TableLayoutPanel2.SuspendLayout()
-        Me.Panel2.SuspendLayout()
+        Me.TabControl1.SuspendLayout()
+        Me.TabPage1.SuspendLayout()
+        Me.TabPage2.SuspendLayout()
+        Me.TabPage3.SuspendLayout()
         Me.tpObject.SuspendLayout()
         Me.TableLayoutPanel8.SuspendLayout()
         Me.TableLayoutPanel9.SuspendLayout()
@@ -1428,7 +1423,7 @@ Partial Class frmMain
         Me.GroupBox2.Size = New System.Drawing.Size(237, 141)
         Me.GroupBox2.TabIndex = 8
         Me.GroupBox2.TabStop = False
-        Me.GroupBox2.Text = "Flatten Terrain"
+        Me.GroupBox2.Text = "Flatten Terrain Under"
         '
         'btnFlatOil
         '
@@ -1463,11 +1458,11 @@ Partial Class frmMain
         Me.btnFlatStructures.UseCompatibleTextRendering = True
         Me.btnFlatStructures.UseVisualStyleBackColor = True
         '
-        'btnAlignStructures
+        'btnAlignObjects
         '
         Me.btnAlignObjects.Location = New System.Drawing.Point(4, 80)
         Me.btnAlignObjects.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnAlignObjects.Name = "btnAlignStructures"
+        Me.btnAlignObjects.Name = "btnAlignObjects"
         Me.btnAlignObjects.Size = New System.Drawing.Size(223, 30)
         Me.btnAlignObjects.TabIndex = 6
         Me.btnAlignObjects.Text = "Realign Selected Objects"
@@ -1656,144 +1651,72 @@ Partial Class frmMain
         '
         Me.TableLayoutPanel1.ColumnCount = 1
         Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel1.Controls.Add(Me.TableLayoutPanel4, 0, 3)
-        Me.TableLayoutPanel1.Controls.Add(Me.TableLayoutPanel3, 0, 2)
         Me.TableLayoutPanel1.Controls.Add(Me.Panel1, 0, 0)
-        Me.TableLayoutPanel1.Controls.Add(Me.TableLayoutPanel2, 0, 1)
+        Me.TableLayoutPanel1.Controls.Add(Me.TabControl1, 0, 1)
         Me.TableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TableLayoutPanel1.Location = New System.Drawing.Point(0, 0)
         Me.TableLayoutPanel1.Margin = New System.Windows.Forms.Padding(4)
         Me.TableLayoutPanel1.Name = "TableLayoutPanel1"
-        Me.TableLayoutPanel1.RowCount = 4
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 128.0!))
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.TableLayoutPanel1.RowCount = 2
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 192.0!))
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
         Me.TableLayoutPanel1.Size = New System.Drawing.Size(410, 557)
         Me.TableLayoutPanel1.TabIndex = 16
         '
-        'TableLayoutPanel4
-        '
-        Me.TableLayoutPanel4.ColumnCount = 1
-        Me.TableLayoutPanel4.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel4.Controls.Add(Me.Panel4, 0, 0)
-        Me.TableLayoutPanel4.Controls.Add(Me.lstDroids, 0, 1)
-        Me.TableLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.TableLayoutPanel4.Location = New System.Drawing.Point(4, 418)
-        Me.TableLayoutPanel4.Margin = New System.Windows.Forms.Padding(4)
-        Me.TableLayoutPanel4.Name = "TableLayoutPanel4"
-        Me.TableLayoutPanel4.RowCount = 2
-        Me.TableLayoutPanel4.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32.0!))
-        Me.TableLayoutPanel4.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel4.Size = New System.Drawing.Size(402, 135)
-        Me.TableLayoutPanel4.TabIndex = 3
-        '
-        'Panel4
-        '
-        Me.Panel4.Controls.Add(Me.Label31)
-        Me.Panel4.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.Panel4.Location = New System.Drawing.Point(4, 4)
-        Me.Panel4.Margin = New System.Windows.Forms.Padding(4)
-        Me.Panel4.Name = "Panel4"
-        Me.Panel4.Size = New System.Drawing.Size(394, 24)
-        Me.Panel4.TabIndex = 14
-        '
-        'Label31
-        '
-        Me.Label31.Location = New System.Drawing.Point(4, 8)
-        Me.Label31.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label31.Name = "Label31"
-        Me.Label31.Size = New System.Drawing.Size(160, 20)
-        Me.Label31.TabIndex = 15
-        Me.Label31.Text = "Droid Templates"
-        Me.Label31.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.Label31.UseCompatibleTextRendering = True
-        '
-        'lstDroids
-        '
-        Me.lstDroids.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lstDroids.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lstDroids.FormattingEnabled = True
-        Me.lstDroids.ItemHeight = 17
-        Me.lstDroids.Location = New System.Drawing.Point(4, 36)
-        Me.lstDroids.Margin = New System.Windows.Forms.Padding(4)
-        Me.lstDroids.Name = "lstDroids"
-        Me.lstDroids.ScrollAlwaysVisible = True
-        Me.lstDroids.Size = New System.Drawing.Size(394, 95)
-        Me.lstDroids.TabIndex = 10
-        '
-        'TableLayoutPanel3
-        '
-        Me.TableLayoutPanel3.ColumnCount = 1
-        Me.TableLayoutPanel3.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel3.Controls.Add(Me.Panel3, 0, 0)
-        Me.TableLayoutPanel3.Controls.Add(Me.lstStructures, 0, 1)
-        Me.TableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.TableLayoutPanel3.Location = New System.Drawing.Point(4, 275)
-        Me.TableLayoutPanel3.Margin = New System.Windows.Forms.Padding(4)
-        Me.TableLayoutPanel3.Name = "TableLayoutPanel3"
-        Me.TableLayoutPanel3.RowCount = 2
-        Me.TableLayoutPanel3.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32.0!))
-        Me.TableLayoutPanel3.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel3.Size = New System.Drawing.Size(402, 135)
-        Me.TableLayoutPanel3.TabIndex = 2
-        '
-        'Panel3
-        '
-        Me.Panel3.Controls.Add(Me.Label30)
-        Me.Panel3.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.Panel3.Location = New System.Drawing.Point(4, 4)
-        Me.Panel3.Margin = New System.Windows.Forms.Padding(4)
-        Me.Panel3.Name = "Panel3"
-        Me.Panel3.Size = New System.Drawing.Size(394, 24)
-        Me.Panel3.TabIndex = 13
-        '
-        'Label30
-        '
-        Me.Label30.Location = New System.Drawing.Point(4, 8)
-        Me.Label30.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label30.Name = "Label30"
-        Me.Label30.Size = New System.Drawing.Size(160, 20)
-        Me.Label30.TabIndex = 14
-        Me.Label30.Text = "Structures"
-        Me.Label30.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.Label30.UseCompatibleTextRendering = True
-        '
-        'lstStructures
-        '
-        Me.lstStructures.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lstStructures.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lstStructures.FormattingEnabled = True
-        Me.lstStructures.ItemHeight = 17
-        Me.lstStructures.Location = New System.Drawing.Point(4, 36)
-        Me.lstStructures.Margin = New System.Windows.Forms.Padding(4)
-        Me.lstStructures.Name = "lstStructures"
-        Me.lstStructures.ScrollAlwaysVisible = True
-        Me.lstStructures.Size = New System.Drawing.Size(394, 95)
-        Me.lstStructures.TabIndex = 12
-        '
         'Panel1
         '
+        Me.Panel1.Controls.Add(Me.txtNewObjectRotation)
+        Me.Panel1.Controls.Add(Me.Label19)
+        Me.Panel1.Controls.Add(Me.cbxAutoWalls)
         Me.Panel1.Controls.Add(Me.cbxObjectRandomRotation)
         Me.Panel1.Controls.Add(Me.btnPlayerSelectObjects)
         Me.Panel1.Controls.Add(Me.Label32)
-        Me.Panel1.Controls.Add(Me.txtPlayerNum)
         Me.Panel1.Controls.Add(Me.Label22)
         Me.Panel1.Dock = System.Windows.Forms.DockStyle.Fill
         Me.Panel1.Location = New System.Drawing.Point(4, 4)
         Me.Panel1.Margin = New System.Windows.Forms.Padding(4)
         Me.Panel1.Name = "Panel1"
-        Me.Panel1.Size = New System.Drawing.Size(402, 120)
+        Me.Panel1.Size = New System.Drawing.Size(402, 184)
         Me.Panel1.TabIndex = 0
+        '
+        'txtNewObjectRotation
+        '
+        Me.txtNewObjectRotation.Location = New System.Drawing.Point(85, 122)
+        Me.txtNewObjectRotation.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtNewObjectRotation.Name = "txtNewObjectRotation"
+        Me.txtNewObjectRotation.Size = New System.Drawing.Size(41, 22)
+        Me.txtNewObjectRotation.TabIndex = 51
+        Me.txtNewObjectRotation.Text = "0"
+        Me.txtNewObjectRotation.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
+        '
+        'Label19
+        '
+        Me.Label19.Location = New System.Drawing.Point(16, 125)
+        Me.Label19.Name = "Label19"
+        Me.Label19.Size = New System.Drawing.Size(62, 21)
+        Me.Label19.TabIndex = 50
+        Me.Label19.Text = "Rotation:"
+        Me.Label19.UseCompatibleTextRendering = True
+        '
+        'cbxAutoWalls
+        '
+        Me.cbxAutoWalls.Location = New System.Drawing.Point(16, 153)
+        Me.cbxAutoWalls.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxAutoWalls.Name = "cbxAutoWalls"
+        Me.cbxAutoWalls.Size = New System.Drawing.Size(152, 21)
+        Me.cbxAutoWalls.TabIndex = 49
+        Me.cbxAutoWalls.Text = "Automatic Walls"
+        Me.cbxAutoWalls.UseCompatibleTextRendering = True
+        Me.cbxAutoWalls.UseVisualStyleBackColor = True
         '
         'cbxObjectRandomRotation
         '
-        Me.cbxObjectRandomRotation.Location = New System.Drawing.Point(295, 43)
+        Me.cbxObjectRandomRotation.Location = New System.Drawing.Point(134, 124)
         Me.cbxObjectRandomRotation.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxObjectRandomRotation.Name = "cbxObjectRandomRotation"
-        Me.cbxObjectRandomRotation.Size = New System.Drawing.Size(152, 21)
+        Me.cbxObjectRandomRotation.Size = New System.Drawing.Size(89, 21)
         Me.cbxObjectRandomRotation.TabIndex = 48
-        Me.cbxObjectRandomRotation.Text = "Random Rotation"
+        Me.cbxObjectRandomRotation.Text = "Random"
         Me.cbxObjectRandomRotation.UseCompatibleTextRendering = True
         Me.cbxObjectRandomRotation.UseVisualStyleBackColor = True
         '
@@ -1815,17 +1738,6 @@ Partial Class frmMain
         Me.Label32.Text = "Players 8 and 9 only work with master versions of Warzone."
         Me.Label32.UseCompatibleTextRendering = True
         '
-        'txtPlayerNum
-        '
-        Me.txtPlayerNum.Location = New System.Drawing.Point(332, 13)
-        Me.txtPlayerNum.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtPlayerNum.Name = "txtPlayerNum"
-        Me.txtPlayerNum.Size = New System.Drawing.Size(52, 22)
-        Me.txtPlayerNum.TabIndex = 15
-        Me.txtPlayerNum.Text = "0"
-        Me.txtPlayerNum.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
-        Me.txtPlayerNum.Visible = False
-        '
         'Label22
         '
         Me.Label22.Location = New System.Drawing.Point(16, 10)
@@ -1837,21 +1749,28 @@ Partial Class frmMain
         Me.Label22.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label22.UseCompatibleTextRendering = True
         '
-        'TableLayoutPanel2
+        'TabControl1
         '
-        Me.TableLayoutPanel2.ColumnCount = 1
-        Me.TableLayoutPanel2.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel2.Controls.Add(Me.lstFeatures, 0, 1)
-        Me.TableLayoutPanel2.Controls.Add(Me.Panel2, 0, 0)
-        Me.TableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.TableLayoutPanel2.Location = New System.Drawing.Point(4, 132)
-        Me.TableLayoutPanel2.Margin = New System.Windows.Forms.Padding(4)
-        Me.TableLayoutPanel2.Name = "TableLayoutPanel2"
-        Me.TableLayoutPanel2.RowCount = 2
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel2.Size = New System.Drawing.Size(402, 135)
-        Me.TableLayoutPanel2.TabIndex = 1
+        Me.TabControl1.Appearance = System.Windows.Forms.TabAppearance.Buttons
+        Me.TabControl1.Controls.Add(Me.TabPage1)
+        Me.TabControl1.Controls.Add(Me.TabPage2)
+        Me.TabControl1.Controls.Add(Me.TabPage3)
+        Me.TabControl1.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.TabControl1.Location = New System.Drawing.Point(3, 195)
+        Me.TabControl1.Name = "TabControl1"
+        Me.TabControl1.SelectedIndex = 0
+        Me.TabControl1.Size = New System.Drawing.Size(404, 359)
+        Me.TabControl1.TabIndex = 0
+        '
+        'TabPage1
+        '
+        Me.TabPage1.Controls.Add(Me.lstFeatures)
+        Me.TabPage1.Location = New System.Drawing.Point(4, 28)
+        Me.TabPage1.Name = "TabPage1"
+        Me.TabPage1.Size = New System.Drawing.Size(396, 327)
+        Me.TabPage1.TabIndex = 0
+        Me.TabPage1.Text = "Features"
+        Me.TabPage1.UseVisualStyleBackColor = True
         '
         'lstFeatures
         '
@@ -1859,33 +1778,58 @@ Partial Class frmMain
         Me.lstFeatures.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lstFeatures.FormattingEnabled = True
         Me.lstFeatures.ItemHeight = 17
-        Me.lstFeatures.Location = New System.Drawing.Point(4, 36)
+        Me.lstFeatures.Location = New System.Drawing.Point(0, 0)
         Me.lstFeatures.Margin = New System.Windows.Forms.Padding(4)
         Me.lstFeatures.Name = "lstFeatures"
         Me.lstFeatures.ScrollAlwaysVisible = True
-        Me.lstFeatures.Size = New System.Drawing.Size(394, 95)
+        Me.lstFeatures.Size = New System.Drawing.Size(396, 327)
         Me.lstFeatures.TabIndex = 5
         '
-        'Panel2
+        'TabPage2
         '
-        Me.Panel2.Controls.Add(Me.Label19)
-        Me.Panel2.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.Panel2.Location = New System.Drawing.Point(4, 4)
-        Me.Panel2.Margin = New System.Windows.Forms.Padding(4)
-        Me.Panel2.Name = "Panel2"
-        Me.Panel2.Size = New System.Drawing.Size(394, 24)
-        Me.Panel2.TabIndex = 6
+        Me.TabPage2.Controls.Add(Me.lstStructures)
+        Me.TabPage2.Location = New System.Drawing.Point(4, 28)
+        Me.TabPage2.Name = "TabPage2"
+        Me.TabPage2.Size = New System.Drawing.Size(396, 327)
+        Me.TabPage2.TabIndex = 1
+        Me.TabPage2.Text = "Structures"
+        Me.TabPage2.UseVisualStyleBackColor = True
         '
-        'Label19
+        'lstStructures
         '
-        Me.Label19.Location = New System.Drawing.Point(4, 8)
-        Me.Label19.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label19.Name = "Label19"
-        Me.Label19.Size = New System.Drawing.Size(160, 20)
-        Me.Label19.TabIndex = 10
-        Me.Label19.Text = "Features"
-        Me.Label19.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.Label19.UseCompatibleTextRendering = True
+        Me.lstStructures.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lstStructures.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lstStructures.FormattingEnabled = True
+        Me.lstStructures.ItemHeight = 17
+        Me.lstStructures.Location = New System.Drawing.Point(0, 0)
+        Me.lstStructures.Margin = New System.Windows.Forms.Padding(4)
+        Me.lstStructures.Name = "lstStructures"
+        Me.lstStructures.ScrollAlwaysVisible = True
+        Me.lstStructures.Size = New System.Drawing.Size(396, 327)
+        Me.lstStructures.TabIndex = 12
+        '
+        'TabPage3
+        '
+        Me.TabPage3.Controls.Add(Me.lstDroids)
+        Me.TabPage3.Location = New System.Drawing.Point(4, 28)
+        Me.TabPage3.Name = "TabPage3"
+        Me.TabPage3.Size = New System.Drawing.Size(396, 327)
+        Me.TabPage3.TabIndex = 2
+        Me.TabPage3.Text = "Droids"
+        Me.TabPage3.UseVisualStyleBackColor = True
+        '
+        'lstDroids
+        '
+        Me.lstDroids.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lstDroids.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lstDroids.FormattingEnabled = True
+        Me.lstDroids.ItemHeight = 17
+        Me.lstDroids.Location = New System.Drawing.Point(0, 0)
+        Me.lstDroids.Margin = New System.Windows.Forms.Padding(4)
+        Me.lstDroids.Name = "lstDroids"
+        Me.lstDroids.ScrollAlwaysVisible = True
+        Me.lstDroids.Size = New System.Drawing.Size(396, 327)
+        Me.lstDroids.TabIndex = 10
         '
         'tpObject
         '
@@ -3172,14 +3116,12 @@ Partial Class frmMain
         Me.tpResize.PerformLayout()
         Me.tpObjects.ResumeLayout(False)
         Me.TableLayoutPanel1.ResumeLayout(False)
-        Me.TableLayoutPanel4.ResumeLayout(False)
-        Me.Panel4.ResumeLayout(False)
-        Me.TableLayoutPanel3.ResumeLayout(False)
-        Me.Panel3.ResumeLayout(False)
         Me.Panel1.ResumeLayout(False)
         Me.Panel1.PerformLayout()
-        Me.TableLayoutPanel2.ResumeLayout(False)
-        Me.Panel2.ResumeLayout(False)
+        Me.TabControl1.ResumeLayout(False)
+        Me.TabPage1.ResumeLayout(False)
+        Me.TabPage2.ResumeLayout(False)
+        Me.TabPage3.ResumeLayout(False)
         Me.tpObject.ResumeLayout(False)
         Me.TableLayoutPanel8.ResumeLayout(False)
         Me.TableLayoutPanel9.ResumeLayout(False)
@@ -3275,8 +3217,6 @@ Partial Class frmMain
     Public WithEvents tpObjects As System.Windows.Forms.TabPage
     Public WithEvents lstDroids As System.Windows.Forms.ListBox
     Public WithEvents lstFeatures As System.Windows.Forms.ListBox
-    Public WithEvents lstStructures As System.Windows.Forms.ListBox
-    Public WithEvents txtPlayerNum As System.Windows.Forms.TextBox
     Public WithEvents Label22 As System.Windows.Forms.Label
     Public WithEvents tpObject As System.Windows.Forms.TabPage
     Public WithEvents lblObjectType As System.Windows.Forms.Label
@@ -3287,14 +3227,6 @@ Partial Class frmMain
     Public WithEvents rdoAutoRoadLine As System.Windows.Forms.RadioButton
     Public WithEvents Label29 As System.Windows.Forms.Label
     Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
-    Public WithEvents TableLayoutPanel4 As System.Windows.Forms.TableLayoutPanel
-    Public WithEvents TableLayoutPanel3 As System.Windows.Forms.TableLayoutPanel
-    Public WithEvents TableLayoutPanel2 As System.Windows.Forms.TableLayoutPanel
-    Public WithEvents Panel4 As System.Windows.Forms.Panel
-    Public WithEvents Label31 As System.Windows.Forms.Label
-    Public WithEvents Panel3 As System.Windows.Forms.Panel
-    Public WithEvents Label30 As System.Windows.Forms.Label
-    Public WithEvents Label19 As System.Windows.Forms.Label
     Public WithEvents ToolStripSeparator3 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents ToolStripSeparator2 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents ToolStripSeparator1 As System.Windows.Forms.ToolStripSeparator
@@ -3340,7 +3272,6 @@ Partial Class frmMain
     Public WithEvents tsbSave As System.Windows.Forms.ToolStripButton
     Public WithEvents Label21 As System.Windows.Forms.Label
     Public WithEvents Panel1 As System.Windows.Forms.Panel
-    Public WithEvents Panel2 As System.Windows.Forms.Panel
     Public WithEvents cbxAutoTexSetHeight As System.Windows.Forms.CheckBox
     Public WithEvents txtObjectID As System.Windows.Forms.TextBox
     Public WithEvents Label25 As System.Windows.Forms.Label
@@ -3478,4 +3409,12 @@ Partial Class frmMain
     Public WithEvents btnFlatStructures As System.Windows.Forms.Button
     Friend WithEvents GroupBox2 As System.Windows.Forms.GroupBox
     Public WithEvents btnFlatSelected As System.Windows.Forms.Button
+    Friend WithEvents TabControl1 As System.Windows.Forms.TabControl
+    Friend WithEvents TabPage1 As System.Windows.Forms.TabPage
+    Friend WithEvents TabPage2 As System.Windows.Forms.TabPage
+    Public WithEvents lstStructures As System.Windows.Forms.ListBox
+    Friend WithEvents TabPage3 As System.Windows.Forms.TabPage
+    Public WithEvents cbxAutoWalls As System.Windows.Forms.CheckBox
+    Public WithEvents txtNewObjectRotation As System.Windows.Forms.TextBox
+    Public WithEvents Label19 As System.Windows.Forms.Label
 End Class

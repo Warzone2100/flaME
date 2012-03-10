@@ -1,7 +1,4 @@
 ﻿Public Class ctrlPlayerNum
-#If MonoDevelop <> 0.0# Then
-    Inherits UserControl
-#End If
 
     Public tsbNumber(10) As ToolStripButton
 
@@ -117,45 +114,4 @@
         End If
         SelectedChanged()
     End Sub
-
-#If MonoDevelop <> 0.0# Then
-    Private Sub InitializeComponent()
-        Me.tsPlayerNum1 = New System.Windows.Forms.ToolStrip()
-        Me.tsPlayerNum2 = New System.Windows.Forms.ToolStrip()
-        Me.SuspendLayout()
-        '
-        'tsPlayerNum1
-        '
-        Me.tsPlayerNum1.Font = New System.Drawing.Font("Microsoft Sans Serif", 7.8!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.tsPlayerNum1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden
-        Me.tsPlayerNum1.Location = New System.Drawing.Point(0, 0)
-        Me.tsPlayerNum1.Name = "tsPlayerNum1"
-        Me.tsPlayerNum1.Size = New System.Drawing.Size(56, 25)
-        Me.tsPlayerNum1.TabIndex = 0
-        Me.tsPlayerNum1.Text = "ToolStrip1"
-        '
-        'tsPlayerNum2
-        '
-        Me.tsPlayerNum2.Font = New System.Drawing.Font("Microsoft Sans Serif", 7.8!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.tsPlayerNum2.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden
-        Me.tsPlayerNum2.Location = New System.Drawing.Point(0, 25)
-        Me.tsPlayerNum2.Name = "tsPlayerNum2"
-        Me.tsPlayerNum2.Size = New System.Drawing.Size(56, 25)
-        Me.tsPlayerNum2.TabIndex = 1
-        Me.tsPlayerNum2.Text = "ToolStrip1"
-        '
-        'ctrlPlayerNum
-        '
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.Controls.Add(Me.tsPlayerNum2)
-        Me.Controls.Add(Me.tsPlayerNum1)
-        Me.Name = "ctrlPlayerNum"
-        Me.Size = New System.Drawing.Size(56, 50)
-        Me.ResumeLayout(False)
-        Me.PerformLayout()
-
-    End Sub
-    Public WithEvents tsPlayerNum1 As System.Windows.Forms.ToolStrip
-    Public WithEvents tsPlayerNum2 As System.Windows.Forms.ToolStrip
-#End If
 End Class

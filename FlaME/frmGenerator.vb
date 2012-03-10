@@ -1,7 +1,4 @@
 ﻿Partial Public Class frmGenerator
-#If MonoDevelop <> 0.0# Then
-    Inherits Form
-#End If
 
     Private _Owner As frmMain
 
@@ -185,7 +182,7 @@
         End If
         ReDim Generator.PlayerBasePos(Generator.TopLeftPlayerCount - 1)
         Dim BaseMin As Double = 12.0#
-        Dim BaseMax As sXY_dbl = New sXY_dbl(Math.Min(Generator.TileSize.X / Generator.SymmetryBlockCountXY.X, Generator.TileSize.X - 12.0#), Math.Min(Generator.TileSize.Y / Generator.SymmetryBlockCountXY.Y, Generator.TileSize.Y - 12.0#))
+        Dim BaseMax As Matrix3D.XY_dbl = New Matrix3D.XY_dbl(Math.Min(Generator.TileSize.X / Generator.SymmetryBlockCountXY.X, Generator.TileSize.X - 12.0#), Math.Min(Generator.TileSize.Y / Generator.SymmetryBlockCountXY.Y, Generator.TileSize.Y - 12.0#))
         Generator.PlayerBasePos(0) = New sXY_int(ValidateTextbox(txt1x, BaseMin, BaseMax.X, TerrainGridSpacing), ValidateTextbox(txt1y, BaseMin, BaseMax.X, TerrainGridSpacing))
         If Generator.TopLeftPlayerCount >= 2 Then
             Generator.PlayerBasePos(1) = New sXY_int(ValidateTextbox(txt2x, BaseMin, BaseMax.X, TerrainGridSpacing), ValidateTextbox(txt2y, BaseMin, BaseMax.Y, TerrainGridSpacing))

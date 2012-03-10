@@ -96,18 +96,12 @@
       <HintPath>.\OpenTK.GLControl.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Import Include="Microsoft.VisualBasic" />
     <Import Include="System" />
-    <Import Include="System.Collections" />
-    <Import Include="System.Collections.Generic" />
-    <Import Include="System.Data" />
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
@@ -115,6 +109,7 @@
   <ItemGroup>
     <Compile Include="ApplicationEvents.vb" />
     <Compile Include="clsBooleanMap.vb" />
+    <Compile Include="clsBrush.vb" />
     <Compile Include="clsComponent.vb" />
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
@@ -128,6 +123,7 @@
     <Compile Include="clsMapTools.vb" />
     <Compile Include="clsMapWZ.vb" />
     <Compile Include="clsModel.vb" />
+    <Compile Include="clsObjectData.vb" />
     <Compile Include="clsPainter.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="clsTileset.vb" />
@@ -187,16 +183,10 @@
     <Compile Include="frmGenerator.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmGeneratorIC.vb">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="frmMain.Designer.vb">
       <DependentUpon>frmMain.vb</DependentUpon>
     </Compile>
     <Compile Include="frmMain.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmMainIC.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmOptions.Designer.vb">
@@ -309,6 +299,7 @@
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
+      <SubType>Designer</SubType>
     </None>
     <None Include="My Project\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

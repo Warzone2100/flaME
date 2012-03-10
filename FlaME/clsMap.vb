@@ -37,6 +37,12 @@ Partial Public Class clsMap
             Public TriBottomRightIsCliff As Boolean
             Public Terrain_IsCliff As Boolean
             Public DownSide As sTileDirection
+            'Public Class clsWalls
+            '    Public Type As clsStructureType
+            '    Public Positions As enumTileWalls = enumTileWalls.None
+            '    Public Owner As clsUnitGroup
+            'End Class
+            'Public Walls As clsWalls
 
             Public Sub Copy(ByVal TileToCopy As Tile)
 
@@ -48,6 +54,12 @@ Partial Public Class clsMap
                 TriBottomRightIsCliff = TileToCopy.TriBottomRightIsCliff
                 Terrain_IsCliff = TileToCopy.Terrain_IsCliff
                 DownSide = TileToCopy.DownSide
+                'If TileToCopy.Walls IsNot Nothing Then
+                '    Walls = New clsWalls
+                '    Walls.Type = TileToCopy.Walls.Type
+                '    Walls.Positions = TileToCopy.Walls.Positions
+                '    Walls.Owner = TileToCopy.Walls.Owner
+                'End If
             End Sub
 
             Public Sub TriCliffAddDirection(ByVal Direction As sTileDirection)
@@ -233,7 +245,7 @@ Partial Public Class clsMap
         Public Type As clsUnitType
         Public Pos As sWorldPos
         Public Rotation As Integer
-        Public UnitGroup As clsMap.clsUnitGroup
+        Public UnitGroup As clsUnitGroup
         Public SavePriority As Integer
         Public Health As Double = 1.0#
         Public PreferPartsOutput As Boolean = False
@@ -2064,6 +2076,16 @@ Partial Public Class clsMap
         ResultSectorFinish.Y = Clamp_int(ResultSectorFinish.Y, 0, SectorCount.Y - 1)
     End Sub
 
+    Public Function TileAligned_Pos(ByVal TileNum As sXY_int, ByVal Footprint As sXY_int) As sWorldPos
+        Dim Result As sWorldPos
+
+        Result.Horizontal.X = CInt((TileNum.X + Footprint.X / 2.0#) * TerrainGridSpacing)
+        Result.Horizontal.Y = CInt((TileNum.Y + Footprint.Y / 2.0#) * TerrainGridSpacing)
+        Result.Altitude = CInt(GetTerrainHeight(Result.Horizontal))
+
+        Return Result
+    End Function
+
     Public Function TileAligned_Pos_From_MapPos(ByVal Horizontal As sXY_int, ByVal Footprint As sXY_int) As sWorldPos
         Dim Result As sWorldPos
 
@@ -2103,10 +2125,10 @@ Partial Public Class clsMap
         If Not Settings.AutoSaveEnabled Then
             Exit Sub
         End If
-        If AutoSave.ChangeCount < Settings.AutoSave_MinChanges Then
+        If AutoSave.ChangeCount < Settings.AutoSaveMinChanges Then
             Exit Sub
         End If
-        If DateDiff("s", AutoSave.SavedDate, Now) < Settings.AutoSave_MinInterval_s Then
+        If DateDiff("s", AutoSave.SavedDate, Now) < Settings.AutoSaveMinInterval_s Then
             Exit Sub
         End If
 
@@ -3793,4 +3815,90 @@ Partial Public Class clsMap
             End If
         End Get
     End Property
+
+    Public Sub PerformTileWall(WallType As clsWallType, TileNum As sXY_int, Expand As Boolean)
+        Dim SectorNum As sXY_int
+        Dim Unit As clsUnit
+        Dim UnitTile As sXY_int
+        Dim Difference As sXY_int
+        Dim A As Integer
+        Dim TileWalls As enumTileWalls = enumTileWalls.None
+        Dim Walls As New SimpleList(Of clsUnit)
+        Dim Removals As New SimpleList(Of clsUnit)
+        Dim UnitType As clsUnitType
+        Dim StructureType As clsStructureType
+        Dim X As Integer
+        Dim Y As Integer
+        Dim MinTile As sXY_int
+        Dim MaxTile As sXY_int
+        MinTile.X = TileNum.X - 1
+        MinTile.Y = TileNum.Y - 1
+        MaxTile.X = TileNum.X + 1
+        MaxTile.Y = TileNum.Y + 1
+        Dim SectorStart As sXY_int = GetSectorNumClamped(GetTileSectorNum(MinTile))
+        Dim SectorFinish As sXY_int = GetSectorNumClamped(GetTileSectorNum(MaxTile))
+
+        For Y = SectorStart.Y To SectorFinish.Y
+            For X = SectorStart.X To SectorFinish.X
+                SectorNum.X = X
+                SectorNum.Y = Y
+                For A = 0 To Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
+                    Unit = Sectors(SectorNum.X, SectorNum.Y).Units(A).Unit
+                    UnitType = Unit.Type
+                    If UnitType.Type = clsUnitType.enumType.PlayerStructure Then
+                        StructureType = CType(UnitType, clsStructureType)
+                        If StructureType.WallLink.Source Is WallType Then
+                            UnitTile = GetPosTileNum(Unit.Pos.Horizontal)
+                            Difference.X = UnitTile.X - TileNum.X
+                            Difference.Y = UnitTile.Y - TileNum.Y
+                            If Difference.Y = 1 Then
+                                If Difference.X = 0 Then
+                                    TileWalls = (TileWalls Or enumTileWalls.Bottom)
+                                    Walls.Add(Unit)
+                                End If
+                            ElseIf Difference.Y = 0 Then
+                                If Difference.X = 0 Then
+                                    Removals.Add(Unit)
+                                ElseIf Difference.X = -1 Then
+                                    TileWalls = (TileWalls Or enumTileWalls.Left)
+                                    Walls.Add(Unit)
+                                ElseIf Difference.X = 1 Then
+                                    TileWalls = (TileWalls Or enumTileWalls.Right)
+                                    Walls.Add(Unit)
+                                End If
+                            ElseIf Difference.Y = -1 Then
+                                If Difference.X = 0 Then
+                                    TileWalls = (TileWalls Or enumTileWalls.Top)
+                                    Walls.Add(Unit)
+                                End If
+                            End If
+                        End If
+                    End If
+                Next
+            Next
+        Next
+
+        For A = 0 To Removals.ItemCount - 1
+            Unit_Remove_StoreChange(Removals(A).MapLink.ArrayPosition)
+        Next
+
+        Dim NewUnit As New clsUnit
+        Dim NewUnitType As clsUnitType = frmMainInstance.SelectedObjectType
+        NewUnitType = WallType.Segments(WallType.TileWalls_Segment(TileWalls))
+        NewUnit.Rotation = WallType.TileWalls_Direction(TileWalls)
+        NewUnit.UnitGroup = SelectedUnitGroup.Item
+        NewUnit.Pos = TileAligned_Pos(TileNum, NewUnitType.GetFootprint)
+        NewUnit.Type = NewUnitType
+        Dim UnitAdd As New clsUnitAdd
+        UnitAdd.Map = Me
+        UnitAdd.NewUnit = NewUnit
+        UnitAdd.StoreChange = True
+        UnitAdd.Perform()
+
+        If Expand Then
+            For A = 0 To Walls.ItemCount - 1
+                PerformTileWall(WallType, GetPosTileNum(Walls(A).Pos.Horizontal), False)
+            Next
+        End If
+    End Sub
 End Class

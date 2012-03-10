@@ -452,6 +452,7 @@
                 Terrain.Tiles(X, Y).Texture.Orientation = New sTileOrientation(Rnd() >= 0.5F, Rnd() >= 0.5F, Rnd() >= 0.5F)
             Next
         Next
+        SectorTerrainUndoChanges.SetAllChanged()
         SectorGraphicsChanges.SetAllChanged()
     End Sub
 

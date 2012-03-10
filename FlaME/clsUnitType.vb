@@ -3,6 +3,8 @@ Imports OpenTK.Graphics.OpenGL
 
 Public Class clsUnitType
 
+    Public UnitType_ObjectDataLink As New ConnectedListLink(Of clsUnitType, clsObjectData)(Me)
+
     Public IsUnknown As Boolean = False
 
     Enum enumType As Byte
@@ -41,7 +43,7 @@ Public Class clsUnitType
                 Matrix3D.MatrixInvert(tmpAttachment.AngleOffsetMatrix, matrixA)
                 Matrix3D.MatrixToRPY(matrixA, AngleRPY)
                 GL.Translate(tmpAttachment.Pos_Offset.X, tmpAttachment.Pos_Offset.Y, -tmpAttachment.Pos_Offset.Z)
-                GL.Rotate(-AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, 1.0F)
+                GL.Rotate(AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, -1.0F)
                 GL.Rotate(AngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
                 GL.Rotate(AngleRPY.Yaw / RadOf1Deg, 0.0F, 1.0F, 0.0F)
                 tmpAttachment.GLDraw()
@@ -156,6 +158,8 @@ End Class
 Public Class clsFeatureType
     Inherits clsUnitType
 
+    Public FeatureType_ObjectDataLink As New ConnectedListLink(Of clsFeatureType, clsObjectData)(Me)
+
     Public Code As String = ""
     Public Name As String = "Unknown"
     Public Footprint As sXY_int
@@ -183,7 +187,7 @@ End Class
 Public Class clsStructureType
     Inherits clsUnitType
 
-    Public StructureNum As Integer = -1
+    Public StructureType_ObjectDataLink As New ConnectedListLink(Of clsStructureType, clsObjectData)(Me)
 
     Public Code As String = ""
     Public Name As String = "Unknown"
@@ -213,6 +217,8 @@ Public Class clsStructureType
     End Enum
     Public StructureType As enumStructureType = enumStructureType.Unknown
 
+    Public WallLink As New ConnectedListLink(Of clsStructureType, clsWallType)(Me)
+
     Public BaseAttachment As New clsUnitType.clsAttachment
     Public StructureBasePlate As clsModel
 
@@ -234,8 +240,8 @@ Public Class clsStructureType
     Public Function IsModule() As Boolean
 
         Return (StructureType = clsStructureType.enumStructureType.FactoryModule _
-               Or StructureType = clsStructureType.enumStructureType.PowerModule _
-               Or StructureType = clsStructureType.enumStructureType.ResearchModule)
+            Or StructureType = clsStructureType.enumStructureType.PowerModule _
+            Or StructureType = clsStructureType.enumStructureType.ResearchModule)
     End Function
 End Class
 
@@ -703,11 +709,35 @@ End Class
 Public Class clsDroidTemplate
     Inherits clsDroidDesign
 
+    Public DroidTemplate_ObjectDataLink As New ConnectedListLink(Of clsDroidTemplate, clsObjectData)(Me)
+
     Public Code As String = ""
 
     Public Sub New()
 
         IsTemplate = True
         Name = "Unknown"
+    End Sub
+End Class
+
+Public Class clsWallType
+
+    Public WallType_ObjectDataLink As New ConnectedListLink(Of clsWallType, clsObjectData)(Me)
+
+    Public Code As String = ""
+    Public Name As String = "Unknown"
+
+    Public TileWalls_Segment() As Integer = {0, 0, 0, 0, 0, 3, 3, 2, 0, 3, 3, 2, 0, 2, 2, 1}
+    Private Const d0 As Integer = 0
+    Private Const d1 As Integer = 90
+    Private Const d2 As Integer = 180
+    Private Const d3 As Integer = 270
+    Public TileWalls_Direction() As Integer = {d0, d0, d2, d0, d3, d0, d3, d0, d1, d1, d2, d2, d3, d1, d3, d0}
+
+    Public Segments As New ConnectedList(Of clsStructureType, clsWallType)(Me)
+
+    Public Sub New()
+
+        Segments.MaintainOrder = True
     End Sub
 End Class

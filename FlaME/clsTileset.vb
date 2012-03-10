@@ -106,6 +106,9 @@ Public Class clsTileset
         Dim strTile As String
         Dim BitmapTextureArgs As sBitmapGLTexture
         Dim AverageColour(3) As Single
+        Dim X As Integer
+        Dim Y As Integer
+        Dim Pixel As Color
 
         Dim GraphicPath As String
 
@@ -117,10 +120,6 @@ Public Class clsTileset
             '-------- 128 --------
 
             GraphicPath = SlashPath & Name & "-128" & PlatformPathSeparator & strTile
-
-            RedTotal = 0
-            GreenTotal = 0
-            BlueTotal = 0
 
             Result = LoadBitmap(GraphicPath, tmpBitmap)
             If Not Result.Success Then
@@ -142,29 +141,52 @@ Public Class clsTileset
             Tiles(TileNum).TextureView_GL_Texture_Num = BitmapTextureArgs.TextureNum
 
             BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
-            BitmapTextureArgs.MinFilter = TextureMinFilter.LinearMipmapLinear
+            If Settings.Mipmaps Then
+                BitmapTextureArgs.MinFilter = TextureMinFilter.LinearMipmapLinear
+            Else
+                BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
+            End If
             BitmapTextureArgs.TextureNum = 0
 
             BitmapTextureArgs.Perform()
             Tiles(TileNum).MapView_GL_Texture_Num = BitmapTextureArgs.TextureNum
 
+            If Settings.Mipmaps Then
 #If Mono267 = 0.0# Then
-            Try
-                GL.GenerateMipmap(GenerateMipmapTarget.Texture2D)
-            Catch ex As Exception
-                ReturnResult.Append(GenerateMipMaps(SlashPath, strTile, BitmapTextureArgs, TileNum), "")
-                If ReturnResult.HasProblems Then
-                    Return ReturnResult
-                End If
-            End Try
-
-            GL.GetTexImage(Of Single)(TextureTarget.Texture2D, 7, PixelFormat.Rgba, PixelType.Float, AverageColour)
-            Tiles(TileNum).AverageColour.Red = AverageColour(0)
-            Tiles(TileNum).AverageColour.Green = AverageColour(1)
-            Tiles(TileNum).AverageColour.Blue = AverageColour(2)
-#Else
-            GenerateMipMaps(SlashPath, strTile, BitmapTextureArgs, TileNum)
+                If Settings.MipmapsHardware Then
+                    GL.Enable(EnableCap.Texture2D)
+                    GL.GenerateMipmap(GenerateMipmapTarget.Texture2D)
+                    GL.Disable(EnableCap.Texture2D)
+                Else
 #End If
+                    ReturnResult.Append(GenerateMipMaps(SlashPath, strTile, BitmapTextureArgs, TileNum), "")
+                    If ReturnResult.HasProblems Then
+                        Return ReturnResult
+                    End If
+#If Mono267 = 0.0# Then
+                End If
+#End If
+                GL.GetTexImage(Of Single)(TextureTarget.Texture2D, 7, PixelFormat.Rgba, PixelType.Float, AverageColour)
+                Tiles(TileNum).AverageColour.Red = AverageColour(0)
+                Tiles(TileNum).AverageColour.Green = AverageColour(1)
+                Tiles(TileNum).AverageColour.Blue = AverageColour(2)
+            Else
+                RedTotal = 0
+                GreenTotal = 0
+                BlueTotal = 0
+                For Y = 0 To tmpBitmap.Height - 1
+                    For X = 0 To tmpBitmap.Width - 1
+                        Pixel = tmpBitmap.GetPixel(X, Y)
+                        RedTotal += Pixel.R
+                        GreenTotal += Pixel.G
+                        BlueTotal += Pixel.B
+                    Next
+                Next
+                Tiles(TileNum).AverageColour.Red = CSng(RedTotal / 4177920.0#)
+                Tiles(TileNum).AverageColour.Green = CSng(GreenTotal / 4177920.0#)
+                Tiles(TileNum).AverageColour.Blue = CSng(BlueTotal / 4177920.0#)
+            End If
+
         Next
 
         Return ReturnResult

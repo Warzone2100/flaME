@@ -127,7 +127,7 @@
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
         'Dim XYZ_lng As sXYZ_lng
-        Dim XY_dbl As sXY_dbl
+        Dim XY_dbl As Matrix3D.XY_dbl
 
         If ViewMoveType = enumView_Move_Type.RTS And RTSOrbit Then
             Flag = True
@@ -161,7 +161,7 @@
             XYZ_dbl2.X = ViewPos.X
             XYZ_dbl2.Y = ViewPos.Y
             XYZ_dbl2.Z = -ViewPos.Z
-            MoveToViewTerrainPosFromDistance(XYZ_dbl, GetDist_XYZ_dbl(XYZ_dbl, XYZ_dbl2))
+            MoveToViewTerrainPosFromDistance(XYZ_dbl, (XYZ_dbl2 - XYZ_dbl).GetMagnitude)
         End If
 
         MapView.DrawViewLater()
@@ -235,7 +235,7 @@
         Return False
     End Function
 
-    Public Function ScreenXY_Get_ViewPlanePos(ByVal ScreenPos As sXY_int, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
+    Public Function ScreenXY_Get_ViewPlanePos(ByVal ScreenPos As sXY_int, ByVal PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
@@ -265,8 +265,8 @@
         Dim TerrainViewVector As Matrix3D.XYZ_dbl
         Dim X As Integer
         Dim Y As Integer
-        Dim LimitA As sXY_dbl
-        Dim LimitB As sXY_dbl
+        Dim LimitA As Matrix3D.XY_dbl
+        Dim LimitB As Matrix3D.XY_dbl
         Dim Min As sXY_int
         Dim Max As sXY_int
         Dim TriGradientX As Double
@@ -278,7 +278,7 @@
         Dim Dif As Matrix3D.XYZ_dbl
         Dim InTileX As Double
         Dim InTileZ As Double
-        Dim TilePos As sXY_dbl
+        Dim TilePos As Matrix3D.XY_dbl
         Dim TerrainViewPos As Matrix3D.XYZ_dbl
 
         Try
@@ -327,9 +327,7 @@
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
                         InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ <= 1.0# - InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
-                            Dif.X = XYZ_dbl.X - TerrainViewPos.X
-                            Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
-                            Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
+                            Dif = XYZ_dbl - TerrainViewPos
                             Dist = Dif.GetMagnitude
                             If Dist < BestDist Then
                                 BestDist = Dist
@@ -346,9 +344,7 @@
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
                         InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ >= 1.0# - InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
-                            Dif.X = XYZ_dbl.X - TerrainViewPos.X
-                            Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
-                            Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
+                            Dif = XYZ_dbl - TerrainViewPos
                             Dist = Dif.GetMagnitude
                             If Dist < BestDist Then
                                 BestDist = Dist
@@ -367,9 +363,7 @@
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
                         InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ <= InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
-                            Dif.X = XYZ_dbl.X - TerrainViewPos.X
-                            Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
-                            Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
+                            Dif = XYZ_dbl - TerrainViewPos
                             Dist = Dif.GetMagnitude
                             If Dist < BestDist Then
                                 BestDist = Dist
@@ -386,9 +380,7 @@
                         InTileX = XYZ_dbl.X / TerrainGridSpacing - X
                         InTileZ = XYZ_dbl.Z / TerrainGridSpacing - Y
                         If InTileZ >= InTileX And InTileX >= 0.0# And InTileZ >= 0.0# And InTileX <= 1.0# And InTileZ <= 1.0# Then
-                            Dif.X = XYZ_dbl.X - TerrainViewPos.X
-                            Dif.Y = XYZ_dbl.Y - TerrainViewPos.Y
-                            Dif.Z = XYZ_dbl.Z - TerrainViewPos.Z
+                            Dif = XYZ_dbl - TerrainViewPos
                             Dist = Dif.GetMagnitude
                             If Dist < BestDist Then
                                 BestDist = Dist
@@ -413,7 +405,7 @@
         Return True
     End Function
 
-    Public Function ScreenXY_Get_ViewPlanePos_ForwardDownOnly(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As sXY_dbl) As Boolean
+    Public Function ScreenXY_Get_ViewPlanePos_ForwardDownOnly(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
@@ -448,7 +440,7 @@
     Public Tiles_Per_Minimap_Pixel As Double
 
     Public Sub MouseOver_Pos_Calc()
-        Dim XY_dbl As sXY_dbl
+        Dim XY_dbl As Matrix3D.XY_dbl
         Dim A As Integer
         Dim Flag As Boolean
         Dim Footprint As sXY_int
@@ -1387,21 +1379,43 @@
                             Apply_Road_Remove()
                         Case enumTool.ObjectPlace
                             If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
-                                NewUnitType = frmMainInstance.SelectedObjectType
-                                NewUnit = New clsMap.clsUnit
-                                NewUnit.UnitGroup = Map.SelectedUnitGroup.Item
-                                NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
-                                If frmMainInstance.cbxObjectRandomRotation.Checked Then
-                                    NewUnit.Rotation = CInt(Int(Rnd() * 360.0#))
-                                Else
-                                    NewUnit.Rotation = 0
+                                Dim AutoWallType As clsWallType = Nothing
+                                If frmMainInstance.cbxAutoWalls.Checked Then
+                                    If frmMainInstance.SelectedObjectType.Type = clsUnitType.enumType.PlayerStructure Then
+                                        Dim StructureType As clsStructureType = CType(frmMainInstance.SelectedObjectType, clsStructureType)
+                                        If StructureType.WallLink.IsConnected Then
+                                            AutoWallType = StructureType.WallLink.Source
+                                            Map.PerformTileWall(AutoWallType, Map.GetPosTileNum(MouseOverTerrain.Pos.Horizontal), True)
+                                        End If
+                                    End If
                                 End If
-                                NewUnit.Type = NewUnitType
-                                Dim UnitAdd As New clsMap.clsUnitAdd
-                                UnitAdd.Map = Map
-                                UnitAdd.NewUnit = NewUnit
-                                UnitAdd.StoreChange = True
-                                UnitAdd.Perform()
+                                If AutoWallType Is Nothing Then
+                                    NewUnit = New clsMap.clsUnit
+                                    NewUnitType = frmMainInstance.SelectedObjectType
+                                    If frmMainInstance.cbxObjectRandomRotation.Checked Then
+                                        NewUnit.Rotation = CInt(Int(Rnd() * 360.0#))
+                                    Else
+                                        Try
+                                            Dim Rotation As Integer
+                                            InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
+                                            If Rotation < 0 Or Rotation > 359 Then
+                                                NewUnit.Rotation = 0
+                                            Else
+                                                NewUnit.Rotation = Rotation
+                                            End If
+                                        Catch ex As Exception
+                                            NewUnit.Rotation = 0
+                                        End Try
+                                    End If
+                                    NewUnit.UnitGroup = Map.SelectedUnitGroup.Item
+                                    NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
+                                    NewUnit.Type = NewUnitType
+                                    Dim UnitAdd As New clsMap.clsUnitAdd
+                                    UnitAdd.Map = Map
+                                    UnitAdd.NewUnit = NewUnit
+                                    UnitAdd.StoreChange = True
+                                    UnitAdd.Perform()
+                                End If
                                 Map.UndoStepCreate("Place Object")
                                 Map.Update()
                                 Map.MinimapMakeLater()
@@ -1516,39 +1530,27 @@
             ViewAngleChange.Z = 0.0#
             If Control_View_Left.Active Then
                 Matrix3D.VectorForwardsRotationByMatrix(ViewAngleMatrix, Roll, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
             If Control_View_Right.Active Then
                 Matrix3D.VectorBackwardsRotationByMatrix(ViewAngleMatrix, Roll, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
             If Control_View_Backward.Active Then
                 Matrix3D.VectorLeftRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
             If Control_View_Forward.Active Then
                 Matrix3D.VectorRightRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
             If Control_View_Roll_Left.Active Then
                 Matrix3D.VectorDownRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
             If Control_View_Roll_Right.Active Then
                 Matrix3D.VectorUpRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
-                ViewAngleChange.X += XYZ_dbl.X
-                ViewAngleChange.Y += XYZ_dbl.Y
-                ViewAngleChange.Z += XYZ_dbl.Z
+                ViewAngleChange += XYZ_dbl
             End If
 
             If ViewPosChangeXYZ.X <> 0.0# Or ViewPosChangeXYZ.Y <> 0.0# Or ViewPosChangeXYZ.Z <> 0.0# Then

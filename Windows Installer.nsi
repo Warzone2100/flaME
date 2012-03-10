@@ -26,7 +26,7 @@
 !define INSTALLERDATA "Windows Installer"
 
 !define PROGRAMVMAJOR "1"
-!define PROGRAMVMINOR "25"
+!define PROGRAMVMINOR "26"
 !define FLAMEVSHORT "${PROGRAMVMAJOR}.${PROGRAMVMINOR}"
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
 !define FLAMEFULLNAME "${PROGRAMNAME} ${FLAMEVSHORT}"
@@ -137,6 +137,7 @@ Section "Install ${PROGRAMNAME}" Main
 	File "${EXESOURCELOC}\OpenTK.dll"
 	File "${EXESOURCELOC}\OpenTK.dll.config"
 	File "${EXESOURCELOC}\ICSharpCode.SharpZipLib.dll"
+	File "${EXESOURCELOC}\Lists.dll"
 	File "${EXESOURCELOC}\Matrix3D.dll"
 	File "${EXESOURCELOC}\notile.png"
 	File "${EXESOURCELOC}\overflow.png"
@@ -253,6 +254,7 @@ Section "un.Uninstall ${PROGRAMNAME}" unMain
 	Delete "$INSTDIR\OpenTK.dll.config"
 	Delete "$INSTDIR\OpenTK.GLControl.dll"
 	Delete "$INSTDIR\Matrix3D.dll"
+	Delete "$INSTDIR\Lists.dll"
 
 	Delete "$INSTDIR\${INTERFACESUBDIR}\displayautotexture.png"
 	Delete "$INSTDIR\${INTERFACESUBDIR}\drawtileorientation.png"

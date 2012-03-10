@@ -1,12 +1,12 @@
-﻿Public Class SimpleList(Of ItemType)
+﻿
+Public Class SimpleList(Of ItemType)
 
     Private _Items(0) As ItemType
     Private _ItemCount As Integer = 0
     Private _IsBusy As Boolean = False
 
     Public MaintainOrder As Boolean = False
-
-    Public AfterMoveAction As Action(Of Integer)
+    Public MinSize As Integer = 1
 
     Public ReadOnly Property IsBusy As Boolean
         Get
@@ -20,14 +20,21 @@
         End Get
     End Property
 
-    Public ReadOnly Property Item(ByVal Number As Integer) As ItemType
+    Default Public Property Item(number As Integer) As ItemType
         Get
-            If Number < 0 Or Number >= _ItemCount Then
+            If number < 0 Or number >= _ItemCount Then
                 Stop
                 Return Nothing
             End If
-            Return _Items(Number)
+            Return _Items(number)
         End Get
+        Set(value As ItemType)
+            If number < 0 Or number >= _ItemCount Then
+                Stop
+                Exit Property
+            End If
+            _Items(number) = value
+        End Set
     End Property
 
     Public Overridable Sub Add(ByVal NewItem As ItemType)
@@ -75,15 +82,11 @@
             For A = LastNum - 1 To Position Step -1
                 NewPos = A + 1
                 _Items(NewPos) = _Items(A)
-                If AfterMoveAction IsNot Nothing Then
-                    AfterMoveAction(NewPos)
-                End If
+                AfterMoveAction(NewPos)
             Next
         Else
             _Items(LastNum) = _Items(Position)
-            If AfterMoveAction IsNot Nothing Then
-                AfterMoveAction(LastNum)
-            End If
+            AfterMoveAction(LastNum)
         End If
         _Items(Position) = NewItem
 
@@ -111,22 +114,19 @@
             For A = Position + 1 To _ItemCount
                 NewPos = A - 1
                 _Items(NewPos) = _Items(A)
-                If AfterMoveAction IsNot Nothing Then
-                    AfterMoveAction(NewPos)
-                End If
+                AfterMoveAction(NewPos)
             Next
         Else
             If Position < _ItemCount Then
                 Dim LastItem As ItemType = _Items(_ItemCount)
                 _Items(Position) = LastItem
-                If AfterMoveAction IsNot Nothing Then
-                    AfterMoveAction(Position)
-                End If
+                AfterMoveAction(Position)
             End If
         End If
         _Items(_ItemCount) = Nothing
-        If _ItemCount * 3 < UBound(_Items) + 1 Then
-            ReDim Preserve _Items(_ItemCount * 2 - 1)
+        Dim ArraySize As Integer = UBound(_Items) + 1
+        If _ItemCount * 3 < ArraySize And ArraySize > MinSize Then
+            ReDim Preserve _Items(Math.Max(_ItemCount * 2, MinSize) - 1)
         End If
 
         _IsBusy = False
@@ -158,17 +158,17 @@
         Dim tmpItem As ItemType = _Items(SwapPositionA)
         _Items(SwapPositionA) = _Items(SwapPositionB)
         _Items(SwapPositionB) = tmpItem
-        If AfterMoveAction IsNot Nothing Then
-            AfterMoveAction(SwapPositionA)
-            AfterMoveAction(SwapPositionB)
-        End If
+        AfterMoveAction(SwapPositionA)
+        AfterMoveAction(SwapPositionB)
 
         _IsBusy = False
     End Sub
 
     Public Sub Clear()
 
-        ReDim _Items(0)
+        If UBound(_Items) + 1 <> MinSize Then
+            ReDim _Items(MinSize - 1)
+        End If
         _ItemCount = 0
     End Sub
 
@@ -218,6 +218,16 @@
             OtherList.Add(Copy.Item(Position))
             Copy.Remove(Position)
         Next
+    End Sub
+
+    Public Sub RemoveBuffer()
+
+        ReDim Preserve _Items(_ItemCount - 1)
+    End Sub
+
+    Protected Overridable Sub AfterMoveAction(position As Integer)
+
+
     End Sub
 End Class
 
@@ -270,16 +280,24 @@ Public Interface SimpleListTool(Of ItemType)
     Sub ActionPerform()
 End Interface
 
+Public Class AlteredSimpleClassList(Of ItemType As Class, SourceType As Class)
+    Inherits SimpleClassList(Of ConnectedListItem(Of ItemType, SourceType))
+
+    Protected Overrides Sub AfterMoveAction(position As Integer)
+
+        Item(position).AfterMove(position)
+    End Sub
+End Class
+
 Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
 
-    Private _Items As New SimpleClassList(Of ConnectedListItem(Of ItemType, SourceType))
+    Private _Items As New AlteredSimpleClassList(Of ItemType, SourceType)
     Private _Owner As SourceType
 
     Public Sub New(ByVal Owner As SourceType)
 
         _Owner = Owner
         _Items.AddNothingAction = SimpleClassList_AddNothingAction.DisallowError
-        _Items.AfterMoveAction = AddressOf _AfterMove
     End Sub
 
     Public ReadOnly Property Owner As SourceType
@@ -309,7 +327,7 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
         End Get
     End Property
 
-    Public ReadOnly Property Item(ByVal Position As Integer) As ItemType
+    Default Public ReadOnly Property Item(ByVal Position As Integer) As ItemType
         Get
             Return _Items.Item(Position).Item
         End Get
@@ -320,11 +338,6 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
             Return _Items.ItemCount
         End Get
     End Property
-
-    Private Sub _AfterMove(Position As Integer)
-
-        ItemContainer(Position).AfterMove(Position)
-    End Sub
 
     Public Overridable Sub Add(ByVal NewItem As ConnectedListItem(Of ItemType, SourceType))
 
@@ -368,7 +381,6 @@ Public Class ConnectedList(Of ItemType As Class, SourceType As Class)
             Remove(0)
         Loop
         _Owner = Nothing
-        _Items.AfterMoveAction = Nothing
     End Sub
 
     Public Function GetItemsAsSimpleClassList() As SimpleClassList(Of ItemType)

@@ -1,21 +1,27 @@
-﻿Public Class clsINIRead
+﻿
+Public Class clsINIRead
     Public Class clsSection
         Public Name As String
+#If Mono = 0.0# Then
         Public Structure sProperty
+#Else
+        Public Class sProperty
+#End If
             Public Name As String
             Public Value As String
+#If Mono = 0.0# Then
         End Structure
-        Public Properties(0) As sProperty
-        Public PropertyCount As Integer
+#Else
+        End Class
+#End If
+        Public Properties As New SimpleList(Of sProperty)
 
         Public Sub CreateProperty(ByVal Name As String, ByVal Value As String)
+            Dim newProperty As New sProperty
 
-            If Properties.GetUpperBound(0) < PropertyCount Then
-                ReDim Preserve Properties(PropertyCount * 2 + 1)
-            End If
-            Properties(PropertyCount).Name = Name
-            Properties(PropertyCount).Value = Value
-            PropertyCount += 1
+            newProperty.Name = Name
+            newProperty.Value = Value
+            Properties.Add(newProperty)
         End Sub
 
         Public Function ReadFile(ByVal File As System.IO.StreamReader) As clsResult
@@ -48,7 +54,7 @@
                 End If
             Loop
 
-            ReDim Preserve Properties(PropertyCount - 1)
+            Properties.RemoveBuffer()
 
             If InvalidLineCount > 0 Then
                 ReturnResult.Warning_Add("There were " & InvalidLineCount & " invalid lines that were ignored.")
@@ -63,7 +69,7 @@
             Dim A As Integer
             Dim TranslatorResult As enumTranslatorResult
 
-            For A = 0 To PropertyCount - 1
+            For A = 0 To Properties.ItemCount - 1
                 TranslatorResult = Translator.Translate(SectionNum, Properties(A))
                 Select Case TranslatorResult
                     Case enumTranslatorResult.NameUnknown
@@ -92,7 +98,7 @@
             ErrorCount.NameWarningCountMax = 16
             ErrorCount.ValueWarningCountMax = 16
 
-            For A = 0 To PropertyCount - 1
+            For A = 0 To Properties.ItemCount - 1
                 TranslatorResult = Translator.Translate(Properties(A))
                 Select Case TranslatorResult
                     Case enumTranslatorResult.NameUnknown
@@ -121,7 +127,7 @@
         Public Function GetLastPropertyValue(ByVal LCasePropertyName As String) As String
             Dim A As Integer
 
-            For A = PropertyCount - 1 To 0 Step -1
+            For A = Properties.ItemCount - 1 To 0 Step -1
                 If Properties(A).Name = LCasePropertyName Then
                     Return Properties(A).Value
                 End If
@@ -129,17 +135,13 @@
             Return Nothing
         End Function
     End Class
-    Public Sections(0) As clsSection
-    Public SectionCount As Integer
+    Public Sections As New SimpleClassList(Of clsSection)
 
     Public Sub CreateSection(ByVal Name As String)
+        Dim newSection As New clsSection
+        newSection.Name = Name
 
-        If Sections.GetUpperBound(0) < SectionCount Then
-            ReDim Preserve Sections(SectionCount * 2 + 1)
-        End If
-        Sections(SectionCount) = New clsSection
-        Sections(SectionCount).Name = Name
-        SectionCount += 1
+        Sections.Add(newSection)
     End Sub
 
     Public Function ReadFile(ByVal File As IO.StreamReader) As clsResult
@@ -165,13 +167,13 @@
                 If LineText.Chars(0) = "["c Then
                     If LineText.Chars(LineText.Length - 1) = "]"c Then
                         SectionName = LineText.Substring(1, LineText.Length - 2)
-                        For A = 0 To SectionCount - 1
+                        For A = 0 To Sections.ItemCount - 1
                             If Sections(A).Name = SectionName Then
                                 Exit For
                             End If
                         Next
                         CurrentEntryNum = A
-                        If CurrentEntryNum = SectionCount Then
+                        If CurrentEntryNum = Sections.ItemCount Then
                             CreateSection(SectionName)
                         End If
                     Else
@@ -192,10 +194,7 @@
             End If
         Loop
 
-        ReDim Preserve Sections(SectionCount - 1)
-        For A = 0 To SectionCount - 1
-            ReDim Preserve Sections(A).Properties(Sections(A).PropertyCount - 1)
-        Next
+        Sections.RemoveBuffer()
 
         If InvalidLineCount > 0 Then
             ReturnResult.Warning_Add("There were " & InvalidLineCount & " invalid lines that were ignored.")
@@ -226,7 +225,7 @@
         ErrorCount.NameWarningCountMax = 16
         ErrorCount.ValueWarningCountMax = 16
 
-        For A = 0 To SectionCount - 1
+        For A = 0 To Sections.ItemCount - 1
             ReturnResult.Append(Sections(A).Translate(A, Translator, ErrorCount), "")
         Next
 

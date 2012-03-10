@@ -57,6 +57,9 @@ Partial Class frmOptions
         Me.cbxAskDirectories = New System.Windows.Forms.CheckBox()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.btnSave = New System.Windows.Forms.Button()
+        Me.GroupBox8 = New System.Windows.Forms.GroupBox()
+        Me.cbxMipmaps = New System.Windows.Forms.CheckBox()
+        Me.cbxMipmapsHardware = New System.Windows.Forms.CheckBox()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         Me.GroupBox7.SuspendLayout()
@@ -66,6 +69,7 @@ Partial Class frmOptions
         Me.GroupBox2.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
+        Me.GroupBox8.SuspendLayout()
         Me.SuspendLayout()
         '
         'TabControl1
@@ -74,11 +78,12 @@ Partial Class frmOptions
         Me.TabControl1.Location = New System.Drawing.Point(12, 12)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
-        Me.TabControl1.Size = New System.Drawing.Size(637, 329)
+        Me.TabControl1.Size = New System.Drawing.Size(637, 398)
         Me.TabControl1.TabIndex = 35
         '
         'TabPage1
         '
+        Me.TabPage1.Controls.Add(Me.GroupBox8)
         Me.TabPage1.Controls.Add(Me.GroupBox7)
         Me.TabPage1.Controls.Add(Me.GroupBox6)
         Me.TabPage1.Controls.Add(Me.GroupBox5)
@@ -89,7 +94,7 @@ Partial Class frmOptions
         Me.TabPage1.Location = New System.Drawing.Point(4, 25)
         Me.TabPage1.Name = "TabPage1"
         Me.TabPage1.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabPage1.Size = New System.Drawing.Size(629, 300)
+        Me.TabPage1.Size = New System.Drawing.Size(629, 369)
         Me.TabPage1.TabIndex = 0
         Me.TabPage1.Text = "General"
         Me.TabPage1.UseVisualStyleBackColor = True
@@ -431,7 +436,7 @@ Partial Class frmOptions
         '
         'btnCancel
         '
-        Me.btnCancel.Location = New System.Drawing.Point(549, 347)
+        Me.btnCancel.Location = New System.Drawing.Point(549, 416)
         Me.btnCancel.Name = "btnCancel"
         Me.btnCancel.Size = New System.Drawing.Size(100, 29)
         Me.btnCancel.TabIndex = 39
@@ -440,17 +445,53 @@ Partial Class frmOptions
         '
         'btnSave
         '
-        Me.btnSave.Location = New System.Drawing.Point(443, 347)
+        Me.btnSave.Location = New System.Drawing.Point(443, 416)
         Me.btnSave.Name = "btnSave"
         Me.btnSave.Size = New System.Drawing.Size(100, 29)
         Me.btnSave.TabIndex = 40
         Me.btnSave.Text = "Accept"
         Me.btnSave.UseVisualStyleBackColor = True
         '
+        'GroupBox8
+        '
+        Me.GroupBox8.Controls.Add(Me.cbxMipmapsHardware)
+        Me.GroupBox8.Controls.Add(Me.cbxMipmaps)
+        Me.GroupBox8.Location = New System.Drawing.Point(6, 299)
+        Me.GroupBox8.Name = "GroupBox8"
+        Me.GroupBox8.Size = New System.Drawing.Size(304, 60)
+        Me.GroupBox8.TabIndex = 45
+        Me.GroupBox8.TabStop = False
+        Me.GroupBox8.Text = "Graphics"
+        Me.GroupBox8.UseCompatibleTextRendering = True
+        '
+        'cbxMipmaps
+        '
+        Me.cbxMipmaps.AutoSize = True
+        Me.cbxMipmaps.Location = New System.Drawing.Point(8, 22)
+        Me.cbxMipmaps.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxMipmaps.Name = "cbxMipmaps"
+        Me.cbxMipmaps.Size = New System.Drawing.Size(141, 21)
+        Me.cbxMipmaps.TabIndex = 40
+        Me.cbxMipmaps.Text = "Generate mipmaps"
+        Me.cbxMipmaps.UseCompatibleTextRendering = True
+        Me.cbxMipmaps.UseVisualStyleBackColor = True
+        '
+        'cbxMipmapsHardware
+        '
+        Me.cbxMipmapsHardware.AutoSize = True
+        Me.cbxMipmapsHardware.Location = New System.Drawing.Point(169, 22)
+        Me.cbxMipmapsHardware.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxMipmapsHardware.Name = "cbxMipmapsHardware"
+        Me.cbxMipmapsHardware.Size = New System.Drawing.Size(112, 21)
+        Me.cbxMipmapsHardware.TabIndex = 41
+        Me.cbxMipmapsHardware.Text = "Use Hardware"
+        Me.cbxMipmapsHardware.UseCompatibleTextRendering = True
+        Me.cbxMipmapsHardware.UseVisualStyleBackColor = True
+        '
         'frmOptions
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.ClientSize = New System.Drawing.Size(659, 382)
+        Me.ClientSize = New System.Drawing.Size(659, 452)
         Me.Controls.Add(Me.btnSave)
         Me.Controls.Add(Me.btnCancel)
         Me.Controls.Add(Me.TabControl1)
@@ -474,6 +515,8 @@ Partial Class frmOptions
         Me.GroupBox1.PerformLayout()
         Me.GroupBox3.ResumeLayout(False)
         Me.GroupBox3.PerformLayout()
+        Me.GroupBox8.ResumeLayout(False)
+        Me.GroupBox8.PerformLayout()
         Me.ResumeLayout(False)
 
     End Sub
@@ -512,4 +555,7 @@ Partial Class frmOptions
     Public WithEvents Label5 As System.Windows.Forms.Label
     Public WithEvents Label6 As System.Windows.Forms.Label
     Friend WithEvents pnlMinimapSelectedObjectColour As System.Windows.Forms.Panel
+    Public WithEvents GroupBox8 As System.Windows.Forms.GroupBox
+    Public WithEvents cbxMipmapsHardware As System.Windows.Forms.CheckBox
+    Public WithEvents cbxMipmaps As System.Windows.Forms.CheckBox
 End Class

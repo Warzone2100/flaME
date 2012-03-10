@@ -28,9 +28,9 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.25</ReleaseVersion>
-    <OptionStrict>On</OptionStrict>
+    <ReleaseVersion>1.26</ReleaseVersion>
     <OutputType>WinExe</OutputType>
+    <OptionStrict>On</OptionStrict>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -38,7 +38,7 @@
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\MonoDevelop</OutputPath>
-    <DefineConstants>MonoDevelop=0.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
+    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
     <AdditionalParameters />
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
@@ -57,13 +57,13 @@
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
       <HintPath>ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK">
+    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
       <HintPath>OpenTK.dll</HintPath>
     </Reference>
-    <Reference Include="OpenTK.GLControl">
+    <Reference Include="OpenTK.GLControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
       <HintPath>OpenTK.GLControl.dll</HintPath>
     </Reference>
-    <Reference Include="Matrix3D">
+    <Reference Include="Matrix3D, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>Matrix3D.dll</HintPath>
     </Reference>
   </ItemGroup>
@@ -76,6 +76,8 @@
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
+    <Import Include="" />
+    <Import Include="Lists" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
@@ -134,7 +136,6 @@
     <Compile Include="modPainters.vb" />
     <Compile Include="INI.vb" />
     <Compile Include="clsMapScriptMarkers.vb" />
-    <Compile Include="Lists.vb" />
     <Compile Include="frmMain.Designer.vb" />
     <Compile Include="ctrlBrush.Designer.vb" />
     <Compile Include="ctrlColour.Designer.vb" />
@@ -148,6 +149,9 @@
     <Compile Include="frmWarnings.Designer.vb" />
     <Compile Include="frmWZLoad.Designer.vb" />
     <Compile Include="frmCompile.Designer.vb" />
+    <Compile Include="clsObjectData.vb" />
+    <Compile Include="clsBrush.vb" />
+    <Compile Include="Lists.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

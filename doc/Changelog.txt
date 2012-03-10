@@ -1,3 +1,7 @@
+1.26:
+bug fixes
+3.1 data and walls
+
 1.25:
 bug fixes
 new button to realign objects to tiles

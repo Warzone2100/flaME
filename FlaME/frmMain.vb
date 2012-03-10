@@ -1,11 +1,7 @@
 ﻿Imports ICSharpCode.SharpZipLib
-Imports System.Security.Permissions
 Imports OpenTK.Graphics.OpenGL
 
 Partial Public Class frmMain
-#If MonoDevelop <> 0.0# Then
-    Inherits Form
-#End If
 
     Public Class clsMaps
         Inherits ConnectedList(Of clsMap, frmMain)
@@ -114,11 +110,11 @@ Partial Public Class frmMain
     Public WithEvents ctrlHeightBrush As ctrlBrush
 
     Public Sub New()
-        InitializeComponent() 'required for monodevelop too
+        InitializeComponent()
 
         PlatformPathSeparator = IO.Path.DirectorySeparatorChar
 
-        'these depend on ospathseperator
+        'these depend on pathseperator
         SetProgramSubDirs()
         SetDataSubDirs()
 
@@ -474,13 +470,13 @@ Partial Public Class frmMain
         Dim Pan As Double
         Dim OrbitRate As Double
 
-        Rate = frmMainInstance.Rate_Get()
+        Rate = Rate_Get()
 
-        Zoom = frmMainInstance.tmrKey.Interval * Rate * 0.002#
-        Move = frmMainInstance.tmrKey.Interval * Rate / 2048.0#
-        Roll = Rate * 5.0# * RadOf1Deg
-        Pan = Rate / 16.0#
-        OrbitRate = Rate / 32.0#
+        Zoom = tmrKey.Interval * 0.002#
+        Move = tmrKey.Interval * Rate / 2048.0#
+        Roll = 5.0# * RadOf1Deg
+        Pan = 1.0# / 16.0#
+        OrbitRate = 1.0# / 32.0#
 
         Map.ViewInfo.TimedActions(Zoom, Move, Pan, Roll, OrbitRate)
 
@@ -734,53 +730,71 @@ Partial Public Class frmMain
         InputControlCount += 1
     End Function
 
-    Private LoadMapDialog As New OpenFileDialog
-
     Public Sub Load_Map_Prompt()
+        Dim Dialog As New OpenFileDialog
 
-        LoadMapDialog.FileName = ""
-        LoadMapDialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.gam, *.lnd)|*.fmap;*.fme;*.wz;*.gam;*.lnd|All Files (*.*)|*.*"
-        If LoadMapDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+        Dialog.InitialDirectory = Settings.OpenPath
+        Dialog.FileName = ""
+        Dialog.Filter = "Warzone Map Files (*.fmap, *.fme, *.wz, *.gam, *.lnd)|*.fmap;*.fme;*.wz;*.gam;*.lnd|All Files (*.*)|*.*"
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
-        ShowWarnings(LoadMap(LoadMapDialog.FileName), "Load map")
+        Settings.OpenPath = IO.Path.GetDirectoryName(Dialog.FileName)
+        ShowWarnings(LoadMap(Dialog.FileName), "Load map")
     End Sub
 
     Public Sub Load_Heightmap_Prompt()
         Dim Dialog As New OpenFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.OpenPath
         Dialog.FileName = ""
         Dialog.Filter = "Image Files (*.bmp, *.png)|*.bmp;*.png|All Files (*.*)|*.*"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.OpenPath = IO.Path.GetDirectoryName(Dialog.FileName)
 
         Dim HeightmapBitmap As Bitmap = Nothing
         Dim Result As sResult = LoadBitmap(Dialog.FileName, HeightmapBitmap)
-        If Result.Success Then
-            Dim NewMap As New clsMap(New sXY_int(HeightmapBitmap.Width - 1, HeightmapBitmap.Height - 1))
-            Dim X As Integer
-            Dim Y As Integer
-            Dim PixelColor As Color
-
-            For Y = 0 To HeightmapBitmap.Height - 1
-                For X = 0 To HeightmapBitmap.Width - 1
-                    PixelColor = HeightmapBitmap.GetPixel(X, Y)
-                    NewMap.Terrain.Vertices(X, Y).Height = CByte(Math.Min(Math.Round((CInt(PixelColor.R) + PixelColor.G + PixelColor.B) / 3.0#), Byte.MaxValue))
-                Next
-            Next
-
-            NewMainMap(NewMap)
-
-            NewMap.Update()
-
-            View_DrawViewLater()
-            Exit Sub
-        Else
+        If Not Result.Success Then
             MsgBox("Failed to load image: " & Result.Problem)
+            Exit Sub
         End If
-Error_Exit:
+
+        Dim Map As clsMap = MainMap
+        Dim ApplyToMap As clsMap = Nothing
+        If Map Is Nothing Then
+
+        ElseIf MsgBox("Apply heightmap to the current map?", MsgBoxStyle.YesNo) = MsgBoxResult.Yes Then
+            ApplyToMap = Map
+        End If
+        If ApplyToMap Is Nothing Then
+            ApplyToMap = New clsMap(New sXY_int(HeightmapBitmap.Width - 1, HeightmapBitmap.Height - 1))
+        End If
+
+        Dim X As Integer
+        Dim Y As Integer
+        Dim PixelColor As Color
+
+        For Y = 0 To Math.Min(HeightmapBitmap.Height - 1, ApplyToMap.Terrain.TileSize.Y)
+            For X = 0 To Math.Min(HeightmapBitmap.Width - 1, ApplyToMap.Terrain.TileSize.X)
+                PixelColor = HeightmapBitmap.GetPixel(X, Y)
+                ApplyToMap.Terrain.Vertices(X, Y).Height = CByte(Math.Min(Math.Round((CInt(PixelColor.R) + PixelColor.G + PixelColor.B) / 3.0#), Byte.MaxValue))
+            Next
+        Next
+
+        If ApplyToMap Is Map Then
+            ApplyToMap.SectorTerrainUndoChanges.SetAllChanged()
+            ApplyToMap.SectorUnitHeightsChanges.SetAllChanged()
+            ApplyToMap.SectorGraphicsChanges.SetAllChanged()
+            ApplyToMap.Update()
+            ApplyToMap.UndoStepCreate("Apply heightmap")
+        Else
+            NewMainMap(ApplyToMap)
+            ApplyToMap.Update()
+        End If
+
+        View_DrawViewLater()
     End Sub
 
     Public Sub Load_TTP_Prompt()
@@ -792,12 +806,13 @@ Error_Exit:
             Exit Sub
         End If
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.OpenPath
         Dialog.FileName = ""
         Dialog.Filter = "TTP Files (*.ttp)|*.ttp|All Files (*.*)|*.*"
         If Not Dialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.OpenPath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As sResult = Map.Load_TTP(Dialog.FileName)
         If Result.Success Then
             TextureView.DrawViewLater()
@@ -1090,12 +1105,13 @@ Error_Exit:
 
         Dim Dialog As New SaveFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.SavePath
         Dialog.FileName = ""
         Dialog.Filter = "Editworld Files (*.lnd)|*.lnd"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
 
         Dim Result As clsResult
         Result = Map.Write_LND(Dialog.FileName, True)
@@ -1119,10 +1135,7 @@ Error_Exit:
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
-        'If Not PromptFileFMEVersion(Dialog.FileName) Then
-        '    Save_FME_Prompt()
-        '    Exit Sub
-        'End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As clsResult
         Result = Map.Write_FMap(Dialog.FileName, True, True)
         If Not Result.HasProblems Then
@@ -1144,12 +1157,13 @@ Error_Exit:
 
         Dim Dialog As New SaveFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.SavePath
         Dialog.FileName = ""
         Dialog.Filter = ProgramName & " FME Map Files (*.fme)|*.fme"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim strScavenger As String = InputBox("Enter the player number for scavenger units:")
         Dim ScavengerNum As Byte
         If Not InvariantParse_byte(strScavenger, ScavengerNum) Then
@@ -1196,12 +1210,13 @@ Error_Exit:
 
         Dim Dialog As New SaveFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.SavePath
         Dialog.FileName = ""
         Dialog.Filter = "Bitmap File (*.bmp)|*.bmp"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As sResult
         Result = Map.Write_MinimapFile(Dialog.FileName, True)
         If Not Result.Success Then
@@ -1219,12 +1234,13 @@ Error_Exit:
 
         Dim Dialog As New SaveFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.SavePath
         Dialog.FileName = ""
         Dialog.Filter = "Bitmap File (*.bmp)|*.bmp"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As sResult
         Result = Map.Write_Heightmap(Dialog.FileName, True)
         If Not Result.Success Then
@@ -1242,12 +1258,13 @@ Error_Exit:
 
         Dim Dialog As New SaveFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
+        Dialog.InitialDirectory = Settings.SavePath
         Dialog.FileName = ""
         Dialog.Filter = "TTP Files (*.ttp)|*.ttp"
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.SavePath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As sResult
         Result = Map.Write_TTP(Dialog.FileName, True)
         If Not Result.Success Then
@@ -1267,6 +1284,7 @@ Error_Exit:
 
         NewMap.RandomizeTileOrientations()
         NewMap.Update()
+        NewMap.Undo_Clear()
     End Sub
 
     Private Sub rdoAutoCliffRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoAutoCliffRemove.Click
@@ -1448,18 +1466,21 @@ Error_Exit:
         Dim tmpTemplate As clsDroidTemplate
         Dim tmpFeature As clsFeatureType
         Dim tmpStructure As clsStructureType
+        Dim UnitType As clsUnitType
 
         lstFeatures.Items.Clear()
         lstStructures.Items.Clear()
         lstDroids.Items.Clear()
-        For A = 0 To UnitTypeCount - 1
-            If UnitTypes(A).Type = clsUnitType.enumType.Feature Then
-                tmpFeature = CType(UnitTypes(A), clsFeatureType)
+
+        For A = 0 To ObjectData.UnitTypes.ItemCount - 1
+            UnitType = ObjectData.UnitTypes(A)
+            If UnitType.Type = clsUnitType.enumType.Feature Then
+                tmpFeature = CType(UnitType, clsFeatureType)
                 lstFeatures.Items.Add(tmpFeature.Code & " (" & tmpFeature.Name & ")")
                 ReDim Preserve lstFeatures_Objects(lstFeatures.Items.Count - 1)
                 lstFeatures_Objects(lstFeatures.Items.Count - 1) = tmpFeature
-            ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerDroid Then
-                tmpDroid = CType(UnitTypes(A), clsDroidDesign)
+            ElseIf UnitType.Type = clsUnitType.enumType.PlayerDroid Then
+                tmpDroid = CType(UnitType, clsDroidDesign)
                 If tmpDroid.IsTemplate Then
                     tmpTemplate = CType(tmpDroid, clsDroidTemplate)
                     If tmpTemplate.Code <> "ConstructorDroid" Then
@@ -1468,11 +1489,11 @@ Error_Exit:
                         lstDroids_Objects(lstDroids.Items.Count - 1) = tmpTemplate
                     End If
                 End If
-            ElseIf UnitTypes(A).Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(UnitTypes(A), clsStructureType)
+            ElseIf UnitType.Type = clsUnitType.enumType.PlayerStructure Then
+                tmpStructure = CType(UnitType, clsStructureType)
                 lstStructures.Items.Add(tmpStructure.Code & " (" & tmpStructure.Name & ")")
                 ReDim Preserve lstStructures_Objects(lstStructures.Items.Count - 1)
-                lstStructures_Objects(lstStructures.Items.Count - 1) = UnitTypes(A)
+                lstStructures_Objects(lstStructures.Items.Count - 1) = UnitType
             End If
         Next
 
@@ -3834,13 +3855,13 @@ Error_Exit:
         End If
         Dim Dialog As New OpenFileDialog
 
-        Dialog.InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
         Dialog.FileName = ""
         Dialog.Filter = ProgramName & " Files (*.fmap, *.fme)|*.fmap;*.fme|All Files (*.*)|*.*"
         Dialog.InitialDirectory = AutoSavePath
         If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
+        Settings.OpenPath = IO.Path.GetDirectoryName(Dialog.FileName)
         Dim Result As clsResult = LoadMap(Dialog.FileName)
         ShowWarnings(Result, "Load Map")
     End Sub

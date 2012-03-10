@@ -249,11 +249,11 @@
                 For A = 0 To CInt(TempUnitCount) - 1
                     Select Case TempUnit(A).LNDType
                         Case 0
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.Feature)
+                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.Feature, -1)
                         Case 1
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerStructure)
+                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerStructure, -1)
                         Case 2
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerDroid)
+                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerDroid, -1)
                         Case Else
                             tmpUnitType = Nothing
                     End Select
@@ -854,11 +854,11 @@ LineDone:
             For A = 0 To ObjectCount - 1
                 Select Case LNDObject(A).TypeNum
                     Case 0
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.Feature)
+                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.Feature, -1)
                     Case 1
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerStructure)
+                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerStructure, -1)
                     Case 2
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerDroid)
+                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerDroid, -1)
                     Case Else
                         NewType = Nothing
                 End Select

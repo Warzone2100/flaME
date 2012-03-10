@@ -191,7 +191,7 @@ Partial Public Class clsMap
             Dim FeaturesINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
             ReturnResult.AppendAsWarning(FeaturesINI.ReadFile(FeaturesINI_Reader), "Features INI: ")
             FeaturesINI_Reader.Close()
-            INIFeatures = New clsINIFeatures(FeaturesINI.SectionCount)
+            INIFeatures = New clsINIFeatures(FeaturesINI.Sections.ItemCount)
             ReturnResult.AppendAsWarning(FeaturesINI.Translate(INIFeatures), "Features INI: ")
         End If
 
@@ -231,7 +231,7 @@ Partial Public Class clsMap
             Dim StructuresINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
             ReturnResult.AppendAsWarning(StructuresINI.ReadFile(StructuresINI_Reader), "Structures INI: ")
             StructuresINI_Reader.Close()
-            INIStructures = New clsINIStructures(StructuresINI.SectionCount, Me)
+            INIStructures = New clsINIStructures(StructuresINI.Sections.ItemCount, Me)
             ReturnResult.AppendAsWarning(StructuresINI.Translate(INIStructures), "Structures INI: ")
         End If
 
@@ -259,7 +259,7 @@ Partial Public Class clsMap
             Dim DroidsINI_Reader As New IO.StreamReader(ZipSearchResult.Stream)
             ReturnResult.AppendAsWarning(DroidsINI.ReadFile(DroidsINI_Reader), "Droids INI: ")
             DroidsINI_Reader.Close()
-            INIDroids = New clsINIDroids(DroidsINI.SectionCount, Me)
+            INIDroids = New clsINIDroids(DroidsINI.Sections.ItemCount, Me)
             ReturnResult.AppendAsWarning(DroidsINI.Translate(INIDroids), "Droids INI: ")
         End If
 
@@ -375,7 +375,7 @@ Partial Public Class clsMap
             Dim FeaturesINI_Reader As New IO.StreamReader(File)
             ReturnResult.AppendAsWarning(FeaturesINI.ReadFile(FeaturesINI_Reader), "Features INI: ")
             FeaturesINI_Reader.Close()
-            INIFeatures = New clsINIFeatures(FeaturesINI.SectionCount)
+            INIFeatures = New clsINIFeatures(FeaturesINI.Sections.ItemCount)
             ReturnResult.AppendAsWarning(FeaturesINI.Translate(INIFeatures), "Features INI: ")
         End If
 
@@ -415,7 +415,7 @@ Partial Public Class clsMap
             Dim StructuresINI_Reader As New IO.StreamReader(File)
             ReturnResult.AppendAsWarning(StructuresINI.ReadFile(StructuresINI_Reader), "Structures INI: ")
             StructuresINI_Reader.Close()
-            INIStructures = New clsINIStructures(StructuresINI.SectionCount, Me)
+            INIStructures = New clsINIStructures(StructuresINI.Sections.ItemCount, Me)
             ReturnResult.AppendAsWarning(StructuresINI.Translate(INIStructures), "Structures INI: ")
         End If
 
@@ -443,7 +443,7 @@ Partial Public Class clsMap
             Dim DroidsINI_Reader As New IO.StreamReader(File)
             ReturnResult.AppendAsWarning(DroidsINI.ReadFile(DroidsINI_Reader), "Droids INI: ")
             DroidsINI_Reader.Close()
-            INIDroids = New clsINIDroids(DroidsINI.SectionCount, Me)
+            INIDroids = New clsINIDroids(DroidsINI.Sections.ItemCount, Me)
             ReturnResult.AppendAsWarning(DroidsINI.Translate(INIDroids), "Droids INI: ")
         End If
 
@@ -538,7 +538,7 @@ Partial Public Class clsMap
             tmpBJOUnit = BJOUnits.Item(A)
             NewUnit = New clsUnit
             NewUnit.ID = tmpBJOUnit.ID
-            NewUnit.Type = FindOrCreateUnitType(tmpBJOUnit.Code, tmpBJOUnit.ObjectType)
+            NewUnit.Type = FindOrCreateUnitType(tmpBJOUnit.Code, tmpBJOUnit.ObjectType, -1)
             If NewUnit.Type Is Nothing Then
                 ReturnResult.Problem_Add("Unable to create object type.")
                 Return ReturnResult
@@ -601,7 +601,7 @@ Partial Public Class clsMap
                 ElseIf Not PosIsWithinTileArea(INIStructures.Structures(A).Pos.WorldPos.Horizontal, ZeroPos, Terrain.TileSize) Then
                     StructureBadPositionCount += 1
                 Else
-                    tmpUnitType = FindOrCreateUnitType(INIStructures.Structures(A).Code, clsUnitType.enumType.PlayerStructure)
+                    tmpUnitType = FindOrCreateUnitType(INIStructures.Structures(A).Code, clsUnitType.enumType.PlayerStructure, INIStructures.Structures(A).WallType)
                     If tmpUnitType.Type = clsUnitType.enumType.PlayerStructure Then
                         tmpStructureType = CType(tmpUnitType, clsStructureType)
                     Else
@@ -639,6 +639,9 @@ Partial Public Class clsMap
                         'create modules
                         Select Case tmpStructureType.StructureType
                             Case clsStructureType.enumStructureType.Factory
+                                ModuleLimit = 2
+                                tmpModuleType = FactoryModule
+                            Case clsStructureType.enumStructureType.VTOLFactory
                                 ModuleLimit = 2
                                 tmpModuleType = FactoryModule
                             Case clsStructureType.enumStructureType.PowerGenerator
@@ -688,7 +691,7 @@ Partial Public Class clsMap
                 ElseIf Not PosIsWithinTileArea(INIFeatures.Features(A).Pos.WorldPos.Horizontal, ZeroPos, Terrain.TileSize) Then
                     FeatureBadPositionCount += 1
                 Else
-                    tmpUnitType = FindOrCreateUnitType(INIFeatures.Features(A).Code, clsUnitType.enumType.Feature)
+                    tmpUnitType = FindOrCreateUnitType(INIFeatures.Features(A).Code, clsUnitType.enumType.Feature, -1)
                     If tmpUnitType.Type = clsUnitType.enumType.Feature Then
                         tmpFeatureType = CType(tmpUnitType, clsFeatureType)
                     Else
@@ -820,7 +823,7 @@ Partial Public Class clsMap
                         End If
                         tmpDroidType.LoadParts(LoadPartsArgs)
                     Else
-                        tmpUnitType = FindOrCreateUnitType(INIDroids.Droids(A).Template, clsUnitType.enumType.PlayerDroid)
+                        tmpUnitType = FindOrCreateUnitType(INIDroids.Droids(A).Template, clsUnitType.enumType.PlayerDroid, -1)
                         If tmpUnitType Is Nothing Then
                             tmpDroidType = Nothing
                         Else
@@ -894,6 +897,7 @@ Partial Public Class clsMap
             Public Rotation As sWZAngle
             Public ModuleCount As Integer
             Public HealthPercent As Integer
+            Public WallType As Integer
         End Structure
         Public Structures() As sStructure
         Public StructureCount As Integer
@@ -907,6 +911,7 @@ Partial Public Class clsMap
             ReDim Structures(StructureCount - 1)
             For A = 0 To StructureCount - 1
                 Structures(A).HealthPercent = -1
+                Structures(A).WallType = -1
             Next
         End Sub
 
@@ -959,6 +964,15 @@ Partial Public Class clsMap
                     If Not HealthFromINIText(INIProperty.Value, Structures(INISectionNum).HealthPercent) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
+                Case "wall/type"
+                    Dim WallType As Integer
+                    If Not InvariantParse_int(INIProperty.Value, WallType) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    If WallType < 0 Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    Structures(INISectionNum).WallType = WallType
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -1516,7 +1530,7 @@ Partial Public Class clsMap
         Dim FailedCount As Integer = 0
         Dim ModifiedCount As Integer = 0
 
-        For A = 0 To INI.SectionCount - 1
+        For A = 0 To INI.Sections.ItemCount - 1
             tmpSection = INI.Sections(A)
             strName = tmpSection.Name
             B = strName.IndexOf("_"c)
@@ -1623,7 +1637,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_WZ_StructuresINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
+    Public Function Serialize_WZ_StructuresINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim tmpStructure As clsStructureType
@@ -1723,6 +1737,9 @@ Partial Public Class clsMap
                     File.Property_Append("startpos", InvariantToString_int(tmpUnit.UnitGroup.WZ_StartPos))
                 End If
                 File.Property_Append("name", tmpStructure.Code)
+                If tmpStructure.WallLink.IsConnected Then
+                    File.Property_Append("wall/type", InvariantToString_int(tmpStructure.WallLink.ArrayPosition))
+                End If
                 File.Property_Append("position", tmpUnit.GetINIPosition)
                 File.Property_Append("rotation", tmpUnit.GetINIRotation)
                 If tmpUnit.Health < 1.0# Then
@@ -1751,7 +1768,7 @@ Partial Public Class clsMap
                 End If
                 File.Property_Append("modules", InvariantToString_int(ModuleCount))
                 File.Gap_Append()
-            End If
+                End If
         Next
 
         If TooManyModulesWarningCount > TooManyModulesWarningMaxCount Then
@@ -1761,7 +1778,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_WZ_DroidsINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
+    Public Function Serialize_WZ_DroidsINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim tmpDroid As clsDroidDesign
@@ -1902,7 +1919,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_WZ_FeaturesINI(ByVal File As clsINIWrite) As clsResult
+    Public Function Serialize_WZ_FeaturesINI(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
         Dim tmpFeature As clsFeatureType
         Dim tmpUnit As clsUnit
@@ -1935,7 +1952,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_WZ_LabelsINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
+    Public Function Serialize_WZ_LabelsINI(ByVal File As clsINIWrite, ByVal PlayerCount As Integer) As clsResult
         Dim ReturnResult As New clsResult
         Dim A As Integer
 
@@ -2321,15 +2338,15 @@ Partial Public Class clsMap
                 File_droidBJO.Write(DintZeroBytes)
             Next
 
-            ReturnResult.Append(Data_WZ_FeaturesINI(INI_feature), "Features INI: ")
+            ReturnResult.Append(Serialize_WZ_FeaturesINI(INI_feature), "Features INI: ")
             If Args.CompileType = sWrite_WZ_Args.enumCompileType.Multiplayer Then
-                ReturnResult.Append(Data_WZ_StructuresINI(INI_struct, Args.Multiplayer.PlayerCount), "Structures INI: ")
-                ReturnResult.Append(Data_WZ_DroidsINI(INI_droid, Args.Multiplayer.PlayerCount), "Droids INI: ")
-                ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels, Args.Multiplayer.PlayerCount), "Script labels INI: ")
+                ReturnResult.Append(Serialize_WZ_StructuresINI(INI_struct, Args.Multiplayer.PlayerCount), "Structures INI: ")
+                ReturnResult.Append(Serialize_WZ_DroidsINI(INI_droid, Args.Multiplayer.PlayerCount), "Droids INI: ")
+                ReturnResult.Append(Serialize_WZ_LabelsINI(INI_Labels, Args.Multiplayer.PlayerCount), "Script labels INI: ")
             ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
-                ReturnResult.Append(Data_WZ_StructuresINI(INI_struct, -1), "Structures INI: ")
-                ReturnResult.Append(Data_WZ_DroidsINI(INI_droid, -1), "Droids INI: ")
-                ReturnResult.Append(Data_WZ_LabelsINI(INI_Labels, 0), "Script labels INI: ") 'interprets -1 players as an FMap
+                ReturnResult.Append(Serialize_WZ_StructuresINI(INI_struct, -1), "Structures INI: ")
+                ReturnResult.Append(Serialize_WZ_DroidsINI(INI_droid, -1), "Droids INI: ")
+                ReturnResult.Append(Serialize_WZ_LabelsINI(INI_Labels, 0), "Script labels INI: ") 'interprets -1 players as an FMap
             End If
 
             File_LEV.Flush()

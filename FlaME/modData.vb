@@ -85,7 +85,7 @@ Public Module modData
         Public Code As String
         Public Type As String
         Public Name As String
-        Public PIE As String
+        Public PIEs() As String
         Public BasePIE As String
         Public Weapon1 As Integer
         Public Weapon2 As Integer
@@ -804,8 +804,8 @@ Public Module modData
                     If Not InvariantParse_int(DataStructures.Entries(Structure_Num).FieldValues(6), .Structures(Structure_Num).Footprint.Y) Then
                         ReturnResult.Warning_Add("Structure footprint-y was not an integer for " & .Structures(Structure_Num).Code & ".")
                     End If
-                    .Structures(Structure_Num).PIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(21))
-                    .Structures(Structure_Num).BasePIE = LCase(DataStructures.Entries(Structure_Num).FieldValues(22))
+                    .Structures(Structure_Num).PIEs = DataStructures.Entries(Structure_Num).FieldValues(21).ToLower.Split("@"c)
+                    .Structures(Structure_Num).BasePIE = DataStructures.Entries(Structure_Num).FieldValues(22).ToLower
                     .Structures(Structure_Num).Weapon1 = -1
                     .Structures(Structure_Num).Weapon2 = -1
                     .Structures(Structure_Num).Weapon3 = -1
@@ -1054,109 +1054,150 @@ Public Module modData
                 End If
             Next
 
-            UnitTypeCount = .Structure_List.StructureCount + .Feature_List.FeatureCount + .Template_List.TemplateCount
-            ReDim UnitTypes(UnitTypeCount - 1)
+            ObjectData = New clsObjectData
             For A = 0 To .Structure_List.StructureCount - 1
-                tmpStructure = New clsStructureType
-                UnitTypes(C) = tmpStructure
-                tmpStructure.StructureNum = A
-                tmpStructure.Code = .Structure_List.Structures(A).Code
-                tmpStructure.Name = .Structure_List.Structures(A).Name
-                tmpStructure.Footprint = .Structure_List.Structures(A).Footprint
-                If .Structure_List.Structures(A).Type = "DEMOLISH" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Demolish
-                ElseIf .Structure_List.Structures(A).Type = "WALL" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Wall
-                ElseIf .Structure_List.Structures(A).Type = "CORNER WALL" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.CornerWall
-                ElseIf .Structure_List.Structures(A).Type = "FACTORY" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Factory
-                ElseIf .Structure_List.Structures(A).Type = "CYBORG FACTORY" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.CyborgFactory
-                ElseIf .Structure_List.Structures(A).Type = "VTOL FACTORY" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.VTOLFactory
-                ElseIf .Structure_List.Structures(A).Type = "COMMAND" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Command
-                ElseIf .Structure_List.Structures(A).Type = "HQ" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.HQ
-                ElseIf .Structure_List.Structures(A).Type = "DEFENSE" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Defense
-                ElseIf .Structure_List.Structures(A).Type = "POWER GENERATOR" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.PowerGenerator
-                ElseIf .Structure_List.Structures(A).Type = "POWER MODULE" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.PowerModule
-                ElseIf .Structure_List.Structures(A).Type = "RESEARCH" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Research
-                ElseIf .Structure_List.Structures(A).Type = "RESEARCH MODULE" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.ResearchModule
-                ElseIf .Structure_List.Structures(A).Type = "FACTORY MODULE" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.FactoryModule
-                ElseIf .Structure_List.Structures(A).Type = "DOOR" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
-                ElseIf .Structure_List.Structures(A).Type = "REPAIR FACILITY" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.RepairFacility
-                ElseIf .Structure_List.Structures(A).Type = "SAT UPLINK" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
-                ElseIf .Structure_List.Structures(A).Type = "REARM PAD" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.RearmPad
-                ElseIf .Structure_List.Structures(A).Type = "MISSILE SILO" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.MissileSilo
-                ElseIf .Structure_List.Structures(A).Type = "RESOURCE EXTRACTOR" Then
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.ResourceExtractor
-                Else
-                    tmpStructure.StructureType = clsStructureType.enumStructureType.Unknown
-                End If
+                If .Structure_List.Structures(A).Type <> "WALL" Or .Structure_List.Structures(A).PIEs.GetLength(0) <> 4 Then
+                    'this is NOT a generic wall
+                    tmpStructure = New clsStructureType
+                    tmpStructure.UnitType_ObjectDataLink.Connect(ObjectData.UnitTypes)
+                    tmpStructure.StructureType_ObjectDataLink.Connect(ObjectData.StructureTypes)
+                    tmpStructure.Code = .Structure_List.Structures(A).Code
+                    tmpStructure.Name = .Structure_List.Structures(A).Name
+                    tmpStructure.Footprint = .Structure_List.Structures(A).Footprint
+                    If .Structure_List.Structures(A).Type = "DEMOLISH" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Demolish
+                    ElseIf .Structure_List.Structures(A).Type = "WALL" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Wall
+                    ElseIf .Structure_List.Structures(A).Type = "CORNER WALL" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.CornerWall
+                    ElseIf .Structure_List.Structures(A).Type = "FACTORY" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Factory
+                    ElseIf .Structure_List.Structures(A).Type = "CYBORG FACTORY" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.CyborgFactory
+                    ElseIf .Structure_List.Structures(A).Type = "VTOL FACTORY" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.VTOLFactory
+                    ElseIf .Structure_List.Structures(A).Type = "COMMAND" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Command
+                    ElseIf .Structure_List.Structures(A).Type = "HQ" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.HQ
+                    ElseIf .Structure_List.Structures(A).Type = "DEFENSE" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Defense
+                    ElseIf .Structure_List.Structures(A).Type = "POWER GENERATOR" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.PowerGenerator
+                    ElseIf .Structure_List.Structures(A).Type = "POWER MODULE" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.PowerModule
+                    ElseIf .Structure_List.Structures(A).Type = "RESEARCH" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Research
+                    ElseIf .Structure_List.Structures(A).Type = "RESEARCH MODULE" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.ResearchModule
+                    ElseIf .Structure_List.Structures(A).Type = "FACTORY MODULE" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.FactoryModule
+                    ElseIf .Structure_List.Structures(A).Type = "DOOR" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
+                    ElseIf .Structure_List.Structures(A).Type = "REPAIR FACILITY" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.RepairFacility
+                    ElseIf .Structure_List.Structures(A).Type = "SAT UPLINK" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.DOOR
+                    ElseIf .Structure_List.Structures(A).Type = "REARM PAD" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.RearmPad
+                    ElseIf .Structure_List.Structures(A).Type = "MISSILE SILO" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.MissileSilo
+                    ElseIf .Structure_List.Structures(A).Type = "RESOURCE EXTRACTOR" Then
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.ResourceExtractor
+                    Else
+                        tmpStructure.StructureType = clsStructureType.enumStructureType.Unknown
+                    End If
 
-                tmpBaseAttachment = tmpStructure.BaseAttachment
-                tmpString = .Structure_List.Structures(A).PIE
-                tmpBaseAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                tmpString = .Structure_List.Structures(A).BasePIE
-                tmpStructure.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, ReturnResult)
-                If tmpBaseAttachment.Models.ItemCount = 1 Then
-                    If tmpBaseAttachment.Models.Item(0).ConnectorCount >= 1 Then
-                        tmpConnector = tmpBaseAttachment.Models.Item(0).Connectors(0)
-                        If .Structure_List.Structures(A).Weapon1 >= 0 Then
-                            If .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).Code <> "ZNULLWEAPON" Then
-                                tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE
-                                tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                                tmpAttachment.Pos_Offset = tmpConnector
+                    tmpBaseAttachment = tmpStructure.BaseAttachment
+                    If .Structure_List.Structures(A).PIEs.GetLength(0) > 0 Then
+                        tmpString = .Structure_List.Structures(A).PIEs(0)
+                        tmpBaseAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                    End If
+                    tmpString = .Structure_List.Structures(A).BasePIE
+                    tmpStructure.StructureBasePlate = GetModelForPIE(PIE_List, tmpString, ReturnResult)
+                    If tmpBaseAttachment.Models.ItemCount = 1 Then
+                        If tmpBaseAttachment.Models.Item(0).ConnectorCount >= 1 Then
+                            tmpConnector = tmpBaseAttachment.Models.Item(0).Connectors(0)
+                            If .Structure_List.Structures(A).Weapon1 >= 0 Then
+                                If .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).Code <> "ZNULLWEAPON" Then
+                                    tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE
+                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                                    tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                    tmpAttachment.Pos_Offset = tmpConnector
 
-                                tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE2
-                                tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                                tmpAttachment.Pos_Offset = tmpConnector
+                                    tmpString = .Weapon_List.Weapons(.Structure_List.Structures(A).Weapon1).PIE2
+                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                                    tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                    tmpAttachment.Pos_Offset = tmpConnector
+                                End If
                             End If
-                        End If
-                        If .Structure_List.Structures(A).ECM >= 0 Then
-                            If .ECM_List.ECMs(.Structure_List.Structures(A).ECM).Code <> "ZNULLECM" Then
-                                tmpString = .ECM_List.ECMs(.Structure_List.Structures(A).ECM).PIE
-                                tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                                tmpAttachment.Pos_Offset = tmpConnector
+                            If .Structure_List.Structures(A).ECM >= 0 Then
+                                If .ECM_List.ECMs(.Structure_List.Structures(A).ECM).Code <> "ZNULLECM" Then
+                                    tmpString = .ECM_List.ECMs(.Structure_List.Structures(A).ECM).PIE
+                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                                    tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                    tmpAttachment.Pos_Offset = tmpConnector
+                                End If
                             End If
-                        End If
-                        If .Structure_List.Structures(A).Sensor >= 0 Then
-                            If .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).Code <> "ZNULLSENSOR" Then
-                                tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE
-                                tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                                tmpAttachment.Pos_Offset = tmpConnector
+                            If .Structure_List.Structures(A).Sensor >= 0 Then
+                                If .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).Code <> "ZNULLSENSOR" Then
+                                    tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE
+                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                                    tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                    tmpAttachment.Pos_Offset = tmpConnector
 
-                                tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE2
-                                tmpAttachment = tmpBaseAttachment.CreateAttachment()
-                                tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
-                                tmpAttachment.Pos_Offset = tmpConnector
+                                    tmpString = .Sensor_List.Sensors(.Structure_List.Structures(A).Sensor).PIE2
+                                    tmpAttachment = tmpBaseAttachment.CreateAttachment()
+                                    tmpAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                                    tmpAttachment.Pos_Offset = tmpConnector
+                                End If
                             End If
                         End If
                     End If
+                Else
+                    'this is a generic wall
+                    Dim NewWall As New clsWallType
+                    NewWall.WallType_ObjectDataLink.Connect(ObjectData.WallTypes)
+                    NewWall.Code = .Structure_List.Structures(A).Code
+                    NewWall.Name = .Structure_List.Structures(A).Name
+                    Dim WallFootprint As sXY_int = .Structure_List.Structures(A).Footprint
+                    Dim WallBasePlate As clsModel = GetModelForPIE(PIE_List, .Structure_List.Structures(A).BasePIE, ReturnResult)
+
+                    Dim WallNum As Integer
+                    Dim WallStructureType As clsStructureType
+                    For WallNum = 0 To 3
+                        WallStructureType = New clsStructureType
+                        WallStructureType.UnitType_ObjectDataLink.Connect(ObjectData.UnitTypes)
+                        WallStructureType.StructureType_ObjectDataLink.Connect(ObjectData.StructureTypes)
+                        WallStructureType.WallLink.Connect(NewWall.Segments)
+                        WallStructureType.Code = .Structure_List.Structures(A).Code
+                        tmpString = .Structure_List.Structures(A).Name
+                        Select Case WallNum
+                            Case 0
+                                tmpString &= " - "
+                            Case 1
+                                tmpString &= " + "
+                            Case 2
+                                tmpString &= " T "
+                            Case 3
+                                tmpString &= " L "
+                        End Select
+                        WallStructureType.Name = tmpString
+                        WallStructureType.Footprint = WallFootprint
+                        WallStructureType.StructureType = clsStructureType.enumStructureType.Wall
+
+                        tmpBaseAttachment = WallStructureType.BaseAttachment
+
+                        tmpString = .Structure_List.Structures(A).PIEs(WallNum)
+                        tmpBaseAttachment.Models.Add(GetModelForPIE(PIE_List, tmpString, ReturnResult))
+                        WallStructureType.StructureBasePlate = WallBasePlate
+                    Next
                 End If
-                C += 1
             Next
             For A = 0 To .Feature_List.FeatureCount - 1
                 tmpFeature = New clsFeatureType
-                'tmpFeature.num = C
-                UnitTypes(C) = tmpFeature
+                tmpFeature.UnitType_ObjectDataLink.Connect(ObjectData.UnitTypes)
+                tmpFeature.FeatureType_ObjectDataLink.Connect(ObjectData.FeatureTypes)
                 tmpFeature.Code = .Feature_List.Features(A).Code
                 If .Feature_List.Features(A).Type = "OIL RESOURCE" Then
                     tmpFeature.FeatureType = clsFeatureType.enumFeatureType.OilResource
@@ -1174,8 +1215,8 @@ Public Module modData
             Dim LoadPartsArgs As clsDroidDesign.sLoadPartsArgs
             For A = 0 To .Template_List.TemplateCount - 1
                 tmpTemplate = New clsDroidTemplate
-                'tmpTemplate.num = C
-                UnitTypes(C) = tmpTemplate
+                tmpTemplate.UnitType_ObjectDataLink.Connect(ObjectData.UnitTypes)
+                tmpTemplate.DroidTemplate_ObjectDataLink.Connect(ObjectData.DroidTemplates)
                 tmpTemplate.Code = .Template_List.Templates(A).Code
                 tmpTemplate.Name = .Template_List.Templates(A).Name
                 Select Case .Template_List.Templates(A).DroidType
@@ -1565,7 +1606,7 @@ Public Module modData
                 'get code until space or tab
                 For A = 0 To strTemp.Length - 1
                     tmpChar = strTemp.Chars(A)
-                    If tmpChar = " "c Or Asc(tmpChar) = 9 Then
+                    If tmpChar = " "c Or tmpChar = ControlChars.Tab Then
                         Exit For
                     End If
                 Next
@@ -1576,21 +1617,15 @@ Public Module modData
                         ReDim Preserve .FieldValues(.FieldCount - 1)
                         .FieldValues(0) = Code
                         'ignore everything until the quotation mark
-                        For B = A + 1 To strTemp.Length - 1
-                            tmpChar = strTemp.Chars(B)
-                            If Asc(tmpChar) = 34 Then
-                                Exit For
+                        B = strTemp.IndexOf(ControlChars.Quote, A + 1)
+                        If B >= 0 Then
+                            'get name until second quotation mark
+                            A = strTemp.IndexOf(ControlChars.Quote, B + 1)
+                            If B + 1 < strTemp.Length Then
+                                .FieldValues(1) = strTemp.Substring(B + 1, A - (B + 1))
+                            Else
+                                .FieldValues(1) = ""
                             End If
-                        Next
-                        'get name until second quotation mark
-                        For A = B + 1 To strTemp.Length - 1
-                            tmpChar = strTemp.Chars(A)
-                            If Asc(tmpChar) = 34 Then
-                                Exit For
-                            End If
-                        Next
-                        If B + 1 < strTemp.Length Then
-                            .FieldValues(1) = strTemp.Substring(B + 1, A - (B + 1))
                         Else
                             .FieldValues(1) = ""
                         End If

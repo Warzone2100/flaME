@@ -1,7 +1,4 @@
 ﻿Public Class ctrlColour
-#If MonoDevelop <> 0.0# Then
-	Inherits UserControl
-#End If
 
     Private Colour As clsRGB_sng
     Private ColourColor As Color
@@ -68,45 +65,4 @@
 
         ColourBoxGraphics.Clear(ColourColor)
     End Sub
-
-#If MonoDevelop <> 0.0# Then
-    Private Sub InitializeComponent()
-        Me.pnlColour = New System.Windows.Forms.Panel()
-        Me.nudAlpha = New System.Windows.Forms.NumericUpDown()
-        Me.SuspendLayout()
-        '
-        'pnlColour
-        '
-        Me.pnlColour.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D
-        Me.pnlColour.Location = New System.Drawing.Point(0, 0)
-        Me.pnlColour.Margin = New System.Windows.Forms.Padding(0)
-        Me.pnlColour.Name = "pnlColour"
-        Me.pnlColour.Size = New System.Drawing.Size(51, 24)
-        Me.pnlColour.TabIndex = 1
-        '
-        'nudAlpha
-        '
-        Me.nudAlpha.DecimalPlaces = 2
-        Me.nudAlpha.Increment = New Decimal(New Integer() {1, 0, 0, 65536})
-        Me.nudAlpha.Location = New System.Drawing.Point(54, 0)
-        Me.nudAlpha.Maximum = New Decimal(New Integer() {1, 0, 0, 0})
-        Me.nudAlpha.Name = "nudAlpha"
-        Me.nudAlpha.Size = New System.Drawing.Size(50, 22)
-        Me.nudAlpha.TabIndex = 2
-        Me.nudAlpha.TextAlign = System.Windows.Forms.HorizontalAlignment.Right
-        '
-        'ctrlColour
-        '
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.Controls.Add(Me.nudAlpha)
-        Me.Controls.Add(Me.pnlColour)
-        Me.Margin = New System.Windows.Forms.Padding(0)
-        Me.Name = "ctrlColour"
-        Me.Size = New System.Drawing.Size(211, 39)
-        Me.ResumeLayout(False)
-
-    End Sub
-    Friend WithEvents pnlColour As System.Windows.Forms.Panel
-    Friend WithEvents nudAlpha As System.Windows.Forms.NumericUpDown
-#End If
 End Class

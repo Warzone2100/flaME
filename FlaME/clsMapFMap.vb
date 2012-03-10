@@ -23,6 +23,7 @@ Partial Public Class clsMap
             Public TurretCount As Integer
             Public Priority As Integer
             Public Label As String
+            Public WallType As Integer
         End Structure
         Public Objects() As sObject
         Public ObjectCount As Integer
@@ -36,6 +37,7 @@ Partial Public Class clsMap
             For A = 0 To ObjectCount - 1
                 Objects(A).Type = clsUnitType.enumType.Unspecified
                 Objects(A).Health = 1.0#
+                Objects(A).WallType = -1
                 ReDim Objects(A).TurretCodes(MaxDroidWeapons - 1)
                 ReDim Objects(A).TurretTypes(MaxDroidWeapons - 1)
                 For B = 0 To MaxDroidWeapons - 1
@@ -200,6 +202,14 @@ Partial Public Class clsMap
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                     Objects(INISectionNum).Health = NewHealth
+                Case "walltype"
+                    Dim WallType As Integer = -1
+                    If Not InvariantParse_int(INIProperty.Value, WallType) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                    If WallType >= 0 And WallType <= 3 Then
+                        Objects(INISectionNum).WallType = WallType
+                    End If
                 Case "scriptlabel"
                     Objects(INISectionNum).Label = INIProperty.Value
                 Case Else
@@ -245,7 +255,7 @@ Partial Public Class clsMap
         If ZipEntry IsNot Nothing Then
             Dim INI_Info As New clsINIWrite
             INI_Info.File = StreamWriter
-            ReturnResult.Append(Data_FMap_Info(INI_Info), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_Info(INI_Info), "Serialising: " & ZipPath)
 
             StreamWriter.Flush()
             WZStream.CloseEntry()
@@ -254,7 +264,7 @@ Partial Public Class clsMap
         ZipPath = "VertexHeight.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_VertexHeight(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_VertexHeight(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -263,7 +273,7 @@ Partial Public Class clsMap
         ZipPath = "VertexTerrain.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_VertexTerrain(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_VertexTerrain(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -272,7 +282,7 @@ Partial Public Class clsMap
         ZipPath = "TileTexture.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_TileTexture(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_TileTexture(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -281,7 +291,7 @@ Partial Public Class clsMap
         ZipPath = "TileOrientation.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_TileOrientation(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_TileOrientation(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -290,7 +300,7 @@ Partial Public Class clsMap
         ZipPath = "TileCliff.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_TileCliff(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_TileCliff(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -299,7 +309,7 @@ Partial Public Class clsMap
         ZipPath = "Roads.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_Roads(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_Roads(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -310,7 +320,7 @@ Partial Public Class clsMap
         If ZipEntry IsNot Nothing Then
             Dim INI_Objects As New clsINIWrite
             INI_Objects.File = StreamWriter
-            ReturnResult.Append(Data_FMap_Objects(INI_Objects), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_Objects(INI_Objects), "Serialising: " & ZipPath)
 
             StreamWriter.Flush()
             WZStream.CloseEntry()
@@ -321,7 +331,7 @@ Partial Public Class clsMap
         If ZipEntry IsNot Nothing Then
             Dim INI_Gateways As New clsINIWrite
             INI_Gateways.File = StreamWriter
-            ReturnResult.Append(Data_FMap_Gateways(INI_Gateways), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_Gateways(INI_Gateways), "Serialising: " & ZipPath)
 
             StreamWriter.Flush()
             WZStream.CloseEntry()
@@ -330,7 +340,7 @@ Partial Public Class clsMap
         ZipPath = "TileTypes.dat"
         ZipEntry = ZipMakeEntry(WZStream, ZipPath, ReturnResult)
         If ZipEntry IsNot Nothing Then
-            ReturnResult.Append(Data_FMap_TileTypes(BinaryWriter), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_FMap_TileTypes(BinaryWriter), "Serialising: " & ZipPath)
 
             BinaryWriter.Flush()
             WZStream.CloseEntry()
@@ -341,7 +351,7 @@ Partial Public Class clsMap
         If ZipEntry IsNot Nothing Then
             Dim INI_ScriptLabels As New clsINIWrite
             INI_ScriptLabels.File = StreamWriter
-            ReturnResult.Append(Data_WZ_LabelsINI(INI_ScriptLabels, -1), "Serialising: " & ZipPath)
+            ReturnResult.Append(Serialize_WZ_LabelsINI(INI_ScriptLabels, -1), "Serialising: " & ZipPath)
 
             StreamWriter.Flush()
             WZStream.CloseEntry()
@@ -353,7 +363,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_Info(ByVal File As clsINIWrite) As clsResult
+    Public Function Serialize_FMap_Info(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
 
         Try
@@ -390,7 +400,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_VertexHeight(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_VertexHeight(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
         Dim X As Integer
         Dim Y As Integer
@@ -408,7 +418,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_VertexTerrain(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_VertexTerrain(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -445,7 +455,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_TileTexture(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_TileTexture(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -475,7 +485,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_TileOrientation(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_TileOrientation(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
         Dim X As Integer
         Dim Y As Integer
@@ -507,7 +517,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_TileCliff(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_TileCliff(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -567,7 +577,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_Roads(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_Roads(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim X As Integer
@@ -621,7 +631,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_Objects(ByVal File As clsINIWrite) As clsResult
+    Public Function Serialize_FMap_Objects(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
 
         Dim A As Integer
@@ -638,7 +648,11 @@ Partial Public Class clsMap
                     Case clsUnitType.enumType.Feature
                         File.Property_Append("Type", "Feature, " & CType(tmpUnit.Type, clsFeatureType).Code)
                     Case clsUnitType.enumType.PlayerStructure
-                        File.Property_Append("Type", "Structure, " & CType(tmpUnit.Type, clsStructureType).Code)
+                        Dim StructureType As clsStructureType = CType(tmpUnit.Type, clsStructureType)
+                        File.Property_Append("Type", "Structure, " & StructureType.Code)
+                        If StructureType.WallLink.IsConnected Then
+                            File.Property_Append("WallType", InvariantToString_int(StructureType.WallLink.ArrayPosition))
+                        End If
                     Case clsUnitType.enumType.PlayerDroid
                         tmpDroid = CType(tmpUnit.Type, clsDroidDesign)
                         If tmpDroid.IsTemplate Then
@@ -698,7 +712,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_Gateways(ByVal File As clsINIWrite) As clsResult
+    Public Function Serialize_FMap_Gateways(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
         Dim A As Integer
         Dim tmpGateway As clsGateway
@@ -720,7 +734,7 @@ Partial Public Class clsMap
         Return ReturnResult
     End Function
 
-    Public Function Data_FMap_TileTypes(ByVal File As IO.BinaryWriter) As clsResult
+    Public Function Serialize_FMap_TileTypes(ByVal File As IO.BinaryWriter) As clsResult
         Dim ReturnResult As New clsResult
         Dim A As Integer
 
@@ -1283,7 +1297,7 @@ Partial Public Class clsMap
         Dim ObjectsINI As New clsINIRead
         ReturnResult.Append(ObjectsINI.ReadFile(File), "")
 
-        Dim INIObjects As New clsFMap_INIObjects(ObjectsINI.SectionCount)
+        Dim INIObjects As New clsFMap_INIObjects(ObjectsINI.Sections.ItemCount)
         ReturnResult.Append(ObjectsINI.Translate(INIObjects), "")
 
         Dim DroidComponentUnknownCount As Integer
@@ -1366,7 +1380,7 @@ Partial Public Class clsMap
                         tmpDroidDesign.UpdateAttachments()
                         tmpUnitType = tmpDroidDesign
                     Else
-                        tmpUnitType = FindOrCreateUnitType(INIObjects.Objects(A).Code, INIObjects.Objects(A).Type)
+                        tmpUnitType = FindOrCreateUnitType(INIObjects.Objects(A).Code, INIObjects.Objects(A).Type, INIObjects.Objects(A).WallType)
                         If tmpUnitType.IsUnknown Then
                             If UnknownUnitTypeCount < MaxUnknownUnitTypeWarningCount Then
                                 ReturnResult.Warning_Add(ControlChars.Quote & INIObjects.Objects(A).Code & ControlChars.Quote & " is not a loaded object.")
@@ -1508,7 +1522,7 @@ Partial Public Class clsMap
         Dim GatewaysINI As New clsINIRead
         ReturnResult.Append(GatewaysINI.ReadFile(File), "")
 
-        Dim INIGateways As New clsFMap_INIGateways(GatewaysINI.SectionCount)
+        Dim INIGateways As New clsFMap_INIGateways(GatewaysINI.Sections.ItemCount)
         ReturnResult.Append(GatewaysINI.Translate(INIGateways), "")
 
         Dim A As Integer

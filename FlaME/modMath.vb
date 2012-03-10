@@ -6,31 +6,6 @@
 
     Public Const RootTwo As Double = 1.4142135623730951#
 
-    Public Structure sXY_dbl
-        Public X As Double
-        Public Y As Double
-
-        Public Sub New(ByVal X As Double, ByVal Y As Double)
-            Me.X = X
-            Me.Y = Y
-        End Sub
-
-        Public Sub New(ByVal XY As sXY_int)
-            Me.X = CDbl(XY.X)
-            Me.Y = CDbl(XY.Y)
-        End Sub
-
-        Public Function GetAngle() As Double
-
-            Return Math.Atan2(Y, X)
-        End Function
-
-        Public Function GetMagnitude() As Double
-
-            Return Math.Sqrt(X * X + Y * Y)
-        End Function
-    End Structure
-
     Public Structure sXY_int
         Public X As Integer
         Public Y As Integer
@@ -141,28 +116,11 @@
     End Function
 
     Public Function GetDist_XY_int(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Double
-        Dim Dif As sXY_dbl
+        Dim Dif As Matrix3D.XY_dbl
 
         Dif.X = PosB.X - PosA.X
         Dif.Y = PosB.Y - PosA.Y
         Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y)
-    End Function
-
-    Public Function GetDist_XY_dbl(ByVal PosA As sXY_dbl, ByVal PosB As sXY_dbl) As Double
-        Dim Dif As sXY_dbl
-
-        Dif.X = PosB.X - PosA.X
-        Dif.Y = PosB.Y - PosA.Y
-        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y)
-    End Function
-
-    Public Function GetDist_XYZ_dbl(ByVal PosA As Matrix3D.XYZ_dbl, ByVal PosB As Matrix3D.XYZ_dbl) As Double
-        Dim Dif As Matrix3D.XYZ_dbl
-
-        Dif.X = PosB.X - PosA.X
-        Dif.Y = PosB.Y - PosA.Y
-        Dif.Z = PosB.Z - PosA.Z
-        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y + Dif.Z * Dif.Z)
     End Function
 
     Public Function Clamp_dbl(ByVal Amount As Double, ByVal Minimum As Double, ByVal Maximum As Double) As Double

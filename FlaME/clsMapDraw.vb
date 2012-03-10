@@ -18,10 +18,10 @@ Partial Public Class clsMap
         Dim ColourA As sRGBA_sng
         Dim ColourB As sRGBA_sng
         Dim ShowMinimapViewPosBox As Boolean
-        Dim ViewCorner0 As sXY_dbl
-        Dim ViewCorner1 As sXY_dbl
-        Dim ViewCorner2 As sXY_dbl
-        Dim ViewCorner3 As sXY_dbl
+        Dim ViewCorner0 As Matrix3D.XY_dbl
+        Dim ViewCorner1 As Matrix3D.XY_dbl
+        Dim ViewCorner2 As Matrix3D.XY_dbl
+        Dim ViewCorner3 As Matrix3D.XY_dbl
         Dim dblTemp As Double
         Dim Vertex0 As Matrix3D.XYZ_dbl
         Dim Vertex1 As Matrix3D.XYZ_dbl
@@ -30,10 +30,10 @@ Partial Public Class clsMap
         Dim ScreenPos As sXY_int
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
         Dim WorldPos As sWorldPos
-        Dim PosA As sXY_dbl
-        Dim PosB As sXY_dbl
-        Dim PosC As sXY_dbl
-        Dim PosD As sXY_dbl
+        Dim PosA As Matrix3D.XY_dbl
+        Dim PosB As Matrix3D.XY_dbl
+        Dim PosC As Matrix3D.XY_dbl
+        Dim PosD As Matrix3D.XY_dbl
         Dim MinimapSizeXY As sXY_int
         Dim tmpUnit As clsMap.clsUnit
         Dim StartXY As sXY_int
@@ -48,7 +48,7 @@ Partial Public Class clsMap
         Dim ZNearFar As Single
         Dim MapView As ctrlMapView = ViewInfo.MapView
         Dim GLSize As sXY_int = ViewInfo.MapView.GLSize
-        Dim DrawCentre As sXY_dbl
+        Dim DrawCentre As Matrix3D.XY_dbl
         Dim dblTemp2 As Double
 
         dblTemp = Settings.MinimapSize
@@ -117,12 +117,14 @@ Partial Public Class clsMap
             ShowMinimapViewPosBox = False
         End If
 
-        GL.Rotate(AngleClamp(-ViewInfo.ViewAngleRPY.Roll) / RadOf1Deg, 0.0F, 0.0F, 1.0F)
+        GL.Rotate(ViewInfo.ViewAngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, -1.0F)
         GL.Rotate(ViewInfo.ViewAngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
         GL.Rotate(ViewInfo.ViewAngleRPY.Yaw / RadOf1Deg, 0.0F, 1.0F, 0.0F)
         GL.Translate(-ViewInfo.ViewPos.X, -ViewInfo.ViewPos.Y, ViewInfo.ViewPos.Z)
 
         GL.Enable(EnableCap.CullFace)
+
+        DebugGLError("Matrix modes")
 
         If Draw_TileTextures Then
             GL.Color3(1.0F, 1.0F, 1.0F)
@@ -131,6 +133,8 @@ Partial Public Class clsMap
             MapAction.Map = Me
             VisionSectors.PerformActionMapSectors(MapAction, DrawCentreSector)
             GL.Disable(EnableCap.Texture2D)
+
+            DebugGLError("Tile textures")
         End If
 
         GL.Disable(EnableCap.DepthTest)
@@ -142,6 +146,8 @@ Partial Public Class clsMap
             Dim DrawCallTerrainWireframe As New clsMap.clsDrawCallTerrainWireframe
             DrawCallTerrainWireframe.Map = Me
             VisionSectors.PerformActionMapSectors(DrawCallTerrainWireframe, DrawCentreSector)
+
+            DebugGLError("Wireframe")
         End If
 
         'draw tile orientation markers
@@ -158,6 +164,8 @@ Partial Public Class clsMap
             GL.End()
 
             GL.Enable(EnableCap.CullFace)
+
+            DebugGLError("Tile orientation")
         End If
 
         'draw painted texture terrain type markers
@@ -172,6 +180,7 @@ Partial Public Class clsMap
             DrawVertexTerran.Map = Me
             DrawVertexTerran.ViewAngleMatrix = ViewInfo.ViewAngleMatrix
             VisionSectors.PerformActionMapSectors(DrawVertexTerran, DrawCentreSector)
+            DebugGLError("Terrain type markers")
         End If
 
         SelectionLabel.Text = ""
@@ -217,6 +226,8 @@ Partial Public Class clsMap
                 DrawSelection.Colour = New sRGBA_sng(1.0F, 1.0F, 1.0F, 1.0F)
                 DrawSelection.ActionPerform()
             End If
+
+            DebugGLError("Terrain selection box")
         End If
 
         If Tool = enumTool.Terrain_Select Then
@@ -235,6 +246,7 @@ Partial Public Class clsMap
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
                 GL.End()
             End If
+            DebugGLError("Terrain selection vertex")
         End If
 
         Dim tmpGateway As clsGateway
@@ -352,6 +364,7 @@ Partial Public Class clsMap
                     GL.End()
                 End If
             Next
+            DebugGLError("Gateways")
         End If
 
         If MouseOverTerrain IsNot Nothing Then
@@ -410,6 +423,8 @@ Partial Public Class clsMap
                         GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                         GL.End()
                     Next
+
+                    DebugGLError("Object selection box")
                 Else
                     GL.LineWidth(2.0F)
                     GL.Color3(0.0F, 1.0F, 1.0F)
@@ -419,6 +434,8 @@ Partial Public Class clsMap
                     GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X + 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y - 16.0#)
                     GL.Vertex3(MouseOverTerrain.Pos.Horizontal.X - 16.0#, MouseOverTerrain.Pos.Altitude, MouseOverTerrain.Pos.Horizontal.Y + 16.0#)
                     GL.End()
+
+                    DebugGLError("Mouse over position")
                 End If
             End If
 
@@ -446,6 +463,8 @@ Partial Public Class clsMap
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
                 GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
                 GL.End()
+
+                DebugGLError("Road place brush")
             ElseIf Tool = enumTool.AutoRoad_Line Or Tool = enumTool.Gateways Then
                 GL.LineWidth(2.0F)
 
@@ -558,6 +577,7 @@ Partial Public Class clsMap
                     GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                     GL.End()
                 End If
+                DebugGLError("Line brush")
             End If
 
             'draw mouseover tiles
@@ -586,6 +606,8 @@ Partial Public Class clsMap
                 DrawTileOutline.Colour.Blue = 1.0F
                 DrawTileOutline.Colour.Alpha = 1.0F
                 ToolBrush.PerformActionMapTiles(DrawTileOutline, MouseOverTerrain.Tile)
+
+                DebugGLError("Brush tiles")
             End If
 
             'draw mouseover vertex
@@ -602,6 +624,8 @@ Partial Public Class clsMap
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z - 8.0#)
                 GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z + 8.0#)
                 GL.End()
+
+                DebugGLError("Mouse over vertex")
             End If
 
             Select Case Tool
@@ -626,6 +650,8 @@ Partial Public Class clsMap
                 DrawVertexMarker.Colour.Blue = 1.0F
                 DrawVertexMarker.Colour.Alpha = 1.0F
                 ToolBrush.PerformActionMapVertices(DrawVertexMarker, MouseOverTerrain.Vertex)
+
+                DebugGLError("Brush vertices")
             End If
         End If
 
@@ -634,18 +660,21 @@ Partial Public Class clsMap
         GL.Disable(EnableCap.CullFace)
 
         GL.LoadIdentity()
-        GL.Rotate(AngleClamp(-ViewInfo.ViewAngleRPY.Roll) / RadOf1Deg, 0.0F, 0.0F, 1.0F)
+        GL.Rotate(ViewInfo.ViewAngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, -1.0F)
         GL.Rotate(ViewInfo.ViewAngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
         GL.Rotate(ViewInfo.ViewAngleRPY.Yaw / RadOf1Deg, 0.0F, 1.0F, 0.0F)
 
         GL.Enable(EnableCap.Blend)
         GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
 
+        DebugGLError("Object matrix modes")
+
         If Draw_Units Then
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
             VisionSectors.PerformActionMapSectors(DrawObjects, DrawCentreSector)
             GL.Disable(EnableCap.Texture2D)
+            DebugGLError("Objects")
         End If
 
         If MouseOverTerrain IsNot Nothing Then
@@ -655,11 +684,21 @@ Partial Public Class clsMap
                     WorldPos = TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, frmMainInstance.SelectedObjectType.GetFootprint)
                     GL.PushMatrix()
                     GL.Translate(WorldPos.Horizontal.X - ViewInfo.ViewPos.X, WorldPos.Altitude - ViewInfo.ViewPos.Y + 2.0#, ViewInfo.ViewPos.Z + WorldPos.Horizontal.Y)
-                    frmMainInstance.SelectedObjectType.GLDraw(0.0F)
+                    Dim Rotation As Integer
+                    Try
+                        InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
+                        If Rotation < 0 Or Rotation > 359 Then
+                            Rotation = 0
+                        End If
+                    Catch ex As Exception
+                        Rotation = 0
+                    End Try
+                    frmMainInstance.SelectedObjectType.GLDraw(CSng(Rotation))
                     GL.PopMatrix()
                 End If
             End If
             GL.Disable(EnableCap.Texture2D)
+            DebugGLError("Mouse over object")
         End If
 
         GL.Disable(EnableCap.DepthTest)
@@ -703,6 +742,7 @@ Partial Public Class clsMap
                     End If
                 End If
             Next
+            DebugGLError("Script positions")
             For A = 0 To ScriptAreas.ItemCount - 1
                 If ScriptMarkerTextLabels.AtMaxCount Then
                     Exit For
@@ -728,6 +768,8 @@ Partial Public Class clsMap
                 End If
             Next
             GL.PopMatrix()
+
+            DebugGLError("Script areas")
         End If
 
         Dim MessageTextLabels As New clsTextLabels(24)
@@ -776,10 +818,14 @@ Partial Public Class clsMap
         End If
         GL.End()
 
+        DebugGLError("Unit selection")
+
         GL.MatrixMode(MatrixMode.Projection)
         GL.LoadMatrix(OpenTK.Matrix4.CreateOrthographicOffCenter(0.0F, CSng(GLSize.X), CSng(GLSize.Y), 0.0F, -1.0F, 1.0F))
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
+
+        DebugGLError("Text label matrix modes")
 
         GL.Enable(EnableCap.Texture2D)
 
@@ -787,6 +833,8 @@ Partial Public Class clsMap
         DrawObjects.UnitTextLabels.Draw()
         SelectionLabel.Draw()
         MessageTextLabels.Draw()
+
+        DebugGLError("Text labels")
 
         GL.Disable(EnableCap.Texture2D)
 
@@ -798,6 +846,8 @@ Partial Public Class clsMap
         GL.LoadMatrix(OpenTK.Matrix4.CreateOrthographicOffCenter(0.0F, CSng(GLSize.X), CSng(0.0F), CSng(GLSize.Y), -1.0F, 1.0F))
         GL.MatrixMode(MatrixMode.Modelview)
         GL.LoadIdentity()
+
+        DebugGLError("Minimap matrix modes")
 
         If Minimap_Texture_Size > 0 And ViewInfo.Tiles_Per_Minimap_Pixel > 0.0# Then
 
@@ -829,6 +879,8 @@ Partial Public Class clsMap
                 GL.End()
 
                 GL.Disable(EnableCap.Texture2D)
+
+                DebugGLError("Minimap")
             End If
 
             'draw minimap border
@@ -841,6 +893,8 @@ Partial Public Class clsMap
             GL.Vertex2(0.0F, 0.0F)
             GL.Vertex2(MinimapSizeXY.X, 0.0F)
             GL.End()
+
+            DebugGLError("Minimap border")
 
             'draw minimap view pos box
 
@@ -864,6 +918,8 @@ Partial Public Class clsMap
                 GL.Vertex2(PosC.X, PosC.Y)
                 GL.Vertex2(PosD.X, PosD.Y)
                 GL.End()
+
+                DebugGLError("Minimap view position polygon")
             End If
 
             If Selected_Area_VertexA IsNot Nothing Then
@@ -896,6 +952,21 @@ Partial Public Class clsMap
                     GL.Vertex2(PosC.X, PosC.Y)
                     GL.Vertex2(PosD.X, PosD.Y)
                     GL.End()
+
+                    DebugGLError("Minimap selection box")
+                End If
+            End If
+        End If
+    End Sub
+
+    Private Sub DebugGLError(ByVal Name As String)
+
+        If Debug_GL Then
+            If Messages.ItemCount < 8 Then
+                If GL.GetError <> ErrorCode.NoError Then
+                    Dim NewMessage As New clsMessage
+                    NewMessage.Text = "OpenGL Error (" & Name & ")"
+                    Messages.Add(NewMessage)
                 End If
             End If
         End If

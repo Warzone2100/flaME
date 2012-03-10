@@ -4,9 +4,9 @@
 
         Public AutoSaveEnabled As Boolean = True
         Public AutoSaveCompress As Boolean = False
-        Public AutoSave_MinInterval_s As UInteger = 180UI
-        Public AutoSave_MinChanges As UInteger = 20UI
-        Public Undo_Limit As UInteger = 256UI
+        Public AutoSaveMinInterval_s As UInteger = 180UI
+        Public AutoSaveMinChanges As UInteger = 20UI
+        Public UndoLimit As UInteger = 256UI
         Public DirectoriesPrompt As Boolean = True
         Public DirectPointer As Boolean = True
         Public DisplayFont As Font 'set by INI settings class
@@ -16,6 +16,10 @@
         Public MinimapCliffColour As New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F)
         Public MinimapSelectedObjectsColour As New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F)
         Public FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
+        Public Mipmaps As Boolean = True
+        Public MipmapsHardware As Boolean = False
+        Public OpenPath As String = Nothing
+        Public SavePath As String = Nothing
     End Class
 
     Public Class clsINISettings
@@ -28,10 +32,8 @@
 
         Public NewSettings As New clsSettings
 
-        Public TilesetsPaths(-1) As String
-        Public TilesetsPathCount As Integer = 0
-        Public ObjectDataPaths(-1) As String
-        Public ObjectDataPathCount As Integer = 0
+        Public TilesetsPaths As New SimpleList(Of String)
+        Public ObjectDataPaths As New SimpleList(Of String)
 
         Public DefaultTilesetPathNum As Integer = -1
         Public DefaultObjectDataPathNum As Integer = -1
@@ -88,7 +90,7 @@
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "undolimit"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.Undo_Limit) Then
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.UndoLimit) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "autosave"
@@ -96,11 +98,11 @@
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "autosavemininterval"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSave_MinInterval_s) Then
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSaveMinInterval_s) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "autosaveminchanges"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSave_MinChanges) Then
+                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSaveMinChanges) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "autosavecompress"
@@ -108,13 +110,9 @@
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
                 Case "tilesetspath"
-                    ReDim Preserve TilesetsPaths(TilesetsPathCount)
-                    TilesetsPaths(TilesetsPathCount) = INIProperty.Value
-                    TilesetsPathCount += 1
+                    TilesetsPaths.Add(INIProperty.Value)
                 Case "objectdatapath"
-                    ReDim Preserve ObjectDataPaths(ObjectDataPathCount)
-                    ObjectDataPaths(ObjectDataPathCount) = INIProperty.Value
-                    ObjectDataPathCount += 1
+                    ObjectDataPaths.Add(INIProperty.Value)
                 Case "defaulttilesetspathnum"
                     If Not InvariantParse_int(INIProperty.Value, DefaultTilesetPathNum) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
@@ -131,6 +129,18 @@
                     If Not InvariantParse_dbl(INIProperty.Value, NewSettings.FOVDefault) Then
                         Return clsINIRead.enumTranslatorResult.ValueInvalid
                     End If
+                Case "mipmaps"
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.Mipmaps) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "mipmapshardware"
+                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MipmapsHardware) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "openpath"
+                    NewSettings.OpenPath = INIProperty.Value
+                Case "savepath"
+                    NewSettings.SavePath = INIProperty.Value
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -165,11 +175,11 @@
         UpdateSettings(NewSettingsINI.NewSettings)
 
         frmDataInstance.TilesetsPathSet.SetPaths(NewSettingsINI.TilesetsPaths)
-        If NewSettingsINI.DefaultTilesetPathNum >= -1 And NewSettingsINI.DefaultTilesetPathNum < NewSettingsINI.TilesetsPathCount Then
+        If NewSettingsINI.DefaultTilesetPathNum >= -1 And NewSettingsINI.DefaultTilesetPathNum < NewSettingsINI.TilesetsPaths.ItemCount Then
             frmDataInstance.TilesetsPathSet.SelectedNum = NewSettingsINI.DefaultTilesetPathNum
         End If
         frmDataInstance.ObjectDataPathSet.SetPaths(NewSettingsINI.ObjectDataPaths)
-        If NewSettingsINI.DefaultObjectDataPathNum >= -1 And NewSettingsINI.DefaultObjectDataPathNum < NewSettingsINI.ObjectDataPathCount Then
+        If NewSettingsINI.DefaultObjectDataPathNum >= -1 And NewSettingsINI.DefaultObjectDataPathNum < NewSettingsINI.ObjectDataPaths.ItemCount Then
             frmDataInstance.ObjectDataPathSet.SelectedNum = NewSettingsINI.DefaultObjectDataPathNum
         End If
     End Sub
@@ -242,13 +252,13 @@
             Return ReturnResult
         End Try
 
-        ReturnResult.Append(Data_Settings(INI_Settings), "Compile settings.ini: ")
+        ReturnResult.Append(Serialize_Settings(INI_Settings), "Compile settings.ini: ")
         INI_Settings.File.Close()
 
         Return ReturnResult
     End Function
 
-    Private Function Data_Settings(ByVal File As clsINIWrite) As clsResult
+    Private Function Serialize_Settings(ByVal File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult
 
         File.Property_Append("DirectPointer", InvariantToString_bool(Settings.DirectPointer))
@@ -263,10 +273,10 @@
         File.Property_Append("MinimapTeamColoursExceptFeatures", InvariantToString_bool(Settings.MinimapTeamColoursExceptFeatures))
         File.Property_Append("MinimapCliffColour", Settings.MinimapCliffColour.GetINIOutput)
         File.Property_Append("MinimapSelectedObjectsColour", Settings.MinimapSelectedObjectsColour.GetINIOutput)
-        File.Property_Append("UndoLimit", InvariantToString_sng(Settings.Undo_Limit))
+        File.Property_Append("UndoLimit", InvariantToString_sng(Settings.UndoLimit))
         File.Property_Append("AutoSave", InvariantToString_bool(Settings.AutoSaveEnabled))
-        File.Property_Append("AutoSaveMinInterval", InvariantToString_sng(Settings.AutoSave_MinInterval_s))
-        File.Property_Append("AutoSaveMinChanges", InvariantToString_sng(Settings.AutoSave_MinChanges))
+        File.Property_Append("AutoSaveMinInterval", InvariantToString_sng(Settings.AutoSaveMinInterval_s))
+        File.Property_Append("AutoSaveMinChanges", InvariantToString_sng(Settings.AutoSaveMinChanges))
         File.Property_Append("AutoSaveCompress", InvariantToString_bool(Settings.AutoSaveCompress))
         File.Property_Append("DirectoriesPrompt", InvariantToString_bool(Settings.DirectoriesPrompt))
         File.Property_Append("FOVDefault", InvariantToString_dbl(Settings.FOVDefault))
@@ -287,6 +297,14 @@
         A = frmDataInstance.ObjectDataPathSet.SelectedNum
         If A >= 0 Then
             File.Property_Append("DefaultObjectDataPathNum", InvariantToString_int(A))
+        End If
+        File.Property_Append("Mipmaps", InvariantToString_bool(Settings.Mipmaps))
+        File.Property_Append("MipmapsHardware", InvariantToString_bool(Settings.MipmapsHardware))
+        If Settings.OpenPath IsNot Nothing Then
+            File.Property_Append("OpenPath", Settings.OpenPath)
+        End If
+        If Settings.SavePath IsNot Nothing Then
+            File.Property_Append("SavePath", Settings.SavePath)
         End If
 
         Return ReturnResult
