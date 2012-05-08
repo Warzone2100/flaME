@@ -1,11 +1,12 @@
-﻿Partial Public Class frmGenerator
+﻿
+Partial Public Class frmGenerator
 
     Private _Owner As frmMain
 
     Private PlayerCount As Integer = 4
     Private StopTrying As Boolean
 
-    Private Function ValidateTextbox(ByVal TextBoxToValidate As TextBox, ByVal Min As Double, ByVal Max As Double, ByVal Multiplier As Double) As Integer
+    Private Function ValidateTextbox(TextBoxToValidate As TextBox, Min As Double, Max As Double, Multiplier As Double) As Integer
         Dim dblTemp As Double
         Dim Result As Integer
 
@@ -227,11 +228,12 @@
         LoopCount = 0
         Dim Result As clsResult
         Do
-            Result = New clsResult
+            Result = New clsResult("")
             Result = Generator.GenerateLayout
             If Not Result.HasProblems Then
-                Result.Append(FinishHeights(), "")
-                If Not Result.HasProblems Then
+                Dim HeightsResult As clsResult = FinishHeights()
+                Result.Add(HeightsResult)
+                If Not HeightsResult.HasProblems Then
                     lstResult_AddResult(Result)
                     lstResult_AddText("Done.")
                     btnGenerateLayout.Enabled = True
@@ -257,9 +259,9 @@
     End Sub
 
     Private Function FinishHeights() As clsResult
-        Dim ReturnResult As New clsResult
+        Dim ReturnResult As New clsResult("")
 
-        ReturnResult.Append(Generator.GenerateLayoutTerrain(), "")
+        ReturnResult.Take(Generator.GenerateLayoutTerrain())
         If ReturnResult.HasProblems Then
             Return ReturnResult
         End If
@@ -275,8 +277,8 @@
     End Function
 
     Private Function FinishTextures() As clsResult
-        Dim ReturnResult As New clsResult
-        
+        Dim ReturnResult As New clsResult("")
+
         If cbxMasterTexture.Checked Then
             Select Case cboTileset.SelectedIndex
                 Case 0
@@ -298,7 +300,7 @@
                     Generator.Map.GenerateMasterTerrain(TerrainStyle_Rockies)
                     TerrainStyle_Rockies.Watermap = Nothing
                 Case Else
-                    ReturnResult.Problem_Add("Error: bad tileset selection.")
+                    ReturnResult.ProblemAdd("Error: bad tileset selection.")
                     btnGenerateLayout.Enabled = True
                     Return ReturnResult
             End Select
@@ -316,7 +318,7 @@
                     Generator.Map.Tileset = Tileset_Rockies
                     Generator.GenerateTileset = Generator_TilesetRockies
                 Case Else
-                    ReturnResult.Problem_Add("Error: bad tileset selection.")
+                    ReturnResult.ProblemAdd("Error: bad tileset selection.")
                     btnGenerateLayout.Enabled = True
                     Return ReturnResult
             End Select
@@ -423,9 +425,9 @@
         Generator.GenerateGateways()
 
         lstResult_AddText("Generating objects.")
-        Dim Result As New clsResult
-        Result.Append(Generator.GenerateOil, "")
-        Result.Append(Generator.GenerateUnits, "")
+        Dim Result As New clsResult("")
+        Result.Take(Generator.GenerateOil)
+        Result.Take(Generator.GenerateUnits)
         lstResult_AddResult(Result)
         If Result.HasProblems Then
             lstResult_AddText("Failed.")
@@ -447,12 +449,12 @@
         Generator.MaxDisconnectionDist = ValidateTextbox(txtRampDistance, 0.0#, 99999.0#, TerrainGridSpacing)
         Generator.RampBase = ValidateTextbox(txtRampBase, 10.0#, 1000.0#, 10.0#) / 1000.0#
 
-        Dim Result As New clsResult
+        Dim Result As New clsResult("")
 
         lstResult_AddText("Generating ramps.")
         Result = Generator.GenerateRamps()
         If Not Result.HasProblems Then
-            Result.Append(FinishHeights, "")
+            Result.Add(FinishHeights)
         End If
         lstResult_AddResult(Result)
         If Result.HasProblems Then
@@ -476,19 +478,19 @@
         frmMainInstance.View_DrawViewLater()
     End Sub
 
-    Private Sub frmGenerator_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+    Private Sub frmGenerator_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
         Hide()
         e.Cancel = True
     End Sub
 
-    Private Sub frmWZMapGen_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+    Private Sub frmWZMapGen_Load(sender As Object, e As System.EventArgs) Handles Me.Load
 
         cboTileset.SelectedIndex = 0
         cboSymmetry.SelectedIndex = 0
     End Sub
 
-    Private Sub rdoPlayer2_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer2.CheckedChanged
+    Private Sub rdoPlayer2_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer2.CheckedChanged
 
         If rdoPlayer2.Checked Then
             PlayerCount = 2
@@ -504,7 +506,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer3_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer3.CheckedChanged
+    Private Sub rdoPlayer3_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer3.CheckedChanged
 
         If rdoPlayer3.Checked Then
             PlayerCount = 3
@@ -520,7 +522,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer4_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer4.CheckedChanged
+    Private Sub rdoPlayer4_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer4.CheckedChanged
 
         If rdoPlayer4.Checked Then
             PlayerCount = 4
@@ -536,7 +538,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer5_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer5.CheckedChanged
+    Private Sub rdoPlayer5_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer5.CheckedChanged
 
         If rdoPlayer5.Checked Then
             PlayerCount = 5
@@ -552,7 +554,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer6_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer6.CheckedChanged
+    Private Sub rdoPlayer6_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer6.CheckedChanged
 
         If rdoPlayer6.Checked Then
             PlayerCount = 6
@@ -568,7 +570,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer7_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer7.CheckedChanged
+    Private Sub rdoPlayer7_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer7.CheckedChanged
 
         If rdoPlayer7.Checked Then
             PlayerCount = 7
@@ -584,7 +586,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer8_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer8.CheckedChanged
+    Private Sub rdoPlayer8_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer8.CheckedChanged
 
         If rdoPlayer8.Checked Then
             PlayerCount = 8
@@ -600,12 +602,12 @@
         End If
     End Sub
 
-    Private Sub btnStop_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnStop.Click
+    Private Sub btnStop_Click(sender As System.Object, e As System.EventArgs) Handles btnStop.Click
 
         StopTrying = True
     End Sub
 
-    Private Sub rdoPlayer1_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer1.CheckedChanged
+    Private Sub rdoPlayer1_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer1.CheckedChanged
 
         If rdoPlayer1.Checked Then
             PlayerCount = 1
@@ -621,7 +623,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer9_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer9.CheckedChanged
+    Private Sub rdoPlayer9_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer9.CheckedChanged
 
         If rdoPlayer9.Checked Then
             PlayerCount = 9
@@ -637,7 +639,7 @@
         End If
     End Sub
 
-    Private Sub rdoPlayer10_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles rdoPlayer10.CheckedChanged
+    Private Sub rdoPlayer10_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoPlayer10.CheckedChanged
 
         If rdoPlayer10.Checked Then
             PlayerCount = 10
@@ -653,25 +655,28 @@
         End If
     End Sub
 
-    Public Sub New(ByVal Owner As frmMain)
+    Public Sub New(Owner As frmMain)
         InitializeComponent()
 
         _Owner = Owner
     End Sub
 
-    Private Sub lstResult_AddResult(ByVal Result As clsResult)
-		Dim A As Integer
+    Private Sub lstResult_AddResult(Result As clsResult)
 
-        For A = 0 To Result.Problems.ItemCount - 1
-            lstResult.Items.Add("Problem: " & Result.Problems.Item(A))
-        Next
-        For A = 0 To Result.Warnings.ItemCount - 1
-            lstResult.Items.Add("Warning: " & Result.Warnings.Item(A))
-        Next
+        'todo
+
+        'Dim A As Integer
+
+        'For A = 0 To Result.Problems.Count - 1
+        '    lstResult.Items.Add("Problem: " & Result.Problems.Item(A))
+        'Next
+        'For A = 0 To Result.Warnings.Count - 1
+        '    lstResult.Items.Add("Warning: " & Result.Warnings.Item(A))
+        'Next
         lstResult.SelectedIndex = lstResult.Items.Count - 1
     End Sub
 
-    Private Sub lstResult_AddText(ByVal Text As String)
+    Private Sub lstResult_AddText(Text As String)
 
         lstResult.Items.Add(Text)
         lstResult.SelectedIndex = lstResult.Items.Count - 1

@@ -7,11 +7,10 @@
     </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{59A15906-263A-4A68-AF44-6AF69F431A99}</ProjectGuid>
-    <StartupObject>FlaME.My.MyApplication</StartupObject>
     <RootNamespace>FlaME</RootNamespace>
     <AssemblyName>FlaME</AssemblyName>
     <FileAlignment>512</FileAlignment>
-    <MyType>WindowsForms</MyType>
+    <MyType>Console</MyType>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
@@ -28,9 +27,10 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.26</ReleaseVersion>
-    <OutputType>WinExe</OutputType>
+    <ReleaseVersion>1.28</ReleaseVersion>
+    <OutputType>Exe</OutputType>
     <OptionStrict>On</OptionStrict>
+    <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -38,9 +38,10 @@
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\MonoDevelop</OutputPath>
-    <DefineConstants>MonoDevelop=1.0,Mono=1.0,Mono267=0.0,Portable=1.0</DefineConstants>
+    <DefineConstants>Mono=1.0,Portable=1.0</DefineConstants>
     <AdditionalParameters />
     <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
@@ -76,8 +77,6 @@
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
-    <Import Include="" />
-    <Import Include="Lists" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="clsBooleanMap.vb" />
@@ -98,7 +97,6 @@
     <Compile Include="clsUnitType.vb" />
     <Compile Include="GLFont.vb" />
     <Compile Include="modBitmap.vb" />
-    <Compile Include="modData.vb" />
     <Compile Include="modGenerator.vb" />
     <Compile Include="modMath.vb" />
     <Compile Include="modProgram.vb" />
@@ -151,7 +149,16 @@
     <Compile Include="frmCompile.Designer.vb" />
     <Compile Include="clsObjectData.vb" />
     <Compile Include="clsBrush.vb" />
-    <Compile Include="Lists.vb" />
+    <Compile Include="frmClose.Designer.vb" />
+    <Compile Include="frmClose.vb" />
+    <Compile Include="frmQuit.Designer.vb" />
+    <Compile Include="frmQuit.vb" />
+    <Compile Include="clsMapChanges.vb" />
+    <Compile Include="clsMapObject.vb" />
+    <Compile Include="modColour.vb" />
+    <Compile Include="modIO.vb" />
+    <Compile Include="modLists.vb" />
+    <Compile Include="modMain.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
@@ -179,6 +186,8 @@
     <None Include="frmWarnings.resx" />
     <None Include="frmWZLoad.resx" />
     <None Include="frmCompile.resx" />
+    <None Include="frmClose.resx" />
+    <None Include="frmQuit.resx" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">

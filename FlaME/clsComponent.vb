@@ -1,4 +1,5 @@
-﻿Public MustInherit Class clsComponent
+﻿
+Public MustInherit Class clsComponent
 
     Public IsUnknown As Boolean = False
 
@@ -18,7 +19,7 @@ End Class
 Public Class clsBody
     Inherits clsComponent
 
-    Public Num As Integer = -1
+    Public ObjectDataLink As New ConnectedListLink(Of clsBody, clsObjectData)(Me)
 
     Public Attachment As New clsUnitType.clsAttachment
     Public Hitpoints As Integer
@@ -32,14 +33,16 @@ End Class
 Public Class clsPropulsion
     Inherits clsComponent
 
+    Public ObjectDataLink As New ConnectedListLink(Of clsPropulsion, clsObjectData)(Me)
+
     Public Structure sBody
         Public LeftAttachment As clsUnitType.clsAttachment
         Public RightAttachment As clsUnitType.clsAttachment
     End Structure
     Public Bodies(-1) As sBody
-    Public Hitpoints As Integer
+    Public HitPoints As Integer
 
-    Public Sub New(ByVal BodyCount As Integer)
+    Public Sub New(BodyCount As Integer)
 
         ComponentType = enumComponentType.Propulsion
 
@@ -55,6 +58,8 @@ End Class
 
 Public Class clsTurret
     Inherits clsComponent
+
+    Public TurretObjectDataLink As New ConnectedListLink(Of clsTurret, clsObjectData)(Me)
 
     Public Attachment As New clsUnitType.clsAttachment
     Public HitPoints As Integer
@@ -100,6 +105,8 @@ End Class
 Public Class clsWeapon
     Inherits clsTurret
 
+    Public ObjectDataLink As New ConnectedListLink(Of clsWeapon, clsObjectData)(Me)
+
     Public Sub New()
 
         TurretType = enumTurretType.Weapon
@@ -108,6 +115,8 @@ End Class
 
 Public Class clsConstruct
     Inherits clsTurret
+
+    Public ObjectDataLink As New ConnectedListLink(Of clsConstruct, clsObjectData)(Me)
 
     Public Sub New()
 
@@ -118,6 +127,8 @@ End Class
 Public Class clsRepair
     Inherits clsTurret
 
+    Public ObjectDataLink As New ConnectedListLink(Of clsRepair, clsObjectData)(Me)
+
     Public Sub New()
 
         TurretType = enumTurretType.Repair
@@ -126,6 +137,8 @@ End Class
 
 Public Class clsSensor
     Inherits clsTurret
+
+    Public ObjectDataLink As New ConnectedListLink(Of clsSensor, clsObjectData)(Me)
 
     Public Enum enumLocation
         Unspecified
@@ -143,6 +156,8 @@ End Class
 Public Class clsBrain
     Inherits clsTurret
 
+    Public ObjectDataLink As New ConnectedListLink(Of clsBrain, clsObjectData)(Me)
+
     Public Weapon As clsWeapon
 
     Public Sub New()
@@ -153,6 +168,8 @@ End Class
 
 Public Class clsECM
     Inherits clsTurret
+
+    Public ObjectDataLink As New ConnectedListLink(Of clsECM, clsObjectData)(Me)
 
     Public Sub New()
 

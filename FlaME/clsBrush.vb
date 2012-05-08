@@ -26,7 +26,7 @@ Public Class clsBrush
         Get
             Return _Radius
         End Get
-        Set(ByVal value As Double)
+        Set(value As Double)
             If _Radius = value Then
                 Exit Property
             End If
@@ -39,7 +39,7 @@ Public Class clsBrush
         Get
             Return _Shape
         End Get
-        Set(ByVal value As enumShape)
+        Set(value As enumShape)
             If _Shape = value Then
                 Exit Property
             End If
@@ -61,29 +61,29 @@ Public Class clsBrush
         End Select
     End Sub
 
-    Public Sub New(ByVal InitialRadius As Double, ByVal InitialShape As enumShape)
+    Public Sub New(InitialRadius As Double, InitialShape As enumShape)
 
         _Radius = InitialRadius
         _Shape = InitialShape
         CreateTiles()
     End Sub
 
-    Public Sub PerformActionMapTiles(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
+    Public Sub PerformActionMapTiles(Tool As clsMap.clsAction, Centre As sPosNum)
 
         PerformAction(Tool, Centre, New sXY_int(Tool.Map.Terrain.TileSize.X - 1, Tool.Map.Terrain.TileSize.Y - 1))
     End Sub
 
-    Public Sub PerformActionMapVertices(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
+    Public Sub PerformActionMapVertices(Tool As clsMap.clsAction, Centre As sPosNum)
 
         PerformAction(Tool, Centre, Tool.Map.Terrain.TileSize)
     End Sub
 
-    Public Sub PerformActionMapSectors(ByVal Tool As clsMap.clsAction, ByVal Centre As sPosNum)
+    Public Sub PerformActionMapSectors(Tool As clsMap.clsAction, Centre As sPosNum)
 
         PerformAction(Tool, Centre, New sXY_int(Tool.Map.SectorCount.X - 1, Tool.Map.SectorCount.Y - 1))
     End Sub
 
-    Public Function GetPosNum(ByVal PosNum As sPosNum) As sXY_int
+    Public Function GetPosNum(PosNum As sPosNum) As sXY_int
 
         If _Alignment Then
             Return PosNum.Alignment
@@ -92,7 +92,7 @@ Public Class clsBrush
         End If
     End Function
 
-    Private Sub PerformAction(ByVal Action As clsMap.clsAction, ByVal PosNum As sPosNum, ByVal LastValidNum As sXY_int)
+    Private Sub PerformAction(Action As clsMap.clsAction, PosNum As sPosNum, LastValidNum As sXY_int)
         Dim XNum As Integer
         Dim X As Integer
         Dim Y As Integer
@@ -118,7 +118,7 @@ Public Class clsBrush
                                 If _Alignment Then
                                     Action.Effect = 1.0# - (New Matrix3D.XY_dbl(Action.PosNum.X, Action.PosNum.Y) - New Matrix3D.XY_dbl(Centre.X - 0.5#, Centre.Y - 0.5#)).GetMagnitude / (Tiles.ResultRadius + 0.5#)
                                 Else
-                                    Action.Effect = 1.0# - GetDist_XY_int(Centre, Action.PosNum) / (Tiles.ResultRadius + 0.5#)
+                                    Action.Effect = 1.0# - (Centre - Action.PosNum).ToDoubles.GetMagnitude / (Tiles.ResultRadius + 0.5#)
                                 End If
                             Case clsBrush.enumShape.Square
                                 If _Alignment Then
@@ -142,7 +142,7 @@ Public Structure sBrushTiles
     Public YMax As Integer
     Public ResultRadius As Double
 
-    Public Sub CreateCircle(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
+    Public Sub CreateCircle(Radius As Double, TileSize As Double, Alignment As Boolean)
         Dim X As Integer
         Dim Y As Integer
         Dim dblX As Double
@@ -192,7 +192,7 @@ Public Structure sBrushTiles
         ResultRadius = B / 2.0#
     End Sub
 
-    Public Sub CreateSquare(ByVal Radius As Double, ByVal TileSize As Double, ByVal Alignment As Boolean)
+    Public Sub CreateSquare(Radius As Double, TileSize As Double, Alignment As Boolean)
         Dim Y As Integer
         Dim A As Integer
         Dim B As Integer

@@ -7,8 +7,6 @@ Public Class ctrlMapView
 
     Public DrawPending As Boolean
 
-    Public OpenGLControl As OpenTK.GLControl
-
     Public GLSize As sXY_int
     Public GLSize_XPerY As Single
 
@@ -20,7 +18,9 @@ Public Class ctrlMapView
     Private WithEvents tmrDraw As Timer
     Private WithEvents tmrDrawDelay As Timer
 
-    Public Sub New(ByVal Owner As frmMain)
+    Public OpenGLControl As OpenTK.GLControl
+
+    Public Sub New(Owner As frmMain)
 
         _Owner = Owner
 
@@ -29,16 +29,11 @@ Public Class ctrlMapView
         ListSelect = New ContextMenuStrip
         UndoMessageTimer = New Timer
 
-        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 24, 0))
-        Try
-            OpenGLControl.MakeCurrent()
-        Catch ex As Exception
-
-        End Try
+        OpenGLControl = OpenGL1
         pnlDraw.Controls.Add(OpenGLControl)
 
         GLInitializeDelayTimer = New Timer
-        GLInitializeDelayTimer.Interval = 1
+        GLInitializeDelayTimer.Interval = 50
         AddHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
         GLInitializeDelayTimer.Enabled = True
 
@@ -53,11 +48,15 @@ Public Class ctrlMapView
 
     Public Sub ResizeOpenGL()
 
+        If OpenGLControl.Context Is Nothing Then
+            Exit Sub
+        End If
+
         OpenGLControl.Width = pnlDraw.Width
         OpenGLControl.Height = pnlDraw.Height
     End Sub
 
-    Public Sub DrawView_SetEnabled(ByVal Value As Boolean)
+    Public Sub DrawView_SetEnabled(Value As Boolean)
 
         If Value Then
             If Not DrawView_Enabled Then
@@ -78,7 +77,7 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Private Sub tmrDraw_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDraw.Tick
+    Private Sub tmrDraw_Tick(sender As System.Object, e As System.EventArgs) Handles tmrDraw.Tick
 
         tmrDraw.Enabled = False
         If DrawPending Then
@@ -88,13 +87,11 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub GLInitialize(sender As Object, e As EventArgs)
 
         If OpenGLControl.Context Is Nothing Then
             Exit Sub
         End If
-
-        IsGLInitialized = True
 
         GLInitializeDelayTimer.Enabled = False
         RemoveHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
@@ -185,9 +182,15 @@ Public Class ctrlMapView
         GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, mat_specular)
         GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, mat_diffuse)
         GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, mat_shininess)
+
+        IsGLInitialized = True
     End Sub
 
     Public Sub Viewport_Resize()
+
+        If Not ProgramInitialized Then
+            Exit Sub
+        End If
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
@@ -240,7 +243,7 @@ Public Class ctrlMapView
         Refresh()
     End Sub
 
-    Public Sub OpenGL_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+    Public Sub OpenGL_MouseMove(sender As Object, e As System.Windows.Forms.MouseEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -269,7 +272,7 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Public Sub OpenGL_LostFocus(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs)
+    Public Sub OpenGL_LostFocus(eventSender As System.Object, eventArgs As System.EventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -289,24 +292,24 @@ Public Class ctrlMapView
     Private ListSelectIsPicker As Boolean
     Private ListSelectItems(-1) As ToolStripItem
 
-    Private Sub ListSelect_Click(ByVal Sender As Object, ByVal e As ToolStripItemClickedEventArgs) Handles ListSelect.ItemClicked
-        Dim tmpButton As ToolStripItem = e.ClickedItem
-        Dim tmpUnit As clsMap.clsUnit = CType(tmpButton.Tag, clsMap.clsUnit)
+    Private Sub ListSelect_Click(Sender As Object, e As ToolStripItemClickedEventArgs) Handles ListSelect.ItemClicked
+        Dim Button As ToolStripItem = e.ClickedItem
+        Dim Unit As clsMap.clsUnit = CType(Button.Tag, clsMap.clsUnit)
 
         If ListSelectIsPicker Then
-            frmMainInstance.ObjectPicker(tmpUnit.Type)
+            frmMainInstance.ObjectPicker(Unit.Type)
         Else
-            If tmpUnit.MapSelectedUnitLink.IsConnected Then
-                tmpUnit.MapDeselect()
+            If Unit.MapSelectedUnitLink.IsConnected Then
+                Unit.MapDeselect()
             Else
-                tmpUnit.MapSelect()
+                Unit.MapSelect()
             End If
             frmMainInstance.SelectedObject_Changed()
             DrawViewLater()
         End If
     End Sub
 
-    Private Sub ListSelect_Close(ByVal sender As Object, ByVal e As ToolStripDropDownClosedEventArgs) Handles ListSelect.Closed
+    Private Sub ListSelect_Close(sender As Object, e As ToolStripDropDownClosedEventArgs) Handles ListSelect.Closed
         Dim A As Integer
 
         For A = 0 To ListSelectItems.GetUpperBound(0)
@@ -319,7 +322,7 @@ Public Class ctrlMapView
         ViewKeyDown_Clear()
     End Sub
 
-    Private Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As MouseEventArgs)
+    Private Sub OpenGL_MouseDown(sender As Object, e As MouseEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -329,7 +332,7 @@ Public Class ctrlMapView
         Map.ViewInfo.MouseDown(e)
     End Sub
 
-    Private Sub OpenGL_KeyDown(ByVal sender As Object, ByVal e As PreviewKeyDownEventArgs)
+    Private Sub OpenGL_KeyDown(sender As Object, e As PreviewKeyDownEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -337,13 +340,13 @@ Public Class ctrlMapView
         End If
 
         Dim matrixA As New Matrix3D.Matrix3D
-        Dim A As Integer
         Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = Map.ViewInfo.GetMouseOverTerrain()
 
         IsViewKeyDown.Keys(e.KeyCode) = True
 
-        For A = 0 To InputControlCount - 1
-            InputControls(A).KeysChanged(IsViewKeyDown)
+        Dim Control As clsInputControl
+        For Each Control In InputControls
+            Control.KeysChanged(IsViewKeyDown)
         Next
 
         If Control_Undo.Active Then
@@ -362,7 +365,7 @@ Public Class ctrlMapView
         End If
         If Control_Redo.Active Then
             Dim Message As String
-            If Map.UndoPosition < Map.Undos.ItemCount Then
+            If Map.UndoPosition < Map.Undos.Count Then
                 Message = "Redid: " & Map.Undos.Item(Map.UndoPosition).Name
                 Dim MapMessage As New clsMap.clsMessage
                 MapMessage.Text = Message
@@ -432,13 +435,14 @@ Public Class ctrlMapView
             Dim X As Integer
             Dim Y As Integer
             Dim SectorNum As sXY_int
-            Dim tmpUnit As clsMap.clsUnit
+            Dim Unit As clsMap.clsUnit
+            Dim Connection As clsMap.clsUnitSectorConnection
             For Y = 0 To Map.SectorCount.Y - 1
                 For X = 0 To Map.SectorCount.X - 1
-                    For A = 0 To Map.Sectors(X, Y).Units.ItemCount - 1
-                        tmpUnit = Map.Sectors(X, Y).Units.Item(A).Unit
-                        If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                            If CType(tmpUnit.Type, clsStructureType).StructureBasePlate IsNot Nothing Then
+                    For Each Connection In Map.Sectors(X, Y).Units
+                        Unit = Connection.Unit
+                        If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                            If CType(Unit.Type, clsStructureType).StructureBasePlate IsNot Nothing Then
                                 SectorNum.X = X
                                 SectorNum.Y = Y
                                 Map.SectorGraphicsChanges.Changed(SectorNum)
@@ -483,10 +487,10 @@ Public Class ctrlMapView
         End If
         If Tool = enumTool.None Then
             If Control_Unit_Delete.Active Then
-                If Map.SelectedUnits.ItemCount > 0 Then
-                    Dim OldUnits As SimpleClassList(Of clsMap.clsUnit) = Map.SelectedUnits.GetItemsAsSimpleClassList
-                    For A = 0 To OldUnits.ItemCount - 1
-                        Map.Unit_Remove_StoreChange(OldUnits.Item(A).MapLink.ArrayPosition)
+                If Map.SelectedUnits.Count > 0 Then
+                    Dim Unit As clsMap.clsUnit
+                    For Each Unit In Map.SelectedUnits.GetItemsAsSimpleList
+                        Map.UnitRemoveStoreChange(Unit.MapLink.ArrayPosition)
                     Next
                     frmMainInstance.SelectedObject_Changed()
                     Map.UndoStepCreate("Object Deleted")
@@ -497,8 +501,8 @@ Public Class ctrlMapView
             End If
             If Control_Unit_Move.Active Then
                 If MouseOverTerrain IsNot Nothing Then
-                    If Map.SelectedUnits.ItemCount > 0 Then
-                        Dim Centre As Matrix3D.XY_dbl = GetUnitsCentrePos(Map.SelectedUnits.GetItemsAsSimpleClassList)
+                    If Map.SelectedUnits.Count > 0 Then
+                        Dim Centre As Matrix3D.XY_dbl = CalcUnitsCentrePos(Map.SelectedUnits.GetItemsAsSimpleList)
                         Dim Offset As sXY_int
                         Offset.X = CInt(Math.Round((MouseOverTerrain.Pos.Horizontal.X - Centre.X) / TerrainGridSpacing)) * TerrainGridSpacing
                         Offset.Y = CInt(Math.Round((MouseOverTerrain.Pos.Horizontal.Y - Centre.Y) / TerrainGridSpacing)) * TerrainGridSpacing
@@ -543,17 +547,17 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Private Sub OpenGL_KeyUp(ByVal sender As Object, ByVal e As KeyEventArgs)
-        Dim A As Integer
+    Private Sub OpenGL_KeyUp(sender As Object, e As KeyEventArgs)
 
         IsViewKeyDown.Keys(e.KeyCode) = False
 
-        For A = 0 To InputControlCount - 1
-            InputControls(A).KeysChanged(IsViewKeyDown)
+        Dim Control As clsInputControl
+        For Each Control In InputControls
+            Control.KeysChanged(IsViewKeyDown)
         Next
     End Sub
 
-    Private Sub OpenGL_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+    Private Sub OpenGL_MouseUp(sender As Object, e As System.Windows.Forms.MouseEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -612,12 +616,11 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Private Sub SelectUnits(ByVal VertexA As sXY_int, ByVal VertexB As sXY_int)
+    Private Sub SelectUnits(VertexA As sXY_int, VertexB As sXY_int)
         Dim Map As clsMap = MainMap
         Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = Map.ViewInfo.GetMouseOverTerrain()
-        Dim A As Integer
         Dim SectorNum As sXY_int
-        Dim tmpUnit As clsMap.clsUnit
+        Dim Unit As clsMap.clsUnit
         Dim SectorStart As sXY_int
         Dim SectorFinish As sXY_int
         Dim StartPos As sXY_int
@@ -628,33 +631,20 @@ Public Class ctrlMapView
         If Math.Abs(VertexA.X - VertexB.X) <= 1 And _
           Math.Abs(VertexA.Y - VertexB.Y) <= 1 And _
           MouseOverTerrain IsNot Nothing Then
-            If MouseOverTerrain.Units.ItemCount > 0 Then
-                If MouseOverTerrain.Units.ItemCount = 1 Then
-                    tmpUnit = MouseOverTerrain.Units.Item(0)
-                    If tmpUnit.MapSelectedUnitLink.IsConnected Then
-                        tmpUnit.MapDeselect()
+            If MouseOverTerrain.Units.Count > 0 Then
+                If MouseOverTerrain.Units.Count = 1 Then
+                    Unit = MouseOverTerrain.Units.Item(0)
+                    If Unit.MapSelectedUnitLink.IsConnected Then
+                        Unit.MapDeselect()
                     Else
-                        tmpUnit.MapSelect()
+                        Unit.MapSelect()
                     End If
                 Else
-                    ListSelect.Close()
-                    ListSelect.Items.Clear()
-                    ReDim ListSelectItems(MouseOverTerrain.Units.ItemCount - 1)
-                    For A = 0 To MouseOverTerrain.Units.ItemCount - 1
-                        If MouseOverTerrain.Units.Item(A).Type Is Nothing Then
-                            ListSelectItems(A) = New ToolStripButton("<nothing>")
-                        Else
-                            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units.Item(A).Type.GetDisplayText)
-                        End If
-                        ListSelectItems(A).Tag = MouseOverTerrain.Units.Item(A)
-                        ListSelect.Items.Add(ListSelectItems(A))
-                    Next
-                    ListSelectIsPicker = False
-                    ListSelect.Show(Me, New Drawing.Point(Map.ViewInfo.MouseOver.ScreenPos.X, Map.ViewInfo.MouseOver.ScreenPos.Y))
+                    ListSelectBegin(False)
                 End If
             End If
         Else
-            XY_Reorder(VertexA, VertexB, StartVertex, FinishVertex)
+            ReorderXY(VertexA, VertexB, StartVertex, FinishVertex)
             StartPos.X = StartVertex.X * TerrainGridSpacing
             StartPos.Y = StartVertex.Y * TerrainGridSpacing
             FinishPos.X = FinishVertex.X * TerrainGridSpacing
@@ -665,12 +655,13 @@ Public Class ctrlMapView
             SectorFinish.Y = Math.Min(CInt(Int(FinishVertex.Y / SectorTileSize)), Map.SectorCount.Y - 1)
             For SectorNum.Y = SectorStart.Y To SectorFinish.Y
                 For SectorNum.X = SectorStart.X To SectorFinish.X
-                    For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
-                        tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units.Item(A).Unit
-                        If tmpUnit.Pos.Horizontal.X >= StartPos.X And tmpUnit.Pos.Horizontal.Y >= StartPos.Y And _
-                            tmpUnit.Pos.Horizontal.X <= FinishPos.X And tmpUnit.Pos.Horizontal.Y <= FinishPos.Y Then
-                            If Not tmpUnit.MapSelectedUnitLink.IsConnected Then
-                                tmpUnit.MapSelect()
+                    Dim Connection As clsMap.clsUnitSectorConnection
+                    For Each Connection In Map.Sectors(SectorNum.X, SectorNum.Y).Units
+                        Unit = Connection.Unit
+                        If Unit.Pos.Horizontal.X >= StartPos.X And Unit.Pos.Horizontal.Y >= StartPos.Y And _
+                            Unit.Pos.Horizontal.X <= FinishPos.X And Unit.Pos.Horizontal.Y <= FinishPos.Y Then
+                            If Not Unit.MapSelectedUnitLink.IsConnected Then
+                                Unit.MapSelect()
                             End If
                         End If
                     Next
@@ -681,7 +672,7 @@ Public Class ctrlMapView
         DrawViewLater()
     End Sub
 
-    Private Sub tmrDrawDelay_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDrawDelay.Tick
+    Private Sub tmrDrawDelay_Tick(sender As System.Object, e As System.EventArgs) Handles tmrDrawDelay.Tick
 
         If DrawPending Then
             DrawPending = False
@@ -691,14 +682,15 @@ Public Class ctrlMapView
         End If
     End Sub
 
-    Private Sub pnlDraw_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles pnlDraw.Resize
+    Private Sub pnlDraw_Resize(sender As Object, e As System.EventArgs) Handles pnlDraw.Resize
 
         If OpenGLControl IsNot Nothing Then
             ResizeOpenGL()
         End If
     End Sub
 
-    Public Sub OpenGL_Resize(ByVal eventSender As System.Object, ByVal eventArgs As System.EventArgs)
+    Public Sub OpenGL_Resize(eventSender As System.Object, eventArgs As System.EventArgs)
+
         Dim Map As clsMap = MainMap
 
         GLSize.X = OpenGLControl.Width
@@ -713,14 +705,14 @@ Public Class ctrlMapView
         DrawViewLater()
     End Sub
 
-    Public Sub OpenGL_MouseEnter(ByVal sender As Object, ByVal e As System.EventArgs)
+    Public Sub OpenGL_MouseEnter(sender As Object, e As System.EventArgs)
 
         If Form.ActiveForm Is frmMainInstance Then
             OpenGLControl.Focus()
         End If
     End Sub
 
-    Public Sub OpenGL_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+    Public Sub OpenGL_MouseWheel(sender As Object, e As System.Windows.Forms.MouseEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -738,20 +730,20 @@ Public Class ctrlMapView
         Next
     End Sub
 
-    Public Function CreateGLFont(ByVal BaseFont As Font) As GLFont
+    Public Function CreateGLFont(BaseFont As Font) As GLFont
 
         Return New GLFont(New Font(BaseFont.FontFamily, 24.0F, BaseFont.Style, GraphicsUnit.Pixel))
     End Function
 
     Public WithEvents UndoMessageTimer As Timer
 
-    Public Sub RemoveUndoMessage(ByVal sender As Object, ByVal e As EventArgs) Handles UndoMessageTimer.Tick
+    Public Sub RemoveUndoMessage(sender As Object, e As EventArgs) Handles UndoMessageTimer.Tick
 
         UndoMessageTimer.Enabled = False
         lblUndo.Text = ""
     End Sub
 
-    Public Sub DisplayUndoMessage(ByVal Text As String)
+    Public Sub DisplayUndoMessage(Text As String)
 
         lblUndo.Text = Text
         UndoMessageTimer.Enabled = False
@@ -768,7 +760,7 @@ Public Class ctrlMapView
         Map.ViewInfo.MouseOver = Nothing
     End Sub
 
-    Public Sub ListSelectBegin()
+    Public Sub ListSelectBegin(isPicker As Boolean)
         Dim Map As clsMap = MainMap
         Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = Map.ViewInfo.GetMouseOverTerrain
 
@@ -778,20 +770,22 @@ Public Class ctrlMapView
         End If
 
         Dim A As Integer
+        Dim Unit As clsMap.clsUnit
 
         ListSelect.Close()
         ListSelect.Items.Clear()
-        ReDim ListSelectItems(MouseOverTerrain.Units.ItemCount - 1)
-        For A = 0 To MouseOverTerrain.Units.ItemCount - 1
-            ListSelectItems(A) = New ToolStripButton(MouseOverTerrain.Units.Item(A).Type.GetDisplayText)
-            ListSelectItems(A).Tag = MouseOverTerrain.Units.Item(A)
+        ReDim ListSelectItems(MouseOverTerrain.Units.Count - 1)
+        For A = 0 To MouseOverTerrain.Units.Count - 1
+            Unit = MouseOverTerrain.Units(A)
+            ListSelectItems(A) = New ToolStripButton(Unit.Type.GetDisplayText)
+            ListSelectItems(A).Tag = Unit
             ListSelect.Items.Add(ListSelectItems(A))
         Next
-        ListSelectIsPicker = True
+        ListSelectIsPicker = isPicker
         ListSelect.Show(Me, New Drawing.Point(Map.ViewInfo.MouseOver.ScreenPos.X, Map.ViewInfo.MouseOver.ScreenPos.Y))
     End Sub
 
-    Private Sub tabMaps_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tabMaps.SelectedIndexChanged
+    Private Sub tabMaps_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles tabMaps.SelectedIndexChanged
 
         If Not tabMaps.Enabled Then
             Exit Sub
@@ -818,23 +812,19 @@ Public Class ctrlMapView
             Exit Sub
         End If
 
-        If Map.ChangedSinceSave Then
-            If MsgBox("Lose any unsaved changes to this map?", MsgBoxStyle.OkCancel, Map.GetTitle) <> MsgBoxResult.Ok Then
-                Exit Sub
-            End If
+        If Not Map.ClosePrompt() Then
+            Exit Sub
         End If
 
         Map.Deallocate()
     End Sub
 
     Public Sub UpdateTabs()
-        Dim A As Integer
         Dim Map As clsMap
 
         tabMaps.Enabled = False
         tabMaps.TabPages.Clear()
-        For A = 0 To _Owner.LoadedMaps.ItemCount - 1
-            Map = _Owner.LoadedMaps.Item(A)
+        For Each Map In _Owner.LoadedMaps
             tabMaps.TabPages.Add(Map.MapView_TabPage)
         Next
         Map = MainMap

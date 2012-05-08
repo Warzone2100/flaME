@@ -1,4 +1,7 @@
-﻿Public Module modSettings
+﻿
+Public Module modSettings
+
+    Public InitializeINISettings As clsINISettings
 
     Public Class clsSettings
 
@@ -20,6 +23,10 @@
         Public MipmapsHardware As Boolean = False
         Public OpenPath As String = Nothing
         Public SavePath As String = Nothing
+        Public MapViewBPP As Integer = 32
+        Public TextureViewBPP As Integer = 32
+        Public MapViewDepth As Integer = 24
+        Public TextureViewDepth As Integer = 24
     End Class
 
     Public Class clsINISettings
@@ -38,7 +45,7 @@
         Public DefaultTilesetPathNum As Integer = -1
         Public DefaultObjectDataPathNum As Integer = -1
 
-        Public Overrides Function Translate(ByVal INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
+        Public Overrides Function Translate(INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
 
             Select Case INIProperty.Name
                 Case "directpointer"
@@ -141,6 +148,22 @@
                     NewSettings.OpenPath = INIProperty.Value
                 Case "savepath"
                     NewSettings.SavePath = INIProperty.Value
+                Case "mapviewbpp"
+                    If Not InvariantParse_int(INIProperty.Value, NewSettings.MapViewBPP) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "textureviewbpp"
+                    If Not InvariantParse_int(INIProperty.Value, NewSettings.TextureViewBPP) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "mapviewdepth"
+                    If Not InvariantParse_int(INIProperty.Value, NewSettings.MapViewDepth) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
+                Case "textureviewdepth"
+                    If Not InvariantParse_int(INIProperty.Value, NewSettings.TextureViewDepth) Then
+                        Return clsINIRead.enumTranslatorResult.ValueInvalid
+                    End If
                 Case Else
                     Return clsINIRead.enumTranslatorResult.NameUnknown
             End Select
@@ -148,43 +171,41 @@
         End Function
     End Class
 
-    Public Function Read_Settings(ByVal File As IO.StreamReader) As clsResult
-        Dim ReturnResult As New clsResult
+    Public Function Read_Settings(File As IO.StreamReader, ByRef Result As clsINISettings) As clsResult
+        Dim ReturnResult As New clsResult("Reading settings")
 
         Dim INISection As New clsINIRead.clsSection
-        ReturnResult.Append(INISection.ReadFile(File), "")
-        Dim NewSettingsINI As New clsINISettings
-        ReturnResult.Append(INISection.Translate(NewSettingsINI), "")
-
-        UpdateINISettings(NewSettingsINI)
+        ReturnResult.Take(INISection.ReadFile(File))
+        Result = New clsINISettings
+        ReturnResult.Take(INISection.Translate(Result))
 
         Return ReturnResult
     End Function
 
-    Private Sub UpdateINISettings(ByVal NewSettingsINI As clsINISettings)
+    Public Sub UpdateINISettings(NewSettingsINI As clsINISettings)
 
-        Dim tmpFontStyle As Drawing.FontStyle = FontStyle.Regular
+        Dim FontStyle As Drawing.FontStyle = FontStyle.Regular
         If NewSettingsINI.FontBold Then
-            tmpFontStyle = CType(tmpFontStyle + FontStyle.Bold, FontStyle)
+            FontStyle = (FontStyle Or FontStyle.Bold)
         End If
         If NewSettingsINI.FontItalic Then
-            tmpFontStyle = CType(tmpFontStyle + FontStyle.Italic, FontStyle)
+            FontStyle = (FontStyle Or FontStyle.Italic)
         End If
-        NewSettingsINI.NewSettings.DisplayFont = New Font(NewSettingsINI.FontFamily, Math.Max(NewSettingsINI.FontSize, 1.0F), tmpFontStyle)
+        NewSettingsINI.NewSettings.DisplayFont = New Font(NewSettingsINI.FontFamily, Math.Max(NewSettingsINI.FontSize, 1.0F), FontStyle)
 
         UpdateSettings(NewSettingsINI.NewSettings)
 
         frmDataInstance.TilesetsPathSet.SetPaths(NewSettingsINI.TilesetsPaths)
-        If NewSettingsINI.DefaultTilesetPathNum >= -1 And NewSettingsINI.DefaultTilesetPathNum < NewSettingsINI.TilesetsPaths.ItemCount Then
+        If NewSettingsINI.DefaultTilesetPathNum >= -1 And NewSettingsINI.DefaultTilesetPathNum < NewSettingsINI.TilesetsPaths.Count Then
             frmDataInstance.TilesetsPathSet.SelectedNum = NewSettingsINI.DefaultTilesetPathNum
         End If
         frmDataInstance.ObjectDataPathSet.SetPaths(NewSettingsINI.ObjectDataPaths)
-        If NewSettingsINI.DefaultObjectDataPathNum >= -1 And NewSettingsINI.DefaultObjectDataPathNum < NewSettingsINI.ObjectDataPaths.ItemCount Then
+        If NewSettingsINI.DefaultObjectDataPathNum >= -1 And NewSettingsINI.DefaultObjectDataPathNum < NewSettingsINI.ObjectDataPaths.Count Then
             frmDataInstance.ObjectDataPathSet.SelectedNum = NewSettingsINI.DefaultObjectDataPathNum
         End If
     End Sub
 
-    Public Sub UpdateSettings(ByVal NewSettings As clsSettings)
+    Public Sub UpdateSettings(NewSettings As clsSettings)
         Dim FontChanged As Boolean
 
         If Settings Is Nothing Then
@@ -217,7 +238,7 @@
         Settings = NewSettings
     End Sub
 
-    Private Sub SetFont(ByVal NewFont As Font)
+    Private Sub SetFont(NewFont As Font)
 
         If UnitLabelFont IsNot Nothing Then
             UnitLabelFont.Deallocate()
@@ -230,14 +251,14 @@
     End Sub
 
     Public Function Settings_Write() As clsResult
-        Dim ReturnResult As New clsResult
+        Dim ReturnResult As New clsResult("Writing settings to " & ControlChars.Quote & SettingsPath & ControlChars.Quote)
 
 #If Portable = 0.0# Then
         If Not IO.Directory.Exists(MyDocumentsProgramPath) Then
             Try
                 IO.Directory.CreateDirectory(MyDocumentsProgramPath)
             Catch ex As Exception
-                ReturnResult.Problem_Add("Unable to create folder " & ControlChars.Quote & MyDocumentsProgramPath & ControlChars.Quote & ": " & ex.Message)
+                ReturnResult.ProblemAdd("Unable to create folder " & ControlChars.Quote & MyDocumentsProgramPath & ControlChars.Quote & ": " & ex.Message)
                 Return ReturnResult
             End Try
         End If
@@ -248,18 +269,18 @@
         Try
             INI_Settings = clsINIWrite.CreateFile(IO.File.Create(SettingsPath))
         Catch ex As Exception
-            ReturnResult.Problem_Add(ex.Message)
+            ReturnResult.ProblemAdd(ex.Message)
             Return ReturnResult
         End Try
 
-        ReturnResult.Append(Serialize_Settings(INI_Settings), "Compile settings.ini: ")
+        Serialize_Settings(INI_Settings)
         INI_Settings.File.Close()
 
         Return ReturnResult
     End Function
 
-    Private Function Serialize_Settings(ByVal File As clsINIWrite) As clsResult
-        Dim ReturnResult As New clsResult
+    Private Sub Serialize_Settings(File As clsINIWrite)
+        Dim ReturnResult As New clsResult("Serializing settings")
 
         File.Property_Append("DirectPointer", InvariantToString_bool(Settings.DirectPointer))
         If UnitLabelFont IsNot Nothing Then
@@ -306,23 +327,26 @@
         If Settings.SavePath IsNot Nothing Then
             File.Property_Append("SavePath", Settings.SavePath)
         End If
+        File.Property_Append("MapViewBPP", InvariantToString_int(Settings.MapViewBPP))
+        File.Property_Append("TextureViewBPP", InvariantToString_int(Settings.TextureViewBPP))
+        File.Property_Append("MapViewDepth", InvariantToString_int(Settings.MapViewDepth))
+        File.Property_Append("TextureViewDepth", InvariantToString_int(Settings.TextureViewDepth))
+    End Sub
 
-        Return ReturnResult
-    End Function
-
-    Public Function Settings_Load() As clsResult
-        Dim ReturnResult As New clsResult
+    Public Function Settings_Load(ByRef Result As clsINISettings) As clsResult
+        Dim ReturnResult As New clsResult("Loading settings from " & ControlChars.Quote & SettingsPath & ControlChars.Quote)
 
         Dim File_Settings As IO.StreamReader
         Try
             File_Settings = New IO.StreamReader(SettingsPath)
         Catch ex As Exception
-            Dim NewINISettings As New clsINISettings
-            UpdateINISettings(NewINISettings)
+            Result = New clsINISettings
             Return ReturnResult
         End Try
 
-        ReturnResult.Append(Read_Settings(File_Settings), "Read settings.ini: ")
+        ReturnResult.Take(Read_Settings(File_Settings, Result))
+
+        File_Settings.Close()
 
         Return ReturnResult
     End Function

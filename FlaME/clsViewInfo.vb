@@ -1,4 +1,5 @@
-﻿Public Class clsViewInfo
+﻿
+Public Class clsViewInfo
 
     Public Map As clsMap
     Public MapView As ctrlMapView
@@ -11,7 +12,7 @@
     Public FOVMultiplierExponent As Double
     Public FieldOfViewY As Single
 
-    Public Sub New(ByVal Map As clsMap, ByVal MapView As ctrlMapView)
+    Public Sub New(Map As clsMap, MapView As ctrlMapView)
 
         Me.Map = Map
         Me.MapView = MapView
@@ -22,7 +23,7 @@
         LookAtPos(New sXY_int(CInt(Map.Terrain.TileSize.X * TerrainGridSpacing / 2.0#), CInt(Map.Terrain.TileSize.Y * TerrainGridSpacing / 2.0#)))
     End Sub
 
-    Public Sub FOV_Scale_2E_Set(ByVal Power As Double)
+    Public Sub FOV_Scale_2E_Set(Power As Double)
 
         FOVMultiplierExponent = Power
         FOVMultiplier = 2.0# ^ FOVMultiplierExponent
@@ -30,7 +31,7 @@
         FOV_Calc()
     End Sub
 
-    Public Sub FOV_Scale_2E_Change(ByVal PowerChange As Double)
+    Public Sub FOV_Scale_2E_Change(PowerChange As Double)
 
         FOVMultiplierExponent += PowerChange
         FOVMultiplier = 2.0# ^ FOVMultiplierExponent
@@ -38,7 +39,7 @@
         FOV_Calc()
     End Sub
 
-    Public Sub FOV_Set(ByVal Radians As Double, ByVal MapView As ctrlMapView)
+    Public Sub FOV_Set(Radians As Double, MapView As ctrlMapView)
 
         FOVMultiplier = Math.Tan(Radians / 2.0#) / MapView.GLSize.Y * 2.0#
         FOVMultiplierExponent = Math.Log(FOVMultiplier) / Math.Log(2.0#)
@@ -46,7 +47,7 @@
         FOV_Calc()
     End Sub
 
-    Public Sub FOV_Multiplier_Set(ByVal Value As Double)
+    Public Sub FOV_Multiplier_Set(Value As Double)
 
         FOVMultiplier = Value
         FOVMultiplierExponent = Math.Log(FOVMultiplier) / Math.Log(2.0#)
@@ -76,7 +77,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub ViewPosSet(ByVal NewViewPos As sXYZ_int)
+    Public Sub ViewPosSet(NewViewPos As sXYZ_int)
 
         ViewPos = NewViewPos
         ViewPosClamp()
@@ -84,7 +85,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub ViewPosChange(ByVal Displacement As sXYZ_int)
+    Public Sub ViewPosChange(Displacement As sXYZ_int)
 
         ViewPos.X += Displacement.X
         ViewPos.Z += Displacement.Z
@@ -103,7 +104,7 @@
         ViewPos.Y = Clamp_int(ViewPos.Y, CInt(Math.Ceiling(Map.GetTerrainHeight(New sXY_int(ViewPos.X, -ViewPos.Z)))) + 16, MaxHeight)
     End Sub
 
-    Public Sub ViewAngleSet(ByVal NewMatrix As Matrix3D.Matrix3D)
+    Public Sub ViewAngleSet(NewMatrix As Matrix3D.Matrix3D)
 
         Matrix3D.MatrixCopy(NewMatrix, ViewAngleMatrix)
         Matrix3D.MatrixNormalize(ViewAngleMatrix)
@@ -122,7 +123,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub ViewAngleSet_Rotate(ByVal NewMatrix As Matrix3D.Matrix3D)
+    Public Sub ViewAngleSet_Rotate(NewMatrix As Matrix3D.Matrix3D)
         Dim Flag As Boolean
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
@@ -167,7 +168,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub LookAtTile(ByVal TileNum As sXY_int)
+    Public Sub LookAtTile(TileNum As sXY_int)
         Dim Pos As sXY_int
 
         Pos.X = CInt((TileNum.X + 0.5#) * TerrainGridSpacing)
@@ -175,7 +176,7 @@
         LookAtPos(Pos)
     End Sub
 
-    Public Sub LookAtPos(ByVal Horizontal As sXY_int)
+    Public Sub LookAtPos(Horizontal As sXY_int)
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_int As sXYZ_int
         Dim dblTemp As Double
@@ -204,7 +205,7 @@
         ViewPosSet(XYZ_int)
     End Sub
 
-    Public Sub MoveToViewTerrainPosFromDistance(ByVal TerrainPos As Matrix3D.XYZ_dbl, ByVal Distance As Double)
+    Public Sub MoveToViewTerrainPosFromDistance(TerrainPos As Matrix3D.XYZ_dbl, Distance As Double)
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_int As sXYZ_int
 
@@ -217,7 +218,7 @@
         ViewPosSet(XYZ_int)
     End Sub
 
-    Public Function Pos_Get_Screen_XY(ByVal Pos As Matrix3D.XYZ_dbl, ByRef Result As sXY_int) As Boolean
+    Public Function Pos_Get_Screen_XY(Pos As Matrix3D.XYZ_dbl, ByRef Result As sXY_int) As Boolean
 
         If Pos.Z <= 0.0# Then
             Return False
@@ -235,7 +236,7 @@
         Return False
     End Function
 
-    Public Function ScreenXY_Get_ViewPlanePos(ByVal ScreenPos As sXY_int, ByVal PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
+    Public Function ScreenXY_Get_ViewPlanePos(ScreenPos As sXY_int, PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
@@ -259,7 +260,7 @@
         Return True
     End Function
 
-    Public Function ScreenXY_Get_TerrainPos(ByVal ScreenPos As sXY_int, ByRef ResultPos As sWorldPos) As Boolean
+    Public Function ScreenXY_Get_TerrainPos(ScreenPos As sXY_int, ByRef ResultPos As sWorldPos) As Boolean
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim TerrainViewVector As Matrix3D.XYZ_dbl
@@ -405,7 +406,7 @@
         Return True
     End Function
 
-    Public Function ScreenXY_Get_ViewPlanePos_ForwardDownOnly(ByVal ScreenX As Integer, ByVal ScreenY As Integer, ByVal PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
+    Public Function ScreenXY_Get_ViewPlanePos_ForwardDownOnly(ScreenX As Integer, ScreenY As Integer, PlaneHeight As Double, ByRef ResultPos As Matrix3D.XY_dbl) As Boolean
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
@@ -441,7 +442,6 @@
 
     Public Sub MouseOver_Pos_Calc()
         Dim XY_dbl As Matrix3D.XY_dbl
-        Dim A As Integer
         Dim Flag As Boolean
         Dim Footprint As sXY_int
         Dim MouseLeftDownOverMinimap As clsMouseDown.clsOverMinimap = GetMouseLeftDownOverMinimap()
@@ -495,15 +495,16 @@
                     MouseOverTerrain.Side_Num.Y = MouseOverTerrain.Tile.Normal.Y
                 End If
                 Dim SectorNum As sXY_int = Map.GetPosSectorNum(MouseOverTerrain.Pos.Horizontal)
-                Dim tmpUnit As clsMap.clsUnit
-                For A = 0 To Map.Sectors(SectorNum.X, SectorNum.Y).Units.ItemCount - 1
-                    tmpUnit = Map.Sectors(SectorNum.X, SectorNum.Y).Units.Item(A).Unit
-                    XY_dbl.X = tmpUnit.Pos.Horizontal.X - MouseOverTerrain.Pos.Horizontal.X
-                    XY_dbl.Y = tmpUnit.Pos.Horizontal.Y - MouseOverTerrain.Pos.Horizontal.Y
-                    Footprint = tmpUnit.Type.GetFootprint
+                Dim Unit As clsMap.clsUnit
+                Dim Connection As clsMap.clsUnitSectorConnection
+                For Each Connection In Map.Sectors(SectorNum.X, SectorNum.Y).Units
+                    Unit = Connection.Unit
+                    XY_dbl.X = Unit.Pos.Horizontal.X - MouseOverTerrain.Pos.Horizontal.X
+                    XY_dbl.Y = Unit.Pos.Horizontal.Y - MouseOverTerrain.Pos.Horizontal.Y
+                    Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
                     If Math.Abs(XY_dbl.X) <= Math.Max(Footprint.X / 2.0#, 0.5#) * TerrainGridSpacing _
                     And Math.Abs(XY_dbl.Y) <= Math.Max(Footprint.Y / 2.0#, 0.5#) * TerrainGridSpacing Then
-                        MouseOverTerrain.Units.Add(tmpUnit)
+                        MouseOverTerrain.Units.Add(Unit)
                     End If
                 Next
 
@@ -620,7 +621,7 @@
     Public MouseLeftDown As clsMouseDown
     Public MouseRightDown As clsMouseDown
 
-    Public Function IsViewPosOverMinimap(ByVal Pos As sXY_int) As Boolean
+    Public Function IsViewPosOverMinimap(Pos As sXY_int) As Boolean
 
         If Pos.X >= 0 And Pos.X < Map.Terrain.TileSize.X / Tiles_Per_Minimap_Pixel _
             And Pos.Y >= 0 And Pos.Y < Map.Terrain.TileSize.Y / Tiles_Per_Minimap_Pixel Then
@@ -778,7 +779,7 @@
         End If
     End Sub
 
-    Public Sub Apply_Terrain_Fill(ByVal CliffAction As enumFillCliffAction, ByVal Inside As Boolean)
+    Public Sub Apply_Terrain_Fill(CliffAction As enumFillCliffAction, Inside As Boolean)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -1006,7 +1007,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub Apply_CliffTriangle(ByVal Remove As Boolean)
+    Public Sub Apply_CliffTriangle(Remove As Boolean)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -1173,7 +1174,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub Apply_HeightSmoothing(ByVal Ratio As Double)
+    Public Sub Apply_HeightSmoothing(Ratio As Double)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -1201,7 +1202,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub Apply_Height_Change(ByVal Rate As Double)
+    Public Sub Apply_Height_Change(Rate As Double)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -1219,7 +1220,7 @@
         MapView.DrawViewLater()
     End Sub
 
-    Public Sub Apply_Height_Set(ByVal Brush As clsBrush, ByVal Height As Byte)
+    Public Sub Apply_Height_Set(Brush As clsBrush, Height As Byte)
         Dim MouseOverTerrain As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
         If MouseOverTerrain Is Nothing Then
@@ -1250,13 +1251,13 @@
             Dim Low As sXY_int
             Dim High As sXY_int
             A = 0
-            Do While A < Map.Gateways.ItemCount
-                XY_Reorder(Map.Gateways.Item(A).PosA, Map.Gateways.Item(A).PosB, Low, High)
+            Do While A < Map.Gateways.Count
+                ReorderXY(Map.Gateways.Item(A).PosA, Map.Gateways.Item(A).PosB, Low, High)
                 If Low.X <= Tile.X _
                 And High.X >= Tile.X _
                 And Low.Y <= Tile.Y _
                 And High.Y >= Tile.Y Then
-                    Map.Gateway_Remove_StoreChange(A)
+                    Map.GatewayRemoveStoreChange(A)
                     Map.UndoStepCreate("Gateway Delete")
                     Map.MinimapMakeLater()
                     MapView.DrawViewLater()
@@ -1269,7 +1270,7 @@
                 Map.Selected_Tile_A = New clsXY_int(Tile)
                 MapView.DrawViewLater()
             ElseIf Tile.X = Map.Selected_Tile_A.X Or Tile.Y = Map.Selected_Tile_A.Y Then
-                If Map.Gateway_Create_StoreChange(Map.Selected_Tile_A.XY, Tile) IsNot Nothing Then
+                If Map.GatewayCreateStoreChange(Map.Selected_Tile_A.XY, Tile) IsNot Nothing Then
                     Map.UndoStepCreate("Gateway Place")
                     Map.Selected_Tile_A = Nothing
                     Map.Selected_Tile_B = Nothing
@@ -1280,7 +1281,7 @@
         End If
     End Sub
 
-    Public Sub MouseDown(ByVal e As MouseEventArgs)
+    Public Sub MouseDown(e As MouseEventArgs)
         Dim ScreenPos As sXY_int
         Dim NewUnitType As clsUnitType
         Dim NewUnit As clsMap.clsUnit
@@ -1305,11 +1306,11 @@
                     Select Case Tool
                         Case enumTool.None
                             If Control_Picker.Active Then
-                                If MouseOverTerrain.Units.ItemCount > 0 Then
-                                    If MouseOverTerrain.Units.ItemCount = 1 Then
+                                If MouseOverTerrain.Units.Count > 0 Then
+                                    If MouseOverTerrain.Units.Count = 1 Then
                                         frmMainInstance.ObjectPicker(MouseOverTerrain.Units.Item(0).Type)
                                     Else
-                                        MapView.ListSelectBegin()
+                                        MapView.ListSelectBegin(True)
                                     End If
                                 End If
                             ElseIf Control_ScriptPosition.Active Then
@@ -1408,7 +1409,7 @@
                                         End Try
                                     End If
                                     NewUnit.UnitGroup = Map.SelectedUnitGroup.Item
-                                    NewUnit.Pos = Map.TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprint)
+                                    NewUnit.Pos = Map.TileAlignedPosFromMapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprintSelected(NewUnit.Rotation))
                                     NewUnit.Type = NewUnitType
                                     Dim UnitAdd As New clsMap.clsUnitAdd
                                     UnitAdd.Map = Map
@@ -1477,7 +1478,7 @@
         End If
     End Sub
 
-    Public Sub TimedActions(ByVal Zoom As Double, ByVal Move As Double, ByVal Pan As Double, ByVal Roll As Double, ByVal OrbitRate As Double)
+    Public Sub TimedActions(Zoom As Double, Move As Double, Pan As Double, Roll As Double, OrbitRate As Double)
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim PanRate As Double = Pan * FieldOfViewY
         Dim AnglePY As Matrix3D.AnglePY

@@ -6,21 +6,21 @@
     End Class
     Public ValueData As New clsValueData
 
-    Public Sub Blank(ByVal SizeX As Integer, ByVal SizeY As Integer)
+    Public Sub Blank(SizeX As Integer, SizeY As Integer)
 
         ValueData.Size.X = SizeX
         ValueData.Size.Y = SizeY
         ReDim ValueData.Value(SizeY - 1, SizeX - 1)
     End Sub
 
-    Public Sub SizeCopy(ByVal Source As clsBooleanMap)
+    Public Sub SizeCopy(Source As clsBooleanMap)
 
         ValueData.Size.X = Source.ValueData.Size.X
         ValueData.Size.Y = Source.ValueData.Size.Y
         ReDim ValueData.Value(ValueData.Size.Y - 1, ValueData.Size.X - 1)
     End Sub
 
-    Public Sub Copy(ByVal Source As clsBooleanMap)
+    Public Sub Copy(Source As clsBooleanMap)
         Dim X As Integer
         Dim Y As Integer
 
@@ -32,7 +32,7 @@
         Next
     End Sub
 
-    Public Sub Convert_Heightmap(ByVal Source As clsHeightmap, ByVal AtOrAboveThisHeightEqualsTrue As Long)
+    Public Sub Convert_Heightmap(Source As clsHeightmap, AtOrAboveThisHeightEqualsTrue As Long)
         Dim X As Integer
         Dim Y As Integer
 
@@ -146,7 +146,7 @@
         Loop
     End Sub
 
-    Public Sub Expand_One_Tile(ByVal Source As clsBooleanMap)
+    Public Sub Expand_One_Tile(Source As clsBooleanMap)
         Dim X As Integer
         Dim Y As Integer
 
@@ -185,7 +185,7 @@
         Next
     End Sub
 
-    Public Sub Remove(ByVal Source As clsBooleanMap, ByVal Remove As clsBooleanMap)
+    Public Sub Remove(Source As clsBooleanMap, Remove As clsBooleanMap)
         Dim X As Integer
         Dim Y As Integer
 
@@ -201,7 +201,7 @@
         Next
     End Sub
 
-    Public Sub Combine(ByVal Source As clsBooleanMap, ByVal Insert As clsBooleanMap)
+    Public Sub Combine(Source As clsBooleanMap, Insert As clsBooleanMap)
         Dim X As Integer
         Dim Y As Integer
 
@@ -217,7 +217,7 @@
         Next
     End Sub
 
-    Public Sub Within(ByVal Interior As clsBooleanMap, ByVal Exterior As clsBooleanMap)
+    Public Sub Within(Interior As clsBooleanMap, Exterior As clsBooleanMap)
         Dim Y As Integer
         Dim X As Integer
         Dim Flag As Boolean

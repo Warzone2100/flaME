@@ -35,7 +35,7 @@ Partial Public Class clsMap
         Dim PosC As Matrix3D.XY_dbl
         Dim PosD As Matrix3D.XY_dbl
         Dim MinimapSizeXY As sXY_int
-        Dim tmpUnit As clsMap.clsUnit
+        Dim Unit As clsMap.clsUnit
         Dim StartXY As sXY_int
         Dim FinishXY As sXY_int
         Dim DrawIt As Boolean
@@ -189,7 +189,7 @@ Partial Public Class clsMap
             DrawIt = False
             If Selected_Area_VertexB IsNot Nothing Then
                 'area is selected
-                XY_Reorder(Selected_Area_VertexA.XY, Selected_Area_VertexB.XY, StartXY, FinishXY)
+                ReorderXY(Selected_Area_VertexA.XY, Selected_Area_VertexB.XY, StartXY, FinishXY)
                 XYZ_dbl.X = Selected_Area_VertexB.X * TerrainGridSpacing - ViewInfo.ViewPos.X
                 XYZ_dbl.Z = -Selected_Area_VertexB.Y * TerrainGridSpacing - ViewInfo.ViewPos.Z
                 XYZ_dbl.Y = GetVertexAltitude(Selected_Area_VertexB.XY) - ViewInfo.ViewPos.Y
@@ -197,7 +197,7 @@ Partial Public Class clsMap
             ElseIf Tool = enumTool.Terrain_Select Then
                 If MouseOverTerrain IsNot Nothing Then
                     'selection is changing under pointer
-                    XY_Reorder(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
+                    ReorderXY(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
                     XYZ_dbl.X = MouseOverTerrain.Vertex.Normal.X * TerrainGridSpacing - ViewInfo.ViewPos.X
                     XYZ_dbl.Z = -MouseOverTerrain.Vertex.Normal.Y * TerrainGridSpacing - ViewInfo.ViewPos.Z
                     XYZ_dbl.Y = GetVertexAltitude(MouseOverTerrain.Vertex.Normal) - ViewInfo.ViewPos.Y
@@ -249,21 +249,20 @@ Partial Public Class clsMap
             DebugGLError("Terrain selection vertex")
         End If
 
-        Dim tmpGateway As clsGateway
+        Dim Gateway As clsGateway
 
         If Draw_Gateways Then
             GL.LineWidth(2.0F)
-            For A = 0 To Gateways.ItemCount - 1
-                tmpGateway = Gateways.Item(A)
-                If tmpGateway.PosA.X = tmpGateway.PosB.X Then
-                    If tmpGateway.PosA.Y <= tmpGateway.PosB.Y Then
-                        C = tmpGateway.PosA.Y
-                        D = tmpGateway.PosB.Y
+            For Each Gateway In Gateways
+                If Gateway.PosA.X = Gateway.PosB.X Then
+                    If Gateway.PosA.Y <= Gateway.PosB.Y Then
+                        C = Gateway.PosA.Y
+                        D = Gateway.PosB.Y
                     Else
-                        C = tmpGateway.PosB.Y
-                        D = tmpGateway.PosA.Y
+                        C = Gateway.PosB.Y
+                        D = Gateway.PosA.Y
                     End If
-                    X2 = tmpGateway.PosA.X
+                    X2 = Gateway.PosA.X
                     For Y2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
                         Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -285,15 +284,15 @@ Partial Public Class clsMap
                         GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                         GL.End()
                     Next
-                ElseIf tmpGateway.PosA.Y = tmpGateway.PosB.Y Then
-                    If tmpGateway.PosA.X <= tmpGateway.PosB.X Then
-                        C = tmpGateway.PosA.X
-                        D = tmpGateway.PosB.X
+                ElseIf Gateway.PosA.Y = Gateway.PosB.Y Then
+                    If Gateway.PosA.X <= Gateway.PosB.X Then
+                        C = Gateway.PosA.X
+                        D = Gateway.PosB.X
                     Else
-                        C = tmpGateway.PosB.X
-                        D = tmpGateway.PosA.X
+                        C = Gateway.PosB.X
+                        D = Gateway.PosA.X
                     End If
-                    Y2 = tmpGateway.PosA.Y
+                    Y2 = Gateway.PosA.Y
                     For X2 = C To D
                         Vertex0.X = X2 * TerrainGridSpacing
                         Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -317,8 +316,8 @@ Partial Public Class clsMap
                     Next
                 Else
                     'draw invalid gateways as red tile borders
-                    X2 = tmpGateway.PosA.X
-                    Y2 = tmpGateway.PosA.Y
+                    X2 = Gateway.PosA.X
+                    Y2 = Gateway.PosA.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
                     Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -340,8 +339,8 @@ Partial Public Class clsMap
                     GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
                     GL.End()
 
-                    X2 = tmpGateway.PosB.X
-                    Y2 = tmpGateway.PosB.Y
+                    X2 = Gateway.PosB.X
+                    Y2 = Gateway.PosB.Y
 
                     Vertex0.X = X2 * TerrainGridSpacing
                     Vertex0.Y = Terrain.Vertices(X2, Y2).Height * HeightMultiplier
@@ -372,7 +371,7 @@ Partial Public Class clsMap
             If Tool = enumTool.None Then
                 If Unit_Selected_Area_VertexA IsNot Nothing Then
                     'selection is changing under pointer
-                    XY_Reorder(Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
+                    ReorderXY(Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
                     GL.LineWidth(2.0F)
                     GL.Color3(0.0F, 1.0F, 1.0F)
                     For X = StartXY.X To FinishXY.X - 1
@@ -681,18 +680,18 @@ Partial Public Class clsMap
             GL.Enable(EnableCap.Texture2D)
             If Tool = enumTool.ObjectPlace Then
                 If frmMainInstance.SelectedObjectType IsNot Nothing Then
-                    WorldPos = TileAligned_Pos_From_MapPos(MouseOverTerrain.Pos.Horizontal, frmMainInstance.SelectedObjectType.GetFootprint)
-                    GL.PushMatrix()
-                    GL.Translate(WorldPos.Horizontal.X - ViewInfo.ViewPos.X, WorldPos.Altitude - ViewInfo.ViewPos.Y + 2.0#, ViewInfo.ViewPos.Z + WorldPos.Horizontal.Y)
                     Dim Rotation As Integer
                     Try
                         InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
                         If Rotation < 0 Or Rotation > 359 Then
                             Rotation = 0
                         End If
-                    Catch ex As Exception
+                    Catch
                         Rotation = 0
                     End Try
+                    WorldPos = TileAlignedPosFromMapPos(MouseOverTerrain.Pos.Horizontal, frmMainInstance.SelectedObjectType.GetFootprintSelected(Rotation))
+                    GL.PushMatrix()
+                    GL.Translate(WorldPos.Horizontal.X - ViewInfo.ViewPos.X, WorldPos.Altitude - ViewInfo.ViewPos.Y + 2.0#, ViewInfo.ViewPos.Z + WorldPos.Horizontal.Y)
                     frmMainInstance.SelectedObjectType.GLDraw(CSng(Rotation))
                     GL.PopMatrix()
                 End If
@@ -704,66 +703,62 @@ Partial Public Class clsMap
         GL.Disable(EnableCap.DepthTest)
 
         Dim ScriptMarkerTextLabels As New clsTextLabels(256)
-        Dim tmpTextLabel As clsTextLabel
+        Dim TextLabel As clsTextLabel
         If Draw_ScriptMarkers Then
-            Dim tmpScriptPosition As clsScriptPosition
-            Dim tmpScriptArea As clsScriptArea
+            Dim ScriptPosition As clsScriptPosition
+            Dim ScriptArea As clsScriptArea
             GL.PushMatrix()
             GL.Translate(-ViewInfo.ViewPos.X, -ViewInfo.ViewPos.Y, ViewInfo.ViewPos.Z)
-            For A = 0 To ScriptPositions.ItemCount - 1
-                tmpScriptPosition = ScriptPositions.Item(A)
-                tmpScriptPosition.GLDraw()
+            For Each ScriptPosition In ScriptPositions
+                ScriptPosition.GLDraw()
             Next
-            For A = 0 To ScriptAreas.ItemCount - 1
-                tmpScriptArea = ScriptAreas.Item(A)
-                tmpScriptArea.GLDraw()
+            For Each ScriptArea In ScriptAreas
+                ScriptArea.GLDraw()
             Next
-            For A = 0 To ScriptPositions.ItemCount - 1
+            For Each ScriptPosition In ScriptPositions
                 If ScriptMarkerTextLabels.AtMaxCount Then
                     Exit For
                 End If
-                tmpScriptPosition = ScriptPositions.Item(A)
-                XYZ_dbl.X = tmpScriptPosition.PosX - ViewInfo.ViewPos.X
-                XYZ_dbl.Z = -tmpScriptPosition.PosY - ViewInfo.ViewPos.Z
-                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(tmpScriptPosition.PosX, tmpScriptPosition.PosY)) - ViewInfo.ViewPos.Y
+                XYZ_dbl.X = ScriptPosition.PosX - ViewInfo.ViewPos.X
+                XYZ_dbl.Z = -ScriptPosition.PosY - ViewInfo.ViewPos.Z
+                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(ScriptPosition.PosX, ScriptPosition.PosY)) - ViewInfo.ViewPos.Y
                 Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
                 If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
                     If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
-                        tmpTextLabel = New clsTextLabel
-                        tmpTextLabel.Colour.Red = 1.0F
-                        tmpTextLabel.Colour.Green = 1.0F
-                        tmpTextLabel.Colour.Blue = 0.5F
-                        tmpTextLabel.Colour.Alpha = 0.75F
-                        tmpTextLabel.TextFont = UnitLabelFont
-                        tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
-                        tmpTextLabel.Pos = ScreenPos
-                        tmpTextLabel.Text = tmpScriptPosition.Label
-                        ScriptMarkerTextLabels.Add(tmpTextLabel)
+                        TextLabel = New clsTextLabel
+                        TextLabel.Colour.Red = 1.0F
+                        TextLabel.Colour.Green = 1.0F
+                        TextLabel.Colour.Blue = 0.5F
+                        TextLabel.Colour.Alpha = 0.75F
+                        TextLabel.TextFont = UnitLabelFont
+                        TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        TextLabel.Pos = ScreenPos
+                        TextLabel.Text = ScriptPosition.Label
+                        ScriptMarkerTextLabels.Add(TextLabel)
                     End If
                 End If
             Next
             DebugGLError("Script positions")
-            For A = 0 To ScriptAreas.ItemCount - 1
+            For Each ScriptArea In ScriptAreas
                 If ScriptMarkerTextLabels.AtMaxCount Then
                     Exit For
                 End If
-                tmpScriptArea = ScriptAreas.Item(A)
-                XYZ_dbl.X = tmpScriptArea.PosAX - ViewInfo.ViewPos.X
-                XYZ_dbl.Z = -tmpScriptArea.PosAY - ViewInfo.ViewPos.Z
-                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(tmpScriptArea.PosAX, tmpScriptArea.PosAY)) - ViewInfo.ViewPos.Y
+                XYZ_dbl.X = ScriptArea.PosAX - ViewInfo.ViewPos.X
+                XYZ_dbl.Z = -ScriptArea.PosAY - ViewInfo.ViewPos.Z
+                XYZ_dbl.Y = GetTerrainHeight(New sXY_int(ScriptArea.PosAX, ScriptArea.PosAY)) - ViewInfo.ViewPos.Y
                 Matrix3D.VectorRotationByMatrix(ViewInfo.ViewAngleMatrix_Inverted, XYZ_dbl, XYZ_dbl2)
                 If ViewInfo.Pos_Get_Screen_XY(XYZ_dbl2, ScreenPos) Then
                     If ScreenPos.X >= 0 And ScreenPos.X <= GLSize.X And ScreenPos.Y >= 0 And ScreenPos.Y <= GLSize.Y Then
-                        tmpTextLabel = New clsTextLabel
-                        tmpTextLabel.Colour.Red = 1.0F
-                        tmpTextLabel.Colour.Green = 1.0F
-                        tmpTextLabel.Colour.Blue = 0.5F
-                        tmpTextLabel.Colour.Alpha = 0.75F
-                        tmpTextLabel.TextFont = UnitLabelFont
-                        tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
-                        tmpTextLabel.Pos = ScreenPos
-                        tmpTextLabel.Text = tmpScriptArea.Label
-                        ScriptMarkerTextLabels.Add(tmpTextLabel)
+                        TextLabel = New clsTextLabel
+                        TextLabel.Colour.Red = 1.0F
+                        TextLabel.Colour.Green = 1.0F
+                        TextLabel.Colour.Blue = 0.5F
+                        TextLabel.Colour.Alpha = 0.75F
+                        TextLabel.TextFont = UnitLabelFont
+                        TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        TextLabel.Pos = ScreenPos
+                        TextLabel.Text = ScriptArea.Label
+                        ScriptMarkerTextLabels.Add(TextLabel)
                     End If
                 End If
             Next
@@ -775,19 +770,19 @@ Partial Public Class clsMap
         Dim MessageTextLabels As New clsTextLabels(24)
 
         B = 0
-        For A = Math.Max(Messages.ItemCount - MessageTextLabels.MaxCount, 0) To Messages.ItemCount - 1
+        For A = Math.Max(Messages.Count - MessageTextLabels.MaxCount, 0) To Messages.Count - 1
             If Not MessageTextLabels.AtMaxCount Then
-                tmpTextLabel = New clsTextLabel
-                tmpTextLabel.Colour.Red = 0.875F
-                tmpTextLabel.Colour.Green = 0.875F
-                tmpTextLabel.Colour.Blue = 1.0F
-                tmpTextLabel.Colour.Alpha = 1.0F
-                tmpTextLabel.TextFont = UnitLabelFont
-                tmpTextLabel.SizeY = Settings.DisplayFont.SizeInPoints
-                tmpTextLabel.Pos.X = 32 + MinimapSizeXY.X
-                tmpTextLabel.Pos.Y = 32 + CInt(Math.Ceiling(B * tmpTextLabel.SizeY))
-                tmpTextLabel.Text = Messages.Item(A).Text
-                MessageTextLabels.Add(tmpTextLabel)
+                TextLabel = New clsTextLabel
+                TextLabel.Colour.Red = 0.875F
+                TextLabel.Colour.Green = 0.875F
+                TextLabel.Colour.Blue = 1.0F
+                TextLabel.Colour.Alpha = 1.0F
+                TextLabel.TextFont = UnitLabelFont
+                TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                TextLabel.Pos.X = 32 + MinimapSizeXY.X
+                TextLabel.Pos.Y = 32 + CInt(Math.Ceiling(B * TextLabel.SizeY))
+                TextLabel.Text = Messages.Item(A).Text
+                MessageTextLabels.Add(TextLabel)
                 B += 1
             End If
         Next
@@ -795,24 +790,22 @@ Partial Public Class clsMap
         'draw unit selection
 
         GL.Begin(BeginMode.Quads)
-        For A = 0 To SelectedUnits.ItemCount - 1
-            tmpUnit = SelectedUnits.Item(A)
-            Footprint = tmpUnit.Type.GetFootprint
-            RGB_sng = GetUnitGroupColour(tmpUnit.UnitGroup)
+        For Each Unit In SelectedUnits
+            Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
+            RGB_sng = GetUnitGroupColour(Unit.UnitGroup)
             ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
             ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.75F)
-            DrawUnitRectangle(tmpUnit, 8, ColourA, ColourB)
+            DrawUnitRectangle(Unit, 8, ColourA, ColourB)
         Next
         If MouseOverTerrain IsNot Nothing Then
-            For A = 0 To MouseOverTerrain.Units.ItemCount - 1
-                tmpUnit = MouseOverTerrain.Units.Item(A)
-                If tmpUnit IsNot Nothing And Tool = enumTool.None Then
-                    RGB_sng = GetUnitGroupColour(tmpUnit.UnitGroup)
+            For Each Unit In MouseOverTerrain.Units
+                If Unit IsNot Nothing And Tool = enumTool.None Then
+                    RGB_sng = GetUnitGroupColour(Unit.UnitGroup)
                     GL.Color4((0.5F + RGB_sng.Red) / 1.5F, (0.5F + RGB_sng.Green) / 1.5F, (0.5F + RGB_sng.Blue) / 1.5F, 0.75F)
-                    Footprint = tmpUnit.Type.GetFootprint
+                    Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
                     ColourA = New sRGBA_sng((1.0F + RGB_sng.Red) / 2.0F, (1.0F + RGB_sng.Green) / 2.0F, (1.0F + RGB_sng.Blue) / 2.0F, 0.75F)
                     ColourB = New sRGBA_sng(RGB_sng.Red, RGB_sng.Green, RGB_sng.Blue, 0.875F)
-                    DrawUnitRectangle(tmpUnit, 16, ColourA, ColourB)
+                    DrawUnitRectangle(Unit, 16, ColourA, ColourB)
                 End If
             Next
         End If
@@ -926,12 +919,12 @@ Partial Public Class clsMap
                 DrawIt = False
                 If Selected_Area_VertexB IsNot Nothing Then
                     'area is selected
-                    XY_Reorder(Selected_Area_VertexA.XY, Selected_Area_VertexB.XY, StartXY, FinishXY)
+                    ReorderXY(Selected_Area_VertexA.XY, Selected_Area_VertexB.XY, StartXY, FinishXY)
                     DrawIt = True
                 ElseIf Tool = enumTool.Terrain_Select Then
                     If MouseOverTerrain IsNot Nothing Then
                         'selection is changing under mouse
-                        XY_Reorder(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
+                        ReorderXY(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
                         DrawIt = True
                     End If
                 End If
@@ -959,10 +952,10 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Private Sub DebugGLError(ByVal Name As String)
+    Private Sub DebugGLError(Name As String)
 
         If Debug_GL Then
-            If Messages.ItemCount < 8 Then
+            If Messages.Count < 8 Then
                 If GL.GetError <> ErrorCode.NoError Then
                     Dim NewMessage As New clsMessage
                     NewMessage.Text = "OpenGL Error (" & Name & ")"
@@ -972,13 +965,13 @@ Partial Public Class clsMap
         End If
     End Sub
 
-    Public Sub DrawUnitRectangle(ByVal Unit As clsMap.clsUnit, ByVal BorderInsideThickness As Integer, ByVal InsideColour As sRGBA_sng, ByVal OutsideColour As sRGBA_sng)
+    Public Sub DrawUnitRectangle(Unit As clsMap.clsUnit, BorderInsideThickness As Integer, InsideColour As sRGBA_sng, OutsideColour As sRGBA_sng)
         Dim PosA As sXY_int
         Dim PosB As sXY_int
         Dim A As Integer
         Dim Altitude As Integer = Unit.Pos.Altitude - ViewInfo.ViewPos.Y
 
-        GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Unit.Type.GetFootprint, PosA, PosB)
+        GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Unit.Type.GetFootprintSelected(Unit.Rotation), PosA, PosB)
         A = PosA.Y
         PosA.X = CInt((PosA.X + 0.125#) * TerrainGridSpacing - ViewInfo.ViewPos.X)
         PosA.Y = CInt((PosB.Y + 0.875#) * -TerrainGridSpacing - ViewInfo.ViewPos.Z)
@@ -1387,7 +1380,7 @@ Partial Public Class clsMap
 
         Public Sub Start()
 
-            ReDim UnitDrawn(Map.Units.ItemCount - 1)
+            ReDim UnitDrawn(Map.Units.Count - 1)
 
             Started = True
         End Sub
@@ -1399,9 +1392,8 @@ Partial Public Class clsMap
                 Exit Sub
             End If
 
-            Dim A As Integer
-            Dim tmpUnit As clsUnit
-            Dim tmpSector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+            Dim Unit As clsUnit
+            Dim Sector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
             Dim DrawUnitLabel As Boolean
             Dim ViewInfo As clsViewInfo = Map.ViewInfo
             Dim MouseOverTerrain As clsViewInfo.clsMouseOver.clsOverTerrain = ViewInfo.GetMouseOverTerrain
@@ -1409,30 +1401,31 @@ Partial Public Class clsMap
             Dim XYZ_dbl As Matrix3D.XYZ_dbl
             Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
             Dim ScreenPos As sXY_int
+            Dim Connection As clsUnitSectorConnection
 
-            For A = 0 To tmpSector.Units.ItemCount - 1
-                tmpUnit = tmpSector.Units.Item(A).Unit
-                If Not UnitDrawn(tmpUnit.MapLink.ArrayPosition) Then
-                    UnitDrawn(tmpUnit.MapLink.ArrayPosition) = True
-                    XYZ_dbl.X = tmpUnit.Pos.Horizontal.X - ViewInfo.ViewPos.X
-                    XYZ_dbl.Y = tmpUnit.Pos.Altitude - ViewInfo.ViewPos.Y
-                    XYZ_dbl.Z = -tmpUnit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
+            For Each Connection In Sector.Units
+                Unit = Connection.Unit
+                If Not UnitDrawn(Unit.MapLink.ArrayPosition) Then
+                    UnitDrawn(Unit.MapLink.ArrayPosition) = True
+                    XYZ_dbl.X = Unit.Pos.Horizontal.X - ViewInfo.ViewPos.X
+                    XYZ_dbl.Y = Unit.Pos.Altitude - ViewInfo.ViewPos.Y
+                    XYZ_dbl.Z = -Unit.Pos.Horizontal.Y - ViewInfo.ViewPos.Z
                     DrawUnitLabel = False
-                    If tmpUnit.Type.IsUnknown Then
+                    If Unit.Type.IsUnknown Then
                         DrawUnitLabel = True
                     Else
                         GL.PushMatrix()
                         GL.Translate(XYZ_dbl.X, XYZ_dbl.Y, -XYZ_dbl.Z)
-                        tmpUnit.Type.GLDraw(tmpUnit.Rotation)
+                        Unit.Type.GLDraw(Unit.Rotation)
                         GL.PopMatrix()
-                        If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
-                            If CType(tmpUnit.Type, clsDroidDesign).AlwaysDrawTextLabel Then
+                        If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                            If CType(Unit.Type, clsDroidDesign).AlwaysDrawTextLabel Then
                                 DrawUnitLabel = True
                             End If
                         End If
                         If MouseOverTerrain IsNot Nothing Then
-                            If MouseOverTerrain.Units.ItemCount > 0 Then
-                                If MouseOverTerrain.Units.Item(0) Is tmpUnit Then
+                            If MouseOverTerrain.Units.Count > 0 Then
+                                If MouseOverTerrain.Units.Item(0) Is Unit Then
                                     DrawUnitLabel = True
                                 End If
                             End If
@@ -1452,7 +1445,7 @@ Partial Public Class clsMap
                                     .Colour.Alpha = 1.0F
                                     .Pos.X = ScreenPos.X + 32
                                     .Pos.Y = ScreenPos.Y
-                                    .Text = tmpUnit.Type.GetDisplayText
+                                    .Text = Unit.Type.GetDisplayText
                                 End With
                                 UnitTextLabels.Add(TextLabel)
                             End If

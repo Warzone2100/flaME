@@ -4,7 +4,7 @@ Partial Class frmCompile
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -27,8 +27,6 @@ Partial Class frmCompile
         Me.Label2 = New System.Windows.Forms.Label()
         Me.txtMultiPlayers = New System.Windows.Forms.TextBox()
         Me.btnCompileMultiplayer = New System.Windows.Forms.Button()
-        Me.Label3 = New System.Windows.Forms.Label()
-        Me.txtCampTime = New System.Windows.Forms.TextBox()
         Me.Label5 = New System.Windows.Forms.Label()
         Me.txtScrollMaxX = New System.Windows.Forms.TextBox()
         Me.txtScrollMaxY = New System.Windows.Forms.TextBox()
@@ -41,7 +39,7 @@ Partial Class frmCompile
         Me.Label4 = New System.Windows.Forms.Label()
         Me.Label13 = New System.Windows.Forms.Label()
         Me.cboLicense = New System.Windows.Forms.ComboBox()
-        Me.cbxNewPlayerFormat = New System.Windows.Forms.CheckBox()
+        Me.cbxLevFormat = New System.Windows.Forms.CheckBox()
         Me.Label7 = New System.Windows.Forms.Label()
         Me.Label8 = New System.Windows.Forms.Label()
         Me.cboCampType = New System.Windows.Forms.ComboBox()
@@ -92,7 +90,7 @@ Partial Class frmCompile
         Me.txtMultiPlayers.Location = New System.Drawing.Point(81, 16)
         Me.txtMultiPlayers.Margin = New System.Windows.Forms.Padding(4)
         Me.txtMultiPlayers.Name = "txtMultiPlayers"
-        Me.txtMultiPlayers.Size = New System.Drawing.Size(68, 22)
+        Me.txtMultiPlayers.Size = New System.Drawing.Size(42, 22)
         Me.txtMultiPlayers.TabIndex = 5
         '
         'btnCompileMultiplayer
@@ -105,29 +103,6 @@ Partial Class frmCompile
         Me.btnCompileMultiplayer.Text = "Compile"
         Me.btnCompileMultiplayer.UseCompatibleTextRendering = True
         Me.btnCompileMultiplayer.UseVisualStyleBackColor = True
-        '
-        'Label3
-        '
-        Me.Label3.AutoSize = True
-        Me.Label3.Enabled = False
-        Me.Label3.Location = New System.Drawing.Point(261, 26)
-        Me.Label3.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(38, 20)
-        Me.Label3.TabIndex = 12
-        Me.Label3.Text = "Time:"
-        Me.Label3.UseCompatibleTextRendering = True
-        Me.Label3.Visible = False
-        '
-        'txtCampTime
-        '
-        Me.txtCampTime.Enabled = False
-        Me.txtCampTime.Location = New System.Drawing.Point(313, 23)
-        Me.txtCampTime.Margin = New System.Windows.Forms.Padding(4)
-        Me.txtCampTime.Name = "txtCampTime"
-        Me.txtCampTime.Size = New System.Drawing.Size(68, 22)
-        Me.txtCampTime.TabIndex = 11
-        Me.txtCampTime.Visible = False
         '
         'Label5
         '
@@ -245,16 +220,16 @@ Partial Class frmCompile
         Me.cboLicense.Size = New System.Drawing.Size(172, 24)
         Me.cboLicense.TabIndex = 29
         '
-        'cbxNewPlayerFormat
+        'cbxLevFormat
         '
-        Me.cbxNewPlayerFormat.Location = New System.Drawing.Point(158, 15)
-        Me.cbxNewPlayerFormat.Margin = New System.Windows.Forms.Padding(4)
-        Me.cbxNewPlayerFormat.Name = "cbxNewPlayerFormat"
-        Me.cbxNewPlayerFormat.Size = New System.Drawing.Size(221, 25)
-        Me.cbxNewPlayerFormat.TabIndex = 30
-        Me.cbxNewPlayerFormat.Text = "X Player Support"
-        Me.cbxNewPlayerFormat.UseCompatibleTextRendering = True
-        Me.cbxNewPlayerFormat.UseVisualStyleBackColor = True
+        Me.cbxLevFormat.Location = New System.Drawing.Point(131, 15)
+        Me.cbxLevFormat.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxLevFormat.Name = "cbxLevFormat"
+        Me.cbxLevFormat.Size = New System.Drawing.Size(272, 25)
+        Me.cbxLevFormat.TabIndex = 30
+        Me.cbxLevFormat.Text = "3,5,6,7,9,10 player support (3.1+ only)"
+        Me.cbxLevFormat.UseCompatibleTextRendering = True
+        Me.cbxLevFormat.UseVisualStyleBackColor = True
         '
         'Label7
         '
@@ -308,7 +283,7 @@ Partial Class frmCompile
         Me.TabPage1.Controls.Add(Me.Label8)
         Me.TabPage1.Controls.Add(Me.Label4)
         Me.TabPage1.Controls.Add(Me.txtAuthor)
-        Me.TabPage1.Controls.Add(Me.cbxNewPlayerFormat)
+        Me.TabPage1.Controls.Add(Me.cbxLevFormat)
         Me.TabPage1.Controls.Add(Me.Label13)
         Me.TabPage1.Controls.Add(Me.cboLicense)
         Me.TabPage1.Controls.Add(Me.btnCompileMultiplayer)
@@ -324,8 +299,6 @@ Partial Class frmCompile
         '
         Me.TabPage2.Controls.Add(Me.btnCompileCampaign)
         Me.TabPage2.Controls.Add(Me.cboCampType)
-        Me.TabPage2.Controls.Add(Me.txtCampTime)
-        Me.TabPage2.Controls.Add(Me.Label3)
         Me.TabPage2.Controls.Add(Me.Label5)
         Me.TabPage2.Location = New System.Drawing.Point(4, 25)
         Me.TabPage2.Name = "TabPage2"
@@ -404,8 +377,6 @@ Partial Class frmCompile
     Public WithEvents Label2 As System.Windows.Forms.Label
     Public WithEvents txtMultiPlayers As System.Windows.Forms.TextBox
     Public WithEvents btnCompileMultiplayer As System.Windows.Forms.Button
-    Public WithEvents Label3 As System.Windows.Forms.Label
-    Public WithEvents txtCampTime As System.Windows.Forms.TextBox
     Public WithEvents Label5 As System.Windows.Forms.Label
     Public WithEvents txtScrollMaxX As System.Windows.Forms.TextBox
     Public WithEvents txtScrollMaxY As System.Windows.Forms.TextBox
@@ -418,7 +389,7 @@ Partial Class frmCompile
     Public WithEvents Label4 As System.Windows.Forms.Label
     Public WithEvents Label13 As System.Windows.Forms.Label
     Public WithEvents cboLicense As System.Windows.Forms.ComboBox
-    Public WithEvents cbxNewPlayerFormat As System.Windows.Forms.CheckBox
+    Public WithEvents cbxLevFormat As System.Windows.Forms.CheckBox
     Public WithEvents Label7 As System.Windows.Forms.Label
     Public WithEvents Label8 As System.Windows.Forms.Label
     Public WithEvents cboCampType As System.Windows.Forms.ComboBox

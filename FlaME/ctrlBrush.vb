@@ -1,13 +1,14 @@
-﻿Public Class ctrlBrush
+﻿
+Public Class ctrlBrush
 
     Private Brush As clsBrush
 
-    Public Sub New(ByVal NewBrush As clsBrush)
+    Public Sub New(NewBrush As clsBrush)
         InitializeComponent()
 
-		Brush = NewBrush
+        Brush = NewBrush
 
-		UpdateControlValues()
+        UpdateControlValues()
 
         AddHandler nudRadius.ValueChanged, AddressOf nudRadius_Changed
         AddHandler nudRadius.Leave, AddressOf nudRadius_Changed
@@ -33,7 +34,7 @@
         tabShape.Enabled = True
     End Sub
 
-    Private Sub nudRadius_Changed(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub nudRadius_Changed(sender As Object, e As EventArgs)
         If Not nudRadius.Enabled Then
             Exit Sub
         End If
@@ -55,7 +56,7 @@
         nudRadius.Enabled = True
     End Sub
 
-    Private Sub tabShape_SelectedIndexChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles tabShape.SelectedIndexChanged
+    Private Sub tabShape_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles tabShape.SelectedIndexChanged
         If Not tabShape.Enabled Then
             Exit Sub
         End If

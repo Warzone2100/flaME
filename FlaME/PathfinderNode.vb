@@ -33,7 +33,7 @@
     End Property
 
     Public Nodes(3) As PathfinderNode
-    Public ReadOnly Property GetChildNode(ByVal Num As Integer) As PathfinderNode
+    Public ReadOnly Property GetChildNode(Num As Integer) As PathfinderNode
         Get
             Return Nodes(Num)
         End Get
@@ -46,7 +46,7 @@
     End Property
 
     Public Connections(1) As PathfinderConnection
-    Public ReadOnly Property GetConnection(ByVal Num As Integer) As PathfinderConnection
+    Public ReadOnly Property GetConnection(Num As Integer) As PathfinderConnection
         Get
             Return Connections(Num)
         End Get
@@ -78,7 +78,7 @@
         End Get
     End Property
 
-    Public Sub Node_Add(ByVal NodeToAdd As PathfinderNode)
+    Public Sub Node_Add(NodeToAdd As PathfinderNode)
 
         If Layer Is Nothing Then
             Stop
@@ -124,7 +124,7 @@
         Next
     End Sub
 
-    Public Function FindConnection(ByVal NodeToFind As PathfinderNode) As PathfinderConnection
+    Public Function FindConnection(NodeToFind As PathfinderNode) As PathfinderConnection
         Dim A As Integer
         Dim tmpConnection As PathfinderConnection
 
@@ -137,7 +137,7 @@
         Return Nothing
     End Function
 
-    Public Sub Node_Remove(ByVal Num As Integer)
+    Public Sub Node_Remove(Num As Integer)
         Dim tmpNodeA As PathfinderNode = Nodes(Num)
         Dim tmpConnection As PathfinderConnection
         Dim A As Integer
@@ -177,7 +177,7 @@
         Public Visited() As Boolean
     End Structure
 
-    Public Sub FloodCheckInternal(ByVal CurrentNode As PathfinderNode, ByRef Visited As sVisited)
+    Public Sub FloodCheckInternal(CurrentNode As PathfinderNode, ByRef Visited As sVisited)
         Dim A As Integer
         Dim tmpNode As PathfinderNode
         Dim tmpConnection As PathfinderConnection
@@ -497,7 +497,7 @@ DisbandAndFind:
         Next
     End Sub
 
-    Public Sub New(ByVal ParentNetwork As PathfinderNetwork)
+    Public Sub New(ParentNetwork As PathfinderNetwork)
         Dim tmpLayer As PathfinderLayer
 
         If ParentNetwork.NodeLayerCount = 0 Then
@@ -510,7 +510,7 @@ DisbandAndFind:
         tmpLayer.Node_Add(Me)
     End Sub
 
-    Public Sub New(ByVal NewParentLayer As PathfinderLayer)
+    Public Sub New(NewParentLayer As PathfinderLayer)
 
         Layer = NewParentLayer
         Layer.Node_Add(Me)
@@ -532,7 +532,7 @@ DisbandAndFind:
         Deallocate()
     End Sub
 
-    Public Function CreateConnection(ByVal OtherNode As PathfinderNode, ByVal Value As Single) As PathfinderConnection
+    Public Function CreateConnection(OtherNode As PathfinderNode, Value As Single) As PathfinderConnection
         Dim tmpConnection As PathfinderConnection
 
         If OtherNode.Layer IsNot Layer Then
@@ -546,7 +546,7 @@ DisbandAndFind:
         Return Nothing
     End Function
 
-    Public Function GetOrCreateConnection(ByVal OtherNode As PathfinderNode, ByVal Value As Single) As PathfinderConnection
+    Public Function GetOrCreateConnection(OtherNode As PathfinderNode, Value As Single) As PathfinderConnection
         Dim tmpConnection As PathfinderConnection
 
         If OtherNode.Layer IsNot Layer Then
@@ -560,7 +560,7 @@ DisbandAndFind:
         Return tmpConnection
     End Function
 
-    Public Sub Connection_Add(ByVal Connection As PathfinderConnection, ByRef OutputNum As Integer)
+    Public Sub Connection_Add(Connection As PathfinderConnection, ByRef OutputNum As Integer)
 
         OutputNum = ConnectionCount
 
@@ -575,7 +575,7 @@ DisbandAndFind:
         End If
     End Sub
 
-    Public Sub Connection_Remove(ByVal Num As Integer)
+    Public Sub Connection_Remove(Num As Integer)
 
         ConnectionCount -= 1
         If Num < ConnectionCount Then
@@ -593,7 +593,7 @@ DisbandAndFind:
         End If
     End Sub
 
-    Public Sub ClearanceSet(ByVal Value As Integer)
+    Public Sub ClearanceSet(Value As Integer)
 
         If Value = Clearance Then
             Exit Sub

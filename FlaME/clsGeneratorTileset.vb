@@ -1,4 +1,5 @@
-﻿Public Class clsGeneratorTileset
+﻿
+Public Class clsGeneratorTileset
 
     Public Tileset As clsTileset
 
@@ -6,7 +7,7 @@
         Public Type As clsUnitType
         Public Chance As UInteger
 
-        Public Sub New(ByVal Type As clsUnitType, ByVal Chance As UInteger)
+        Public Sub New(Type As clsUnitType, Chance As UInteger)
 
             Me.Type = Type
             Me.Chance = Chance
@@ -23,7 +24,7 @@
 
     Public OldTextureLayers As sLayerList
 
-    Public Sub ScatteredUnit_Add(ByVal NewUnit As sUnitChance)
+    Public Sub ScatteredUnit_Add(NewUnit As sUnitChance)
 
         If NewUnit.Type Is Nothing Then
             Exit Sub
@@ -36,7 +37,7 @@
         ScatteredUnitCount += 1
     End Sub
 
-    Public Sub ClusteredUnit_Add(ByVal NewUnit As sUnitChance)
+    Public Sub ClusteredUnit_Add(NewUnit As sUnitChance)
 
         If NewUnit.Type Is Nothing Then
             Exit Sub

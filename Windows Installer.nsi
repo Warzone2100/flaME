@@ -26,7 +26,7 @@
 !define INSTALLERDATA "Windows Installer"
 
 !define PROGRAMVMAJOR "1"
-!define PROGRAMVMINOR "26"
+!define PROGRAMVMINOR "28"
 !define FLAMEVSHORT "${PROGRAMVMAJOR}.${PROGRAMVMINOR}"
 !define FLAMEVFULL "${FLAMEVSHORT}.0.0"
 !define FLAMEFULLNAME "${PROGRAMNAME} ${FLAMEVSHORT}"
@@ -137,7 +137,7 @@ Section "Install ${PROGRAMNAME}" Main
 	File "${EXESOURCELOC}\OpenTK.dll"
 	File "${EXESOURCELOC}\OpenTK.dll.config"
 	File "${EXESOURCELOC}\ICSharpCode.SharpZipLib.dll"
-	File "${EXESOURCELOC}\Lists.dll"
+	;File "${EXESOURCELOC}\Lists.dll"
 	File "${EXESOURCELOC}\Matrix3D.dll"
 	File "${EXESOURCELOC}\notile.png"
 	File "${EXESOURCELOC}\overflow.png"
@@ -158,6 +158,8 @@ Section "Install ${PROGRAMNAME}" Main
 	File "${INTERFACEDIR}\selectionpasteoptions.png"
 	File "${INTERFACEDIR}\selectionrotateanticlockwise.png"
 	File "${INTERFACEDIR}\selectionrotateclockwise.png"
+	File "${INTERFACEDIR}\problem.png"
+	File "${INTERFACEDIR}\warning.png"
 	
 	;Startmenu shortcuts
 	!insertmacro MUI_STARTMENU_WRITE_BEGIN "${UNDERSCOREFULLNAME}"
@@ -254,7 +256,7 @@ Section "un.Uninstall ${PROGRAMNAME}" unMain
 	Delete "$INSTDIR\OpenTK.dll.config"
 	Delete "$INSTDIR\OpenTK.GLControl.dll"
 	Delete "$INSTDIR\Matrix3D.dll"
-	Delete "$INSTDIR\Lists.dll"
+	;Delete "$INSTDIR\Lists.dll"
 
 	Delete "$INSTDIR\${INTERFACESUBDIR}\displayautotexture.png"
 	Delete "$INSTDIR\${INTERFACESUBDIR}\drawtileorientation.png"
@@ -268,6 +270,8 @@ Section "un.Uninstall ${PROGRAMNAME}" unMain
 	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionpasteoptions.png"
 	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionrotateanticlockwise.png"
 	Delete "$INSTDIR\${INTERFACESUBDIR}\selectionrotateclockwise.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\problem.png"
+	Delete "$INSTDIR\${INTERFACESUBDIR}\warning.png"
 
 	RMDir "$INSTDIR\${INTERFACESUBDIR}"
 	RMDir "$INSTDIR"

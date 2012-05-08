@@ -1,6 +1,7 @@
-﻿Partial Public Class clsMap
+﻿
+Partial Public Class clsMap
 
-    Public Sub Rotate(ByVal Orientation As sTileOrientation, ByVal ObjectRotateMode As enumObjectRotateMode)
+    Public Sub Rotate(Orientation As sTileOrientation, ObjectRotateMode As enumObjectRotateMode)
         Dim X As Integer
         Dim Y As Integer
         Dim Pos As sXY_int
@@ -16,7 +17,6 @@
         Dim OldPosLimits As New sXY_int(Terrain.TileSize.X * TerrainGridSpacing, Terrain.TileSize.Y * TerrainGridSpacing)
         Dim ReverseOrientation As sTileOrientation
         Dim TriDirection As sTileDirection
-        Dim A As Integer
 
         ReverseOrientation = Orientation
         ReverseOrientation.Reverse()
@@ -104,56 +104,49 @@
             Next
         End If
 
-        Dim tmpUnit As clsMap.clsUnit
-
-        For A = 0 To Units.ItemCount - 1
-            tmpUnit = Units.Item(A)
-            tmpUnit.Sectors.Clear()
+        Dim Unit As clsMap.clsUnit
+        For Each Unit In Units
+            Unit.Sectors.Clear()
             If ObjectRotateMode = enumObjectRotateMode.All Then
-                tmpUnit.Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - tmpUnit.Rotation * RadOf1Deg))) / RadOf1Deg)
-                If tmpUnit.Rotation < 0 Then
-                    tmpUnit.Rotation += 360
+                Unit.Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - Unit.Rotation * RadOf1Deg))) / RadOf1Deg)
+                If Unit.Rotation < 0 Then
+                    Unit.Rotation += 360
                 End If
             ElseIf ObjectRotateMode = enumObjectRotateMode.Walls Then
-                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    If CType(tmpUnit.Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
-                        tmpUnit.Rotation = CInt(GetRotatedAngle(Orientation, tmpUnit.Rotation * RadOf1Deg) / RadOf1Deg)
-                        If tmpUnit.Rotation < 0 Then
-                            tmpUnit.Rotation += 360
+                If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    If CType(Unit.Type, clsStructureType).StructureType = clsStructureType.enumStructureType.Wall Then
+                        Unit.Rotation = CInt(AngleClamp(RadOf360Deg - GetRotatedAngle(Orientation, AngleClamp(RadOf360Deg - Unit.Rotation * RadOf1Deg))) / RadOf1Deg)
+                        If Unit.Rotation < 0 Then
+                            Unit.Rotation += 360
                         End If
-                        If tmpUnit.Rotation = 180 Then
-                            tmpUnit.Rotation = 0
-                        ElseIf tmpUnit.Rotation = 270 Then
-                            tmpUnit.Rotation = 90
-                        End If
+                        'If Unit.Rotation = 180 Then
+                        '    Unit.Rotation = 0
+                        'ElseIf Unit.Rotation = 270 Then
+                        '    Unit.Rotation = 90
+                        'End If
                     End If
                 End If
             End If
-            tmpUnit.Pos.Horizontal = GetRotatedPos(Orientation, tmpUnit.Pos.Horizontal, OldPosLimits)
+            Unit.Pos.Horizontal = GetRotatedPos(Orientation, Unit.Pos.Horizontal, OldPosLimits)
         Next
 
         Dim ZeroPos As New sXY_int(0, 0)
 
-        Dim tmpUnits As SimpleClassList(Of clsMap.clsUnit) = Units.GetItemsAsSimpleClassList
         Dim Position As Integer
-
-        For A = 0 To tmpUnits.ItemCount - 1
-            tmpUnit = tmpUnits.Item(A)
-            Position = tmpUnit.MapLink.ArrayPosition
-            If Not PosIsWithinTileArea(Units.Item(Position).Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
-                Unit_Remove(Position)
+        For Each Unit In Units.GetItemsAsSimpleList
+            If Not PosIsWithinTileArea(Unit.Pos.Horizontal, ZeroPos, NewTerrain.TileSize) Then
+                Position = Unit.MapLink.ArrayPosition
+                UnitRemove(Position)
             End If
         Next
 
         Terrain = NewTerrain
 
-        Dim OldGatways As SimpleClassList(Of clsGateway) = Gateways.GetItemsAsSimpleClassList
-        Dim tmpGateway As clsGateway
-        For A = 0 To OldGatways.ItemCount - 1
-            tmpGateway = OldGatways.Item(A)
-            Gateway_Create(GetRotatedPos(Orientation, tmpGateway.PosA, OldTileLimits), _
-                           GetRotatedPos(Orientation, tmpGateway.PosB, OldTileLimits))
-            tmpGateway.Deallocate()
+        Dim Gateway As clsGateway
+        For Each Gateway In Gateways.GetItemsAsSimpleClassList
+            GatewayCreate(GetRotatedPos(Orientation, Gateway.PosA, OldTileLimits), _
+                           GetRotatedPos(Orientation, Gateway.PosB, OldTileLimits))
+            Gateway.Deallocate()
         Next
 
         If _ReadyForUserInput Then
@@ -162,7 +155,7 @@
         End If
     End Sub
 
-    Public Sub RandomizeHeights(ByVal LevelCount As Integer)
+    Public Sub RandomizeHeights(LevelCount As Integer)
         Dim hmSource As New clsHeightmap
         Dim hmA As New clsHeightmap
         Dim hmB As New clsHeightmap
@@ -601,7 +594,7 @@
         UpdateAutoTextures()
     End Sub
 
-    Public Function GenerateTerrainMap(ByVal Scale As Single, ByVal Density As Single) As clsBooleanMap
+    Public Function GenerateTerrainMap(Scale As Single, Density As Single) As clsBooleanMap
         Dim ReturnResult As clsBooleanMap
         Dim hmB As New clsHeightmap
         Dim hmC As New clsHeightmap
@@ -707,9 +700,9 @@
         Public Angle As Double
         Public SetTris As Boolean
 
-        Private A As Integer
-        Private difA As Double
-        Private difB As Double
+        Private RandomNum As Integer
+        Private DifA As Double
+        Private DifB As Double
         Private HeightA As Double
         Private HeightB As Double
         Private TriTopLeftMaxSlope As Double
@@ -720,7 +713,7 @@
         Private TriChanged As Boolean
         Private NewVal As Boolean
         Private Terrain As clsTerrain
-        Private tmpPos As sXY_int
+        Private Pos As sXY_int
 
         Public Overrides Sub ActionPerform()
 
@@ -728,29 +721,29 @@
 
             HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) / 2.0#
             HeightB = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-            difA = HeightB - HeightA
+            DifA = HeightB - HeightA
             HeightA = (CDbl(Terrain.Vertices(PosNum.X, PosNum.Y).Height) + Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) / 2.0#
             HeightB = (CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height) + Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) / 2.0#
-            difB = HeightB - HeightA
-            If Math.Abs(difA) = Math.Abs(difB) Then
-                A = CInt(Int(Rnd() * 4.0F))
-                If A = 0 Then
+            DifB = HeightB - HeightA
+            If Math.Abs(DifA) = Math.Abs(DifB) Then
+                RandomNum = CInt(Int(Rnd() * 4.0F))
+                If RandomNum = 0 Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
-                ElseIf A = 1 Then
+                ElseIf RandomNum = 1 Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
-                ElseIf A = 2 Then
+                ElseIf RandomNum = 2 Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
                 Else
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
                 End If
-            ElseIf Math.Abs(difA) > Math.Abs(difB) Then
-                If difA < 0.0# Then
+            ElseIf Math.Abs(DifA) > Math.Abs(DifB) Then
+                If DifA < 0.0# Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Bottom
                 Else
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Top
                 End If
             Else
-                If difB < 0.0# Then
+                If DifB < 0.0# Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Right
                 Else
                     Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_Left
@@ -761,15 +754,15 @@
             TriChanged = False
 
             If SetTris Then
-                difA = Math.Abs(CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X, PosNum.Y).Height)
-                difB = Math.Abs(CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height)
-                If difA = difB Then
+                DifA = Math.Abs(CDbl(Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X, PosNum.Y).Height)
+                DifB = Math.Abs(CDbl(Terrain.Vertices(PosNum.X, PosNum.Y + 1).Height) - Terrain.Vertices(PosNum.X + 1, PosNum.Y).Height)
+                If DifA = DifB Then
                     If Rnd() >= 0.5F Then
                         NewVal = False
                     Else
                         NewVal = True
                     End If
-                ElseIf difA < difB Then
+                ElseIf DifA < DifB Then
                     NewVal = False
                 Else
                     NewVal = True
@@ -781,12 +774,12 @@
             End If
 
             If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
-                tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
-                tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
-                TriTopLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
-                tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
-                tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
-                TriBottomRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                Pos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
+                Pos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
+                TriTopLeftMaxSlope = Map.GetTerrainSlopeAngle(Pos)
+                Pos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
+                Pos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
+                TriBottomRightMaxSlope = Map.GetTerrainSlopeAngle(Pos)
 
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff = False
@@ -815,12 +808,12 @@
                     Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff = False
                 End If
             Else
-                tmpPos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
-                tmpPos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
-                TriTopRightMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
-                tmpPos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
-                tmpPos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
-                TriBottomLeftMaxSlope = Map.GetTerrainSlopeAngle(tmpPos)
+                Pos.X = CInt((PosNum.X + 0.75#) * TerrainGridSpacing)
+                Pos.Y = CInt((PosNum.Y + 0.25#) * TerrainGridSpacing)
+                TriTopRightMaxSlope = Map.GetTerrainSlopeAngle(Pos)
+                Pos.X = CInt((PosNum.X + 0.25#) * TerrainGridSpacing)
+                Pos.Y = CInt((PosNum.Y + 0.75#) * TerrainGridSpacing)
+                TriBottomLeftMaxSlope = Map.GetTerrainSlopeAngle(Pos)
 
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
                     Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
@@ -1157,7 +1150,7 @@
 
         Private Terrain As clsTerrain
 
-        Private Sub ToolPerformSideH(ByVal SideNum As sXY_int)
+        Private Sub ToolPerformSideH(SideNum As sXY_int)
 
             Terrain = Map.Terrain
 
@@ -1169,7 +1162,7 @@
             End If
         End Sub
 
-        Private Sub ToolPerformSideV(ByVal SideNum As sXY_int)
+        Private Sub ToolPerformSideV(SideNum As sXY_int)
 
             Terrain = Map.Terrain
 
@@ -1791,7 +1784,7 @@
 
             NewPos.X = Unit.Pos.Horizontal.X + Offset.X
             NewPos.Y = Unit.Pos.Horizontal.Y + Offset.Y
-            ResultUnit.Pos = Map.TileAligned_Pos_From_MapPos(NewPos, ResultUnit.Type.GetFootprint)
+            ResultUnit.Pos = Map.TileAlignedPosFromMapPos(NewPos, ResultUnit.Type.GetFootprintSelected(Unit.Rotation))
         End Sub
     End Class
 
@@ -1877,7 +1870,7 @@
 
         Protected Overrides Sub _ActionPerform()
 
-            ResultUnit.Pos = Unit.MapLink.Source.TileAligned_Pos_From_MapPos(Unit.Pos.Horizontal, Unit.Type.GetFootprint)
+            ResultUnit.Pos = Unit.MapLink.Source.TileAlignedPosFromMapPos(Unit.Pos.Horizontal, Unit.Type.GetFootprintNew(Unit.Rotation))
         End Sub
     End Class
 
@@ -1980,7 +1973,7 @@
         Public Sub ActionPerform() Implements SimpleListTool(Of clsMap.clsUnit).ActionPerform
             Dim A As Integer
 
-            For A = 0 To _Result.ItemCount - 1
+            For A = 0 To _Result.Count - 1
                 If Unit.SavePriority > _Result.Item(A).SavePriority Then
                     Exit For
                 End If
@@ -2006,7 +1999,7 @@
             Dim Y As Integer
             Dim Total As Double
             Dim Average As Byte
-            Dim Footprint As sXY_int = Unit.Type.GetFootprint
+            Dim Footprint As sXY_int = Unit.Type.GetFootprintSelected(Unit.Rotation)
             Dim Start As sXY_int
             Dim Finish As sXY_int
             Dim Samples As Integer
@@ -2054,7 +2047,7 @@
 
         Private Unit As clsMap.clsUnit
 
-        Private tmpStructure As clsStructureType
+        Private StructureType As clsStructureType
         Private StruZeroBytesA(11) As Byte
         Private StruZeroBytesB(39) As Byte
 
@@ -2065,8 +2058,8 @@
                 Exit Sub
             End If
 
-            tmpStructure = CType(Unit.Type, clsStructureType)
-            WriteTextOfLength(File, 40, tmpStructure.Code)
+            StructureType = CType(Unit.Type, clsStructureType)
+            WriteTextOfLength(File, 40, StructureType.Code)
             File.Write(Unit.ID)
             File.Write(CUInt(Unit.Pos.Horizontal.X))
             File.Write(CUInt(Unit.Pos.Horizontal.Y))

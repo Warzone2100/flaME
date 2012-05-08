@@ -1,4 +1,5 @@
-﻿Public Class clsPainter
+﻿
+Public Class clsPainter
     Public Class clsTerrain
         Public Num As Integer
         Public Name As String
@@ -17,7 +18,7 @@
         Public TileCount As Integer
         Public TileChanceTotal As Integer
 
-        Public Sub Tile_Add(ByVal TileNum As Integer, ByVal TileOutwardOrientation As sTileDirection, ByVal Chance As UInteger)
+        Public Sub Tile_Add(TileNum As Integer, TileOutwardOrientation As sTileDirection, Chance As UInteger)
 
             ReDim Preserve Tiles(TileCount)
             Tiles(TileCount).TextureNum = TileNum
@@ -28,7 +29,7 @@
             TileChanceTotal += CInt(Chance)
         End Sub
 
-        Public Sub Tile_Remove(ByVal Num As Integer)
+        Public Sub Tile_Remove(Num As Integer)
 
             TileChanceTotal -= CInt(Tiles(Num).Chance)
 
@@ -100,14 +101,14 @@
     Public RoadBrushes() As clsRoad_Brush
     Public RoadBrushCount As Integer
 
-    Public Sub TransitionBrush_Add(ByVal NewBrush As clsTransition_Brush)
+    Public Sub TransitionBrush_Add(NewBrush As clsTransition_Brush)
 
         ReDim Preserve TransitionBrushes(TransitionBrushCount)
         TransitionBrushes(TransitionBrushCount) = NewBrush
         TransitionBrushCount += 1
     End Sub
 
-    Public Sub TransitionBrush_Remove(ByVal Num As Integer)
+    Public Sub TransitionBrush_Remove(Num As Integer)
 
         TransitionBrushCount -= 1
         If Num <> TransitionBrushCount Then
@@ -116,14 +117,14 @@
         ReDim Preserve TransitionBrushes(TransitionBrushCount - 1)
     End Sub
 
-    Public Sub CliffBrush_Add(ByVal NewBrush As clsCliff_Brush)
+    Public Sub CliffBrush_Add(NewBrush As clsCliff_Brush)
 
         ReDim Preserve CliffBrushes(CliffBrushCount)
         CliffBrushes(CliffBrushCount) = NewBrush
         CliffBrushCount += 1
     End Sub
 
-    Public Sub CliffBrush_Remove(ByVal Num As Integer)
+    Public Sub CliffBrush_Remove(Num As Integer)
 
         CliffBrushCount -= 1
         If Num <> CliffBrushCount Then
@@ -132,7 +133,7 @@
         ReDim Preserve CliffBrushes(CliffBrushCount - 1)
     End Sub
 
-    Public Sub Terrain_Add(ByVal NewTerrain As clsTerrain)
+    Public Sub Terrain_Add(NewTerrain As clsTerrain)
 
         NewTerrain.Num = TerrainCount
         ReDim Preserve Terrains(TerrainCount)
@@ -140,7 +141,7 @@
         TerrainCount += 1
     End Sub
 
-    Public Sub Terrain_Remove(ByVal Num As Integer)
+    Public Sub Terrain_Remove(Num As Integer)
 
         Terrains(Num).Num = -1
         TerrainCount -= 1
@@ -151,14 +152,14 @@
         ReDim Preserve Terrains(TerrainCount - 1)
     End Sub
 
-    Public Sub RoadBrush_Add(ByVal NewRoadBrush As clsRoad_Brush)
+    Public Sub RoadBrush_Add(NewRoadBrush As clsRoad_Brush)
 
         ReDim Preserve RoadBrushes(RoadBrushCount)
         RoadBrushes(RoadBrushCount) = NewRoadBrush
         RoadBrushCount += 1
     End Sub
 
-    Public Sub RoadBrush_Remove(ByVal Num As Integer)
+    Public Sub RoadBrush_Remove(Num As Integer)
 
         RoadBrushCount -= 1
         If Num <> RoadBrushCount Then
@@ -167,7 +168,7 @@
         ReDim Preserve RoadBrushes(RoadBrushCount - 1)
     End Sub
 
-    Public Sub Road_Add(ByVal NewRoad As clsRoad)
+    Public Sub Road_Add(NewRoad As clsRoad)
 
         NewRoad.Num = RoadCount
         ReDim Preserve Roads(RoadCount)
@@ -175,7 +176,7 @@
         RoadCount += 1
     End Sub
 
-    Public Sub Road_Remove(ByVal Num As Integer)
+    Public Sub Road_Remove(Num As Integer)
 
         Roads(Num).Num = -1
         RoadCount -= 1

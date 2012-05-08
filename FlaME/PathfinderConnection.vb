@@ -42,7 +42,7 @@
     End Property
     Public CalcValueNum As Integer = -1
 
-    Public Sub New(ByVal NewNodeA As PathfinderNode, ByVal NewNodeB As PathfinderNode, ByVal NewValue As Single)
+    Public Sub New(NewNodeA As PathfinderNode, NewNodeB As PathfinderNode, NewValue As Single)
 
         If NewNodeA.Layer.Network_LayerNum > 0 Or NewNodeB.Layer.Network_LayerNum > 0 Or NewValue <= 0.0F Then
             Stop
@@ -63,7 +63,7 @@
         RaiseDependant()
     End Sub
 
-    Public Sub New(ByVal SourceConnection As PathfinderConnection)
+    Public Sub New(SourceConnection As PathfinderConnection)
 
         NodeA = SourceConnection.NodeA.ParentNode
         NodeB = SourceConnection.NodeB.ParentNode
@@ -85,7 +85,7 @@
         NodeB_ConnectionNum = -1
     End Sub
 
-    Public Function GetOtherNode(ByVal Self As PathfinderNode) As PathfinderNode
+    Public Function GetOtherNode(Self As PathfinderNode) As PathfinderNode
 
         If NodeA Is Self Then
             Return NodeB

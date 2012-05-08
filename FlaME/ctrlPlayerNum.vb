@@ -1,4 +1,5 @@
-﻿Public Class ctrlPlayerNum
+﻿
+Public Class ctrlPlayerNum
 
     Public tsbNumber(10) As ToolStripButton
 
@@ -7,10 +8,8 @@
     Public Const ScavButtonNum As Integer = 10
 
     Public Sub New()
-        ' This call is required by the designer.
         InitializeComponent()
 
-        ' Add any initialization after the InitializeComponent() call.
         Dim A As Integer
         Dim B As Integer
         Dim ButtonsPerRow As Integer = 5
@@ -45,16 +44,16 @@
         Height = 25 * 2
     End Sub
 
-    Private Sub tsbNumber_Clicked(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub tsbNumber_Clicked(sender As Object, e As EventArgs)
 
         If _Target Is Nothing Then
             Exit Sub
         End If
 
         Dim tsb As ToolStripButton = CType(sender, ToolStripButton)
-        Dim tmpUnitGroup As clsMap.clsUnitGroup = CType(tsb.Tag, clsMap.clsUnitGroup)
+        Dim UnitGroup As clsMap.clsUnitGroup = CType(tsb.Tag, clsMap.clsUnitGroup)
 
-        _Target.Item = tmpUnitGroup
+        _Target.Item = UnitGroup
     End Sub
 
     Public Property Target As clsMap.clsUnitGroupContainer
@@ -79,26 +78,26 @@
     Private Sub SelectedChanged()
 
         Dim A As Integer
-        Dim tmpUnitGroup As clsMap.clsUnitGroup
+        Dim UnitGroup As clsMap.clsUnitGroup
 
         If _Target Is Nothing Then
-            tmpUnitGroup = Nothing
+            UnitGroup = Nothing
         Else
-            tmpUnitGroup = _Target.Item
+            UnitGroup = _Target.Item
         End If
 
-        If tmpUnitGroup Is Nothing Then
+        If UnitGroup Is Nothing Then
             For A = 0 To 10
                 tsbNumber(A).Checked = False
             Next
         Else
             For A = 0 To 10
-                tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is tmpUnitGroup)
+                tsbNumber(A).Checked = (CType(tsbNumber(A).Tag, clsMap.clsUnitGroup) Is UnitGroup)
             Next
         End If
     End Sub
 
-    Public Sub SetMap(ByVal NewMap As clsMap)
+    Public Sub SetMap(NewMap As clsMap)
         Dim A As Integer
 
         If NewMap Is Nothing Then

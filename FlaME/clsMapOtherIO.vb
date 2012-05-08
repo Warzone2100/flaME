@@ -1,4 +1,5 @@
-﻿Partial Public Class clsMap
+﻿
+Partial Public Class clsMap
 
     Public Structure sFMEUnit
         Public Code As String
@@ -13,25 +14,25 @@
         Public Player As Byte
     End Structure
 
-    Public Function Load_FME(ByVal Path As String) As clsResult
-        Dim ReturnResult As New clsResult
+    Public Function Load_FME(Path As String) As clsResult
+        Dim ReturnResult As New clsResult("Loading FME from " & ControlChars.Quote & Path & ControlChars.Quote)
 
         Dim File As IO.BinaryReader
 
         Try
             File = New IO.BinaryReader(New IO.FileStream(Path, IO.FileMode.Open))
         Catch ex As Exception
-            ReturnResult.Problem_Add("Open FME: " & ex.Message)
+            ReturnResult.ProblemAdd(ex.Message)
             Return ReturnResult
         End Try
-        ReturnResult.Append(Read_FME(File), "Load FME: ")
+        ReturnResult.Take(Read_FME(File))
         File.Close()
 
         Return ReturnResult
     End Function
 
-    Private Function Read_FME(ByVal File As IO.BinaryReader) As clsResult
-        Dim ReturnResult As New clsResult
+    Private Function Read_FME(File As IO.BinaryReader) As clsResult
+        Dim ReturnResult As New clsResult("Reading FME")
 
         Dim Version As UInteger
 
@@ -45,7 +46,7 @@
             Version = File.ReadUInt32
 
             If Version <= 4UI Then
-                ReturnResult.Problem_Add("Version " & Version & " is not supported.")
+                ReturnResult.ProblemAdd("Version " & Version & " is not supported.")
                 Return ReturnResult
             ElseIf Version = 5UI Or Version = 6UI Or Version = 7UI Then
 
@@ -62,7 +63,7 @@
                 ElseIf byteTemp = 3 Then
                     Tileset = Tileset_Rockies
                 Else
-                    ReturnResult.Warning_Add("Tileset value out of range.")
+                    ReturnResult.WarningAdd("Tileset value out of range.")
                     Tileset = Nothing
                 End If
 
@@ -75,11 +76,11 @@
                 MapHeight = File.ReadUInt16
 
                 If MapWidth < 1US Or MapHeight < 1US Or MapWidth > MapMaxSize Or MapHeight > MapMaxSize Then
-                    ReturnResult.Problem_Add("Map size is invalid.")
+                    ReturnResult.ProblemAdd("Map size is invalid.")
                     Return ReturnResult
                 End If
 
-                Terrain_Blank(New sXY_int(MapWidth, MapHeight))
+                TerrainBlank(New sXY_int(MapWidth, MapHeight))
                 TileType_Reset()
 
                 Dim X As Integer
@@ -106,7 +107,7 @@
                     Next
                 Next
                 If WarningCount > 0 Then
-                    ReturnResult.Warning_Add(WarningCount & " painted ground vertices were out of range.")
+                    ReturnResult.WarningAdd(WarningCount & " painted ground vertices were out of range.")
                 End If
                 WarningCount = 0
                 For Y = 0 To Terrain.TileSize.Y - 1
@@ -179,7 +180,7 @@
                     Next
                 Next
                 If WarningCount > 0 Then
-                    ReturnResult.Warning_Add(WarningCount & " tile cliff down-sides were out of range.")
+                    ReturnResult.WarningAdd(WarningCount & " tile cliff down-sides were out of range.")
                 End If
                 WarningCount = 0
                 For Y = 0 To Terrain.TileSize.Y
@@ -211,7 +212,7 @@
                     Next
                 Next
                 If WarningCount > 0 Then
-                    ReturnResult.Warning_Add(WarningCount & " roads were out of range.")
+                    ReturnResult.WarningAdd(WarningCount & " roads were out of range.")
                 End If
                 Dim TempUnitCount As UInteger
                 TempUnitCount = File.ReadUInt32
@@ -236,7 +237,7 @@
                 Next
 
                 Dim NewUnit As clsUnit
-                Dim tmpUnitType As clsUnitType = Nothing
+                Dim UnitType As clsUnitType = Nothing
                 Dim AvailableID As UInteger
 
                 AvailableID = 1UI
@@ -249,17 +250,17 @@
                 For A = 0 To CInt(TempUnitCount) - 1
                     Select Case TempUnit(A).LNDType
                         Case 0
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.Feature, -1)
+                            UnitType = ObjectData.FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.Feature, -1)
                         Case 1
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerStructure, -1)
+                            UnitType = ObjectData.FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerStructure, -1)
                         Case 2
-                            tmpUnitType = FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerDroid, -1)
+                            UnitType = ObjectData.FindOrCreateUnitType(TempUnit(A).Code, clsUnitType.enumType.PlayerDroid, -1)
                         Case Else
-                            tmpUnitType = Nothing
+                            UnitType = Nothing
                     End Select
-                    If tmpUnitType IsNot Nothing Then
+                    If UnitType IsNot Nothing Then
                         NewUnit = New clsUnit
-                        NewUnit.Type = tmpUnitType
+                        NewUnit.Type = UnitType
                         NewUnit.ID = TempUnit(A).ID
                         NewUnit.SavePriority = TempUnit(A).SavePriority
                         'NewUnit.Name = TempUnit(A).Name
@@ -274,7 +275,7 @@
                         NewUnit.Rotation = Math.Min(CInt(TempUnit(A).Rotation), 359)
                         If TempUnit(A).ID = 0UI Then
                             TempUnit(A).ID = AvailableID
-                            ZeroIDWarning(NewUnit, TempUnit(A).ID)
+                            ZeroIDWarning(NewUnit, TempUnit(A).ID, ReturnResult)
                         End If
                         UnitAdd.ID = TempUnit(A).ID
                         UnitAdd.NewUnit = NewUnit
@@ -288,7 +289,7 @@
                     End If
                 Next
                 If WarningCount > 0 Then
-                    ReturnResult.Warning_Add(WarningCount & " types of units were invalid. That many units were ignored.")
+                    ReturnResult.WarningAdd(WarningCount & " types of units were invalid. That many units were ignored.")
                 End If
 
                 Dim NewGatewayCount As UInteger
@@ -302,12 +303,12 @@
                     NewGateStart.Y = File.ReadUInt16
                     NewGateFinish.X = File.ReadUInt16
                     NewGateFinish.Y = File.ReadUInt16
-                    If Gateway_Create(NewGateStart, NewGateFinish) Is Nothing Then
+                    If GatewayCreate(NewGateStart, NewGateFinish) Is Nothing Then
                         WarningCount += 1
                     End If
                 Next
                 If WarningCount > 0 Then
-                    ReturnResult.Warning_Add(WarningCount & " gateways were invalid.")
+                    ReturnResult.WarningAdd(WarningCount & " gateways were invalid.")
                 End If
 
                 If Tileset IsNot Nothing Then
@@ -347,28 +348,28 @@
                     Case 1
                         ResultInfo.CompileMultiXPlayers = True
                     Case Else
-                        ReturnResult.Warning_Add("Compile player format out of range.")
+                        ReturnResult.WarningAdd("Compile player format out of range.")
                 End Select
                 ResultInfo.CompileMultiAuthor = ReadOldText(File)
                 ResultInfo.CompileMultiLicense = ReadOldText(File)
                 strTemp = ReadOldText(File) 'game time
                 ResultInfo.CampaignGameType = File.ReadInt32
                 If ResultInfo.CampaignGameType < -1 Or ResultInfo.CampaignGameType >= GameTypeCount Then
-                    ReturnResult.Warning_Add("Compile campaign type out of range.")
+                    ReturnResult.WarningAdd("Compile campaign type out of range.")
                     ResultInfo.CampaignGameType = -1
                 End If
 
                 If File.PeekChar >= 0 Then
-                    ReturnResult.Warning_Add("There were unread bytes at the end of the file.")
+                    ReturnResult.WarningAdd("There were unread bytes at the end of the file.")
                 End If
             Else
-                ReturnResult.Problem_Add("File version number not recognised.")
+                ReturnResult.ProblemAdd("File version number not recognised.")
             End If
 
             InterfaceOptions = ResultInfo
 
         Catch ex As Exception
-            ReturnResult.Problem_Add("Read error: " & ex.Message)
+            ReturnResult.ProblemAdd("Read error: " & ex.Message)
         End Try
 
         Return ReturnResult
@@ -385,7 +386,7 @@
         Public F As Short
     End Structure
 
-    Public Structure sLNDObject
+    Public Class clsLNDObject
         Public ID As UInteger
         Public TypeNum As Integer
         Public Code As String
@@ -393,12 +394,10 @@
         Public Name As String
         Public Pos As sXYZ_sng
         Public Rotation As sXYZ_int
-    End Structure
+    End Class
 
-    Public Function Load_LND(ByVal Path As String) As sResult
-        Dim ReturnResult As sResult
-        ReturnResult.Problem = ""
-        ReturnResult.Success = False
+    Public Function Load_LND(Path As String) As clsResult
+        Dim ReturnResult As New clsResult("Loading LND from " & ControlChars.Quote & Path & ControlChars.Quote)
 
         Try
 
@@ -409,25 +408,25 @@
             Dim A As Integer
             Dim B As Integer
             Dim Tile_Num As Integer
-            Dim LineData As New sLines
-            Dim LineCount As Integer
-            Dim Bytes As sBytes
-            Dim ByteCount As Integer
+            Dim LineData As SimpleList(Of String)
             Dim Line_Num As Integer
             Dim LNDTile() As sLNDTile
-            Dim LNDObject(-1) As sLNDObject
+            Dim LNDObjects As New SimpleList(Of clsLNDObject)
             Dim UnitAdd As New clsMap.clsUnitAdd
 
             UnitAdd.Map = Me
 
-            'load all bytes
-            Bytes.Bytes = IO.File.ReadAllBytes(Path)
-            ByteCount = Bytes.Bytes.GetUpperBound(0) + 1
+            Dim Reader As IO.BinaryReader
+            Try
+                Reader = New IO.BinaryReader(New IO.FileStream(Path, IO.FileMode.Open), UTF8Encoding)
+            Catch ex As Exception
+                ReturnResult.ProblemAdd(ex.Message)
+                Return ReturnResult
+            End Try
+            LineData = BytesToLinesRemoveComments(Reader)
+            Reader.Close()
 
-            BytesToLines(Bytes, LineData)
-            LineCount = LineData.Lines.GetUpperBound(0) + 1
-
-            ReDim Preserve LNDTile(LineCount - 1)
+            ReDim Preserve LNDTile(LineData.Count - 1)
 
             Dim strTemp3 As String
             Dim GotTiles As Boolean
@@ -435,13 +434,12 @@
             Dim GotGates As Boolean
             Dim GotTileTypes As Boolean
             Dim LNDTileType(-1) As Byte
-            Dim ObjectCount As Integer
             Dim ObjectText(10) As String
             Dim GateText(3) As String
             Dim TileTypeText(255) As String
             Dim LNDTileTypeCount As Integer
-            Dim LNDGate(-1) As clsGateway
-            Dim LNDGateCount As Integer
+            Dim LNDGates As New SimpleList(Of clsGateway)
+            Dim Gateway As clsGateway
             Dim C As Integer
             Dim D As Integer
             Dim GotText As Boolean
@@ -452,8 +450,8 @@
             Dim dblTemp As Double
 
             Line_Num = 0
-            Do While Line_Num < LineCount
-                strTemp = LineData.Lines(Line_Num)
+            Do While Line_Num < LineData.Count
+                strTemp = LineData(Line_Num)
 
                 A = InStr(1, strTemp, "TileWidth ")
                 If A = 0 Then
@@ -483,7 +481,7 @@
                 If A = 0 Then
                 Else
                     Line_Num += 1
-                    strTemp = LineData.Lines(Line_Num)
+                    strTemp = LineData(Line_Num)
 
                     strTemp2 = LCase(strTemp)
                     If InStr(1, strTemp2, "tertilesc1") > 0 Then
@@ -507,16 +505,15 @@
                 If A = 0 Or GotTiles Then
                 Else
                     Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData.Lines(Line_Num)
+                    Do While Line_Num < LineData.Count
+                        strTemp = LineData(Line_Num)
 
                         A = InStr(1, strTemp, "}")
                         If A = 0 Then
 
                             A = InStr(1, strTemp, "TID ")
                             If A = 0 Then
-                                ReturnResult.Success = False
-                                ReturnResult.Problem = "Tile ID missing"
+                                ReturnResult.ProblemAdd("Tile ID missing")
                                 Return ReturnResult
                             Else
                                 strTemp2 = Right(strTemp, strTemp.Length - A - 3)
@@ -529,8 +526,7 @@
 
                             A = InStr(1, strTemp, "VF ")
                             If A = 0 Then
-                                ReturnResult.Success = False
-                                ReturnResult.Problem = "Tile VF missing"
+                                ReturnResult.ProblemAdd("Tile VF missing")
                                 Return ReturnResult
                             Else
                                 strTemp2 = Right(strTemp, strTemp.Length - A - 2)
@@ -543,8 +539,7 @@
 
                             A = InStr(1, strTemp, "TF ")
                             If A = 0 Then
-                                ReturnResult.Success = False
-                                ReturnResult.Problem = "Tile TF missing"
+                                ReturnResult.ProblemAdd("Tile TF missing")
                                 Return ReturnResult
                             Else
                                 strTemp2 = Right(strTemp, strTemp.Length - A - 2)
@@ -557,8 +552,7 @@
 
                             A = InStr(1, strTemp, " F ")
                             If A = 0 Then
-                                ReturnResult.Success = False
-                                ReturnResult.Problem = "Tile flip missing"
+                                ReturnResult.ProblemAdd("Tile flip missing")
                                 Return ReturnResult
                             Else
                                 strTemp2 = Strings.Right(strTemp, strTemp.Length - A - 2)
@@ -571,16 +565,14 @@
 
                             A = InStr(1, strTemp, " VH ")
                             If A = 0 Then
-                                ReturnResult.Success = False
-                                ReturnResult.Problem = "Tile height is missing"
+                                ReturnResult.ProblemAdd("Tile height is missing")
                                 Return ReturnResult
                             Else
                                 strTemp3 = Right(strTemp, Len(strTemp) - A - 3)
                                 For A = 0 To 2
                                     B = InStr(1, strTemp3, " ")
                                     If B = 0 Then
-                                        ReturnResult.Success = False
-                                        ReturnResult.Problem = "A tile height value is missing"
+                                        ReturnResult.ProblemAdd("A tile height value is missing")
                                         Return ReturnResult
                                     End If
                                     strTemp2 = Left(strTemp3, B - 1)
@@ -614,8 +606,8 @@
                 If A = 0 Or GotObjects Then
                 Else
                     Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData.Lines(Line_Num)
+                    Do While Line_Num < LineData.Count
+                        strTemp = LineData(Line_Num)
 
                         A = InStr(1, strTemp, "}")
                         If A = 0 Then
@@ -631,7 +623,7 @@
                                     If GotText Then
                                         C += 1
                                         If C = 11 Then
-                                            ReturnResult.Problem = "Too many fields for an object, or a space at the end."
+                                            ReturnResult.ProblemAdd("Too many fields for an object, or a space at the end.")
                                             Return ReturnResult
                                         End If
                                         ObjectText(C) = ""
@@ -640,28 +632,25 @@
                                 End If
                             Next
 
-                            ReDim Preserve LNDObject(ObjectCount)
-                            With LNDObject(ObjectCount)
-                                InvariantParse_uint(ObjectText(0), .ID)
-                                InvariantParse_int(ObjectText(1), .TypeNum)
-                                .Code = Mid(ObjectText(2), 2, ObjectText(2).Length - 2) 'remove quotes
-                                InvariantParse_int(ObjectText(3), .PlayerNum)
-                                .Name = Mid(ObjectText(4), 2, ObjectText(4).Length - 2) 'remove quotes
-                                InvariantParse_sng(ObjectText(5), .Pos.X)
-                                InvariantParse_sng(ObjectText(6), .Pos.Y)
-                                InvariantParse_sng(ObjectText(7), .Pos.Z)
-                                If InvariantParse_dbl(ObjectText(8), dblTemp) Then
-                                    .Rotation.X = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
-                                End If
-                                If InvariantParse_dbl(ObjectText(9), dblTemp) Then
-                                    .Rotation.Y = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
-                                End If
-                                If InvariantParse_dbl(ObjectText(10), dblTemp) Then
-                                    .Rotation.Z = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
-                                End If
-                            End With
-
-                            ObjectCount += 1
+                            Dim NewObject As New clsLNDObject
+                            InvariantParse_uint(ObjectText(0), NewObject.ID)
+                            InvariantParse_int(ObjectText(1), NewObject.TypeNum)
+                            NewObject.Code = Mid(ObjectText(2), 2, ObjectText(2).Length - 2) 'remove quotes
+                            InvariantParse_int(ObjectText(3), NewObject.PlayerNum)
+                            NewObject.Name = Mid(ObjectText(4), 2, ObjectText(4).Length - 2) 'remove quotes
+                            InvariantParse_sng(ObjectText(5), NewObject.Pos.X)
+                            InvariantParse_sng(ObjectText(6), NewObject.Pos.Y)
+                            InvariantParse_sng(ObjectText(7), NewObject.Pos.Z)
+                            If InvariantParse_dbl(ObjectText(8), dblTemp) Then
+                                NewObject.Rotation.X = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
+                            End If
+                            If InvariantParse_dbl(ObjectText(9), dblTemp) Then
+                                NewObject.Rotation.Y = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
+                            End If
+                            If InvariantParse_dbl(ObjectText(10), dblTemp) Then
+                                NewObject.Rotation.Z = CInt(Clamp_dbl(dblTemp, 0.0#, 359.0#))
+                            End If
+                            LNDObjects.Add(NewObject)
                         Else
                             GotObjects = True
                             GoTo LineDone
@@ -678,8 +667,8 @@
                 If A = 0 Or GotGates Then
                 Else
                     Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData.Lines(Line_Num)
+                    Do While Line_Num < LineData.Count
+                        strTemp = LineData(Line_Num)
 
                         A = InStr(1, strTemp, "}")
                         If A = 0 Then
@@ -695,7 +684,7 @@
                                     If GotText Then
                                         C += 1
                                         If C = 4 Then
-                                            ReturnResult.Problem = "Too many fields for a gateway, or a space at the end."
+                                            ReturnResult.ProblemAdd("Too many fields for a gateway, or a space at the end.")
                                             Return ReturnResult
                                         End If
                                         GateText(C) = ""
@@ -704,9 +693,8 @@
                                 End If
                             Next
 
-                            ReDim Preserve LNDGate(LNDGateCount)
-                            LNDGate(LNDGateCount) = New clsGateway
-                            With LNDGate(LNDGateCount)
+                            Gateway = New clsGateway
+                            With Gateway
                                 InvariantParse_int(GateText(0), .PosA.X)
                                 .PosA.X = Math.Max(.PosA.X, 0)
                                 InvariantParse_int(GateText(1), .PosA.Y)
@@ -716,8 +704,7 @@
                                 InvariantParse_int(GateText(3), .PosB.Y)
                                 .PosB.Y = Math.Max(.PosB.Y, 0)
                             End With
-
-                            LNDGateCount += 1
+                            LNDGates.Add(Gateway)
                         Else
                             GotGates = True
                             GoTo LineDone
@@ -734,8 +721,8 @@
                 If A = 0 Or GotTileTypes Or Not GotTiles Then
                 Else
                     Line_Num += 1
-                    Do While Line_Num < LineCount
-                        strTemp = LineData.Lines(Line_Num)
+                    Do While Line_Num < LineData.Count
+                        strTemp = LineData(Line_Num)
 
                         A = InStr(1, strTemp, "}")
                         If A = 0 Then
@@ -751,7 +738,7 @@
                                     If GotText Then
                                         C += 1
                                         If C = 256 Then
-                                            ReturnResult.Problem = "Too many fields for tile types."
+                                            ReturnResult.ProblemAdd("Too many fields for tile types.")
                                             Return ReturnResult
                                         End If
                                         TileTypeText(C) = ""
@@ -788,12 +775,11 @@ LineDone:
             SetPainterToDefaults()
 
             If NewTileSize.X < 1 Or NewTileSize.Y < 1 Then
-                ReturnResult.Success = False
-                ReturnResult.Problem = "The LND's terrain dimensions are missing or invalid."
+                ReturnResult.ProblemAdd("The LND's terrain dimensions are missing or invalid.")
                 Return ReturnResult
             End If
 
-            Terrain_Blank(NewTileSize)
+            TerrainBlank(NewTileSize)
             TileType_Reset()
 
             For Y = 0 To Terrain.TileSize.Y - 1
@@ -817,7 +803,7 @@ LineDone:
                     A = CInt(Int(LNDTile(Tile_Num).F / 16.0#))
                     LNDTile(Tile_Num).F = CShort(LNDTile(Tile_Num).F - A * 16)
                     If A < 0 Or A > 3 Then
-                        ReturnResult.Problem = "Invalid flip value."
+                        ReturnResult.ProblemAdd("Invalid flip value.")
                         Return ReturnResult
                     End If
                     Rotation = CByte(A)
@@ -844,53 +830,54 @@ LineDone:
             Dim XYZ_int As sXYZ_int
             Dim NewType As clsUnitType
             Dim AvailableID As UInteger
+            Dim CurrentObject As clsLNDObject
 
             AvailableID = 1UI
-            For A = 0 To ObjectCount - 1
-                If LNDObject(A).ID >= AvailableID Then
-                    AvailableID = LNDObject(A).ID + 1UI
+            For Each CurrentObject In LNDObjects
+                If CurrentObject.ID >= AvailableID Then
+                    AvailableID = CurrentObject.ID + 1UI
                 End If
             Next
-            For A = 0 To ObjectCount - 1
-                Select Case LNDObject(A).TypeNum
+            For Each CurrentObject In LNDObjects
+                Select Case CurrentObject.TypeNum
                     Case 0
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.Feature, -1)
+                        NewType = ObjectData.FindOrCreateUnitType(CurrentObject.Code, clsUnitType.enumType.Feature, -1)
                     Case 1
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerStructure, -1)
+                        NewType = ObjectData.FindOrCreateUnitType(CurrentObject.Code, clsUnitType.enumType.PlayerStructure, -1)
                     Case 2
-                        NewType = FindOrCreateUnitType(LNDObject(A).Code, clsUnitType.enumType.PlayerDroid, -1)
+                        NewType = ObjectData.FindOrCreateUnitType(CurrentObject.Code, clsUnitType.enumType.PlayerDroid, -1)
                     Case Else
                         NewType = Nothing
                 End Select
                 If NewType IsNot Nothing Then
                     NewUnit = New clsUnit
                     NewUnit.Type = NewType
-                    If LNDObject(A).PlayerNum < 0 Or LNDObject(A).PlayerNum >= PlayerCountMax Then
+                    If CurrentObject.PlayerNum < 0 Or CurrentObject.PlayerNum >= PlayerCountMax Then
                         NewUnit.UnitGroup = ScavengerUnitGroup
                     Else
-                        NewUnit.UnitGroup = UnitGroups.Item(LNDObject(A).PlayerNum)
+                        NewUnit.UnitGroup = UnitGroups.Item(CurrentObject.PlayerNum)
                     End If
-                    XYZ_int.X = CInt(LNDObject(A).Pos.X)
-                    XYZ_int.Y = CInt(LNDObject(A).Pos.Y)
-                    XYZ_int.Z = CInt(LNDObject(A).Pos.Z)
+                    XYZ_int.X = CInt(CurrentObject.Pos.X)
+                    XYZ_int.Y = CInt(CurrentObject.Pos.Y)
+                    XYZ_int.Z = CInt(CurrentObject.Pos.Z)
                     NewUnit.Pos = MapPos_From_LNDPos(XYZ_int)
-                    NewUnit.Rotation = LNDObject(A).Rotation.Y
-                    If LNDObject(A).ID = 0UI Then
-                        LNDObject(A).ID = AvailableID
-                        ZeroIDWarning(NewUnit, LNDObject(A).ID)
+                    NewUnit.Rotation = CurrentObject.Rotation.Y
+                    If CurrentObject.ID = 0UI Then
+                        CurrentObject.ID = AvailableID
+                        ZeroIDWarning(NewUnit, CurrentObject.ID, ReturnResult)
                     End If
                     UnitAdd.NewUnit = NewUnit
-                    UnitAdd.ID = LNDObject(A).ID
+                    UnitAdd.ID = CurrentObject.ID
                     UnitAdd.Perform()
-                    ErrorIDChange(LNDObject(A).ID, NewUnit, "Load_LND")
-                    If AvailableID = LNDObject(A).ID Then
+                    ErrorIDChange(CurrentObject.ID, NewUnit, "Load_LND")
+                    If AvailableID = CurrentObject.ID Then
                         AvailableID = NewUnit.ID + 1UI
                     End If
                 End If
             Next
 
-            For A = 0 To LNDGateCount - 1
-                Gateway_Create(LNDGate(A).PosA, LNDGate(A).PosB)
+            For Each Gateway In LNDGates
+                GatewayCreate(Gateway.PosA, Gateway.PosB)
             Next
 
             If Tileset IsNot Nothing Then
@@ -900,15 +887,14 @@ LineDone:
             End If
 
         Catch ex As Exception
-            ReturnResult.Problem = ex.Message
+            ReturnResult.ProblemAdd(ex.Message)
             Return ReturnResult
         End Try
 
-        ReturnResult.Success = True
         Return ReturnResult
     End Function
 
-    Public Function LNDPos_From_MapPos(ByVal Horizontal As sXY_int) As sXYZ_int
+    Public Function LNDPos_From_MapPos(Horizontal As sXY_int) As sXYZ_int
         Dim Result As sXYZ_int
 
         Result.X = Horizontal.X - CInt(Terrain.TileSize.X * TerrainGridSpacing / 2.0#)
@@ -918,7 +904,7 @@ LineDone:
         Return Result
     End Function
 
-    Public Function MapPos_From_LNDPos(ByVal Pos As sXYZ_int) As sWorldPos
+    Public Function MapPos_From_LNDPos(Pos As sXYZ_int) As sWorldPos
         Dim Result As sWorldPos
 
         Result.Horizontal.X = Pos.X + CInt(Terrain.TileSize.X * TerrainGridSpacing / 2.0#)
@@ -928,14 +914,14 @@ LineDone:
         Return Result
     End Function
 
-    Public Function Write_LND(ByVal Path As String, ByVal Overwrite As Boolean) As clsResult
-        Dim ReturnResult As New clsResult
+    Public Function Write_LND(Path As String, Overwrite As Boolean) As clsResult
+        Dim ReturnResult As New clsResult("Writing LND to " & ControlChars.Quote & Path & ControlChars.Quote)
 
         If IO.File.Exists(Path) Then
             If Overwrite Then
                 IO.File.Delete(Path)
             Else
-                ReturnResult.Problem_Add("The selected file already exists.")
+                ReturnResult.ProblemAdd("The selected file already exists.")
                 Return ReturnResult
             End If
         End If
@@ -1070,38 +1056,37 @@ LineDone:
                 Text = "	FeatureSet " & EndChar
             End If
             File.Write(Text)
-            Text = "    NumObjects " & InvariantToString_int(Units.ItemCount) & EndChar
+            Text = "    NumObjects " & InvariantToString_int(Units.Count) & EndChar
             File.Write(Text)
             Text = "    Objects {" & EndChar
             File.Write(Text)
             Dim XYZ_int As sXYZ_int
-            Dim strTemp As String = Nothing
+            Dim Code As String = Nothing
             Dim CustomDroidCount As Integer = 0
-            Dim tmpUnit As clsMap.clsUnit
-            For A = 0 To Units.ItemCount - 1
-                tmpUnit = Units.Item(A)
-                Select Case tmpUnit.Type.Type
+            Dim Unit As clsMap.clsUnit
+            For Each Unit In Units
+                Select Case Unit.Type.Type
                     Case clsUnitType.enumType.Feature
                         B = 0
                     Case clsUnitType.enumType.PlayerStructure
                         B = 1
                     Case clsUnitType.enumType.PlayerDroid
-                        If CType(tmpUnit.Type, clsDroidDesign).IsTemplate Then
+                        If CType(Unit.Type, clsDroidDesign).IsTemplate Then
                             B = 2
                         Else
                             B = -1
                         End If
                     Case Else
                         B = -1
-                        ReturnResult.Warning_Add("Unit type classification not accounted for.")
+                        ReturnResult.WarningAdd("Unit type classification not accounted for.")
                 End Select
                 XYZ_int = LNDPos_From_MapPos(Units.Item(A).Pos.Horizontal)
                 If B >= 0 Then
-                    If tmpUnit.Type.GetCode(strTemp) Then
-                        Text = "        " & InvariantToString_uint(tmpUnit.ID) & " " & B & " " & Quote & strTemp & Quote & " " & tmpUnit.UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & InvariantToString_int(XYZ_int.X) & ".00 " & InvariantToString_int(XYZ_int.Y) & ".00 " & InvariantToString_int(XYZ_int.Z) & ".00 0.00 " & InvariantToString_int(tmpUnit.Rotation) & ".00 0.00" & EndChar
+                    If Unit.Type.GetCode(Code) Then
+                        Text = "        " & InvariantToString_uint(Unit.ID) & " " & B & " " & Quote & Code & Quote & " " & Unit.UnitGroup.GetLNDPlayerText & " " & Quote & "NONAME" & Quote & " " & InvariantToString_int(XYZ_int.X) & ".00 " & InvariantToString_int(XYZ_int.Y) & ".00 " & InvariantToString_int(XYZ_int.Z) & ".00 0.00 " & InvariantToString_int(Unit.Rotation) & ".00 0.00" & EndChar
                         File.Write(Text)
                     Else
-                        ReturnResult.Warning_Add("Error. Code not found.")
+                        ReturnResult.WarningAdd("Error. Code not found.")
                     End If
                 Else
                     CustomDroidCount += 1
@@ -1129,14 +1114,13 @@ LineDone:
             File.Write(Text)
             Text = "    Version 1" & EndChar
             File.Write(Text)
-            Text = "    NumGateways " & InvariantToString_int(Gateways.ItemCount) & EndChar
+            Text = "    NumGateways " & InvariantToString_int(Gateways.Count) & EndChar
             File.Write(Text)
             Text = "    Gates {" & EndChar
             File.Write(Text)
-            Dim tmpGateway As clsGateway
-            For A = 0 To Gateways.ItemCount - 1
-                tmpGateway = Gateways.Item(A)
-                Text = "        " & InvariantToString_int(tmpGateway.PosA.X) & " " & InvariantToString_int(tmpGateway.PosA.Y) & " " & InvariantToString_int(tmpGateway.PosB.X) & " " & InvariantToString_int(tmpGateway.PosB.Y) & EndChar
+            Dim Gateway As clsGateway
+            For Each Gateway In Gateways
+                Text = "        " & InvariantToString_int(Gateway.PosA.X) & " " & InvariantToString_int(Gateway.PosA.Y) & " " & InvariantToString_int(Gateway.PosB.X) & " " & InvariantToString_int(Gateway.PosB.Y) & EndChar
                 File.Write(Text)
             Next
             Text = "    }" & EndChar
@@ -1204,7 +1188,7 @@ LineDone:
             File.Write(Text)
 
         Catch ex As Exception
-            ReturnResult.Problem_Add(ex.Message)
+            ReturnResult.ProblemAdd(ex.Message)
         End Try
         If File IsNot Nothing Then
             File.Close()
@@ -1213,20 +1197,19 @@ LineDone:
         Return ReturnResult
     End Function
 
-    Public Function Write_MinimapFile(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
+    Public Function Write_MinimapFile(Path As String, Overwrite As Boolean) As sResult
         Dim ReturnResult As sResult
         Dim X As Integer
         Dim Y As Integer
 
         Dim MinimapBitmap As New Bitmap(Terrain.TileSize.X, Terrain.TileSize.Y)
 
-        Dim Texture As New clsMap.clsMinimapTexture(Terrain.TileSize)
-
+        Dim Texture As New clsMinimapTexture(New sXY_int(Terrain.TileSize.X, Terrain.TileSize.Y))
         MinimapTextureFill(Texture)
 
-        For Y = 0 To Texture.Pixels.GetUpperBound(0)
-            For X = 0 To Texture.Pixels.GetUpperBound(1)
-                MinimapBitmap.SetPixel(X, Y, Drawing.ColorTranslator.FromOle(OSRGB(Texture.Pixels(Y, X, 0), Texture.Pixels(Y, X, 1), Texture.Pixels(Y, X, 2))))
+        For Y = 0 To Terrain.TileSize.Y - 1
+            For X = 0 To Terrain.TileSize.X - 1
+                MinimapBitmap.SetPixel(X, Y, Drawing.ColorTranslator.FromOle(OSRGB(CInt(Clamp_sng(Texture.Pixels(X, Y).Red * 255.0F, 0.0F, 255.0F)), CInt(Clamp_sng(Texture.Pixels(X, Y).Green * 255.0F, 0.0F, 255.0F)), CInt(Clamp_sng(Texture.Pixels(X, Y).Blue * 255.0F, 0.0F, 255.0F)))))
             Next
         Next
 
@@ -1235,7 +1218,7 @@ LineDone:
         Return ReturnResult
     End Function
 
-    Public Function Write_Heightmap(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
+    Public Function Write_Heightmap(Path As String, Overwrite As Boolean) As sResult
         Dim ReturnResult As sResult
         Dim HeightmapBitmap As New Bitmap(Terrain.TileSize.X + 1, Terrain.TileSize.Y + 1)
         Dim X As Integer
@@ -1251,7 +1234,7 @@ LineDone:
         Return ReturnResult
     End Function
 
-    Public Function Write_TTP(ByVal Path As String, ByVal Overwrite As Boolean) As sResult
+    Public Function Write_TTP(Path As String, Overwrite As Boolean) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1293,7 +1276,7 @@ LineDone:
         Return ReturnResult
     End Function
 
-    Public Function Load_TTP(ByVal Path As String) As sResult
+    Public Function Load_TTP(Path As String) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1311,7 +1294,7 @@ LineDone:
         Return ReturnResult
     End Function
 
-    Public Function Write_FME(ByVal Path As String, ByVal Overwrite As Boolean, ByVal ScavengerPlayerNum As Byte) As sResult
+    Public Function Write_FME(Path As String, Overwrite As Boolean, ScavengerPlayerNum As Byte) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -1439,16 +1422,15 @@ LineDone:
                 Next
             Next
 
-            Dim OutputUnits(Units.ItemCount - 1) As clsUnit
-            Dim OutputUnitCode(Units.ItemCount - 1) As String
+            Dim OutputUnits(Units.Count - 1) As clsUnit
+            Dim OutputUnitCode(Units.Count - 1) As String
             Dim OutputUnitCount As Integer = 0
-            Dim tmpObject As clsUnit
+            Dim Unit As clsUnit
             Dim A As Integer
 
-            For A = 0 To Units.ItemCount - 1
-                tmpObject = Units.Item(A)
-                If tmpObject.Type.GetCode(OutputUnitCode(OutputUnitCount)) Then
-                    OutputUnits(OutputUnitCount) = tmpObject
+            For Each Unit In Units
+                If Unit.Type.GetCode(OutputUnitCode(OutputUnitCount)) Then
+                    OutputUnits(OutputUnitCount) = Unit
                     OutputUnitCount += 1
                 End If
             Next
@@ -1456,9 +1438,9 @@ LineDone:
             File.Write(CUInt(OutputUnitCount))
 
             For A = 0 To OutputUnitCount - 1
-                tmpObject = OutputUnits(A)
+                Unit = OutputUnits(A)
                 WriteTextOfLength(File, 40, OutputUnitCode(A))
-                Select Case tmpObject.Type.Type
+                Select Case Unit.Type.Type
                     Case clsUnitType.enumType.Feature
                         File.Write(CByte(0))
                     Case clsUnitType.enumType.PlayerStructure
@@ -1466,29 +1448,28 @@ LineDone:
                     Case clsUnitType.enumType.PlayerDroid
                         File.Write(CByte(2))
                 End Select
-                File.Write(tmpObject.ID)
-                File.Write(tmpObject.SavePriority)
-                File.Write(CUInt(tmpObject.Pos.Horizontal.X))
-                File.Write(CUInt(tmpObject.Pos.Horizontal.Y))
-                File.Write(CUInt(tmpObject.Pos.Altitude))
-                File.Write(CUShort(tmpObject.Rotation))
+                File.Write(Unit.ID)
+                File.Write(Unit.SavePriority)
+                File.Write(CUInt(Unit.Pos.Horizontal.X))
+                File.Write(CUInt(Unit.Pos.Horizontal.Y))
+                File.Write(CUInt(Unit.Pos.Altitude))
+                File.Write(CUShort(Unit.Rotation))
                 WriteText(File, True, "")
-                If tmpObject.UnitGroup Is ScavengerUnitGroup Then
+                If Unit.UnitGroup Is ScavengerUnitGroup Then
                     File.Write(ScavengerPlayerNum)
                 Else
-                    File.Write(CByte(tmpObject.UnitGroup.WZ_StartPos))
+                    File.Write(CByte(Unit.UnitGroup.WZ_StartPos))
                 End If
             Next
 
-            File.Write(CUInt(Gateways.ItemCount))
+            File.Write(CUInt(Gateways.Count))
 
-            Dim tmpGateway As clsGateway
-            For A = 0 To Gateways.ItemCount - 1
-                tmpGateway = Gateways.Item(A)
-                File.Write(CUShort(tmpGateway.PosA.X))
-                File.Write(CUShort(tmpGateway.PosA.Y))
-                File.Write(CUShort(tmpGateway.PosB.X))
-                File.Write(CUShort(tmpGateway.PosB.Y))
+            Dim Gateway As clsGateway
+            For Each Gateway In Gateways
+                File.Write(CUShort(Gateway.PosA.X))
+                File.Write(CUShort(Gateway.PosA.Y))
+                File.Write(CUShort(Gateway.PosB.X))
+                File.Write(CUShort(Gateway.PosB.Y))
             Next
 
             If Tileset IsNot Nothing Then

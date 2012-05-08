@@ -4,7 +4,7 @@ Partial Class ctrlTextureView
 
     'UserControl overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -77,5 +77,4 @@ Partial Class ctrlTextureView
     Public WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
     Public WithEvents TextureScroll As System.Windows.Forms.VScrollBar
     Public WithEvents pnlDraw As System.Windows.Forms.Panel
-
 End Class

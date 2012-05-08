@@ -1,55 +1,104 @@
-﻿Public Class clsResult
+﻿
+Public Class clsResult
 
-    Public Warnings As New SimpleClassList(Of String)
-    Public Problems As New SimpleClassList(Of String)
+    Private _Text As String
 
-    Public Sub New()
+    Public ReadOnly Property Text As String
+        Get
+            Return _Text
+        End Get
+    End Property
 
-        'Warnings.MaintainOrder = True
-        'Problems.MaintainOrder = True
-    End Sub
+    Public Class clsProblem
+        Public Text As String
+    End Class
+    Public Class clsWarning
+        Public Text As String
+    End Class
+
+    Private Items As New SimpleList(Of Object)
+    Private Bad As Boolean = False
 
     Public ReadOnly Property HasWarnings As Boolean
         Get
-            Return (Warnings.ItemCount > 0 Or Problems.ItemCount > 0)
+            Return (Items.Count > 0)
         End Get
     End Property
 
     Public ReadOnly Property HasProblems As Boolean
         Get
-            Return (Problems.ItemCount > 0)
+            Return Bad
         End Get
     End Property
 
-    Public Sub Append(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
+    Public Sub AddBypass(ResultToAdd As clsResult)
+
+        If ResultToAdd.HasWarnings Then
+            Items.Add(ResultToAdd)
+        End If
+    End Sub
+
+    Public Sub Add(ResultToAdd As clsResult)
+
+        If ResultToAdd.HasProblems Then
+            Bad = True
+        End If
+        If ResultToAdd.HasWarnings Then
+            Items.Add(ResultToAdd)
+        End If
+    End Sub
+
+    Public Sub Take(ResultToMerge As clsResult)
+
+        If ResultToMerge.HasProblems Then
+            Bad = True
+        End If
+        Items.AddSimpleList(ResultToMerge.Items)
+    End Sub
+
+    Public Sub ProblemAdd(Text As String)
+
+        Bad = True
+        Dim Problem As New clsProblem
+        Problem.Text = Text
+        Items.Add(Problem)
+    End Sub
+
+    Public Sub WarningAdd(Text As String)
+
+        Dim Warning As New clsWarning
+        Warning.Text = Text
+        Items.Add(Warning)
+    End Sub
+
+    Public Sub New(Text As String)
+
+        Items.MaintainOrder = True
+
+        Me._Text = Text
+    End Sub
+
+    Public Function MakeNodes(Owner As TreeNodeCollection) As TreeNode
+        Dim Node As New TreeNode
+        Node.Text = _Text
+        Owner.Add(Node)
         Dim A As Integer
-
-        For A = 0 To ResultToAdd.Problems.ItemCount - 1
-            Problems.Add(Prefix & ResultToAdd.Problems.Item(A))
+        Dim Item As Object
+        For A = 0 To Items.Count - 1
+            Item = Items(A)
+            Dim ChildNode As New TreeNode
+            If TypeOf Item Is clsProblem Then
+                ChildNode.Text = CType(Item, clsProblem).Text
+                Node.Nodes.Add(ChildNode)
+                ChildNode.StateImageKey = "problem"
+            ElseIf TypeOf Item Is clsWarning Then
+                ChildNode.Text = CType(Item, clsWarning).Text
+                Node.Nodes.Add(ChildNode)
+                ChildNode.StateImageKey = "warning"
+            ElseIf TypeOf Item Is clsResult Then
+                ChildNode = CType(Item, clsResult).MakeNodes(Node.Nodes)
+            End If
         Next
-        For A = 0 To ResultToAdd.Warnings.ItemCount - 1
-            Warnings.Add(Prefix & ResultToAdd.Warnings.Item(A))
-        Next
-    End Sub
-
-    Public Sub AppendAsWarning(ByVal ResultToAdd As clsResult, ByVal Prefix As String)
-        Dim A As Integer
-
-        For A = 0 To ResultToAdd.Problems.ItemCount - 1
-            Warnings.Add(Prefix & ResultToAdd.Problems.Item(A))
-        Next
-        For A = 0 To ResultToAdd.Warnings.ItemCount - 1
-            Warnings.Add(Prefix & ResultToAdd.Warnings.Item(A))
-        Next
-    End Sub
-
-    Public Sub Problem_Add(ByVal Text As String)
-
-        Problems.Add(Text)
-    End Sub
-
-    Public Sub Warning_Add(ByVal Text As String)
-
-        Warnings.Add(Text)
-    End Sub
+        Return Node
+    End Function
 End Class

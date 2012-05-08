@@ -1,4 +1,5 @@
-﻿Public Module modMath
+﻿
+Public Module modMath
 
     Public Const RadOf1Deg As Double = Math.PI / 180.0#
     Public Const RadOf90Deg As Double = Math.PI / 2.0#
@@ -10,15 +11,90 @@
         Public X As Integer
         Public Y As Integer
 
-        Public Sub New(ByVal X As Integer, ByVal Y As Integer)
+        Public Sub New(X As Integer, Y As Integer)
             Me.X = X
             Me.Y = Y
         End Sub
 
-        Public Function GetAngle() As Double
+        Public Shared Operator =(a As sXY_int, b As sXY_int) As Boolean
 
-            Return Math.Atan2(CDbl(Y), CDbl(X))
+            Return ((a.X = b.X) And (a.Y = b.Y))
+        End Operator
+
+        Public Shared Operator <>(a As sXY_int, b As sXY_int) As Boolean
+
+            Return ((a.X <> b.X) Or (a.Y <> b.Y))
+        End Operator
+
+        Public Shared Operator +(a As sXY_int, b As sXY_int) As sXY_int
+            Dim result As sXY_int
+
+            result.X = a.X + b.X
+            result.Y = a.Y + b.Y
+
+            Return result
+        End Operator
+
+        Public Shared Operator -(a As sXY_int, b As sXY_int) As sXY_int
+            Dim result As sXY_int
+
+            result.X = a.X - b.X
+            result.Y = a.Y - b.Y
+
+            Return result
+        End Operator
+
+        Public Shared Operator *(a As sXY_int, b As Double) As Matrix3D.XY_dbl
+            Dim result As Matrix3D.XY_dbl
+
+            result.X = a.X * b
+            result.Y = a.Y * b
+
+            Return result
+        End Operator
+
+        Public Shared Operator /(a As sXY_int, b As Double) As Matrix3D.XY_dbl
+            Dim result As Matrix3D.XY_dbl
+
+            result.X = a.X / b
+            result.Y = a.Y / b
+
+            Return result
+        End Operator
+
+        Public Function ToDoubles() As Matrix3D.XY_dbl
+            Dim result As Matrix3D.XY_dbl
+
+            result.X = X
+            result.Y = Y
+
+            Return result
         End Function
+
+        Public Shared Function Min(a As sXY_int, b As sXY_int) As sXY_int
+            Dim result As sXY_int
+
+            result.X = Math.Min(a.X, b.X)
+            result.Y = Math.Min(a.Y, b.Y)
+
+            Return result
+        End Function
+
+        Public Shared Function Max(a As sXY_int, b As sXY_int) As sXY_int
+            Dim result As sXY_int
+
+            result.X = Math.Max(a.X, b.X)
+            result.Y = Math.Max(a.Y, b.Y)
+
+            Return result
+        End Function
+
+        Public Function IsInRange(Minimum As sXY_int, Maximum As sXY_int) As Boolean
+
+            Return (X >= Minimum.X And X <= Maximum.X _
+                    And Y >= Minimum.Y And Y <= Maximum.Y)
+        End Function
+
     End Structure
 
     Public Class clsXY_int
@@ -28,7 +104,7 @@
             Get
                 Return XY.X
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 XY.X = value
             End Set
         End Property
@@ -36,12 +112,12 @@
             Get
                 Return XY.Y
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 XY.Y = value
             End Set
         End Property
 
-        Public Sub New(ByVal XY As sXY_int)
+        Public Sub New(XY As sXY_int)
 
             Me.XY = XY
         End Sub
@@ -51,7 +127,7 @@
         Public X As UInteger
         Public Y As UInteger
 
-        Public Sub New(ByVal X As UInteger, ByVal Y As UInteger)
+        Public Sub New(X As UInteger, Y As UInteger)
             Me.X = X
             Me.Y = Y
         End Sub
@@ -61,7 +137,7 @@
         Public X As Single
         Public Y As Single
 
-        Public Sub New(ByVal X As Single, ByVal Y As Single)
+        Public Sub New(X As Single, Y As Single)
             Me.X = X
             Me.Y = Y
         End Sub
@@ -72,19 +148,19 @@
         Public Y As Integer
         Public Z As Integer
 
-        Public Sub New(ByVal X As Integer, ByVal Y As Integer, ByVal Z As Integer)
+        Public Sub New(X As Integer, Y As Integer, Z As Integer)
             Me.X = X
             Me.Y = Y
             Me.Z = Z
         End Sub
 
-        Public Sub Add_dbl(ByVal XYZ As Matrix3D.XYZ_dbl)
+        Public Sub Add_dbl(XYZ As Matrix3D.XYZ_dbl)
             X += CInt(XYZ.X)
             Y += CInt(XYZ.Y)
             Z += CInt(XYZ.Z)
         End Sub
 
-        Public Sub Set_dbl(ByVal XYZ As Matrix3D.XYZ_dbl)
+        Public Sub Set_dbl(XYZ As Matrix3D.XYZ_dbl)
             X = CInt(XYZ.X)
             Y = CInt(XYZ.Y)
             Z = CInt(XYZ.Z)
@@ -96,14 +172,14 @@
         Public Y As Single
         Public Z As Single
 
-        Public Sub New(ByVal X As Single, ByVal Y As Single, ByVal Z As Single)
+        Public Sub New(X As Single, Y As Single, Z As Single)
             Me.X = X
             Me.Y = Y
             Me.Z = Z
         End Sub
     End Structure
 
-    Public Function AngleClamp(ByVal Angle As Double) As Double
+    Public Function AngleClamp(Angle As Double) As Double
         Dim ReturnResult As Double
 
         ReturnResult = Angle
@@ -115,15 +191,7 @@
         Return ReturnResult
     End Function
 
-    Public Function GetDist_XY_int(ByVal PosA As sXY_int, ByVal PosB As sXY_int) As Double
-        Dim Dif As Matrix3D.XY_dbl
-
-        Dif.X = PosB.X - PosA.X
-        Dif.Y = PosB.Y - PosA.Y
-        Return Math.Sqrt(Dif.X * Dif.X + Dif.Y * Dif.Y)
-    End Function
-
-    Public Function Clamp_dbl(ByVal Amount As Double, ByVal Minimum As Double, ByVal Maximum As Double) As Double
+    Public Function Clamp_dbl(Amount As Double, Minimum As Double, Maximum As Double) As Double
         Dim ReturnResult As Double
 
         ReturnResult = Amount
@@ -135,7 +203,7 @@
         Return ReturnResult
     End Function
 
-    Public Function Clamp_sng(ByVal Amount As Single, ByVal Minimum As Single, ByVal Maximum As Single) As Single
+    Public Function Clamp_sng(Amount As Single, Minimum As Single, Maximum As Single) As Single
         Dim ReturnResult As Single
 
         ReturnResult = Amount
@@ -147,7 +215,7 @@
         Return ReturnResult
     End Function
 
-    Public Function Clamp_int(ByVal Amount As Integer, ByVal Minimum As Integer, ByVal Maximum As Integer) As Integer
+    Public Function Clamp_int(Amount As Integer, Minimum As Integer, Maximum As Integer) As Integer
         Dim ReturnResult As Integer
 
         ReturnResult = Amount
@@ -164,7 +232,7 @@
         Public Pos As sXY_int
     End Structure
 
-    Public Function GetLinesIntersectBetween(ByVal A1 As sXY_int, ByVal A2 As sXY_int, ByVal B1 As sXY_int, ByVal B2 As sXY_int) As sIntersectPos
+    Public Function GetLinesIntersectBetween(A1 As sXY_int, A2 As sXY_int, B1 As sXY_int, B2 As sXY_int) As sIntersectPos
         Dim Result As sIntersectPos
 
         If (A1.X = A2.X And A1.Y = A2.Y) Or (B1.X = B2.X And B1.Y = B2.Y) Then
@@ -204,7 +272,7 @@
         Return Result
     End Function
 
-    Public Function PointGetClosestPosOnLine(ByVal LinePointA As sXY_int, ByVal LinePointB As sXY_int, ByVal Point As sXY_int) As sXY_int
+    Public Function PointGetClosestPosOnLine(LinePointA As sXY_int, LinePointB As sXY_int, Point As sXY_int) As sXY_int
         Dim x1dif As Double = Point.X - LinePointA.X
         Dim y1dif As Double = Point.Y - LinePointA.Y
         Dim adifx As Double = LinePointB.X - LinePointA.X
@@ -229,4 +297,22 @@
             End If
         End If
     End Function
+
+    Public Sub ReorderXY(A As sXY_int, B As sXY_int, ByRef Lesser As sXY_int, ByRef Greater As sXY_int)
+
+        If A.X <= B.X Then
+            Lesser.X = A.X
+            Greater.X = B.X
+        Else
+            Lesser.X = B.X
+            Greater.X = A.X
+        End If
+        If A.Y <= B.Y Then
+            Lesser.Y = A.Y
+            Greater.Y = B.Y
+        Else
+            Lesser.Y = B.Y
+            Greater.Y = A.Y
+        End If
+    End Sub
 End Module

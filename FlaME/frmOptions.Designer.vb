@@ -4,7 +4,7 @@ Partial Class frmOptions
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -24,6 +24,9 @@ Partial Class frmOptions
     Private Sub InitializeComponent()
         Me.TabControl1 = New System.Windows.Forms.TabControl()
         Me.TabPage1 = New System.Windows.Forms.TabPage()
+        Me.GroupBox8 = New System.Windows.Forms.GroupBox()
+        Me.cbxMipmapsHardware = New System.Windows.Forms.CheckBox()
+        Me.cbxMipmaps = New System.Windows.Forms.CheckBox()
         Me.GroupBox7 = New System.Windows.Forms.GroupBox()
         Me.txtFOV = New System.Windows.Forms.TextBox()
         Me.Label4 = New System.Windows.Forms.Label()
@@ -57,11 +60,9 @@ Partial Class frmOptions
         Me.cbxAskDirectories = New System.Windows.Forms.CheckBox()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.btnSave = New System.Windows.Forms.Button()
-        Me.GroupBox8 = New System.Windows.Forms.GroupBox()
-        Me.cbxMipmaps = New System.Windows.Forms.CheckBox()
-        Me.cbxMipmapsHardware = New System.Windows.Forms.CheckBox()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
+        Me.GroupBox8.SuspendLayout()
         Me.GroupBox7.SuspendLayout()
         Me.GroupBox6.SuspendLayout()
         Me.GroupBox5.SuspendLayout()
@@ -69,7 +70,6 @@ Partial Class frmOptions
         Me.GroupBox2.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
-        Me.GroupBox8.SuspendLayout()
         Me.SuspendLayout()
         '
         'TabControl1
@@ -98,6 +98,42 @@ Partial Class frmOptions
         Me.TabPage1.TabIndex = 0
         Me.TabPage1.Text = "General"
         Me.TabPage1.UseVisualStyleBackColor = True
+        '
+        'GroupBox8
+        '
+        Me.GroupBox8.Controls.Add(Me.cbxMipmapsHardware)
+        Me.GroupBox8.Controls.Add(Me.cbxMipmaps)
+        Me.GroupBox8.Location = New System.Drawing.Point(6, 299)
+        Me.GroupBox8.Name = "GroupBox8"
+        Me.GroupBox8.Size = New System.Drawing.Size(304, 60)
+        Me.GroupBox8.TabIndex = 45
+        Me.GroupBox8.TabStop = False
+        Me.GroupBox8.Text = "Graphics"
+        Me.GroupBox8.UseCompatibleTextRendering = True
+        '
+        'cbxMipmapsHardware
+        '
+        Me.cbxMipmapsHardware.AutoSize = True
+        Me.cbxMipmapsHardware.Location = New System.Drawing.Point(169, 22)
+        Me.cbxMipmapsHardware.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxMipmapsHardware.Name = "cbxMipmapsHardware"
+        Me.cbxMipmapsHardware.Size = New System.Drawing.Size(112, 21)
+        Me.cbxMipmapsHardware.TabIndex = 41
+        Me.cbxMipmapsHardware.Text = "Use Hardware"
+        Me.cbxMipmapsHardware.UseCompatibleTextRendering = True
+        Me.cbxMipmapsHardware.UseVisualStyleBackColor = True
+        '
+        'cbxMipmaps
+        '
+        Me.cbxMipmaps.AutoSize = True
+        Me.cbxMipmaps.Location = New System.Drawing.Point(8, 22)
+        Me.cbxMipmaps.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxMipmaps.Name = "cbxMipmaps"
+        Me.cbxMipmaps.Size = New System.Drawing.Size(141, 21)
+        Me.cbxMipmaps.TabIndex = 40
+        Me.cbxMipmaps.Text = "Generate mipmaps"
+        Me.cbxMipmaps.UseCompatibleTextRendering = True
+        Me.cbxMipmaps.UseVisualStyleBackColor = True
         '
         'GroupBox7
         '
@@ -221,9 +257,9 @@ Partial Class frmOptions
         Me.cbxMinimapTeamColourFeatures.Location = New System.Drawing.Point(147, 42)
         Me.cbxMinimapTeamColourFeatures.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxMinimapTeamColourFeatures.Name = "cbxMinimapTeamColourFeatures"
-        Me.cbxMinimapTeamColourFeatures.Size = New System.Drawing.Size(120, 21)
+        Me.cbxMinimapTeamColourFeatures.Size = New System.Drawing.Size(139, 21)
         Me.cbxMinimapTeamColourFeatures.TabIndex = 41
-        Me.cbxMinimapTeamColourFeatures.Text = "Except features"
+        Me.cbxMinimapTeamColourFeatures.Text = "Except for features"
         Me.cbxMinimapTeamColourFeatures.UseCompatibleTextRendering = True
         Me.cbxMinimapTeamColourFeatures.UseVisualStyleBackColor = True
         '
@@ -365,9 +401,9 @@ Partial Class frmOptions
         Me.Label1.Location = New System.Drawing.Point(7, 74)
         Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(85, 20)
+        Me.Label1.Size = New System.Drawing.Size(104, 20)
         Me.Label1.TabIndex = 24
-        Me.Label1.Text = "Time interval:"
+        Me.Label1.Text = "Time interval (s):"
         Me.Label1.UseCompatibleTextRendering = True
         '
         'GroupBox1
@@ -452,42 +488,6 @@ Partial Class frmOptions
         Me.btnSave.Text = "Accept"
         Me.btnSave.UseVisualStyleBackColor = True
         '
-        'GroupBox8
-        '
-        Me.GroupBox8.Controls.Add(Me.cbxMipmapsHardware)
-        Me.GroupBox8.Controls.Add(Me.cbxMipmaps)
-        Me.GroupBox8.Location = New System.Drawing.Point(6, 299)
-        Me.GroupBox8.Name = "GroupBox8"
-        Me.GroupBox8.Size = New System.Drawing.Size(304, 60)
-        Me.GroupBox8.TabIndex = 45
-        Me.GroupBox8.TabStop = False
-        Me.GroupBox8.Text = "Graphics"
-        Me.GroupBox8.UseCompatibleTextRendering = True
-        '
-        'cbxMipmaps
-        '
-        Me.cbxMipmaps.AutoSize = True
-        Me.cbxMipmaps.Location = New System.Drawing.Point(8, 22)
-        Me.cbxMipmaps.Margin = New System.Windows.Forms.Padding(4)
-        Me.cbxMipmaps.Name = "cbxMipmaps"
-        Me.cbxMipmaps.Size = New System.Drawing.Size(141, 21)
-        Me.cbxMipmaps.TabIndex = 40
-        Me.cbxMipmaps.Text = "Generate mipmaps"
-        Me.cbxMipmaps.UseCompatibleTextRendering = True
-        Me.cbxMipmaps.UseVisualStyleBackColor = True
-        '
-        'cbxMipmapsHardware
-        '
-        Me.cbxMipmapsHardware.AutoSize = True
-        Me.cbxMipmapsHardware.Location = New System.Drawing.Point(169, 22)
-        Me.cbxMipmapsHardware.Margin = New System.Windows.Forms.Padding(4)
-        Me.cbxMipmapsHardware.Name = "cbxMipmapsHardware"
-        Me.cbxMipmapsHardware.Size = New System.Drawing.Size(112, 21)
-        Me.cbxMipmapsHardware.TabIndex = 41
-        Me.cbxMipmapsHardware.Text = "Use Hardware"
-        Me.cbxMipmapsHardware.UseCompatibleTextRendering = True
-        Me.cbxMipmapsHardware.UseVisualStyleBackColor = True
-        '
         'frmOptions
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
@@ -502,6 +502,8 @@ Partial Class frmOptions
         Me.Text = "Options"
         Me.TabControl1.ResumeLayout(False)
         Me.TabPage1.ResumeLayout(False)
+        Me.GroupBox8.ResumeLayout(False)
+        Me.GroupBox8.PerformLayout()
         Me.GroupBox7.ResumeLayout(False)
         Me.GroupBox7.PerformLayout()
         Me.GroupBox6.ResumeLayout(False)
@@ -515,8 +517,6 @@ Partial Class frmOptions
         Me.GroupBox1.PerformLayout()
         Me.GroupBox3.ResumeLayout(False)
         Me.GroupBox3.PerformLayout()
-        Me.GroupBox8.ResumeLayout(False)
-        Me.GroupBox8.PerformLayout()
         Me.ResumeLayout(False)
 
     End Sub

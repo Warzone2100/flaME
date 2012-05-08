@@ -1,5 +1,4 @@
-﻿Imports OpenTK.Graphics
-Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics.OpenGL
 
 Public Class clsUnitType
 
@@ -30,50 +29,61 @@ Public Class clsUnitType
         Public Sub GLDraw()
             Dim AngleRPY As Matrix3D.AngleRPY
             Dim matrixA As New Matrix3D.Matrix3D
-            Dim tmpAttachment As clsAttachment
-            Dim A As Integer
+            Dim Attachment As clsAttachment
+            Dim Model As clsModel
 
-            For A = 0 To Models.ItemCount - 1
-                Models.Item(A).GLDraw()
+            For Each Model In Models
+                Model.GLDraw()
             Next
 
-            For A = 0 To Attachments.ItemCount - 1
-                tmpAttachment = Attachments.Item(A)
+            For Each Attachment In Attachments
                 GL.PushMatrix()
-                Matrix3D.MatrixInvert(tmpAttachment.AngleOffsetMatrix, matrixA)
+                Matrix3D.MatrixInvert(Attachment.AngleOffsetMatrix, matrixA)
                 Matrix3D.MatrixToRPY(matrixA, AngleRPY)
-                GL.Translate(tmpAttachment.Pos_Offset.X, tmpAttachment.Pos_Offset.Y, -tmpAttachment.Pos_Offset.Z)
+                GL.Translate(Attachment.Pos_Offset.X, Attachment.Pos_Offset.Y, -Attachment.Pos_Offset.Z)
                 GL.Rotate(AngleRPY.Roll / RadOf1Deg, 0.0F, 0.0F, -1.0F)
                 GL.Rotate(AngleRPY.Pitch / RadOf1Deg, 1.0F, 0.0F, 0.0F)
                 GL.Rotate(AngleRPY.Yaw / RadOf1Deg, 0.0F, 1.0F, 0.0F)
-                tmpAttachment.GLDraw()
+                Attachment.GLDraw()
                 GL.PopMatrix()
             Next
         End Sub
 
         Public Function CreateAttachment() As clsAttachment
-
             Dim Result As New clsAttachment
+
             Attachments.Add(Result)
             Return Result
         End Function
 
-        Public Function AddCopyOfAttachment(ByVal AttachmentToCopy As clsAttachment) As clsAttachment
-            Dim tmpAttachment As New clsAttachment
-            Dim A As Integer
+        Public Function CopyAttachment(Other As clsAttachment) As clsAttachment
+            Dim Result As New clsAttachment
 
-            Attachments.Add(tmpAttachment)
-            Matrix3D.MatrixCopy(AttachmentToCopy.AngleOffsetMatrix, tmpAttachment.AngleOffsetMatrix)
-            AttachmentToCopy.Models.SendItems(tmpAttachment.Models)
-            For A = 0 To AttachmentToCopy.Attachments.ItemCount - 1
-                tmpAttachment.AddCopyOfAttachment(AttachmentToCopy.Attachments.Item(A))
+            Result.Pos_Offset = Other.Pos_Offset
+            Attachments.Add(Result)
+            Matrix3D.MatrixCopy(Other.AngleOffsetMatrix, Result.AngleOffsetMatrix)
+            Result.Models.AddSimpleList(Other.Models)
+            Result.Attachments.AddSimpleList(Other.Attachments)
+
+            Return Result
+        End Function
+
+        Public Function AddCopyOfAttachment(AttachmentToCopy As clsAttachment) As clsAttachment
+            Dim ResultAttachment As New clsAttachment
+            Dim Attachment As clsAttachment
+
+            Attachments.Add(ResultAttachment)
+            Matrix3D.MatrixCopy(AttachmentToCopy.AngleOffsetMatrix, ResultAttachment.AngleOffsetMatrix)
+            ResultAttachment.Models.AddSimpleList(AttachmentToCopy.Models)
+            For Each Attachment In AttachmentToCopy.Attachments
+                ResultAttachment.AddCopyOfAttachment(Attachment)
             Next
 
-            Return tmpAttachment
+            Return ResultAttachment
         End Function
     End Class
 
-    Public Sub GLDraw(ByVal RotationDegrees As Single)
+    Public Sub GLDraw(RotationDegrees As Single)
 
         Select Case Draw_Lighting
             Case enumDrawLighting.Off
@@ -94,7 +104,7 @@ Public Class clsUnitType
 
     End Sub
 
-    Public ReadOnly Property GetFootprint As sXY_int
+    Public ReadOnly Property GetFootprintOld As sXY_int
         Get
             Select Case Type
                 Case enumType.Feature
@@ -108,6 +118,44 @@ Public Class clsUnitType
         End Get
     End Property
 
+    Public ReadOnly Property GetFootprintNew(Rotation As Integer) As sXY_int
+        Get
+            'get initial footprint
+            Dim Result As sXY_int
+            Select Case Type
+                Case enumType.Feature
+                    Result = CType(Me, clsFeatureType).Footprint
+                Case enumType.PlayerStructure
+                    Result = CType(Me, clsStructureType).Footprint
+                Case Else
+                    'return droid footprint
+                    Result = New sXY_int(1, 1)
+                    Return Result
+            End Select
+            'switch footprint axes if not a droid
+            Dim Remainder As Double = (Rotation / 90.0# + 0.5#) Mod 2.0#
+            If Remainder < 0.0# Then
+                Remainder += 2.0#
+            End If
+            If Remainder >= 1.0# Then
+                Dim X As Integer = Result.X
+                Result.X = Result.Y
+                Result.Y = X
+            End If
+            Return Result
+        End Get
+    End Property
+
+    Public ReadOnly Property GetFootprintSelected(Rotation As Integer) As sXY_int
+        Get
+            If frmMainInstance.cbxFootprintRotate.Checked Then
+                Return GetFootprintNew(Rotation)
+            Else
+                Return GetFootprintOld
+            End If
+        End Get
+    End Property
+
     Public Function GetCode(ByRef Result As String) As Boolean
 
         Select Case Type
@@ -118,8 +166,8 @@ Public Class clsUnitType
                 Result = CType(Me, clsStructureType).Code
                 Return True
             Case enumType.PlayerDroid
-                Dim tmpDroid As clsDroidDesign = CType(Me, clsDroidDesign)
-                If tmpDroid.IsTemplate Then
+                Dim Droid As clsDroidDesign = CType(Me, clsDroidDesign)
+                If Droid.IsTemplate Then
                     Result = CType(Me, clsDroidTemplate).Code
                     Return True
                 Else
@@ -136,18 +184,18 @@ Public Class clsUnitType
 
         Select Case Type
             Case enumType.Feature
-                Dim tmpFeature As clsFeatureType = CType(Me, clsFeatureType)
-                Return tmpFeature.Code & " (" & tmpFeature.Name & ")"
+                Dim FeatureType As clsFeatureType = CType(Me, clsFeatureType)
+                Return FeatureType.Code & " (" & FeatureType.Name & ")"
             Case enumType.PlayerStructure
-                Dim tmpStructure As clsStructureType = CType(Me, clsStructureType)
-                Return tmpStructure.Code & " (" & tmpStructure.Name & ")"
+                Dim StructureType As clsStructureType = CType(Me, clsStructureType)
+                Return StructureType.Code & " (" & StructureType.Name & ")"
             Case enumType.PlayerDroid
-                Dim tmpDroid As clsDroidDesign = CType(Me, clsDroidDesign)
-                If tmpDroid.IsTemplate Then
-                    Dim tmpTemplate As clsDroidTemplate = CType(Me, clsDroidTemplate)
-                    Return tmpTemplate.Code & " (" & tmpTemplate.Name & ")"
+                Dim DroidType As clsDroidDesign = CType(Me, clsDroidDesign)
+                If DroidType.IsTemplate Then
+                    Dim Template As clsDroidTemplate = CType(Me, clsDroidTemplate)
+                    Return Template.Code & " (" & Template.Name & ")"
                 Else
-                    Return "<droid> (" & tmpDroid.GenerateName & ")"
+                    Return "<droid> (" & DroidType.GenerateName & ")"
                 End If
             Case Else
                 Return ""
@@ -260,7 +308,7 @@ Public Class clsDroidDesign
 
         Public TemplateCode As String
 
-        Public Sub New(ByVal NewName As String, ByVal NewTemplateCode As String)
+        Public Sub New(NewName As String, NewTemplateCode As String)
 
             Name = NewName
             TemplateCode = NewTemplateCode
@@ -284,7 +332,7 @@ Public Class clsDroidDesign
         Type = enumType.PlayerDroid
     End Sub
 
-    Public Sub CopyDesign(ByVal DroidTypeToCopy As clsDroidDesign)
+    Public Sub CopyDesign(DroidTypeToCopy As clsDroidDesign)
 
         TemplateDroidType = DroidTypeToCopy.TemplateDroidType
         Body = DroidTypeToCopy.Body
@@ -313,16 +361,16 @@ Public Class clsDroidDesign
 
         Dim NewBody As clsUnitType.clsAttachment = BaseAttachment.AddCopyOfAttachment(Body.Attachment)
 
-        AlwaysDrawTextLabel = (NewBody.Models.ItemCount = 0)
+        AlwaysDrawTextLabel = (NewBody.Models.Count = 0)
 
         If Propulsion IsNot Nothing Then
-            If Body.Num >= 0 Then
-                BaseAttachment.AddCopyOfAttachment(Propulsion.Bodies(Body.Num).LeftAttachment)
-                BaseAttachment.AddCopyOfAttachment(Propulsion.Bodies(Body.Num).RightAttachment)
+            If Body.ObjectDataLink.IsConnected Then
+                BaseAttachment.AddCopyOfAttachment(Propulsion.Bodies(Body.ObjectDataLink.ArrayPosition).LeftAttachment)
+                BaseAttachment.AddCopyOfAttachment(Propulsion.Bodies(Body.ObjectDataLink.ArrayPosition).RightAttachment)
             End If
         End If
 
-        If NewBody.Models.ItemCount = 0 Then
+        If NewBody.Models.Count = 0 Then
             Exit Sub
         End If
 
@@ -367,7 +415,7 @@ Public Class clsDroidDesign
         If Propulsion Is Nothing Then
             Return Result
         End If
-        Result += CInt(Body.Hitpoints * Propulsion.Hitpoints / 100.0#)
+        Result += CInt(Body.Hitpoints * Propulsion.HitPoints / 100.0#)
         If Turret1 Is Nothing Then
             Return Result
         End If
@@ -402,7 +450,7 @@ Public Class clsDroidDesign
         Public Weapon3 As clsWeapon
     End Structure
 
-    Public Function LoadParts(ByVal Args As sLoadPartsArgs) As Boolean
+    Public Function LoadParts(Args As sLoadPartsArgs) As Boolean
         Dim TurretConflict As Boolean
 
         Body = Args.Body
@@ -559,7 +607,7 @@ Public Class clsDroidDesign
         Return Result
     End Function
 
-    Public Function SetDroidType(ByVal DroidType As enumDroidType) As Boolean
+    Public Function SetDroidType(DroidType As enumDroidType) As Boolean
 
         Select Case DroidType
             Case enumDroidType.Weapon

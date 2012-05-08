@@ -1,4 +1,5 @@
-﻿Public Class frmOptions
+﻿
+Public Class frmOptions
 
     Private DisplayFont As Font
 
@@ -91,10 +92,10 @@
     Private Sub btnFont_Click(sender As System.Object, e As System.EventArgs) Handles btnFont.Click
         Dim FontDialog As New Windows.Forms.FontDialog
 
-		Dim Result As DialogResult
-		Try 'mono 267 has crashed here
-			FontDialog.Font = DisplayFont
-			FontDialog.FontMustExist = True
+        Dim Result As DialogResult
+        Try 'mono 267 has crashed here
+            FontDialog.Font = DisplayFont
+            FontDialog.FontMustExist = True
             Result = FontDialog.ShowDialog(Me)
         Catch ex As Exception
             Result = DialogResult.Cancel

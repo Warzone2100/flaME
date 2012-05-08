@@ -5,7 +5,7 @@ Partial Public Class clsMap
     Public ScriptPositions As New ConnectedList(Of clsScriptPosition, clsMap)(Me)
     Public ScriptAreas As New ConnectedList(Of clsScriptArea, clsMap)(Me)
 
-    Public Function GetDefaultScriptLabel(ByVal Prefix As String) As String
+    Public Function GetDefaultScriptLabel(Prefix As String) As String
         Dim Number As Integer = 1
         Dim Valid As sResult
         Dim Label As String
@@ -24,7 +24,7 @@ Partial Public Class clsMap
         Loop
     End Function
 
-    Public Function ScriptLabelIsValid(ByVal Text As String) As sResult
+    Public Function ScriptLabelIsValid(Text As String) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -41,36 +41,45 @@ Partial Public Class clsMap
             Return ReturnResult
         End If
 
-        Dim A As Integer
-        Dim tmpChar As Char
+        Dim CurrentChar As Char
+        Dim Invalid As Boolean
 
-        For A = 0 To LCaseText.Length - 1
-            tmpChar = LCaseText.Chars(A)
-            If Not ((tmpChar >= "a"c And tmpChar <= "z"c) Or (tmpChar >= "0"c And tmpChar <= "9"c) Or tmpChar = "_"c) Then
+        Invalid = False
+        For Each CurrentChar In LCaseText
+            If Not ((CurrentChar >= "a"c And CurrentChar <= "z"c) Or (CurrentChar >= "0"c And CurrentChar <= "9"c) Or CurrentChar = "_"c) Then
+                Invalid = True
                 Exit For
             End If
         Next
-        If A < LCaseText.Length Then
+        If Invalid Then
             ReturnResult.Problem = "Label contains invalid characters. Use only letters, numbers or underscores."
             Return ReturnResult
         End If
 
-        For A = 0 To Units.ItemCount - 1
-            If Units.Item(A).Label IsNot Nothing Then
-                If LCaseText = Units.Item(A).Label.ToLower Then
+        Dim Unit As clsUnit
+
+        For Each Unit In Units
+            If Unit.Label IsNot Nothing Then
+                If LCaseText = Unit.Label.ToLower Then
                     ReturnResult.Problem = "Label text is already in use."
                     Return ReturnResult
                 End If
             End If
         Next
-        For A = 0 To ScriptPositions.ItemCount - 1
-            If LCaseText = ScriptPositions.Item(A).Label.ToLower Then
+
+        Dim ScriptPosition As clsScriptPosition
+
+        For Each ScriptPosition In ScriptPositions
+            If LCaseText = ScriptPosition.Label.ToLower Then
                 ReturnResult.Problem = "Label text is already in use."
                 Return ReturnResult
             End If
         Next
-        For A = 0 To ScriptAreas.ItemCount - 1
-            If LCaseText = ScriptAreas.Item(A).Label.ToLower Then
+
+        Dim ScriptArea As clsScriptArea
+
+        For Each ScriptArea In ScriptAreas
+            If LCaseText = ScriptArea.Label.ToLower Then
                 ReturnResult.Problem = "Label text is already in use."
                 Return ReturnResult
             End If
@@ -101,7 +110,7 @@ Partial Public Class clsMap
             Get
                 Return _Pos.X
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _Pos.X = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.X * TerrainGridSpacing - 1)
             End Set
         End Property
@@ -109,7 +118,7 @@ Partial Public Class clsMap
             Get
                 Return _Pos.Y
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _Pos.Y = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.Y * TerrainGridSpacing - 1)
             End Set
         End Property
@@ -118,7 +127,7 @@ Partial Public Class clsMap
 
         End Sub
 
-        Public Shared Function Create(ByVal Map As clsMap) As clsScriptPosition
+        Public Shared Function Create(Map As clsMap) As clsScriptPosition
             Dim Result As New clsScriptPosition
 
             Result._Label = Map.GetDefaultScriptLabel("Position")
@@ -143,7 +152,7 @@ Partial Public Class clsMap
             Drawer.ActionPerform()
         End Sub
 
-        Public Sub MapResizing(ByVal PosOffset As sXY_int)
+        Public Sub MapResizing(PosOffset As sXY_int)
 
             PosX = _Pos.X - PosOffset.X
             PosY = _Pos.Y - PosOffset.Y
@@ -157,7 +166,7 @@ Partial Public Class clsMap
             File.Gap_Append()
         End Sub
 
-        Public Function SetLabel(ByVal Text As String) As sResult
+        Public Function SetLabel(Text As String) As sResult
             Dim Result As sResult
 
             Result = _ParentMapLink.Source.ScriptLabelIsValid(Text)
@@ -192,55 +201,55 @@ Partial Public Class clsMap
         Private _PosA As sXY_int
         Private _PosB As sXY_int
         Public WriteOnly Property PosA As sXY_int
-            Set(ByVal value As sXY_int)
+            Set(value As sXY_int)
                 Dim Map As clsMap = _ParentMapLink.Source
                 _PosA.X = Clamp_int(value.X, 0, Map.Terrain.TileSize.X * TerrainGridSpacing - 1)
                 _PosA.Y = Clamp_int(value.Y, 0, Map.Terrain.TileSize.Y * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
         Public WriteOnly Property PosB As sXY_int
-            Set(ByVal value As sXY_int)
+            Set(value As sXY_int)
                 Dim Map As clsMap = _ParentMapLink.Source
                 _PosB.X = Clamp_int(value.X, 0, Map.Terrain.TileSize.X * TerrainGridSpacing - 1)
                 _PosB.Y = Clamp_int(value.Y, 0, Map.Terrain.TileSize.Y * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
         Public Property PosAX As Integer
             Get
                 Return _PosA.X
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _PosA.X = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.X * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
         Public Property PosAY As Integer
             Get
                 Return _PosA.Y
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _PosA.Y = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.Y * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
         Public Property PosBX As Integer
             Get
                 Return _PosB.X
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _PosB.X = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.X * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
         Public Property PosBY As Integer
             Get
                 Return _PosB.Y
             End Get
-            Set(ByVal value As Integer)
+            Set(value As Integer)
                 _PosB.Y = Clamp_int(value, 0, _ParentMapLink.Source.Terrain.TileSize.Y * TerrainGridSpacing - 1)
-                XY_Reorder(_PosA, _PosB, _PosA, _PosB)
+                ReorderXY(_PosA, _PosB, _PosA, _PosB)
             End Set
         End Property
 
@@ -248,7 +257,7 @@ Partial Public Class clsMap
 
         End Sub
 
-        Public Shared Function Create(ByVal Map As clsMap) As clsScriptArea
+        Public Shared Function Create(Map As clsMap) As clsScriptArea
             Dim Result As New clsScriptArea
 
             Result._Label = Map.GetDefaultScriptLabel("Area")
@@ -258,7 +267,7 @@ Partial Public Class clsMap
             Return Result
         End Function
 
-        Public Sub SetPositions(ByVal PosA As sXY_int, ByVal PosB As sXY_int)
+        Public Sub SetPositions(PosA As sXY_int, PosB As sXY_int)
             Dim Map As clsMap = _ParentMapLink.Source
 
             PosA.X = Clamp_int(PosA.X, 0, Map.Terrain.TileSize.X * TerrainGridSpacing - 1)
@@ -266,7 +275,7 @@ Partial Public Class clsMap
             PosB.X = Clamp_int(PosB.X, 0, Map.Terrain.TileSize.X * TerrainGridSpacing - 1)
             PosB.Y = Clamp_int(PosB.Y, 0, Map.Terrain.TileSize.Y * TerrainGridSpacing - 1)
 
-            XY_Reorder(PosA, PosB, _PosA, _PosB)
+            ReorderXY(PosA, PosB, _PosA, _PosB)
         End Sub
 
         Public Sub GLDraw()
@@ -302,7 +311,7 @@ Partial Public Class clsMap
             Drawer.ActionPerform()
         End Sub
 
-        Public Sub MapResizing(ByVal PosOffset As sXY_int)
+        Public Sub MapResizing(PosOffset As sXY_int)
 
             SetPositions(New sXY_int(_PosA.X - PosOffset.X, _PosA.Y - PosOffset.Y), New sXY_int(_PosB.X - PosOffset.X, _PosB.Y - PosOffset.Y))
         End Sub
@@ -316,7 +325,7 @@ Partial Public Class clsMap
             File.Gap_Append()
         End Sub
 
-        Public Function SetLabel(ByVal Text As String) As sResult
+        Public Function SetLabel(Text As String) As sResult
             Dim Result As sResult
 
             Result = _ParentMapLink.Source.ScriptLabelIsValid(Text)

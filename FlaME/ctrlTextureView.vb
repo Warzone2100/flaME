@@ -7,8 +7,6 @@ Public Class ctrlTextureView
 
     Public DrawPending As Boolean
 
-    Public OpenGLControl As OpenTK.GLControl
-
     Public GLSize As sXY_int
     Public GLSize_XPerY As Double
 
@@ -28,22 +26,19 @@ Public Class ctrlTextureView
     Private WithEvents tmrDraw As Timer
     Private WithEvents tmrDrawDelay As Timer
 
-    Public Sub New(ByVal Owner As frmMain)
+    Public OpenGLControl As OpenTK.GLControl
+
+    Public Sub New(Owner As frmMain)
 
         _Owner = Owner
 
         InitializeComponent()
 
-        OpenGLControl = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(32), 0, 0))
-        Try
-            OpenGLControl.MakeCurrent()
-        Catch ex As Exception
-
-        End Try
+        OpenGLControl = OpenGL2
         pnlDraw.Controls.Add(OpenGLControl)
 
         GLInitializeDelayTimer = New Timer
-        GLInitializeDelayTimer.Interval = 1
+        GLInitializeDelayTimer.Interval = 50
         AddHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
         GLInitializeDelayTimer.Enabled = True
 
@@ -56,13 +51,17 @@ Public Class ctrlTextureView
 
     Public Sub OpenGL_Size_Calc()
 
+        If OpenGLControl.Context Is Nothing Then
+            Exit Sub
+        End If
+
         OpenGLControl.Width = pnlDraw.Width
         OpenGLControl.Height = pnlDraw.Height
 
         Viewport_Resize()
     End Sub
 
-    Public Sub DrawView_SetEnabled(ByVal Value As Boolean)
+    Public Sub DrawView_SetEnabled(Value As Boolean)
 
         If Value Then
             If Not DrawView_Enabled Then
@@ -83,7 +82,7 @@ Public Class ctrlTextureView
         End If
     End Sub
 
-    Private Sub tmrDraw_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDraw.Tick
+    Private Sub tmrDraw_Tick(sender As System.Object, e As System.EventArgs) Handles tmrDraw.Tick
 
         tmrDraw.Enabled = False
         If DrawPending Then
@@ -93,13 +92,11 @@ Public Class ctrlTextureView
         End If
     End Sub
 
-    Private Sub GLInitialize(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub GLInitialize(sender As Object, e As EventArgs)
 
         If OpenGLControl.Context Is Nothing Then
             Exit Sub
         End If
-
-        IsGLInitialized = True
 
         GLInitializeDelayTimer.Enabled = False
         RemoveHandler GLInitializeDelayTimer.Tick, AddressOf GLInitialize
@@ -120,9 +117,15 @@ Public Class ctrlTextureView
         GL.Enable(EnableCap.Blend)
         GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
         GL.Enable(EnableCap.CullFace)
+
+        IsGLInitialized = True
     End Sub
 
     Public Sub Viewport_Resize()
+
+        If Not ProgramInitialized Then
+            Exit Sub
+        End If
 
         If GraphicsContext.CurrentContext IsNot OpenGLControl.Context Then
             OpenGLControl.MakeCurrent()
@@ -312,7 +315,7 @@ EndOfTextures4:
         Refresh()
     End Sub
 
-    Public Sub OpenGL_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+    Public Sub OpenGL_MouseDown(sender As Object, e As System.Windows.Forms.MouseEventArgs)
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -347,7 +350,7 @@ EndOfTextures4:
         DrawViewLater()
     End Sub
 
-    Private Sub tmrDrawDelay_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles tmrDrawDelay.Tick
+    Private Sub tmrDrawDelay_Tick(sender As System.Object, e As System.EventArgs) Handles tmrDrawDelay.Tick
 
         If DrawPending Then
             DrawPending = False
@@ -357,7 +360,7 @@ EndOfTextures4:
         End If
     End Sub
 
-    Private Sub pnlDraw_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles pnlDraw.Resize
+    Private Sub pnlDraw_Resize(sender As Object, e As System.EventArgs) Handles pnlDraw.Resize
 
         If OpenGLControl IsNot Nothing Then
             OpenGL_Size_Calc()
@@ -402,7 +405,7 @@ EndOfTextures4:
         End If
     End Sub
 
-    Public Sub OpenGL_Resize(ByVal sender As Object, ByVal e As System.EventArgs)
+    Public Sub OpenGL_Resize(sender As Object, e As System.EventArgs)
 
         GLSize.X = OpenGLControl.Width
         GLSize.Y = OpenGLControl.Height
@@ -412,7 +415,7 @@ EndOfTextures4:
         Viewport_Resize()
     End Sub
 
-    Private Sub TextureScroll_ValueChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles TextureScroll.ValueChanged
+    Private Sub TextureScroll_ValueChanged(sender As Object, e As System.EventArgs) Handles TextureScroll.ValueChanged
 
         TextureYOffset = TextureScroll.Value
 

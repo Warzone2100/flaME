@@ -1,4 +1,5 @@
-﻿Module modPainters
+﻿
+Module modPainters
 
     Public Sub CreatePainterArizona()
         Dim NewBrushCliff As clsPainter.clsCliff_Brush

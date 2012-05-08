@@ -4,7 +4,7 @@ Partial Class frmData
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -32,6 +32,7 @@ Partial Class frmData
         '
         'btnContinue
         '
+        Me.btnContinue.DialogResult = System.Windows.Forms.DialogResult.OK
         Me.btnContinue.Dock = System.Windows.Forms.DockStyle.Fill
         Me.btnContinue.Location = New System.Drawing.Point(350, 6)
         Me.btnContinue.Margin = New System.Windows.Forms.Padding(6)
@@ -44,6 +45,7 @@ Partial Class frmData
         '
         'btnQuit
         '
+        Me.btnQuit.DialogResult = System.Windows.Forms.DialogResult.Cancel
         Me.btnQuit.Dock = System.Windows.Forms.DockStyle.Fill
         Me.btnQuit.Location = New System.Drawing.Point(6, 6)
         Me.btnQuit.Margin = New System.Windows.Forms.Padding(6)

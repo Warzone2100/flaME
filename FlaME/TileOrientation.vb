@@ -1,4 +1,5 @@
-﻿Public Module TileOrientation
+﻿
+Public Module TileOrientation
 
     Public Orientation_Clockwise As New sTileOrientation(True, False, True)
     Public Orientation_CounterClockwise As New sTileOrientation(False, True, True)
@@ -10,18 +11,18 @@
         Public ResultYFlip As Boolean
         Public SwitchedAxes As Boolean
 
-        Public Sub New(ByVal ResultXFlip As Boolean, ByVal ResultZFlip As Boolean, ByVal SwitchedAxes As Boolean)
+        Public Sub New(ResultXFlip As Boolean, ResultZFlip As Boolean, SwitchedAxes As Boolean)
 
             Me.ResultXFlip = ResultXFlip
             Me.ResultYFlip = ResultZFlip
             Me.SwitchedAxes = SwitchedAxes
         End Sub
 
-        Public Function GetRotated(ByVal Orientation As sTileOrientation) As sTileOrientation
+        Public Function GetRotated(Orientation As sTileOrientation) As sTileOrientation
             Dim ReturnResult As sTileOrientation
 
             ReturnResult.SwitchedAxes = (SwitchedAxes Xor Orientation.SwitchedAxes)
-           
+
             If Orientation.SwitchedAxes Then
                 If Orientation.ResultXFlip Then
                     ReturnResult.ResultXFlip = Not ResultYFlip
@@ -84,13 +85,13 @@
         Public X As Byte '0-2, 1=middle
         Public Y As Byte '0-2, 1=middle
 
-        Public Sub New(ByVal NewX As Byte, ByVal NewY As Byte)
+        Public Sub New(NewX As Byte, NewY As Byte)
 
             X = NewX
             Y = NewY
         End Sub
 
-        Public Function GetRotated(ByVal Orientation As sTileOrientation) As sTileDirection
+        Public Function GetRotated(Orientation As sTileOrientation) As sTileDirection
             Dim ReturnResult As sTileDirection
 
             If Orientation.SwitchedAxes Then
@@ -165,7 +166,7 @@
     Public TileDirection_Left As New sTileDirection(0, 1)
     Public TileDirection_None As New sTileDirection(1, 1)
 
-    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTileOrientationChance, ByVal NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
+    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTileOrientationChance, NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
         Dim ReturnResult As clsMap.clsTerrain.Tile.sTexture
 
         'use random for empty tiles
@@ -261,7 +262,7 @@
         Return ReturnResult
     End Function
 
-    Public Sub RotateDirection(ByVal InitialDirection As sTileDirection, ByVal Orientation As sTileOrientation, ByRef ResultDirection As sTileDirection)
+    Public Sub RotateDirection(InitialDirection As sTileDirection, Orientation As sTileOrientation, ByRef ResultDirection As sTileDirection)
 
         ResultDirection = InitialDirection
         If Orientation.SwitchedAxes Then
@@ -275,7 +276,7 @@
         End If
     End Sub
 
-    Public Function GetTileRotatedOffset(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_int) As sXY_int
+    Public Function GetTileRotatedOffset(TileOrientation As sTileOrientation, Pos As sXY_int) As sXY_int
         Dim Result As sXY_int
 
         If TileOrientation.SwitchedAxes Then
@@ -305,7 +306,7 @@
         Return Result
     End Function
 
-    Public Function GetTileRotatedPos_sng(ByVal TileOrientation As sTileOrientation, ByVal Pos As sXY_sng) As sXY_sng
+    Public Function GetTileRotatedPos_sng(TileOrientation As sTileOrientation, Pos As sXY_sng) As sXY_sng
         Dim ReturnResult As sXY_sng
 
         If TileOrientation.SwitchedAxes Then
@@ -335,7 +336,7 @@
         Return ReturnResult
     End Function
 
-    Public Function GetTileRotatedPos_dbl(ByVal TileOrientation As sTileOrientation, ByVal Pos As Matrix3D.XY_dbl) As Matrix3D.XY_dbl
+    Public Function GetTileRotatedPos_dbl(TileOrientation As sTileOrientation, Pos As Matrix3D.XY_dbl) As Matrix3D.XY_dbl
         Dim ReturnResult As Matrix3D.XY_dbl
 
         If TileOrientation.SwitchedAxes Then
@@ -365,7 +366,7 @@
         Return ReturnResult
     End Function
 
-    Public Function GetRotatedPos(ByVal Orientation As sTileOrientation, ByVal Pos As sXY_int, ByVal Limits As sXY_int) As sXY_int
+    Public Function GetRotatedPos(Orientation As sTileOrientation, Pos As sXY_int, Limits As sXY_int) As sXY_int
         Dim Result As sXY_int
 
         If Orientation.SwitchedAxes Then
@@ -395,7 +396,7 @@
         Return Result
     End Function
 
-    Public Function GetRotatedAngle(ByVal Orientation As sTileOrientation, ByVal Angle As Double) As Double
+    Public Function GetRotatedAngle(Orientation As sTileOrientation, Angle As Double) As Double
         Dim XY_dbl As Matrix3D.XY_dbl
 
         XY_dbl = GetTileRotatedPos_dbl(Orientation, New Matrix3D.XY_dbl((Math.Cos(Angle) + 1.0#) / 2.0#, (Math.Sin(Angle) + 1.0#) / 2.0#))
@@ -404,7 +405,7 @@
         Return Math.Atan2(XY_dbl.Y, XY_dbl.X)
     End Function
 
-    Public Sub GetTileRotatedTexCoords(ByVal TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
+    Public Sub GetTileRotatedTexCoords(TileOrientation As sTileOrientation, ByRef CoordA As sXY_sng, ByRef CoordB As sXY_sng, ByRef CoordC As sXY_sng, ByRef CoordD As sXY_sng)
         Dim ReverseOrientation As sTileOrientation
 
         ReverseOrientation = TileOrientation
@@ -459,7 +460,7 @@
         End If
     End Sub
 
-    Public Sub TileOrientation_To_OldOrientation(ByVal TileOrientation As sTileOrientation, ByRef OutputRotation As Byte, ByRef OutputFlipX As Boolean)
+    Public Sub TileOrientation_To_OldOrientation(TileOrientation As sTileOrientation, ByRef OutputRotation As Byte, ByRef OutputFlipX As Boolean)
 
         If TileOrientation.SwitchedAxes Then
             If TileOrientation.ResultXFlip Then
@@ -478,47 +479,47 @@
         End If
     End Sub
 
-    Public Sub OldOrientation_To_TileOrientation(ByVal OldRotation As Byte, ByVal OldFlipX As Boolean, ByVal OldFlipZ As Boolean, ByRef Output_TileOrientation As sTileOrientation)
+    Public Sub OldOrientation_To_TileOrientation(OldRotation As Byte, OldFlipX As Boolean, OldFlipZ As Boolean, ByRef Result As sTileOrientation)
 
         If OldRotation = 0 Then
-            Output_TileOrientation.SwitchedAxes = False
-            Output_TileOrientation.ResultXFlip = False
-            Output_TileOrientation.ResultYFlip = False
+            Result.SwitchedAxes = False
+            Result.ResultXFlip = False
+            Result.ResultYFlip = False
         ElseIf OldRotation = 1 Then
-            Output_TileOrientation.SwitchedAxes = True
-            Output_TileOrientation.ResultXFlip = True
-            Output_TileOrientation.ResultYFlip = False
+            Result.SwitchedAxes = True
+            Result.ResultXFlip = True
+            Result.ResultYFlip = False
         ElseIf OldRotation = 2 Then
-            Output_TileOrientation.SwitchedAxes = False
-            Output_TileOrientation.ResultXFlip = True
-            Output_TileOrientation.ResultYFlip = True
+            Result.SwitchedAxes = False
+            Result.ResultXFlip = True
+            Result.ResultYFlip = True
         ElseIf OldRotation = 3 Then
-            Output_TileOrientation.SwitchedAxes = True
-            Output_TileOrientation.ResultXFlip = False
-            Output_TileOrientation.ResultYFlip = True
+            Result.SwitchedAxes = True
+            Result.ResultXFlip = False
+            Result.ResultYFlip = True
         End If
         If OldFlipX Then
-            If Output_TileOrientation.SwitchedAxes Then
-                Output_TileOrientation.ResultYFlip = Not Output_TileOrientation.ResultYFlip
+            If Result.SwitchedAxes Then
+                Result.ResultYFlip = Not Result.ResultYFlip
             Else
-                Output_TileOrientation.ResultXFlip = Not Output_TileOrientation.ResultXFlip
+                Result.ResultXFlip = Not Result.ResultXFlip
             End If
         End If
         If OldFlipZ Then
-            If Output_TileOrientation.SwitchedAxes Then
-                Output_TileOrientation.ResultXFlip = Not Output_TileOrientation.ResultXFlip
+            If Result.SwitchedAxes Then
+                Result.ResultXFlip = Not Result.ResultXFlip
             Else
-                Output_TileOrientation.ResultYFlip = Not Output_TileOrientation.ResultYFlip
+                Result.ResultYFlip = Not Result.ResultYFlip
             End If
         End If
     End Sub
 
-    Public Function IdenticalTileDirections(ByVal TileOrientationA As sTileDirection, ByVal TileOrientationB As sTileDirection) As Boolean
+    Public Function IdenticalTileDirections(TileOrientationA As sTileDirection, TileOrientationB As sTileDirection) As Boolean
 
         Return (TileOrientationA.X = TileOrientationB.X And TileOrientationA.Y = TileOrientationB.Y)
     End Function
 
-    Public Function DirectionsOnSameSide(ByVal DirectionA As sTileDirection, ByVal DirectionB As sTileDirection) As Boolean
+    Public Function DirectionsOnSameSide(DirectionA As sTileDirection, DirectionB As sTileDirection) As Boolean
 
         If DirectionA.X = 0 Then
             If DirectionB.X = 0 Then
@@ -543,7 +544,7 @@
         Return False
     End Function
 
-    Public Function DirectionsAreInLine(ByVal DirectionA As sTileDirection, ByVal DirectionB As sTileDirection) As Boolean
+    Public Function DirectionsAreInLine(DirectionA As sTileDirection, DirectionB As sTileDirection) As Boolean
 
         If DirectionA.X = DirectionB.X Then
             Return True

@@ -1,4 +1,5 @@
-﻿Public Class frmData
+﻿
+Public Class frmData
 
     Public ObjectDataPathSet As New ctrlPathSet("Object Data Directories")
     Public TilesetsPathSet As New ctrlPathSet("Tilesets Directories")
@@ -20,16 +21,6 @@
         btnQuit.Visible = False
         btnContinue.Visible = False
         IsDialog = False
-    End Sub
-
-    Private Sub btnQuit_Click(sender As System.Object, e As System.EventArgs) Handles btnQuit.Click
-
-        DialogResult = Windows.Forms.DialogResult.Cancel
-    End Sub
-
-    Private Sub btnContinue_Click(sender As System.Object, e As System.EventArgs) Handles btnContinue.Click
-
-        DialogResult = Windows.Forms.DialogResult.OK
     End Sub
 
     Private Sub frmData_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing

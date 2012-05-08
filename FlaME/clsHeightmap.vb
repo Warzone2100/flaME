@@ -14,14 +14,14 @@
     End Class
     Public HeightData As New clsHeightData
 
-    Public Sub Blank(ByVal SizeY As Integer, ByVal SizeX As Integer)
+    Public Sub Blank(SizeY As Integer, SizeX As Integer)
 
         HeightData.SizeX = SizeX
         HeightData.SizeY = SizeY
         ReDim HeightData.Height(SizeY - 1, SizeX - 1)
     End Sub
 
-    Public Sub Randomize(ByVal HeightMultiplier As Double)
+    Public Sub Randomize(HeightMultiplier As Double)
         Dim X As Integer
         Dim Y As Integer
         Dim HeightMultiplierHalved As Long
@@ -34,7 +34,7 @@
         Next
     End Sub
 
-    Public Sub GenerateNew(ByVal SizeY As Integer, ByVal SizeX As Integer, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
+    Public Sub GenerateNew(SizeY As Integer, SizeX As Integer, Inflations As Integer, NoiseFactor As Double, HeightMultiplier As Double)
         Dim Temp As New clsHeightmap
 
         Blank(SizeY, SizeX)
@@ -44,7 +44,7 @@
         HeightData = Temp.HeightData 'steal the temporary heightmap's data
     End Sub
 
-    Public Sub Generate(ByVal Source As clsHeightmap, ByVal Inflations As Integer, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double)
+    Public Sub Generate(Source As clsHeightmap, Inflations As Integer, NoiseFactor As Double, HeightMultiplier As Double)
         Dim Temp As New clsHeightmap
         Dim A As Integer
 
@@ -64,7 +64,7 @@
         End If
     End Sub
 
-    Public Sub Inflate(ByVal Source As clsHeightmap, ByVal NoiseFactor As Double, ByVal HeightMultiplier As Double, ByVal VariationReduction As Integer)
+    Public Sub Inflate(Source As clsHeightmap, NoiseFactor As Double, HeightMultiplier As Double, VariationReduction As Integer)
 
         Dim A As Integer
         Dim Y As Integer
@@ -165,7 +165,7 @@
         MinMax_Output.Max = HeightMax
     End Sub
 
-    Public Sub Copy(ByVal Source As clsHeightmap)
+    Public Sub Copy(Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
 
@@ -178,12 +178,12 @@
         Next
     End Sub
 
-    Public Function IsSizeSame(ByVal Source As clsHeightmap) As Boolean
+    Public Function IsSizeSame(Source As clsHeightmap) As Boolean
 
         Return ((HeightData.SizeX = Source.HeightData.SizeX) And (HeightData.SizeY = Source.HeightData.SizeY))
     End Function
 
-    Public Sub Multiply2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Multiply2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
 
@@ -196,7 +196,7 @@
         Next
     End Sub
 
-    Public Sub Multiply(ByVal Source As clsHeightmap, ByVal Multiplier As Double)
+    Public Sub Multiply(Source As clsHeightmap, Multiplier As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale * Multiplier / HeightScale
@@ -209,7 +209,7 @@
         Next
     End Sub
 
-    Public Sub Divide2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Divide2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = SourceA.HeightScale / (SourceB.HeightScale * HeightScale)
@@ -223,7 +223,7 @@
         Next
     End Sub
 
-    Public Sub Divide(ByVal Source As clsHeightmap, ByVal Denominator As Double)
+    Public Sub Divide(Source As clsHeightmap, Denominator As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / (Denominator * HeightScale)
@@ -236,7 +236,7 @@
         Next
     End Sub
 
-    Public Sub Intervalise(ByVal Source As clsHeightmap, ByVal Interval As Double)
+    Public Sub Intervalise(Source As clsHeightmap, Interval As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / Interval
@@ -250,7 +250,7 @@
         Next
     End Sub
 
-    Public Sub Add2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Add2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double = SourceA.HeightScale / HeightScale
@@ -265,7 +265,7 @@
         Next
     End Sub
 
-    Public Sub Add(ByVal Source As clsHeightmap, ByVal Amount As Double)
+    Public Sub Add(Source As clsHeightmap, Amount As Double)
         Dim Y As Integer
         Dim X As Integer
 
@@ -277,7 +277,7 @@
         Next
     End Sub
 
-    Public Sub Subtract2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Subtract2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double = SourceA.HeightScale / HeightScale
@@ -292,7 +292,7 @@
         Next
     End Sub
 
-    Public Sub Subtract(ByVal Source As clsHeightmap, ByVal Amount As Double)
+    Public Sub Subtract(Source As clsHeightmap, Amount As Double)
         Dim Y As Integer
         Dim X As Integer
 
@@ -304,7 +304,7 @@
         Next
     End Sub
 
-    Public Sub Highest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Highest2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double
@@ -327,7 +327,7 @@
         Next
     End Sub
 
-    Public Sub Highest(ByVal Source As clsHeightmap, ByVal Value As Double)
+    Public Sub Highest(Source As clsHeightmap, Value As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / HeightScale
@@ -347,7 +347,7 @@
         Next
     End Sub
 
-    Public Sub Lowest2(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap)
+    Public Sub Lowest2(SourceA As clsHeightmap, SourceB As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTempA As Double
@@ -370,7 +370,7 @@
         Next
     End Sub
 
-    Public Sub Lowest(ByVal Source As clsHeightmap, ByVal Value As Double)
+    Public Sub Lowest(Source As clsHeightmap, Value As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = Source.HeightScale / HeightScale
@@ -390,7 +390,7 @@
         Next
     End Sub
 
-    Public Sub Swap3(ByVal SourceA As clsHeightmap, ByVal SourceB As clsHeightmap, ByVal Swapper As clsHeightmap)
+    Public Sub Swap3(SourceA As clsHeightmap, SourceB As clsHeightmap, Swapper As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim Ratio As Double
@@ -407,7 +407,7 @@
         Next
     End Sub
 
-    Public Sub Clamp(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
+    Public Sub Clamp(Source As clsHeightmap, HeightMin As Double, HeightMax As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double
@@ -427,7 +427,7 @@
         Next
     End Sub
 
-    Public Sub Invert(ByVal Source As clsHeightmap)
+    Public Sub Invert(Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim dblTemp As Double = -Source.HeightScale / HeightScale
@@ -440,7 +440,7 @@
         Next
     End Sub
 
-    Public Sub WaveLow(ByVal Source As clsHeightmap)
+    Public Sub WaveLow(Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim HeightRange As Long
@@ -461,7 +461,7 @@
         Next
     End Sub
 
-    Public Sub WaveHigh(ByVal Source As clsHeightmap)
+    Public Sub WaveHigh(Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim HeightRange As Long
@@ -482,7 +482,7 @@
         Next
     End Sub
 
-    Public Sub Rescale(ByVal Source As clsHeightmap, ByVal HeightMin As Double, ByVal HeightMax As Double)
+    Public Sub Rescale(Source As clsHeightmap, HeightMin As Double, HeightMax As Double)
         Dim Y As Integer
         Dim X As Integer
         Dim MinMax As New sMinMax
@@ -515,7 +515,7 @@
         End If
     End Sub
 
-    Public Sub ShiftToZero(ByVal Source As clsHeightmap)
+    Public Sub ShiftToZero(Source As clsHeightmap)
         Dim Y As Integer
         Dim X As Integer
         Dim MinMax As New sMinMax
@@ -533,7 +533,7 @@
         Next
     End Sub
 
-    Public Sub Resize(ByVal Source As clsHeightmap, ByVal OffsetY As Integer, ByVal OffsetX As Integer, ByVal SizeY As Integer, ByVal SizeX As Integer)
+    Public Sub Resize(Source As clsHeightmap, OffsetY As Integer, OffsetX As Integer, SizeY As Integer, SizeX As Integer)
         Dim StartY As Integer
         Dim StartX As Integer
         Dim EndY As Integer
@@ -553,14 +553,14 @@
         Next
     End Sub
 
-    Public Sub SizeCopy(ByVal Source As clsHeightmap)
+    Public Sub SizeCopy(Source As clsHeightmap)
 
         HeightData.SizeX = Source.HeightData.SizeX
         HeightData.SizeY = Source.HeightData.SizeY
         ReDim HeightData.Height(HeightData.SizeY - 1, HeightData.SizeX - 1)
     End Sub
 
-    Public Sub Insert(ByVal Source As clsHeightmap, ByVal Y1 As Integer, ByVal X1 As Integer)
+    Public Sub Insert(Source As clsHeightmap, Y1 As Integer, X1 As Integer)
         Dim Y As Integer
         Dim X As Integer
 
@@ -571,7 +571,7 @@
         Next
     End Sub
 
-    Public Function Load_Image(ByVal Path As String) As sResult
+    Public Function Load_Image(Path As String) As sResult
         Dim ReturnResult As sResult
         ReturnResult.Success = False
         ReturnResult.Problem = ""
@@ -600,7 +600,7 @@
         Return ReturnResult
     End Function
 
-    Public Sub GenerateNewOfSize(ByVal Final_SizeY As Integer, ByVal Final_SizeX As Integer, ByVal Scale As Single, ByVal HeightMultiplier As Double)
+    Public Sub GenerateNewOfSize(Final_SizeY As Integer, Final_SizeX As Integer, Scale As Single, HeightMultiplier As Double)
         Dim Inflations As Integer
         Dim SizeY As Integer
         Dim SizeX As Integer
@@ -640,7 +640,7 @@
         End If
     End Sub
 
-    Public Sub Stretch(ByVal hmSource As clsHeightmap, ByVal SizeX As Integer, ByVal SizeY As Integer)
+    Public Sub Stretch(hmSource As clsHeightmap, SizeX As Integer, SizeY As Integer)
         Dim OldSizeX As Integer
         Dim OldSizeY As Integer
         Dim New_Per_OldX As Single
@@ -703,7 +703,7 @@
         Public Heights() As Single
     End Structure
 
-    Public Sub FadeMultiple(ByVal hmSource As clsHeightmap, ByRef AlterationMaps As sHeightmaps, ByRef AlterationHeights As sHeights)
+    Public Sub FadeMultiple(hmSource As clsHeightmap, ByRef AlterationMaps As sHeightmaps, ByRef AlterationHeights As sHeights)
         Dim Level As Integer
         Dim Y As Integer
         Dim X As Integer

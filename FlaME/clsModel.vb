@@ -1,5 +1,4 @@
-﻿Imports OpenTK.Graphics
-Imports OpenTK.Graphics.OpenGL
+﻿Imports OpenTK.Graphics.OpenGL
 
 Public Class clsModel
 
@@ -93,8 +92,8 @@ Public Class clsModel
         Public PointCount As Integer
     End Structure
 
-    Public Function LoadPIE(ByVal File As IO.StreamReader) As clsResult
-        Dim ReturnResult As New clsResult
+    Public Function ReadPIE(File As IO.StreamReader, Owner As clsObjectData) As clsResult
+        Dim ReturnResult As New clsResult("Reading PIE")
 
         Dim A As Integer
         Dim B As Integer
@@ -124,7 +123,7 @@ Reeval:
             If Left(strTemp, 3) = "PIE" Then
                 PIEVersion = CInt(Right(strTemp, strTemp.Length - 4))
                 If PIEVersion <> 2 And PIEVersion <> 3 Then
-                    ReturnResult.Problem_Add("Version is unknown.")
+                    ReturnResult.ProblemAdd("Version is unknown.")
                     Return ReturnResult
                 End If
             ElseIf Left(strTemp, 4) = "TYPE" Then
@@ -134,13 +133,13 @@ Reeval:
                 If A > 0 Then
                     A = InStrRev(TextureName, " ", A - 1)
                 Else
-                    ReturnResult.Problem_Add("Bad texture name.")
+                    ReturnResult.ProblemAdd("Bad texture name.")
                     Return ReturnResult
                 End If
                 If A > 0 Then
                     TextureName = Left(TextureName, A - 1)
                 Else
-                    ReturnResult.Problem_Add("Bad texture name.")
+                    ReturnResult.ProblemAdd("Bad texture name.")
                     Return ReturnResult
                 End If
             ElseIf Left(strTemp, 6) = "LEVELS" Then
@@ -149,7 +148,7 @@ Reeval:
             ElseIf Left(strTemp, 6) = "LEVEL " Then
                 LevelNum = CInt(Right(strTemp, strTemp.Length - 6)) - 1
                 If LevelNum >= LevelCount Then
-                    ReturnResult.Problem_Add("Level number >= number of levels.")
+                    ReturnResult.ProblemAdd("Level number >= number of levels.")
                     Return ReturnResult
                 End If
             ElseIf Left(strTemp, 6) = "POINTS" Then
@@ -190,7 +189,7 @@ Reeval:
                             Levels(LevelNum).Point(A).Y = CSng(SplitText(1))
                             Levels(LevelNum).Point(A).Z = CSng(SplitText(2))
                         Catch ex As Exception
-                            ReturnResult.Problem_Add("Bad point " & A)
+                            ReturnResult.ProblemAdd("Bad point " & A)
                             Return ReturnResult
                         End Try
                         A += 1
@@ -236,13 +235,13 @@ Reeval:
                         If PIEVersion = 3 Then
                             '200, pointcount, points, texcoords
                             If C < 2 Then
-                                ReturnResult.Problem_Add("Too few fields for polygon " & A)
+                                ReturnResult.ProblemAdd("Too few fields for polygon " & A)
                                 Return ReturnResult
                             End If
                             Try
                                 Count = CInt(SplitText(1))
                             Catch ex As Exception
-                                ReturnResult.Problem_Add("Bad polygon point count: " & ex.Message)
+                                ReturnResult.ProblemAdd("Bad polygon point count: " & ex.Message)
                                 Return ReturnResult
                             End Try
                             Levels(LevelNum).Polygon(A).PointCount = Count
@@ -257,27 +256,27 @@ Reeval:
                                 Case 0
                                     GoTo Reeval
                                 Case Is <> 2 + Count * 3
-                                    ReturnResult.Problem_Add("Wrong number of fields (" & SplitText.GetUpperBound(0) + 1 & ") for polygon " & A)
+                                    ReturnResult.ProblemAdd("Wrong number of fields (" & SplitText.GetUpperBound(0) + 1 & ") for polygon " & A)
                                     Return ReturnResult
                             End Select
                             For B = 0 To Count - 1
                                 Try
                                     Levels(LevelNum).Polygon(A).PointNum(B) = CInt(SplitText(2 + B))
                                 Catch ex As Exception
-                                    ReturnResult.Problem_Add("Bad polygon point: " & ex.Message)
+                                    ReturnResult.ProblemAdd("Bad polygon point: " & ex.Message)
                                     Return ReturnResult
                                 End Try
 
                                 Try
                                     Levels(LevelNum).Polygon(A).TexCoord(B).X = CSng(SplitText(2 + Count + 2 * B))
                                 Catch ex As Exception
-                                    ReturnResult.Problem_Add("Bad polygon x tex coord: " & ex.Message)
+                                    ReturnResult.ProblemAdd("Bad polygon x tex coord: " & ex.Message)
                                     Return ReturnResult
                                 End Try
                                 Try
                                     Levels(LevelNum).Polygon(A).TexCoord(B).Y = CSng(SplitText(2 + Count + 2 * B + 1))
                                 Catch ex As Exception
-                                    ReturnResult.Problem_Add("Bad polygon y tex coord: " & ex.Message)
+                                    ReturnResult.ProblemAdd("Bad polygon y tex coord: " & ex.Message)
                                     Return ReturnResult
                                 End Try
                             Next
@@ -354,7 +353,7 @@ Reeval:
                             Connectors(A).Y = CSng(SplitText(2))
                             Connectors(A).Z = CSng(SplitText(1))
                         Catch ex As Exception
-                            ReturnResult.Problem_Add("Bad connector " & A)
+                            ReturnResult.ProblemAdd("Bad connector " & A)
                             Return ReturnResult
                         End Try
                         A += 1
@@ -370,9 +369,9 @@ Reeval:
         Loop
 FileFinished:
 
-        GLTextureNum = Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
+        GLTextureNum = Owner.Get_TexturePage_GLTexture(Left(TextureName, TextureName.Length - 4))
         If GLTextureNum = 0 Then
-            ReturnResult.Warning_Add("PIE texture " & ControlChars.Quote & TextureName & ControlChars.Quote & " was not loaded.")
+            ReturnResult.WarningAdd("Texture " & ControlChars.Quote & TextureName & ControlChars.Quote & " was not loaded")
         End If
 
         TriangleCount = NewTriCount

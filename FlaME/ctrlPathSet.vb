@@ -1,4 +1,5 @@
-﻿Public Class ctrlPathSet
+﻿
+Public Class ctrlPathSet
 
     Public Property SelectedNum As Integer
         Get
@@ -30,17 +31,17 @@
         End Get
     End Property
 
-    Public Sub New(ByVal Title As String)
+    Public Sub New(Title As String)
         InitializeComponent()
 
         gbxTitle.Text = Title
     End Sub
 
-    Public Sub SetPaths(ByVal NewPaths As SimpleList(Of String))
+    Public Sub SetPaths(NewPaths As SimpleList(Of String))
         Dim A As Integer
 
         lstPaths.Items.Clear()
-        For A = 0 To NewPaths.ItemCount - 1
+        For A = 0 To NewPaths.Count - 1
             lstPaths.Items.Add(NewPaths(A))
         Next
     End Sub

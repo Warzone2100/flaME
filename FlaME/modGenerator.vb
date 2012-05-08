@@ -1,4 +1,5 @@
-﻿Public Module modGenerator
+﻿
+Public Module modGenerator
 
     Public Generator_TilesetArizona As clsGeneratorTileset
     Public Generator_TilesetUrban As clsGeneratorTileset
@@ -56,13 +57,11 @@
     Public TerrainStyle_Urban As clsMap.sGenerateMasterTerrainArgs
     Public TerrainStyle_Rockies As clsMap.sGenerateMasterTerrainArgs
 
-    Public Function GetUnitTypeFromCode(ByVal Code As String) As clsUnitType
-        Dim A As Integer
-        Dim UnitCode As String = Nothing
+    Public Function GetUnitTypeFromCode(Code As String) As clsUnitType
         Dim UnitType As clsUnitType
 
-        For A = 0 To ObjectData.UnitTypes.ItemCount - 1
-            UnitType = ObjectData.UnitTypes(A)
+        For Each UnitType In ObjectData.UnitTypes
+            Dim UnitCode As String = Nothing
             If UnitType.GetCode(UnitCode) Then
                 If UnitCode = Code Then
                     Return UnitType

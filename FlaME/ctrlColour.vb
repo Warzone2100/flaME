@@ -1,11 +1,12 @@
-﻿Public Class ctrlColour
+﻿
+Public Class ctrlColour
 
     Private Colour As clsRGB_sng
     Private ColourColor As Color
 
     Private ColourBoxGraphics As Graphics
 
-    Public Sub New(ByVal NewColour As clsRGB_sng)
+    Public Sub New(NewColour As clsRGB_sng)
         InitializeComponent()
 
         If NewColour Is Nothing Then
@@ -20,23 +21,20 @@
         Dim Blue As Integer = CInt(Clamp_dbl(Colour.Blue * 255.0#, 0.0#, 255.0#))
         ColourColor = ColorTranslator.FromOle(OSRGB(Red, Green, Blue))
 
-        Select Case Colour.ColourType
-            Case clsRGB_sng.enumType.RGB
-                nudAlpha.Visible = False
-            Case clsRGB_sng.enumType.RGBA
-                nudAlpha.Value = CDec(CType(Colour, clsRGBA_sng).Alpha)
-                AddHandler nudAlpha.ValueChanged, AddressOf nudAlpha_Changed
-                AddHandler nudAlpha.Leave, AddressOf nudAlpha_Changed
-            Case Else
-                Stop
-        End Select
+        If TypeOf Colour Is clsRGBA_sng Then
+            nudAlpha.Value = CDec(CType(Colour, clsRGBA_sng).Alpha)
+            AddHandler nudAlpha.ValueChanged, AddressOf nudAlpha_Changed
+            AddHandler nudAlpha.Leave, AddressOf nudAlpha_Changed
+        Else
+            nudAlpha.Visible = False
+        End If
 
         ColourBoxGraphics = pnlColour.CreateGraphics
 
         ColourBoxRedraw()
     End Sub
 
-    Private Sub SelectColour(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles pnlColour.Click
+    Private Sub SelectColour(sender As System.Object, e As System.EventArgs) Handles pnlColour.Click
         Dim ColourSelect As New Windows.Forms.ColorDialog
 
         ColourSelect.Color = ColourColor
@@ -51,12 +49,12 @@
         ColourBoxRedraw()
     End Sub
 
-    Private Sub nudAlpha_Changed(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub nudAlpha_Changed(sender As Object, e As EventArgs)
 
         CType(Colour, clsRGBA_sng).Alpha = nudAlpha.Value
     End Sub
 
-    Private Sub pnlColour_Paint(ByVal sender As Object, ByVal e As PaintEventArgs) Handles pnlColour.Paint
+    Private Sub pnlColour_Paint(sender As Object, e As PaintEventArgs) Handles pnlColour.Paint
 
         ColourBoxRedraw()
     End Sub

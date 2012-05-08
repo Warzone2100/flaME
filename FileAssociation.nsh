@@ -173,7 +173,7 @@ _____________________________________________________________________________
   DeleteRegKey HKCR $R0
   Goto Own
  
-Restore:
+;Restore:
   WriteRegStr HKCR $R0 "" $1
   DeleteRegValue HKCR $R0 "backup_val"
 Own:

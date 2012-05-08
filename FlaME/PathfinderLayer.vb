@@ -20,7 +20,7 @@
     End Property
 
     Public Nodes(-1) As PathfinderNode
-    Public ReadOnly Property GetNode(ByVal Num As Integer) As PathfinderNode
+    Public ReadOnly Property GetNode(Num As Integer) As PathfinderNode
         Get
             Return Nodes(Num)
         End Get
@@ -33,7 +33,7 @@
     End Property
 
     Public Connections(-1) As PathfinderConnection
-    Public ReadOnly Property GetConnection(ByVal Num As Integer) As PathfinderConnection
+    Public ReadOnly Property GetConnection(Num As Integer) As PathfinderConnection
         Get
             Return Connections(Num)
         End Get
@@ -45,7 +45,7 @@
         End Get
     End Property
 
-    Public Sub Node_Add(ByVal NewNode As PathfinderNode)
+    Public Sub Node_Add(NewNode As PathfinderNode)
 
         If Nodes.GetUpperBound(0) < NodeCount Then
             ReDim Preserve Nodes((NodeCount + 1) * 2 - 1)
@@ -55,7 +55,7 @@
         NodeCount += 1
     End Sub
 
-    Public Sub Node_Remove(ByVal Num As Integer)
+    Public Sub Node_Remove(Num As Integer)
 
         Nodes(Num).Layer = Nothing
         Nodes(Num).Layer_NodeNum = -1
@@ -70,7 +70,7 @@
         End If
     End Sub
 
-    Public Sub Connection_Add(ByVal NewConnection As PathfinderConnection)
+    Public Sub Connection_Add(NewConnection As PathfinderConnection)
 
         If Connections.GetUpperBound(0) < ConnectionCount Then
             ReDim Preserve Connections((ConnectionCount + 1) * 2 - 1)
@@ -80,7 +80,7 @@
         ConnectionCount += 1
     End Sub
 
-    Public Sub Connection_Remove(ByVal Num As Integer)
+    Public Sub Connection_Remove(Num As Integer)
 
         Connections(Num).Layer_ConnectionNum = -1
 
@@ -94,7 +94,7 @@
         End If
     End Sub
 
-    Public Sub New(ByVal NewParentNetwork As PathfinderNetwork)
+    Public Sub New(NewParentNetwork As PathfinderNetwork)
 
         Network = NewParentNetwork
         Network.NodeLayer_Add(Me)
@@ -116,7 +116,7 @@
     Public ChangedNodes(3) As PathfinderNode
     Public ChangedNodeCount As Integer
 
-    Public ReadOnly Property GetChangedNode(ByVal Num As Integer) As PathfinderNode
+    Public ReadOnly Property GetChangedNode(Num As Integer) As PathfinderNode
         Get
             Return ChangedNodes(Num)
         End Get
@@ -134,7 +134,7 @@
         Loop
     End Sub
 
-    Public Sub ChangedNode_Add(ByVal NewChangedNode As PathfinderNode)
+    Public Sub ChangedNode_Add(NewChangedNode As PathfinderNode)
 
         If NewChangedNode.Layer_ChangedNodeNum >= 0 Then
             Exit Sub
@@ -148,7 +148,7 @@
         ChangedNodeCount += 1
     End Sub
 
-    Public Sub ChangedNode_Remove(ByVal Num As Integer)
+    Public Sub ChangedNode_Remove(Num As Integer)
 
         ChangedNodes(Num).Layer_ChangedNodeNum = -1
         ChangedNodes(Num) = Nothing

@@ -1,8 +1,9 @@
-﻿Public Class frmCompile
+﻿
+Public Class frmCompile
 
     Private Map As clsMap
 
-    Public Shared Function Create(ByVal Map As clsMap) As frmCompile
+    Public Shared Function Create(Map As clsMap) As frmCompile
 
         If Map Is Nothing Then
             Stop
@@ -17,7 +18,7 @@
         Return New frmCompile(Map)
     End Function
 
-    Private Sub New(ByVal Map As clsMap)
+    Private Sub New(Map As clsMap)
 
         InitializeComponent()
 
@@ -34,7 +35,7 @@
         txtName.Text = Map.InterfaceOptions.CompileName
 
         txtMultiPlayers.Text = Map.InterfaceOptions.CompileMultiPlayers
-        cbxNewPlayerFormat.Checked = Map.InterfaceOptions.CompileMultiXPlayers
+        cbxLevFormat.Checked = Map.InterfaceOptions.CompileMultiXPlayers
         txtAuthor.Text = Map.InterfaceOptions.CompileMultiAuthor
         cboLicense.Text = Map.InterfaceOptions.CompileMultiLicense
 
@@ -53,7 +54,7 @@
         Map.InterfaceOptions.CompileName = txtName.Text
 
         Map.InterfaceOptions.CompileMultiPlayers = txtMultiPlayers.Text
-        Map.InterfaceOptions.CompileMultiXPlayers = cbxNewPlayerFormat.Checked
+        Map.InterfaceOptions.CompileMultiXPlayers = cbxLevFormat.Checked
         Map.InterfaceOptions.CompileMultiAuthor = txtAuthor.Text
         Map.InterfaceOptions.CompileMultiLicense = cboLicense.Text
 
@@ -92,57 +93,56 @@
         UpdateControls() 'display to show any changes
     End Sub
 
-    Private Sub btnCompile_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnCompileMultiplayer.Click
-        Dim ReturnResult As New clsResult
+    Private Sub btnCompile_Click(sender As System.Object, e As System.EventArgs) Handles btnCompileMultiplayer.Click
+        Dim ReturnResult As New clsResult("Compile multiplayer")
         Dim A As Integer
 
         SaveToMap()
 
         Dim MapName As String
         Dim License As String = cboLicense.Text
-        Dim B As Integer
         Dim PlayerCount As Integer
         If Not InvariantParse_int(txtMultiPlayers.Text, PlayerCount) Then
             PlayerCount = 0
         End If
-        Dim IsXPlayerFormat As Boolean = cbxNewPlayerFormat.Checked
+        Dim IsXPlayerFormat As Boolean = cbxLevFormat.Checked
         If PlayerCount < 2 Or PlayerCount > 10 Then
-            ReturnResult.Problem_Add("The number of players must be from 2 to " & PlayerCountMax)
+            ReturnResult.ProblemAdd("The number of players must be from 2 to " & PlayerCountMax)
         End If
         If Not IsXPlayerFormat Then
             If PlayerCount <> 2 And PlayerCount <> 4 And PlayerCount <> 8 Then
-                ReturnResult.Problem_Add("You must enable support for this number of players.")
+                ReturnResult.ProblemAdd("You must enable support for this number of players.")
             End If
         End If
 
         A = ValidateMap_WaterTris()
         If A > 0 Then
-            ReturnResult.Warning_Add(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
+            ReturnResult.WarningAdd(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
         End If
-        ReturnResult.Append(ValidateMap, "")
 
-        ReturnResult.AppendAsWarning(ValidateMap_UnitPositions, "")
-
-        ReturnResult.Append(ValidateMap_Multiplayer(PlayerCount, IsXPlayerFormat), "")
+        ReturnResult.Add(ValidateMap())
+        ReturnResult.Add(ValidateMap_UnitPositions())
+        ReturnResult.Add(ValidateMap_Multiplayer(PlayerCount, IsXPlayerFormat))
 
         MapName = txtName.Text
+        Dim CurrentChar As Char
         For A = 0 To MapName.Length - 1
-            B = Asc(MapName.Chars(A))
-            If Not ((B >= 97 And B <= 122) Or (B >= 65 And B <= 90) Or (A >= 1 And ((B >= 48 And B <= 57) Or MapName.Chars(A) = "-"c Or MapName.Chars(A) = "_"c))) Then
+            CurrentChar = MapName(A)
+            If Not ((CurrentChar >= "a"c And CurrentChar <= "z"c) Or (CurrentChar >= "A"c And CurrentChar <= "Z"c) Or (A >= 1 And ((CurrentChar >= "0"c And CurrentChar <= "9"c) Or CurrentChar = "-"c Or CurrentChar = "_"c))) Then
                 Exit For
             End If
         Next
         If A < MapName.Length Then
-            ReturnResult.Problem_Add("The map's name must contain only letters, numbers, underscores and hyphens, and must begin with a letter.")
+            ReturnResult.ProblemAdd("The map's name must contain only letters, numbers, underscores and hyphens, and must begin with a letter.")
         End If
         If MapName.Length < 1 Or MapName.Length > 16 Then
-            ReturnResult.Problem_Add("Map name must be from 1 to 16 characters.")
+            ReturnResult.ProblemAdd("Map name must be from 1 to 16 characters.")
         End If
         If License = "" Then
-            ReturnResult.Problem_Add("Enter a valid license.")
+            ReturnResult.ProblemAdd("Enter a valid license.")
         End If
         If ReturnResult.HasProblems Then
-            ShowWarnings(ReturnResult, "Compile Multiplayer")
+            ShowWarnings(ReturnResult)
             Exit Sub
         End If
         Dim CompileMultiDialog As New SaveFileDialog
@@ -162,8 +162,8 @@
         WriteWZArgs.Multiplayer.IsBetaPlayerFormat = IsXPlayerFormat
         WriteWZArgs.Multiplayer.License = License
         WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Multiplayer
-        ReturnResult.Append(Map.Write_WZ(WriteWZArgs), "")
-        ShowWarnings(ReturnResult, "Compile Multiplayer")
+        ReturnResult.Add(Map.Write_WZ(WriteWZArgs))
+        ShowWarnings(ReturnResult)
         If Not ReturnResult.HasWarnings Then
             Close()
         End If
@@ -175,17 +175,16 @@
         Map = Nothing
     End Sub
 
-    Private Sub frmCompile_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+    Private Sub frmCompile_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
 
         SaveToMap()
     End Sub
 
     Private Function ValidateMap_UnitPositions() As clsResult
-        Dim Result As New clsResult
+        Dim Result As New clsResult("Validate unit positions")
 
         'check unit positions
 
-        Dim A As Integer
         Dim TileHasUnit(Map.Terrain.TileSize.X - 1, Map.Terrain.TileSize.Y - 1) As Boolean
         Dim TileStructureType(Map.Terrain.TileSize.X - 1, Map.Terrain.TileSize.Y - 1) As clsStructureType
         Dim TileFeatureType(Map.Terrain.TileSize.X - 1, Map.Terrain.TileSize.Y - 1) As clsFeatureType
@@ -195,42 +194,40 @@
         Dim StartPos As sXY_int
         Dim FinishPos As sXY_int
         Dim CentrePos As sXY_int
-        Dim StructureType As clsStructureType.enumStructureType
-        Dim tmpStructure As clsStructureType
+        Dim StructureTypeType As clsStructureType.enumStructureType
+        Dim StructureType As clsStructureType
         Dim Footprint As sXY_int
-        Dim UnitIsStructureModule(Map.Units.ItemCount - 1) As Boolean
+        Dim UnitIsStructureModule(Map.Units.Count - 1) As Boolean
         Dim IsValid As Boolean
-        Dim tmpUnit As clsMap.clsUnit
-        For A = 0 To Map.Units.ItemCount - 1
-            tmpUnit = Map.Units.Item(A)
-            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(tmpUnit.Type, clsStructureType)
-                StructureType = tmpStructure.StructureType
-                UnitIsStructureModule(A) = (tmpStructure.IsModule Or StructureType = clsStructureType.enumStructureType.ResourceExtractor)
+        Dim Unit As clsMap.clsUnit
+        For Each Unit In Map.Units
+            If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                StructureType = CType(Unit.Type, clsStructureType)
+                StructureTypeType = StructureType.StructureType
+                UnitIsStructureModule(Unit.MapLink.ArrayPosition) = (StructureType.IsModule Or StructureTypeType = clsStructureType.enumStructureType.ResourceExtractor)
             End If
         Next
         'check and store non-module units first. modules need to check for the underlying unit.
-        For A = 0 To Map.Units.ItemCount - 1
-            tmpUnit = Map.Units.Item(A)
-            If Not UnitIsStructureModule(A) Then
-                Footprint = tmpUnit.Type.GetFootprint
-                Map.GetFootprintTileRange(tmpUnit.Pos.Horizontal, Footprint, StartPos, FinishPos)
+        For Each Unit In Map.Units
+            If Not UnitIsStructureModule(Unit.MapLink.ArrayPosition) Then
+                Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
+                Map.GetFootprintTileRange(Unit.Pos.Horizontal, Footprint, StartPos, FinishPos)
                 If StartPos.X < 0 Or FinishPos.X >= Map.Terrain.TileSize.X _
                   Or StartPos.Y < 0 Or FinishPos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.Problem_Add("Unit off map at position " & tmpUnit.GetPosText & ".")
+                    Result.ProblemAdd("Unit off map at position " & Unit.GetPosText & ".")
                 Else
                     For Y = StartPos.Y To FinishPos.Y
                         For X = StartPos.X To FinishPos.X
                             If TileHasUnit(X, Y) Then
-                                Result.Problem_Add("Bad unit overlap on tile " & X & ", " & Y & ".")
+                                Result.ProblemAdd("Bad unit overlap on tile " & X & ", " & Y & ".")
                             Else
                                 TileHasUnit(X, Y) = True
-                                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                                    TileStructureType(X, Y) = CType(tmpUnit.Type, clsStructureType)
-                                ElseIf tmpUnit.Type.Type = clsUnitType.enumType.Feature Then
-                                    TileFeatureType(X, Y) = CType(tmpUnit.Type, clsFeatureType)
+                                If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                                    TileStructureType(X, Y) = CType(Unit.Type, clsStructureType)
+                                ElseIf Unit.Type.Type = clsUnitType.enumType.Feature Then
+                                    TileFeatureType(X, Y) = CType(Unit.Type, clsFeatureType)
                                 End If
-                                TileObjectGroup(X, Y) = tmpUnit.UnitGroup
+                                TileObjectGroup(X, Y) = Unit.UnitGroup
                             End If
                         Next
                     Next
@@ -238,32 +235,31 @@
             End If
         Next
         'check modules and extractors
-        For A = 0 To Map.Units.ItemCount - 1
-            tmpUnit = Map.Units.Item(A)
-            If UnitIsStructureModule(A) Then
-                StructureType = CType(tmpUnit.Type, clsStructureType).StructureType
-                CentrePos.X = CInt(Int(tmpUnit.Pos.Horizontal.X / TerrainGridSpacing))
-                CentrePos.Y = CInt(Int(tmpUnit.Pos.Horizontal.Y / TerrainGridSpacing))
+        For Each Unit In Map.Units
+            If UnitIsStructureModule(Unit.MapLink.ArrayPosition) Then
+                StructureTypeType = CType(Unit.Type, clsStructureType).StructureType
+                CentrePos.X = CInt(Int(Unit.Pos.Horizontal.X / TerrainGridSpacing))
+                CentrePos.Y = CInt(Int(Unit.Pos.Horizontal.Y / TerrainGridSpacing))
                 If CentrePos.X < 0 Or CentrePos.X >= Map.Terrain.TileSize.X _
                   Or CentrePos.Y < 0 Or CentrePos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.Problem_Add("Module off map at position " & tmpUnit.GetPosText & ".")
+                    Result.ProblemAdd("Module off map at position " & Unit.GetPosText & ".")
                 Else
                     If TileStructureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
-                        If TileObjectGroup(CentrePos.X, CentrePos.Y) Is tmpUnit.UnitGroup Then
-                            If StructureType = clsStructureType.enumStructureType.FactoryModule Then
+                        If TileObjectGroup(CentrePos.X, CentrePos.Y) Is Unit.UnitGroup Then
+                            If StructureTypeType = clsStructureType.enumStructureType.FactoryModule Then
                                 If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Factory _
                                   Or TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.VTOLFactory Then
                                     IsValid = True
                                 Else
                                     IsValid = False
                                 End If
-                            ElseIf StructureType = clsStructureType.enumStructureType.PowerModule Then
+                            ElseIf StructureTypeType = clsStructureType.enumStructureType.PowerModule Then
                                 If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.PowerGenerator Then
                                     IsValid = True
                                 Else
                                     IsValid = False
                                 End If
-                            ElseIf StructureType = clsStructureType.enumStructureType.ResearchModule Then
+                            ElseIf StructureTypeType = clsStructureType.enumStructureType.ResearchModule Then
                                 If TileStructureType(CentrePos.X, CentrePos.Y).StructureType = clsStructureType.enumStructureType.Research Then
                                     IsValid = True
                                 Else
@@ -276,7 +272,7 @@
                             IsValid = False
                         End If
                     ElseIf TileFeatureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
-                        If StructureType = clsStructureType.enumStructureType.ResourceExtractor Then
+                        If StructureTypeType = clsStructureType.enumStructureType.ResourceExtractor Then
                             If TileFeatureType(CentrePos.X, CentrePos.Y).FeatureType = clsFeatureType.enumFeatureType.OilResource Then
                                 IsValid = True
                             Else
@@ -285,13 +281,13 @@
                         Else
                             IsValid = False
                         End If
-                    ElseIf StructureType = clsStructureType.enumStructureType.ResourceExtractor Then
+                    ElseIf StructureTypeType = clsStructureType.enumStructureType.ResourceExtractor Then
                         IsValid = True
                     Else
                         IsValid = False
                     End If
                     If Not IsValid Then
-                        Result.Problem_Add("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                        Result.ProblemAdd("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
                     End If
                 End If
             End If
@@ -300,11 +296,11 @@
         Return Result
     End Function
 
-    Private Function ValidateMap_Multiplayer(ByVal PlayerCount As Integer, ByVal IsXPlayerFormat As Boolean) As clsResult
-        Dim Result As New clsResult
+    Private Function ValidateMap_Multiplayer(PlayerCount As Integer, IsXPlayerFormat As Boolean) As clsResult
+        Dim Result As New clsResult("Validate for multiplayer")
 
         If PlayerCount < 2 Or PlayerCount > PlayerCountMax Then
-            Result.Problem_Add("Unable to evaluate for multiplayer due to bad number of players.")
+            Result.ProblemAdd("Unable to evaluate for multiplayer due to bad number of players.")
             Return Result
         End If
 
@@ -315,43 +311,41 @@
         Dim PlayerMasterTruckCount(PlayerCountMax - 1) As Integer
         Dim ScavPlayerNum As Integer
         Dim ScavObjectCount As Integer = 0
-        Dim tmpDroid As clsDroidDesign
-        Dim tmpStructure As clsStructureType
+        Dim DroidType As clsDroidDesign
+        Dim StructureType As clsStructureType
         Dim UnusedPlayerUnitWarningCount As Integer = 0
-        Dim tmpUnit As clsMap.clsUnit
-        Dim A As Integer
+        Dim Unit As clsMap.clsUnit
 
         ScavPlayerNum = Math.Max(PlayerCount, 7)
 
-        For A = 0 To Map.Units.ItemCount - 1
-            tmpUnit = Map.Units.Item(A)
-            If tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
+        For Each Unit In Map.Units
+            If Unit.UnitGroup Is Map.ScavengerUnitGroup Then
 
             Else
-                If tmpUnit.Type.Type = clsUnitType.enumType.PlayerDroid Then
-                    tmpDroid = CType(tmpUnit.Type, clsDroidDesign)
-                    If tmpDroid.Body IsNot Nothing And tmpDroid.Propulsion IsNot Nothing And tmpDroid.Turret1 IsNot Nothing And tmpDroid.TurretCount = 1 Then
-                        If tmpDroid.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
-                            PlayerMasterTruckCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
-                            If tmpDroid.IsTemplate Then
-                                Player23TruckCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
+                If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
+                    DroidType = CType(Unit.Type, clsDroidDesign)
+                    If DroidType.Body IsNot Nothing And DroidType.Propulsion IsNot Nothing And DroidType.Turret1 IsNot Nothing And DroidType.TurretCount = 1 Then
+                        If DroidType.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
+                            PlayerMasterTruckCount(Unit.UnitGroup.WZ_StartPos) += 1
+                            If DroidType.IsTemplate Then
+                                Player23TruckCount(Unit.UnitGroup.WZ_StartPos) += 1
                             End If
                         End If
                     End If
-                ElseIf tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    tmpStructure = CType(tmpUnit.Type, clsStructureType)
-                    If tmpStructure.Code = "A0CommandCentre" Then
-                        PlayerHQCount(tmpUnit.UnitGroup.WZ_StartPos) += 1
+                ElseIf Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                    StructureType = CType(Unit.Type, clsStructureType)
+                    If StructureType.Code = "A0CommandCentre" Then
+                        PlayerHQCount(Unit.UnitGroup.WZ_StartPos) += 1
                     End If
                 End If
             End If
-            If tmpUnit.Type.Type <> clsUnitType.enumType.Feature Then
-                If tmpUnit.UnitGroup.WZ_StartPos = ScavPlayerNum Or tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
+            If Unit.Type.Type <> clsUnitType.enumType.Feature Then
+                If Unit.UnitGroup.WZ_StartPos = ScavPlayerNum Or Unit.UnitGroup Is Map.ScavengerUnitGroup Then
                     ScavObjectCount += 1
-                ElseIf tmpUnit.UnitGroup.WZ_StartPos >= PlayerCount Then
+                ElseIf Unit.UnitGroup.WZ_StartPos >= PlayerCount Then
                     If UnusedPlayerUnitWarningCount < 32 Then
                         UnusedPlayerUnitWarningCount += 1
-                        Result.Problem_Add("An unused player (" & tmpUnit.UnitGroup.WZ_StartPos & ") has a unit at " & tmpUnit.GetPosText & ".")
+                        Result.ProblemAdd("An unused player (" & Unit.UnitGroup.WZ_StartPos & ") has a unit at " & Unit.GetPosText & ".")
                     End If
                 End If
             End If
@@ -360,17 +354,17 @@
         If ScavPlayerNum <= 7 Or IsXPlayerFormat Then
 
         ElseIf ScavObjectCount > 0 Then 'only counts non-features
-            Result.Problem_Add("Scavengers are not supported on a map with this number of players without enabling X player support.")
+            Result.ProblemAdd("Scavengers are not supported on a map with this number of players without enabling X player support.")
         End If
 
         For A = 0 To PlayerCount - 1
             If PlayerHQCount(A) = 0 Then
-                Result.Problem_Add("There is no Command Centre for player " & A & ".")
+                Result.ProblemAdd("There is no Command Centre for player " & A & ".")
             End If
             If PlayerMasterTruckCount(A) = 0 Then
-                Result.Problem_Add("There are no constructor units for player " & A & ".")
+                Result.ProblemAdd("There are no constructor units for player " & A & ".")
             ElseIf Player23TruckCount(A) = 0 Then
-                Result.Warning_Add("All constructor units for player " & A & " will only exist in master.")
+                Result.WarningAdd("All constructor units for player " & A & " will only exist in master.")
             End If
         Next
 
@@ -378,52 +372,45 @@
     End Function
 
     Private Function ValidateMap() As clsResult
-        Dim ReturnResult As New clsResult
+        Dim ReturnResult As New clsResult("Validate map")
 
         If Map.Terrain.TileSize.X > WZMapMaxSize Then
-            ReturnResult.Warning_Add("Map width is too large. The maximum is " & WZMapMaxSize & ".")
+            ReturnResult.WarningAdd("Map width is too large. The maximum is " & WZMapMaxSize & ".")
         End If
         If Map.Terrain.TileSize.Y > WZMapMaxSize Then
-            ReturnResult.Warning_Add("Map height is too large. The maximum is " & WZMapMaxSize & ".")
+            ReturnResult.WarningAdd("Map height is too large. The maximum is " & WZMapMaxSize & ".")
         End If
 
         If Map.Tileset Is Nothing Then
-            ReturnResult.Problem_Add("No tileset selected.")
+            ReturnResult.ProblemAdd("No tileset selected.")
         End If
 
-        Dim A As Integer
-        Dim B As Integer
-        'Dim PlayerFactoryCount(FactionCountMax - 1) As Integer
-        Dim PlayerStructureTypeCount(PlayerCountMax - 1, ObjectData.StructureTypes.ItemCount - 1) As Integer
-        Dim ScavStructureTypeCount(ObjectData.StructureTypes.ItemCount - 1) As Integer
-        Dim tmpStructure As clsStructureType
-        Dim tmpUnit As clsMap.clsUnit
-        Dim UnitType As clsUnitType
+        Dim PlayerStructureTypeCount(PlayerCountMax - 1, ObjectData.StructureTypes.Count - 1) As Integer
+        Dim ScavStructureTypeCount(ObjectData.StructureTypes.Count - 1) As Integer
+        Dim StructureType As clsStructureType
+        Dim Unit As clsMap.clsUnit
 
-        For A = 0 To Map.Units.ItemCount - 1
-            tmpUnit = Map.Units.Item(A)
-            If tmpUnit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(tmpUnit.Type, clsStructureType)
-                If tmpUnit.UnitGroup Is Map.ScavengerUnitGroup Then
-                    ScavStructureTypeCount(tmpStructure.StructureType_ObjectDataLink.ArrayPosition) += 1
+        For Each Unit In Map.Units
+            If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                StructureType = CType(Unit.Type, clsStructureType)
+                If Unit.UnitGroup Is Map.ScavengerUnitGroup Then
+                    ScavStructureTypeCount(StructureType.StructureType_ObjectDataLink.ArrayPosition) += 1
                 Else
-                    PlayerStructureTypeCount(tmpUnit.UnitGroup.WZ_StartPos, tmpStructure.StructureType_ObjectDataLink.ArrayPosition) += 1
+                    PlayerStructureTypeCount(Unit.UnitGroup.WZ_StartPos, StructureType.StructureType_ObjectDataLink.ArrayPosition) += 1
                 End If
             End If
         Next
 
-        For B = 0 To ObjectData.UnitTypes.ItemCount - 1
-            UnitType = ObjectData.UnitTypes(B)
-            If UnitType.Type = clsUnitType.enumType.PlayerStructure Then
-                tmpStructure = CType(UnitType, clsStructureType)
-                For A = 0 To PlayerCountMax - 1
-                    If PlayerStructureTypeCount(A, B) > 255 Then
-                        ReturnResult.Problem_Add("Player " & A & " has too many (" & PlayerStructureTypeCount(A, B) & ") of structure " & ControlChars.Quote & tmpStructure.Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
-                    End If
-                Next
-                If ScavStructureTypeCount(B) > 255 Then
-                    ReturnResult.Problem_Add("Scavengers have too many (" & ScavStructureTypeCount(B) & ") of structure " & ControlChars.Quote & tmpStructure.Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
+        For Each StructureType In ObjectData.StructureTypes
+            Dim StructureTypeNum As Integer = StructureType.StructureType_ObjectDataLink.ArrayPosition
+            Dim PlayerNum As Integer
+            For PlayerNum = 0 To PlayerCountMax - 1
+                If PlayerStructureTypeCount(PlayerNum, StructureTypeNum) > 255 Then
+                    ReturnResult.ProblemAdd("Player " & PlayerNum & " has too many (" & PlayerStructureTypeCount(PlayerNum, StructureTypeNum) & ") of structure " & ControlChars.Quote & StructureType.Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
                 End If
+            Next
+            If ScavStructureTypeCount(StructureTypeNum) > 255 Then
+                ReturnResult.ProblemAdd("Scavengers have too many (" & ScavStructureTypeCount(StructureTypeNum) & ") of structure " & ControlChars.Quote & StructureType.Code & ControlChars.Quote & ". The limit is 255 of any one structure type.")
             End If
         Next
 
@@ -453,33 +440,33 @@
         Return Count
     End Function
 
-    Private Sub btnCompileCampaign_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnCompileCampaign.Click
-        Dim ReturnResult As New clsResult
+    Private Sub btnCompileCampaign_Click(sender As System.Object, e As System.EventArgs) Handles btnCompileCampaign.Click
+        Dim ReturnResult As New clsResult("Compile campaign")
         Dim A As Integer
 
         SaveToMap()
 
         A = ValidateMap_WaterTris()
         If A > 0 Then
-            ReturnResult.Warning_Add(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
+            ReturnResult.WarningAdd(A & " water tiles have an incorrect triangle direction. There might be in-game graphical glitches on those tiles.")
         End If
-        ReturnResult.Append(ValidateMap, "")
 
-        ReturnResult.AppendAsWarning(ValidateMap_UnitPositions, "")
+        ReturnResult.Add(ValidateMap())
+        ReturnResult.Add(ValidateMap_UnitPositions())
 
         Dim MapName As String
         Dim TypeNum As Integer
 
         MapName = txtName.Text
         If MapName.Length < 1 Then
-            ReturnResult.Problem_Add("Enter a name for the campaign files.")
+            ReturnResult.ProblemAdd("Enter a name for the campaign files.")
         End If
         TypeNum = cboCampType.SelectedIndex
         If TypeNum < 0 Or TypeNum > 2 Then
-            ReturnResult.Problem_Add("Select a campaign type.")
+            ReturnResult.ProblemAdd("Select a campaign type.")
         End If
         If ReturnResult.HasProblems Then
-            ShowWarnings(ReturnResult, "Compile Campaign")
+            ShowWarnings(ReturnResult)
             Exit Sub
         End If
         Dim CompileCampDialog As New FolderBrowserDialog
@@ -492,15 +479,10 @@
         WriteWZArgs.Overwrite = False
         SetScrollLimits(WriteWZArgs.ScrollMin, WriteWZArgs.ScrollMax)
         WriteWZArgs.Campaign = New clsMap.sWrite_WZ_Args.clsCampaign
-        'If InvariantParse_dbl(txtCampTime.Text, dblTemp) Then
-        '    WriteWZArgs.Campaign.GAMTime = CUInt(Clamp_dbl(dblTemp, UInteger.MinValue, UInteger.MaxValue))
-        'Else
-        '    WriteWZArgs.Campaign.GAMTime = UInteger.MinValue
-        'End If
         WriteWZArgs.Campaign.GAMType = CUInt(TypeNum)
         WriteWZArgs.CompileType = clsMap.sWrite_WZ_Args.enumCompileType.Campaign
-        ReturnResult.Append(Map.Write_WZ(WriteWZArgs), "")
-        ShowWarnings(ReturnResult, "Compile Campaign")
+        ReturnResult.Add(Map.Write_WZ(WriteWZArgs))
+        ShowWarnings(ReturnResult)
         If Not ReturnResult.HasWarnings Then
             Close()
         End If
@@ -521,7 +503,7 @@
         End If
     End Sub
 
-    Private Sub cbxAutoScrollLimits_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cbxAutoScrollLimits.CheckedChanged
+    Private Sub cbxAutoScrollLimits_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles cbxAutoScrollLimits.CheckedChanged
         If Not cbxAutoScrollLimits.Enabled Then
             Exit Sub
         End If

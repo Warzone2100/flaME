@@ -1,7 +1,7 @@
 ﻿Public Class PathfinderNetwork
 
     Public NodeLayers(-1) As PathfinderLayer
-    Public ReadOnly Property GetNodeLayer(ByVal Num As Integer) As PathfinderLayer
+    Public ReadOnly Property GetNodeLayer(Num As Integer) As PathfinderLayer
         Get
             Return NodeLayers(Num)
         End Get
@@ -27,7 +27,7 @@
         Public SizeEnlargementRatio As Single = 2.0F
         Public SizeReductionRatio As Single = 3.0F
 
-        Public Sub Resize(ByVal NetworkForSize As PathfinderNetwork)
+        Public Sub Resize(NetworkForSize As PathfinderNetwork)
             Dim NewSize As Integer
 
             If NetworkForSize.NodeLayerCount > 0 Then
@@ -68,7 +68,7 @@
         Public Value As Single
     End Class
 
-    Public Sub NodeLayer_Add(ByVal NewNodeLayer As PathfinderLayer)
+    Public Sub NodeLayer_Add(NewNodeLayer As PathfinderLayer)
 
         If NodeLayerCount > 0 Then
             NodeLayers(NodeLayerCount - 1).ParentLayer = NewNodeLayer
@@ -80,7 +80,7 @@
         NodeLayerCount += 1
     End Sub
 
-    Public Sub FindParentNode_Add(ByVal NewFindParentNode As PathfinderNode)
+    Public Sub FindParentNode_Add(NewFindParentNode As PathfinderNode)
 
         If NewFindParentNode.Network_FindParentNum >= 0 Then
             Exit Sub
@@ -94,7 +94,7 @@
         FindParentNodeCount += 1
     End Sub
 
-    Public Sub FindParentNode_Remove(ByVal Num As Integer)
+    Public Sub FindParentNode_Remove(Num As Integer)
 
         FindParentNodes(Num).Network_FindParentNum = -1
         FindParentNodes(Num) = Nothing
@@ -125,7 +125,7 @@
         Public PathCount As Integer
     End Structure
 
-    Public Function GetPath(ByVal StartNodes() As PathfinderNode, ByVal FinishNode As PathfinderNode, ByVal Accuracy As Integer, ByVal MinClearance As Integer) As PathList()
+    Public Function GetPath(StartNodes() As PathfinderNode, FinishNode As PathfinderNode, Accuracy As Integer, MinClearance As Integer) As PathList()
         Dim StartNodeCount As Integer = StartNodes.GetUpperBound(0) + 1
         Dim Paths(NodeLayerCount - 1) As PathList
         Dim LayerStartNodes(NodeLayerCount - 1, StartNodeCount - 1) As PathfinderNode
@@ -313,7 +313,7 @@
         Return Paths
     End Function
 
-    Public Function GetAllPaths(ByVal StartNodes() As PathfinderNode, ByVal FinishNode As PathfinderNode, ByVal MinClearance As Integer) As Path()
+    Public Function GetAllPaths(StartNodes() As PathfinderNode, FinishNode As PathfinderNode, MinClearance As Integer) As Path()
         Dim StartNodeCount As Integer = StartNodes.GetUpperBound(0) + 1
         Dim LayerStartNodes(31, StartNodeCount - 1) As PathfinderNode
         Dim LayerFinishNodes(31) As PathfinderNode
@@ -967,7 +967,7 @@ NoPath:
         Next
     End Sub
 
-    Public Function NodeCanReachNode(ByVal StartNode As PathfinderNode, ByVal FinishNode As PathfinderNode) As Boolean
+    Public Function NodeCanReachNode(StartNode As PathfinderNode, FinishNode As PathfinderNode) As Boolean
         Dim StartParent As PathfinderNode = StartNode
         Dim FinishParent As PathfinderNode = FinishNode
 

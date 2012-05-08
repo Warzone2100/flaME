@@ -4,7 +4,7 @@ Partial Class ctrlMapView
 
     'UserControl overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -29,8 +29,8 @@ Partial Class ctrlMapView
         Me.lblUndo = New System.Windows.Forms.ToolStripStatusLabel()
         Me.pnlDraw = New System.Windows.Forms.Panel()
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
-        Me.tabMaps = New System.Windows.Forms.TabControl()
         Me.TableLayoutPanel2 = New System.Windows.Forms.TableLayoutPanel()
+        Me.tabMaps = New System.Windows.Forms.TabControl()
         Me.btnClose = New System.Windows.Forms.Button()
         Me.ssStatus.SuspendLayout()
         Me.TableLayoutPanel1.SuspendLayout()
@@ -105,16 +105,6 @@ Partial Class ctrlMapView
         Me.TableLayoutPanel1.Size = New System.Drawing.Size(1308, 392)
         Me.TableLayoutPanel1.TabIndex = 2
         '
-        'tabMaps
-        '
-        Me.tabMaps.Appearance = System.Windows.Forms.TabAppearance.Buttons
-        Me.tabMaps.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.tabMaps.Location = New System.Drawing.Point(3, 3)
-        Me.tabMaps.Name = "tabMaps"
-        Me.tabMaps.SelectedIndex = -1
-        Me.tabMaps.Size = New System.Drawing.Size(1270, 22)
-        Me.tabMaps.TabIndex = 2
-        '
         'TableLayoutPanel2
         '
         Me.TableLayoutPanel2.ColumnCount = 2
@@ -131,6 +121,16 @@ Partial Class ctrlMapView
         Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
         Me.TableLayoutPanel2.Size = New System.Drawing.Size(1308, 28)
         Me.TableLayoutPanel2.TabIndex = 2
+        '
+        'tabMaps
+        '
+        Me.tabMaps.Appearance = System.Windows.Forms.TabAppearance.Buttons
+        Me.tabMaps.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.tabMaps.Location = New System.Drawing.Point(3, 3)
+        Me.tabMaps.Name = "tabMaps"
+        Me.tabMaps.SelectedIndex = 0
+        Me.tabMaps.Size = New System.Drawing.Size(1270, 22)
+        Me.tabMaps.TabIndex = 2
         '
         'btnClose
         '

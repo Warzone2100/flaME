@@ -4,7 +4,7 @@ Partial Class frmMain
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
-    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+    Protected Overrides Sub Dispose(disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
                 components.Dispose()
@@ -135,6 +135,7 @@ Partial Class frmMain
         Me.tpObjects = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
         Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.cbxFootprintRotate = New System.Windows.Forms.CheckBox()
         Me.txtNewObjectRotation = New System.Windows.Forms.TextBox()
         Me.Label19 = New System.Windows.Forms.Label()
         Me.cbxAutoWalls = New System.Windows.Forms.CheckBox()
@@ -173,6 +174,9 @@ Partial Class frmMain
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Panel14 = New System.Windows.Forms.Panel()
+        Me.Label31 = New System.Windows.Forms.Label()
+        Me.Label30 = New System.Windows.Forms.Label()
+        Me.cbxDesignableOnly = New System.Windows.Forms.CheckBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.txtObjectLabel = New System.Windows.Forms.TextBox()
         Me.Label35 = New System.Windows.Forms.Label()
@@ -1665,6 +1669,7 @@ Partial Class frmMain
         '
         'Panel1
         '
+        Me.Panel1.Controls.Add(Me.cbxFootprintRotate)
         Me.Panel1.Controls.Add(Me.txtNewObjectRotation)
         Me.Panel1.Controls.Add(Me.Label19)
         Me.Panel1.Controls.Add(Me.cbxAutoWalls)
@@ -1678,6 +1683,17 @@ Partial Class frmMain
         Me.Panel1.Name = "Panel1"
         Me.Panel1.Size = New System.Drawing.Size(402, 184)
         Me.Panel1.TabIndex = 0
+        '
+        'cbxFootprintRotate
+        '
+        Me.cbxFootprintRotate.Location = New System.Drawing.Point(231, 124)
+        Me.cbxFootprintRotate.Margin = New System.Windows.Forms.Padding(4)
+        Me.cbxFootprintRotate.Name = "cbxFootprintRotate"
+        Me.cbxFootprintRotate.Size = New System.Drawing.Size(201, 21)
+        Me.cbxFootprintRotate.TabIndex = 52
+        Me.cbxFootprintRotate.Text = "Rotate Footprints (3.1+)"
+        Me.cbxFootprintRotate.UseCompatibleTextRendering = True
+        Me.cbxFootprintRotate.UseVisualStyleBackColor = True
         '
         'txtNewObjectRotation
         '
@@ -1735,7 +1751,7 @@ Partial Class frmMain
         Me.Label32.Name = "Label32"
         Me.Label32.Size = New System.Drawing.Size(219, 38)
         Me.Label32.TabIndex = 16
-        Me.Label32.Text = "Players 8 and 9 only work with master versions of Warzone."
+        Me.Label32.Text = "Players 8 and 9 only work with versions 3.1+"
         Me.Label32.UseCompatibleTextRendering = True
         '
         'Label22
@@ -2124,6 +2140,9 @@ Partial Class frmMain
         '
         'Panel14
         '
+        Me.Panel14.Controls.Add(Me.Label31)
+        Me.Panel14.Controls.Add(Me.Label30)
+        Me.Panel14.Controls.Add(Me.cbxDesignableOnly)
         Me.Panel14.Controls.Add(Me.Label17)
         Me.Panel14.Controls.Add(Me.txtObjectLabel)
         Me.Panel14.Controls.Add(Me.Label35)
@@ -2146,6 +2165,41 @@ Partial Class frmMain
         Me.Panel14.Name = "Panel14"
         Me.Panel14.Size = New System.Drawing.Size(404, 344)
         Me.Panel14.TabIndex = 1
+        '
+        'Label31
+        '
+        Me.Label31.Location = New System.Drawing.Point(238, 179)
+        Me.Label31.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label31.Name = "Label31"
+        Me.Label31.Size = New System.Drawing.Size(83, 27)
+        Me.Label31.TabIndex = 46
+        Me.Label31.Text = "3.1+ only"
+        Me.Label31.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.Label31.UseCompatibleTextRendering = True
+        '
+        'Label30
+        '
+        Me.Label30.Location = New System.Drawing.Point(153, 213)
+        Me.Label30.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label30.Name = "Label30"
+        Me.Label30.Size = New System.Drawing.Size(88, 27)
+        Me.Label30.TabIndex = 45
+        Me.Label30.Text = "2.3 only"
+        Me.Label30.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me.Label30.UseCompatibleTextRendering = True
+        '
+        'cbxDesignableOnly
+        '
+        Me.cbxDesignableOnly.AutoSize = True
+        Me.cbxDesignableOnly.Checked = True
+        Me.cbxDesignableOnly.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.cbxDesignableOnly.Location = New System.Drawing.Point(258, 310)
+        Me.cbxDesignableOnly.Name = "cbxDesignableOnly"
+        Me.cbxDesignableOnly.Size = New System.Drawing.Size(132, 21)
+        Me.cbxDesignableOnly.TabIndex = 44
+        Me.cbxDesignableOnly.Text = "Designables Only"
+        Me.cbxDesignableOnly.UseCompatibleTextRendering = True
+        Me.cbxDesignableOnly.UseVisualStyleBackColor = True
         '
         'Label17
         '
@@ -2171,9 +2225,9 @@ Partial Class frmMain
         Me.Label35.Location = New System.Drawing.Point(153, 243)
         Me.Label35.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label35.Name = "Label35"
-        Me.Label35.Size = New System.Drawing.Size(176, 27)
+        Me.Label35.Size = New System.Drawing.Size(88, 27)
         Me.Label35.TabIndex = 41
-        Me.Label35.Text = "Master only"
+        Me.Label35.Text = "3.1+ only"
         Me.Label35.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label35.UseCompatibleTextRendering = True
         '
@@ -2216,7 +2270,7 @@ Partial Class frmMain
         Me.Label36.Name = "Label36"
         Me.Label36.Size = New System.Drawing.Size(300, 27)
         Me.Label36.TabIndex = 39
-        Me.Label36.Text = "Designed droids will only exist in master."
+        Me.Label36.Text = "Designed droids will only exist in 3.1+"
         Me.Label36.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label36.UseCompatibleTextRendering = True
         '
@@ -2985,7 +3039,7 @@ Partial Class frmMain
         '
         Me.CloseToolStripMenuItem.Name = "CloseToolStripMenuItem"
         Me.CloseToolStripMenuItem.Size = New System.Drawing.Size(177, 24)
-        Me.CloseToolStripMenuItem.Text = "Close"
+        Me.CloseToolStripMenuItem.Text = "Quit"
         '
         'menuOptions
         '
@@ -3417,4 +3471,8 @@ Partial Class frmMain
     Public WithEvents cbxAutoWalls As System.Windows.Forms.CheckBox
     Public WithEvents txtNewObjectRotation As System.Windows.Forms.TextBox
     Public WithEvents Label19 As System.Windows.Forms.Label
+    Friend WithEvents cbxDesignableOnly As System.Windows.Forms.CheckBox
+    Public WithEvents Label31 As System.Windows.Forms.Label
+    Public WithEvents Label30 As System.Windows.Forms.Label
+    Public WithEvents cbxFootprintRotate As System.Windows.Forms.CheckBox
 End Class
