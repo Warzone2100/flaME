@@ -1764,8 +1764,8 @@ Partial Public Class clsMap
             If Unit.ID <= 0 Then
                 ReturnResult.WarningAdd("Error. A structure's ID was zero. It was NOT saved. Delete and replace it to allow save.")
             Else
-                File.SectionName_Append("structure_" & InvariantToString_sng(Unit.ID))
-                File.Property_Append("id", InvariantToString_sng(Unit.ID))
+                File.SectionName_Append("structure_" & InvariantToString_uint(Unit.ID))
+                File.Property_Append("id", InvariantToString_uint(Unit.ID))
                 If Unit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And Unit.UnitGroup.WZ_StartPos >= PlayerCount) Then
                     File.Property_Append("player", "scavenger")
                 Else
@@ -1795,7 +1795,7 @@ Partial Public Class clsMap
                 If UnitModuleCount(Unit.MapLink.ArrayPosition) > ModuleLimit Then
                     ModuleCount = ModuleLimit
                     If TooManyModulesWarningCount < TooManyModulesWarningMaxCount Then
-                        ReturnResult.WarningAdd("Structure " & StructureType.GetDisplayText & " at " & Unit.GetPosText & " has too many modules (" & UnitModuleCount(Unit.MapLink.ArrayPosition) & ").")
+                        ReturnResult.WarningAdd("Structure " & StructureType.GetDisplayTextCode & " at " & Unit.GetPosText & " has too many modules (" & UnitModuleCount(Unit.MapLink.ArrayPosition) & ").")
                     End If
                     TooManyModulesWarningCount += 1
                 Else
@@ -1871,8 +1871,8 @@ Partial Public Class clsMap
                     End If
                 End If
                 If ValidDroid Then
-                    File.SectionName_Append("droid_" & InvariantToString_sng(Unit.ID))
-                    File.Property_Append("id", InvariantToString_sng(Unit.ID))
+                    File.SectionName_Append("droid_" & InvariantToString_uint(Unit.ID))
+                    File.Property_Append("id", InvariantToString_uint(Unit.ID))
                     If Unit.UnitGroup Is ScavengerUnitGroup Or (PlayerCount >= 0 And Unit.UnitGroup.WZ_StartPos >= PlayerCount) Then
                         File.Property_Append("player", "scavenger")
                     Else
@@ -1967,8 +1967,8 @@ Partial Public Class clsMap
                     ReturnResult.WarningAdd("Error. A features's ID was zero. It was NOT saved. Delete and replace it to allow save.")
                 End If
                 If Valid Then
-                    File.SectionName_Append("feature_" & InvariantToString_sng(Unit.ID))
-                    File.Property_Append("id", InvariantToString_sng(Unit.ID))
+                    File.SectionName_Append("feature_" & InvariantToString_uint(Unit.ID))
+                    File.Property_Append("id", InvariantToString_uint(Unit.ID))
                     File.Property_Append("position", Unit.GetINIPosition)
                     File.Property_Append("rotation", Unit.GetINIRotation)
                     File.Property_Append("name", FeatureType.Code)

@@ -180,12 +180,12 @@ Public Module TileOrientation
         'stop invalid numbers
         If TileChance.Direction.X > 2 Or TileChance.Direction.Y > 2 Or NewDirection.X > 2 Or NewDirection.Y > 2 Then
             Stop
-            Exit Function
+            Return ReturnResult
         End If
         'stop different direction types
         If (NewDirection.X = 1 Xor NewDirection.Y = 1) Xor (TileChance.Direction.X = 1 Xor TileChance.Direction.Y = 1) Then
             Stop
-            Exit Function
+            Return ReturnResult
         End If
 
         ReturnResult.TextureNum = TileChance.TextureNum

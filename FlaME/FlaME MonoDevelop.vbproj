@@ -27,7 +27,7 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.28</ReleaseVersion>
+    <ReleaseVersion>1.29</ReleaseVersion>
     <OutputType>Exe</OutputType>
     <OptionStrict>On</OptionStrict>
     <OptionInfer>On</OptionInfer>
@@ -84,7 +84,6 @@
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
     <Compile Include="clsHeightmap.vb" />
-    <Compile Include="clsInputControl.vb" />
     <Compile Include="clsMap.vb" />
     <Compile Include="clsMapFMap.vb" />
     <Compile Include="clsMapOtherIO.vb" />
@@ -122,7 +121,6 @@
     <Compile Include="ctrlPlayerNum.vb" />
     <Compile Include="ctrlTextureView.vb" />
     <Compile Include="frmCompile.vb" />
-    <Compile Include="frmData.vb" />
     <Compile Include="frmGenerator.vb" />
     <Compile Include="frmMain.vb" />
     <Compile Include="frmOptions.vb" />
@@ -141,7 +139,6 @@
     <Compile Include="ctrlPathSet.Designer.vb" />
     <Compile Include="ctrlPlayerNum.Designer.vb" />
     <Compile Include="ctrlTextureView.Designer.vb" />
-    <Compile Include="frmData.Designer.vb" />
     <Compile Include="frmGenerator.Designer.vb" />
     <Compile Include="frmOptions.Designer.vb" />
     <Compile Include="frmWarnings.Designer.vb" />
@@ -159,6 +156,11 @@
     <Compile Include="modIO.vb" />
     <Compile Include="modLists.vb" />
     <Compile Include="modMain.vb" />
+    <Compile Include="Tools.vb" />
+    <Compile Include="KeyboardControls.vb" />
+    <Compile Include="Options.vb" />
+    <Compile Include="frmKeyboardControl.Designer.vb" />
+    <Compile Include="frmKeyboardControl.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
@@ -179,7 +181,6 @@
     <None Include="ctrlPathSet.resx" />
     <None Include="ctrlPlayerNum.resx" />
     <None Include="ctrlTextureView.resx" />
-    <None Include="frmData.resx" />
     <None Include="frmGenerator.resx" />
     <None Include="frmMain.resx" />
     <None Include="frmOptions.resx" />
@@ -188,6 +189,7 @@
     <None Include="frmCompile.resx" />
     <None Include="frmClose.resx" />
     <None Include="frmQuit.resx" />
+    <None Include="frmKeyboardControl.resx" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">

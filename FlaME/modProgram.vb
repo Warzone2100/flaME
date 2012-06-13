@@ -3,7 +3,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.28"
+    Public Const ProgramVersionNumber As String = "1.29"
 
 #If Mono <> 0.0# Then
     Public Const ProgramPlatform As String = "Mono 2.10"
@@ -64,55 +64,6 @@ Public Module modProgram
 
     Public IsViewKeyDown As New clsKeysActive
 
-    'interface controls
-    Public Control_Deselect As clsInputControl
-    'selected unit controls
-    Public Control_Unit_Move As clsInputControl
-    Public Control_Unit_Delete As clsInputControl
-    Public Control_Unit_Multiselect As clsInputControl
-    'generalised controls
-    Public Control_Slow As clsInputControl
-    Public Control_Fast As clsInputControl
-    'picker controls
-    Public Control_Picker As clsInputControl
-    'view controls
-    Public Control_View_Textures As clsInputControl
-    Public Control_View_Lighting As clsInputControl
-    Public Control_View_Wireframe As clsInputControl
-    Public Control_View_Units As clsInputControl
-    Public Control_View_ScriptMarkers As clsInputControl
-    Public Control_View_Move_Type As clsInputControl
-    Public Control_View_Rotate_Type As clsInputControl
-    Public Control_View_Move_Left As clsInputControl
-    Public Control_View_Move_Right As clsInputControl
-    Public Control_View_Move_Forward As clsInputControl
-    Public Control_View_Move_Backward As clsInputControl
-    Public Control_View_Move_Up As clsInputControl
-    Public Control_View_Move_Down As clsInputControl
-    Public Control_View_Zoom_In As clsInputControl
-    Public Control_View_Zoom_Out As clsInputControl
-    Public Control_View_Left As clsInputControl
-    Public Control_View_Right As clsInputControl
-    Public Control_View_Forward As clsInputControl
-    Public Control_View_Backward As clsInputControl
-    Public Control_View_Up As clsInputControl
-    Public Control_View_Down As clsInputControl
-    Public Control_View_Reset As clsInputControl
-    Public Control_View_Roll_Left As clsInputControl
-    Public Control_View_Roll_Right As clsInputControl
-    'texture controls
-    Public Control_Clockwise As clsInputControl
-    Public Control_CounterClockwise As clsInputControl
-    Public Control_Texture_Flip As clsInputControl
-    Public Control_Tri_Flip As clsInputControl
-    'gateway controls
-    Public Control_Gateway_Delete As clsInputControl
-    'undo controls
-    Public Control_Undo As clsInputControl
-    Public Control_Redo As clsInputControl
-    'script marker controls
-    Public Control_ScriptPosition As clsInputControl
-
     Public TextureBrush As New clsBrush(0.0#, clsBrush.enumShape.Circle)
     Public TerrainBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
     Public HeightBrush As New clsBrush(2.0#, clsBrush.enumShape.Circle)
@@ -120,33 +71,9 @@ Public Module modProgram
 
     Public SmoothRadius As New clsBrush(1.0#, clsBrush.enumShape.Square)
 
-    Public InputControls As New SimpleList(Of clsInputControl)
-
     Public DisplayTileOrientation As Boolean
 
-    Public Settings As clsSettings
-
     Public ObjectData As clsObjectData
-
-    Public Enum enumTool As Byte
-        None
-        Texture_Brush
-        AutoTexture_Place
-        AutoTexture_Fill
-        AutoRoad_Place
-        AutoRoad_Line
-        AutoRoad_Remove
-        CliffTriangle
-        AutoCliff
-        AutoCliffRemove
-        Height_Set_Brush
-        Height_Change_Brush
-        Height_Smooth_Brush
-        ObjectPlace
-        Terrain_Select
-        Gateways
-    End Enum
-    Public Tool As enumTool = enumTool.Texture_Brush
 
     Public SelectedTextureNum As Integer = -1
     Public TextureOrientation As New sTileOrientation(False, False, False)
@@ -336,9 +263,8 @@ Public Module modProgram
 
         IsViewKeyDown.Deactivate()
 
-        Dim Control As clsInputControl
-        For Each Control In InputControls
-            Control.KeysChanged(IsViewKeyDown)
+        For Each control As clsOption(Of clsKeyboardControl) In Options_KeyboardControls.Options
+            CType(KeyboardProfile.Value(control), clsKeyboardControl).KeysChanged(IsViewKeyDown)
         Next
     End Sub
 
@@ -462,7 +388,7 @@ Public Module modProgram
 
         Dim MessageText As String
 
-        MessageText = "An object's ID has been changed unexpectedly. The error was in " & ControlChars.Quote & NameOfErrorSource & ControlChars.Quote & "." & ControlChars.CrLf & ControlChars.CrLf & "The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & ". It's ID was " & InvariantToString_uint(IntendedID) & ", but is now " & InvariantToString_uint(IDUnit.ID) & "." & ControlChars.CrLf & ControlChars.CrLf & "Click Cancel to stop seeing this message. Otherwise, click OK."
+        MessageText = "An object's ID has been changed unexpectedly. The error was in " & ControlChars.Quote & NameOfErrorSource & ControlChars.Quote & "." & ControlChars.CrLf & ControlChars.CrLf & "The object is of type " & IDUnit.Type.GetDisplayTextCode & " and is at map position " & IDUnit.GetPosText & ". It's ID was " & InvariantToString_uint(IntendedID) & ", but is now " & InvariantToString_uint(IDUnit.ID) & "." & ControlChars.CrLf & ControlChars.CrLf & "Click Cancel to stop seeing this message. Otherwise, click OK."
 
         If MsgBox(MessageText, MsgBoxStyle.OkCancel) = MsgBoxResult.Cancel Then
             ShowIDErrorMessage = False
@@ -472,7 +398,7 @@ Public Module modProgram
     Public Sub ZeroIDWarning(IDUnit As clsMap.clsUnit, NewID As UInteger, Output As clsResult)
         Dim MessageText As String
 
-        MessageText = "An object's ID has been changed from 0 to " & InvariantToString_uint(NewID) & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayText & " and is at map position " & IDUnit.GetPosText & "."
+        MessageText = "An object's ID has been changed from 0 to " & InvariantToString_uint(NewID) & ". Zero is not a valid ID. The object is of type " & IDUnit.Type.GetDisplayTextCode & " and is at map position " & IDUnit.GetPosText & "."
 
         'MsgBox(MessageText, MsgBoxStyle.OkOnly)
         Output.WarningAdd(MessageText)
@@ -516,10 +442,9 @@ Public Module modProgram
         Public Keys(255) As Boolean
 
         Public Sub Deactivate()
-            Dim A As Integer
 
-            For A = 0 To 255
-                Keys(A) = False
+            For i As Integer = 0 To 255
+                Keys(i) = False
             Next
         End Sub
     End Class
@@ -742,3 +667,13 @@ Public Module modProgram
         Return Result
     End Function
 End Module
+
+Public Class clsContainer(Of ItemType)
+
+    Public Item As ItemType
+
+    Public Sub New(item As ItemType)
+
+        Me.Item = item
+    End Sub
+End Class

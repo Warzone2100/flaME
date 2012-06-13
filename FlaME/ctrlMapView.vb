@@ -344,12 +344,11 @@ Public Class ctrlMapView
 
         IsViewKeyDown.Keys(e.KeyCode) = True
 
-        Dim Control As clsInputControl
-        For Each Control In InputControls
-            Control.KeysChanged(IsViewKeyDown)
+        For Each control As clsOption(Of clsKeyboardControl) In Options_KeyboardControls.Options
+            CType(KeyboardProfile.Value(control), clsKeyboardControl).KeysChanged(IsViewKeyDown)
         Next
 
-        If Control_Undo.Active Then
+        If KeyboardProfile.Active(Control_Undo) Then
             Dim Message As String
             If Map.UndoPosition > 0 Then
                 Message = "Undid: " & Map.Undos.Item(Map.UndoPosition - 1).Name
@@ -363,7 +362,7 @@ Public Class ctrlMapView
             End If
             DisplayUndoMessage(Message)
         End If
-        If Control_Redo.Active Then
+        If KeyboardProfile.Active(Control_Redo) Then
             Dim Message As String
             If Map.UndoPosition < Map.Undos.Count Then
                 Message = "Redid: " & Map.Undos.Item(Map.UndoPosition).Name
@@ -402,17 +401,17 @@ Public Class ctrlMapView
             VisionRadius_2E_Changed()
         End If
 
-        If Control_View_Move_Type.Active Then
+        If KeyboardProfile.Active(Control_View_Move_Type) Then
             If ViewMoveType = enumView_Move_Type.Free Then
                 ViewMoveType = enumView_Move_Type.RTS
             ElseIf ViewMoveType = enumView_Move_Type.RTS Then
                 ViewMoveType = enumView_Move_Type.Free
             End If
         End If
-        If Control_View_Rotate_Type.Active Then
+        If KeyboardProfile.Active(Control_View_Rotate_Type) Then
             RTSOrbit = Not RTSOrbit
         End If
-        If Control_View_Reset.Active Then
+        If KeyboardProfile.Active(Control_View_Reset) Then
             Map.ViewInfo.FOV_Multiplier_Set(Settings.FOVDefault)
             If ViewMoveType = enumView_Move_Type.Free Then
                 Matrix3D.MatrixSetToXAngle(matrixA, Math.Atan(2.0#))
@@ -422,15 +421,15 @@ Public Class ctrlMapView
                 Map.ViewInfo.ViewAngleSet_Rotate(matrixA)
             End If
         End If
-        If Control_View_Textures.Active Then
+        If KeyboardProfile.Active(Control_View_Textures) Then
             Draw_TileTextures = Not Draw_TileTextures
             DrawViewLater()
         End If
-        If Control_View_Wireframe.Active Then
+        If KeyboardProfile.Active(Control_View_Wireframe) Then
             Draw_TileWireframe = Not Draw_TileWireframe
             DrawViewLater()
         End If
-        If Control_View_Units.Active Then
+        If KeyboardProfile.Active(Control_View_Units) Then
             Draw_Units = Not Draw_Units
             Dim X As Integer
             Dim Y As Integer
@@ -455,11 +454,11 @@ Public Class ctrlMapView
             Map.Update()
             DrawViewLater()
         End If
-        If Control_View_ScriptMarkers.Active Then
+        If KeyboardProfile.Active(Control_View_ScriptMarkers) Then
             Draw_ScriptMarkers = Not Draw_ScriptMarkers
             DrawViewLater()
         End If
-        If Control_View_Lighting.Active Then
+        If KeyboardProfile.Active(Control_View_Lighting) Then
             If Draw_Lighting = enumDrawLighting.Off Then
                 Draw_Lighting = enumDrawLighting.Half
             ElseIf Draw_Lighting = enumDrawLighting.Half Then
@@ -469,24 +468,24 @@ Public Class ctrlMapView
             End If
             DrawViewLater()
         End If
-        If Tool = enumTool.Texture_Brush Then
+        If Tool Is Tools.TextureBrush Then
             If MouseOverTerrain IsNot Nothing Then
-                If Control_Clockwise.Active Then
+                If KeyboardProfile.Active(Control_Clockwise) Then
                     Map.ViewInfo.Apply_Texture_Clockwise()
                 End If
-                If Control_CounterClockwise.Active Then
+                If KeyboardProfile.Active(Control_CounterClockwise) Then
                     Map.ViewInfo.Apply_Texture_CounterClockwise()
                 End If
-                If Control_Texture_Flip.Active Then
+                If KeyboardProfile.Active(Control_Texture_Flip) Then
                     Map.ViewInfo.Apply_Texture_FlipX()
                 End If
-                If Control_Tri_Flip.Active Then
+                If KeyboardProfile.Active(Control_Tri_Flip) Then
                     Map.ViewInfo.Apply_Tri_Flip()
                 End If
             End If
         End If
-        If Tool = enumTool.None Then
-            If Control_Unit_Delete.Active Then
+        If Tool Is Tools.ObjectSelect Then
+            If KeyboardProfile.Active(Control_Unit_Delete) Then
                 If Map.SelectedUnits.Count > 0 Then
                     Dim Unit As clsMap.clsUnit
                     For Each Unit In Map.SelectedUnits.GetItemsAsSimpleList
@@ -499,7 +498,7 @@ Public Class ctrlMapView
                     DrawViewLater()
                 End If
             End If
-            If Control_Unit_Move.Active Then
+            If KeyboardProfile.Active(Control_Unit_Move) Then
                 If MouseOverTerrain IsNot Nothing Then
                     If Map.SelectedUnits.Count > 0 Then
                         Dim Centre As Matrix3D.XY_dbl = CalcUnitsCentrePos(Map.SelectedUnits.GetItemsAsSimpleList)
@@ -519,7 +518,7 @@ Public Class ctrlMapView
                     End If
                 End If
             End If
-            If Control_Clockwise.Active Then
+            If KeyboardProfile.Active(Control_Clockwise) Then
                 Dim ObjectRotationOffset As New clsMap.clsObjectRotationOffset
                 ObjectRotationOffset.Map = Map
                 ObjectRotationOffset.Offset = -90
@@ -529,7 +528,7 @@ Public Class ctrlMapView
                 Map.UndoStepCreate("Object Rotated")
                 DrawViewLater()
             End If
-            If Control_CounterClockwise.Active Then
+            If KeyboardProfile.Active(Control_CounterClockwise) Then
                 Dim ObjectRotationOffset As New clsMap.clsObjectRotationOffset
                 ObjectRotationOffset.Map = Map
                 ObjectRotationOffset.Offset = 90
@@ -541,8 +540,13 @@ Public Class ctrlMapView
             End If
         End If
 
-        If Control_Deselect.Active Then
-            Tool = enumTool.None
+        If KeyboardProfile.Active(Control_Deselect) Then
+            Tool = Tools.ObjectSelect
+            DrawViewLater()
+        End If
+
+        If KeyboardProfile.Active(Control_PreviousTool) Then
+            Tool = PreviousTool
             DrawViewLater()
         End If
     End Sub
@@ -551,9 +555,8 @@ Public Class ctrlMapView
 
         IsViewKeyDown.Keys(e.KeyCode) = False
 
-        Dim Control As clsInputControl
-        For Each Control In InputControls
-            Control.KeysChanged(IsViewKeyDown)
+        For Each control As clsOption(Of clsKeyboardControl) In Options_KeyboardControls.Options
+            CType(KeyboardProfile.Value(control), clsKeyboardControl).KeysChanged(IsViewKeyDown)
         Next
     End Sub
 
@@ -572,45 +575,43 @@ Public Class ctrlMapView
             If Map.ViewInfo.GetMouseLeftDownOverMinimap() IsNot Nothing Then
 
             Else
-                Select Case Tool
-                    Case enumTool.AutoTexture_Place
-                        Map.UndoStepCreate("Ground Painted")
-                    Case enumTool.CliffTriangle
-                        Map.UndoStepCreate("Cliff Triangles")
-                    Case enumTool.AutoCliff
-                        Map.UndoStepCreate("Cliff Brush")
-                    Case enumTool.AutoCliffRemove
-                        Map.UndoStepCreate("Cliff Remove Brush")
-                    Case enumTool.Height_Change_Brush
-                        Map.UndoStepCreate("Height Change")
-                    Case enumTool.Height_Set_Brush
-                        Map.UndoStepCreate("Height Set")
-                    Case enumTool.Height_Smooth_Brush
-                        Map.UndoStepCreate("Height Smooth")
-                    Case enumTool.Texture_Brush
-                        Map.UndoStepCreate("Texture")
-                    Case enumTool.AutoRoad_Remove
-                        Map.UndoStepCreate("Road Remove")
-                    Case enumTool.None
-                        If Map.Unit_Selected_Area_VertexA IsNot Nothing Then
-                            If MouseOverTerrain IsNot Nothing Then
-                                SelectUnits(Map.Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal)
-                            End If
-                            Map.Unit_Selected_Area_VertexA = Nothing
+                If Tool Is Tools.TerrainBrush Then
+                    Map.UndoStepCreate("Ground Painted")
+                ElseIf Tool Is Tools.CliffTriangle Then
+                    Map.UndoStepCreate("Cliff Triangles")
+                ElseIf Tool Is Tools.CliffBrush Then
+                    Map.UndoStepCreate("Cliff Brush")
+                ElseIf Tool Is Tools.CliffRemove Then
+                    Map.UndoStepCreate("Cliff Remove Brush")
+                ElseIf Tool Is Tools.HeightChangeBrush Then
+                    Map.UndoStepCreate("Height Change")
+                ElseIf Tool Is Tools.HeightSetBrush Then
+                    Map.UndoStepCreate("Height Set")
+                ElseIf Tool Is Tools.HeightSmoothBrush Then
+                    Map.UndoStepCreate("Height Smooth")
+                ElseIf Tool Is Tools.TextureBrush Then
+                    Map.UndoStepCreate("Texture")
+                ElseIf Tool Is Tools.RoadRemove Then
+                    Map.UndoStepCreate("Road Remove")
+                ElseIf Tool Is Tools.ObjectSelect Then
+                    If Map.Unit_Selected_Area_VertexA IsNot Nothing Then
+                        If MouseOverTerrain IsNot Nothing Then
+                            SelectUnits(Map.Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal)
                         End If
-                End Select
+                        Map.Unit_Selected_Area_VertexA = Nothing
+                    End If
+                End If
             End If
             Map.ViewInfo.MouseLeftDown = Nothing
         ElseIf e.Button = Windows.Forms.MouseButtons.Right Then
             If Map.ViewInfo.GetMouseRightDownOverMinimap() IsNot Nothing Then
 
             Else
-                Select Case Tool
-                    Case enumTool.Height_Change_Brush
-                        Map.UndoStepCreate("Height Change")
-                    Case enumTool.Height_Set_Brush
-                        Map.UndoStepCreate("Height Set")
-                End Select
+                If Tool Is Tools.HeightChangeBrush Then
+                    Map.UndoStepCreate("Height Change")
+                ElseIf Tool Is Tools.HeightSetBrush Then
+                    Map.UndoStepCreate("Height Set")
+                End If
             End If
             Map.ViewInfo.MouseRightDown = Nothing
         End If
@@ -777,7 +778,7 @@ Public Class ctrlMapView
         ReDim ListSelectItems(MouseOverTerrain.Units.Count - 1)
         For A = 0 To MouseOverTerrain.Units.Count - 1
             Unit = MouseOverTerrain.Units(A)
-            ListSelectItems(A) = New ToolStripButton(Unit.Type.GetDisplayText)
+            ListSelectItems(A) = New ToolStripButton(Unit.Type.GetDisplayTextCode)
             ListSelectItems(A).Tag = Unit
             ListSelect.Items.Add(ListSelectItems(A))
         Next

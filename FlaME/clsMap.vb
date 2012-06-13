@@ -1448,7 +1448,7 @@ Partial Public Class clsMap
         Dim UnitAdd As New clsMap.clsUnitAdd
         UnitAdd.Map = Me
         Dim Unit As clsUnit
-        For A = ThisUndo.UnitChanges.Count - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
+        For A As Integer = ThisUndo.UnitChanges.Count - 1 To 0 Step -1 'must do in reverse order, otherwise may try to delete units that havent been added yet
             Unit = ThisUndo.UnitChanges(A).Unit
             Select Case ThisUndo.UnitChanges(A).Type
                 Case clsUnitChange.enumType.Added
@@ -1467,7 +1467,7 @@ Partial Public Class clsMap
         Next
 
         Dim GatewayChange As clsGatewayChange
-        For A = ThisUndo.GatewayChanges.Count - 1 To 0 Step -1
+        For A As Integer = ThisUndo.GatewayChanges.Count - 1 To 0 Step -1
             GatewayChange = ThisUndo.GatewayChanges(A)
             Select Case GatewayChange.Type
                 Case clsGatewayChange.enumType.Added
@@ -1516,7 +1516,7 @@ Partial Public Class clsMap
         Dim UnitAdd As New clsMap.clsUnitAdd
         UnitAdd.Map = Me
         Dim Unit As clsUnit
-        For A = 0 To ThisUndo.UnitChanges.Count - 1 'forward order is important
+        For A As Integer = 0 To ThisUndo.UnitChanges.Count - 1 'forward order is important
             Unit = ThisUndo.UnitChanges(A).Unit
             Select Case ThisUndo.UnitChanges(A).Type
                 Case clsUnitChange.enumType.Added
@@ -1535,7 +1535,7 @@ Partial Public Class clsMap
         Next
 
         Dim GatewayChange As clsGatewayChange
-        For A = 0 To ThisUndo.GatewayChanges.Count - 1 'forward order in important
+        For A As Integer = 0 To ThisUndo.GatewayChanges.Count - 1 'forward order in important
             GatewayChange = ThisUndo.GatewayChanges(A)
             Select Case GatewayChange.Type
                 Case clsGatewayChange.enumType.Added
@@ -2213,8 +2213,6 @@ Partial Public Class clsMap
         Private Terrain_Inner As clsPainter.clsTerrain
         Private Terrain_Outer As clsPainter.clsTerrain
         Private Road As clsPainter.clsRoad
-        Private A As Integer
-        Private Brush_Num As Integer
         Private RoadTop As Boolean
         Private RoadLeft As Boolean
         Private RoadRight As Boolean
@@ -2236,8 +2234,8 @@ Partial Public Class clsMap
 
             'apply centre brushes
             If Not Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Then
-                For Me.Brush_Num = 0 To Painter.TerrainCount - 1
-                    Terrain_Inner = Painter.Terrains(Brush_Num)
+                For BrushNum As Integer = 0 To Painter.TerrainCount - 1
+                    Terrain_Inner = Painter.Terrains(BrushNum)
                     If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then
                         If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
@@ -2254,9 +2252,9 @@ Partial Public Class clsMap
 
             'apply transition brushes
             If Not Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Then
-                For Me.Brush_Num = 0 To Painter.TransitionBrushCount - 1
-                    Terrain_Inner = Painter.TransitionBrushes(Brush_Num).Terrain_Inner
-                    Terrain_Outer = Painter.TransitionBrushes(Brush_Num).Terrain_Outer
+                For BrushNum As Integer = 0 To Painter.TransitionBrushCount - 1
+                    Terrain_Inner = Painter.TransitionBrushes(BrushNum).Terrain_Inner
+                    Terrain_Outer = Painter.TransitionBrushes(BrushNum).Terrain_Outer
                     If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then
                         If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
@@ -2266,19 +2264,19 @@ Partial Public Class clsMap
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'i i i o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_BottomRight
                                     Exit For
                                 End If
                             ElseIf Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'i i o i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_BottomLeft
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'i i o o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = TileDirection_Bottom
                                     Exit For
                                 End If
@@ -2287,12 +2285,12 @@ Partial Public Class clsMap
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'i o i i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_TopRight
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'i o i o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = TileDirection_Right
                                     Exit For
                                 End If
@@ -2304,7 +2302,7 @@ Partial Public Class clsMap
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'i o o o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_BottomRight
                                     Exit For
                                 End If
@@ -2315,7 +2313,7 @@ Partial Public Class clsMap
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'o i i i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_TopLeft
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
@@ -2327,12 +2325,12 @@ Partial Public Class clsMap
                             ElseIf Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'o i o i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = TileDirection_Left
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'o i o o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_BottomLeft
                                     Exit For
                                 End If
@@ -2341,19 +2339,19 @@ Partial Public Class clsMap
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'o o i i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = TileDirection_Top
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                     'o o i o
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_TopRight
                                     Exit For
                                 End If
                             ElseIf Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
                                     'o o o i
-                                    ResultTiles = Painter.TransitionBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.TransitionBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_TopLeft
                                     Exit For
                                 ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
@@ -2371,101 +2369,104 @@ Partial Public Class clsMap
             If Terrain.Tiles(PosNum.X, PosNum.Y).Tri Then
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
-                        For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                            Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                            Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                        Dim BrushNum As Integer = 0
+                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                            Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                            Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain_Inner Is Terrain_Outer Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If A >= 3 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = Terrain.Tiles(PosNum.X, PosNum.Y).DownSide
                                     Exit For
                                 End If
                             End If
                             If ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Bottom
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Left
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Top
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Right
                                 Exit For
                             End If
                         Next
-                        If Brush_Num = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushCount Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     Else
-                        For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                            Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                            Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                        Dim BrushNum As Integer = 0
+                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                            Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                            Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If A >= 2 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_TopLeft
                                     Exit For
                                 End If
                             ElseIf Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                                 If A >= 2 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_BottomRight
                                     Exit For
                                 End If
                             End If
                         Next
-                        If Brush_Num = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushCount Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     End If
                 ElseIf Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
-                    For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                        Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                        Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                    Dim BrushNum As Integer = 0
+                    For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                        Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                         If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
-                            A = 0
+                            Dim A As Integer = 0
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 2 Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_In
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_In
                                 ResultDirection = TileDirection_BottomRight
                                 Exit For
                             End If
                         ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then
-                            A = 0
+                            Dim A As Integer = 0
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                             If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                             If A >= 2 Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_Out
                                 ResultDirection = TileDirection_TopLeft
                                 Exit For
                             End If
                         End If
                     Next
-                    If Brush_Num = Painter.CliffBrushCount Then
+                    If BrushNum = Painter.CliffBrushCount Then
                         ResultTiles = Nothing
                         ResultDirection = TileDirection_None
                     End If
@@ -2476,101 +2477,104 @@ Partial Public Class clsMap
                 'default tri orientation
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                        For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                            Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                            Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                        Dim BrushNum As Integer = 0
+                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                            Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                            Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain_Inner Is Terrain_Outer Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If A >= 3 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                     ResultDirection = Terrain.Tiles(PosNum.X, PosNum.Y).DownSide
                                     Exit For
                                 End If
                             End If
                             If ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Bottom
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Left
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer) And (Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Top
                                 Exit For
                             ElseIf ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner And Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Or Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Or ((Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Or Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner) And (Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer And Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer)) Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Straight
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Straight
                                 ResultDirection = TileDirection_Right
                                 Exit For
                             End If
                         Next
-                        If Brush_Num = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushCount Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     Else
-                        For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                            Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                            Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                        Dim BrushNum As Integer = 0
+                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                            Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                            Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                                 If A >= 2 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_In
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_In
                                     ResultDirection = TileDirection_TopRight
                                     Exit For
                                 End If
                             ElseIf Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then
-                                A = 0
+                                Dim A As Integer = 0
                                 If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                                 If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                                 If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                                 If A >= 2 Then
-                                    ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out
+                                    ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_Out
                                     ResultDirection = TileDirection_BottomLeft
                                     Exit For
                                 End If
                             End If
                         Next
-                        If Brush_Num = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushCount Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     End If
                 ElseIf Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
-                    For Me.Brush_Num = 0 To Painter.CliffBrushCount - 1
-                        Terrain_Inner = Painter.CliffBrushes(Brush_Num).Terrain_Inner
-                        Terrain_Outer = Painter.CliffBrushes(Brush_Num).Terrain_Outer
+                    Dim BrushNum As Integer = 0
+                    For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
+                        Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                         If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then
-                            A = 0
+                            Dim A As Integer = 0
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Inner Then A += 1
                             If A >= 2 Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_In
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_In
                                 ResultDirection = TileDirection_BottomLeft
                                 Exit For
                             End If
                         ElseIf Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Inner Then
-                            A = 0
+                            Dim A As Integer = 0
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Then A += 1
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then A += 1
                             If A >= 2 Then
-                                ResultTiles = Painter.CliffBrushes(Brush_Num).Tiles_Corner_Out
+                                ResultTiles = Painter.CliffBrushes(BrushNum).Tiles_Corner_Out
                                 ResultDirection = TileDirection_TopRight
                                 Exit For
                             End If
                         End If
                     Next
-                    If Brush_Num = Painter.CliffBrushCount Then
+                    If BrushNum = Painter.CliffBrushCount Then
                         ResultTiles = Nothing
                         ResultDirection = TileDirection_None
                     End If
@@ -2591,10 +2595,11 @@ Partial Public Class clsMap
                 Road = Terrain.SideV(PosNum.X, PosNum.Y).Road
             End If
             If Road IsNot Nothing Then
-                For Me.Brush_Num = 0 To Painter.RoadBrushCount - 1
-                    If Painter.RoadBrushes(Brush_Num).Road Is Road Then
-                        Terrain_Outer = Painter.RoadBrushes(Brush_Num).Terrain
-                        A = 0
+                Dim BrushNum As Integer = 0
+                For BrushNum = 0 To Painter.RoadBrushCount - 1
+                    If Painter.RoadBrushes(BrushNum).Road Is Road Then
+                        Terrain_Outer = Painter.RoadBrushes(BrushNum).Terrain
+                        Dim A As Integer = 0
                         If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then
                             A += 1
                         End If
@@ -2614,38 +2619,38 @@ Partial Public Class clsMap
                 ResultTiles = Nothing
                 ResultDirection = TileDirection_None
 
-                If Brush_Num < Painter.RoadBrushCount Then
+                If BrushNum < Painter.RoadBrushCount Then
                     RoadTop = (Terrain.SideH(PosNum.X, PosNum.Y).Road Is Road)
                     RoadLeft = (Terrain.SideV(PosNum.X, PosNum.Y).Road Is Road)
                     RoadRight = (Terrain.SideV(PosNum.X + 1, PosNum.Y).Road Is Road)
                     RoadBottom = (Terrain.SideH(PosNum.X, PosNum.Y + 1).Road Is Road)
                     'do cross intersection
                     If RoadTop And RoadLeft And RoadRight And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_CrossIntersection
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_CrossIntersection
                         ResultDirection = TileDirection_None
                         'do T intersection
                     ElseIf RoadTop And RoadLeft And RoadRight Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_TIntersection
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_TIntersection
                         ResultDirection = TileDirection_Top
                     ElseIf RoadTop And RoadLeft And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_TIntersection
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_TIntersection
                         ResultDirection = TileDirection_Left
                     ElseIf RoadTop And RoadRight And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_TIntersection
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_TIntersection
                         ResultDirection = TileDirection_Right
                     ElseIf RoadLeft And RoadRight And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_TIntersection
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_TIntersection
                         ResultDirection = TileDirection_Bottom
                         'do straight
                     ElseIf RoadTop And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Straight
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Straight
                         If Rnd() >= 0.5F Then
                             ResultDirection = TileDirection_Top
                         Else
                             ResultDirection = TileDirection_Bottom
                         End If
                     ElseIf RoadLeft And RoadRight Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Straight
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Straight
                         If Rnd() >= 0.5F Then
                             ResultDirection = TileDirection_Left
                         Else
@@ -2653,29 +2658,29 @@ Partial Public Class clsMap
                         End If
                         'do corner
                     ElseIf RoadTop And RoadLeft Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Corner_In
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Corner_In
                         ResultDirection = TileDirection_TopLeft
                     ElseIf RoadTop And RoadRight Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Corner_In
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Corner_In
                         ResultDirection = TileDirection_TopRight
                     ElseIf RoadLeft And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Corner_In
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Corner_In
                         ResultDirection = TileDirection_BottomLeft
                     ElseIf RoadRight And RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_Corner_In
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_Corner_In
                         ResultDirection = TileDirection_BottomRight
                         'do end
                     ElseIf RoadTop Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_End
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_End
                         ResultDirection = TileDirection_Top
                     ElseIf RoadLeft Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_End
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_End
                         ResultDirection = TileDirection_Left
                     ElseIf RoadRight Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_End
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_End
                         ResultDirection = TileDirection_Right
                     ElseIf RoadBottom Then
-                        ResultTiles = Painter.RoadBrushes(Brush_Num).Tile_End
+                        ResultTiles = Painter.RoadBrushes(BrushNum).Tile_End
                         ResultDirection = TileDirection_Bottom
                     End If
                 End If

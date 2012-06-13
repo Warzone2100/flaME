@@ -34,26 +34,28 @@ Public Class ctrlBrush
         tabShape.Enabled = True
     End Sub
 
+    Private nudRadiusIsBusy As Boolean = False
+
     Private Sub nudRadius_Changed(sender As Object, e As EventArgs)
-        If Not nudRadius.Enabled Then
+        If nudRadiusIsBusy Then
             Exit Sub
         End If
 
-        nudRadius.Enabled = False
+        nudRadiusIsBusy = True
 
         Dim NewRadius As Double
         Dim Converted As Boolean = False
         Try
             NewRadius = CDbl(nudRadius.Value)
             Converted = True
-        Catch ex As Exception
+        Catch
 
         End Try
         If Converted Then
             Brush.Radius = NewRadius
         End If
 
-        nudRadius.Enabled = True
+        nudRadiusIsBusy = False
     End Sub
 
     Private Sub tabShape_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles tabShape.SelectedIndexChanged

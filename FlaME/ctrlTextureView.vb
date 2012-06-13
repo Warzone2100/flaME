@@ -332,7 +332,7 @@ EndOfTextures4:
             If SelectedTextureNum >= Map.Tileset.TileCount Then
                 SelectedTextureNum = -1
             Else
-                Tool = enumTool.Texture_Brush
+                Tool = Tools.TextureBrush
             End If
         Else
             SelectedTextureNum = -1

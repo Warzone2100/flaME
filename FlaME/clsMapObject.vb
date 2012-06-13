@@ -4,7 +4,7 @@ Partial Public Class clsMap
     Public Class clsUnit
         Public MapLink As New ConnectedListLink(Of clsUnit, clsMap)(Me)
         Public MapSelectedUnitLink As New ConnectedListLink(Of clsUnit, clsMap)(Me)
-        Public Sectors As New ConnectedList(Of clsMap.clsUnitSectorConnection, clsMap.clsUnit)(Me)
+        Public Sectors As New ConnectedList(Of clsUnitSectorConnection, clsUnit)(Me)
 
         Public ID As UInteger
         Public Type As clsUnitType
@@ -508,9 +508,8 @@ Partial Public Class clsMap
     End Function
 
     Public Function IDUsage(ID As UInteger) As clsUnit
-        Dim Unit As clsUnit
 
-        For Each Unit In Units
+        For Each Unit As clsUnit In Units
             If Unit.ID = ID Then
                 Return Unit
                 Exit For
@@ -519,4 +518,65 @@ Partial Public Class clsMap
 
         Return Nothing
     End Function
+
+    Public Class clsUnitCreate
+
+        Public Map As clsMap
+        Public ObjectType As clsUnitType
+        Public Horizontal As sXY_int
+        Public UnitGroup As clsUnitGroup
+        Public AutoWalls As Boolean = False
+        Public Rotation As Integer = 0
+        Public RandomizeRotation As Boolean = False
+
+        Public Function Perform() As clsUnit
+
+            If AutoWalls Then
+                If ObjectType.Type = clsUnitType.enumType.PlayerStructure Then
+                    Dim StructureType As clsStructureType = CType(ObjectType, clsStructureType)
+                    If StructureType.WallLink.IsConnected Then
+                        Dim AutoWallType As clsWallType = Nothing
+                        AutoWallType = StructureType.WallLink.Source
+                        Map.PerformTileWall(AutoWallType, Map.GetPosTileNum(Horizontal), True)
+                        Return Nothing
+                    End If
+                End If
+            End If
+            Dim newUnit As New clsMap.clsUnit
+            If RandomizeRotation Then
+                newUnit.Rotation = CInt(Int(Rnd() * 360.0#))
+            Else
+                newUnit.Rotation = Rotation
+            End If
+            newUnit.UnitGroup = unitGroup
+            newUnit.Pos = Map.TileAlignedPosFromMapPos(Horizontal, ObjectType.GetFootprintSelected(newUnit.Rotation))
+            newUnit.Type = objectType
+            Dim UnitAdd As New clsUnitAdd
+            UnitAdd.Map = Map
+            UnitAdd.NewUnit = newUnit
+            UnitAdd.StoreChange = True
+            UnitAdd.Perform()
+            Return newUnit
+        End Function
+    End Class
+
+    Public Sub SetObjectCreatorDefaults(objectCreator As clsMap.clsUnitCreate)
+
+        objectCreator.Map = Me
+        objectCreator.ObjectType = frmMainInstance.SelectedObjectType
+        objectCreator.AutoWalls = frmMainInstance.cbxAutoWalls.Checked
+        objectCreator.UnitGroup = SelectedUnitGroup.Item
+        Try
+            Dim Rotation As Integer
+            InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
+            If Rotation < 0 Or Rotation > 359 Then
+                objectCreator.Rotation = 0
+            Else
+                objectCreator.Rotation = Rotation
+            End If
+        Catch
+            objectCreator.Rotation = 0
+        End Try
+        objectCreator.RandomizeRotation = frmMainInstance.cbxObjectRandomRotation.Checked
+    End Sub
 End Class

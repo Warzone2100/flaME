@@ -55,11 +55,25 @@ Partial Class frmOptions
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
         Me.txtUndoSteps = New System.Windows.Forms.TextBox()
         Me.Label11 = New System.Windows.Forms.Label()
-        Me.GroupBox3 = New System.Windows.Forms.GroupBox()
-        Me.btnDirectories = New System.Windows.Forms.Button()
+        Me.TabPage3 = New System.Windows.Forms.TabPage()
         Me.cbxAskDirectories = New System.Windows.Forms.CheckBox()
+        Me.TabPage2 = New System.Windows.Forms.TabPage()
+        Me.btnKeyControlChangeDefault = New System.Windows.Forms.Button()
+        Me.Label7 = New System.Windows.Forms.Label()
+        Me.btnKeyControlChangeUnless = New System.Windows.Forms.Button()
+        Me.btnKeyControlChange = New System.Windows.Forms.Button()
+        Me.lstKeyboardControls = New System.Windows.Forms.ListBox()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.btnSave = New System.Windows.Forms.Button()
+        Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
+        Me.txtMapDepth = New System.Windows.Forms.TextBox()
+        Me.txtMapBPP = New System.Windows.Forms.TextBox()
+        Me.Label8 = New System.Windows.Forms.Label()
+        Me.Label9 = New System.Windows.Forms.Label()
+        Me.Label10 = New System.Windows.Forms.Label()
+        Me.Label13 = New System.Windows.Forms.Label()
+        Me.txtTexturesDepth = New System.Windows.Forms.TextBox()
+        Me.txtTexturesBPP = New System.Windows.Forms.TextBox()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         Me.GroupBox8.SuspendLayout()
@@ -69,12 +83,15 @@ Partial Class frmOptions
         Me.GroupBox4.SuspendLayout()
         Me.GroupBox2.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
-        Me.GroupBox3.SuspendLayout()
+        Me.TabPage3.SuspendLayout()
+        Me.TabPage2.SuspendLayout()
         Me.SuspendLayout()
         '
         'TabControl1
         '
+        Me.TabControl1.Controls.Add(Me.TabPage3)
         Me.TabControl1.Controls.Add(Me.TabPage1)
+        Me.TabControl1.Controls.Add(Me.TabPage2)
         Me.TabControl1.Location = New System.Drawing.Point(12, 12)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
@@ -90,7 +107,6 @@ Partial Class frmOptions
         Me.TabPage1.Controls.Add(Me.GroupBox4)
         Me.TabPage1.Controls.Add(Me.GroupBox2)
         Me.TabPage1.Controls.Add(Me.GroupBox1)
-        Me.TabPage1.Controls.Add(Me.GroupBox3)
         Me.TabPage1.Location = New System.Drawing.Point(4, 25)
         Me.TabPage1.Name = "TabPage1"
         Me.TabPage1.Padding = New System.Windows.Forms.Padding(3)
@@ -101,11 +117,19 @@ Partial Class frmOptions
         '
         'GroupBox8
         '
+        Me.GroupBox8.Controls.Add(Me.Label13)
+        Me.GroupBox8.Controls.Add(Me.txtTexturesDepth)
+        Me.GroupBox8.Controls.Add(Me.txtTexturesBPP)
+        Me.GroupBox8.Controls.Add(Me.Label10)
+        Me.GroupBox8.Controls.Add(Me.txtMapDepth)
+        Me.GroupBox8.Controls.Add(Me.txtMapBPP)
+        Me.GroupBox8.Controls.Add(Me.Label8)
+        Me.GroupBox8.Controls.Add(Me.Label9)
         Me.GroupBox8.Controls.Add(Me.cbxMipmapsHardware)
         Me.GroupBox8.Controls.Add(Me.cbxMipmaps)
-        Me.GroupBox8.Location = New System.Drawing.Point(6, 299)
+        Me.GroupBox8.Location = New System.Drawing.Point(6, 244)
         Me.GroupBox8.Name = "GroupBox8"
-        Me.GroupBox8.Size = New System.Drawing.Size(304, 60)
+        Me.GroupBox8.Size = New System.Drawing.Size(304, 119)
         Me.GroupBox8.TabIndex = 45
         Me.GroupBox8.TabStop = False
         Me.GroupBox8.Text = "Graphics"
@@ -290,7 +314,7 @@ Partial Class frmOptions
         '
         Me.GroupBox4.Controls.Add(Me.lblFont)
         Me.GroupBox4.Controls.Add(Me.btnFont)
-        Me.GroupBox4.Location = New System.Drawing.Point(6, 231)
+        Me.GroupBox4.Location = New System.Drawing.Point(6, 176)
         Me.GroupBox4.Name = "GroupBox4"
         Me.GroupBox4.Size = New System.Drawing.Size(304, 62)
         Me.GroupBox4.TabIndex = 41
@@ -437,41 +461,93 @@ Partial Class frmOptions
         Me.Label11.Text = "Maximum stored steps:"
         Me.Label11.UseCompatibleTextRendering = True
         '
-        'GroupBox3
+        'TabPage3
         '
-        Me.GroupBox3.Controls.Add(Me.btnDirectories)
-        Me.GroupBox3.Controls.Add(Me.cbxAskDirectories)
-        Me.GroupBox3.Location = New System.Drawing.Point(6, 176)
-        Me.GroupBox3.Name = "GroupBox3"
-        Me.GroupBox3.Size = New System.Drawing.Size(304, 52)
-        Me.GroupBox3.TabIndex = 40
-        Me.GroupBox3.TabStop = False
-        Me.GroupBox3.Text = "Warzone Data"
-        Me.GroupBox3.UseCompatibleTextRendering = True
-        '
-        'btnDirectories
-        '
-        Me.btnDirectories.Location = New System.Drawing.Point(208, 17)
-        Me.btnDirectories.Name = "btnDirectories"
-        Me.btnDirectories.Size = New System.Drawing.Size(89, 29)
-        Me.btnDirectories.TabIndex = 40
-        Me.btnDirectories.Text = "Modify"
-        Me.btnDirectories.UseVisualStyleBackColor = True
+        Me.TabPage3.Controls.Add(Me.cbxAskDirectories)
+        Me.TabPage3.Controls.Add(Me.TableLayoutPanel1)
+        Me.TabPage3.Location = New System.Drawing.Point(4, 25)
+        Me.TabPage3.Margin = New System.Windows.Forms.Padding(0)
+        Me.TabPage3.Name = "TabPage3"
+        Me.TabPage3.Size = New System.Drawing.Size(629, 369)
+        Me.TabPage3.TabIndex = 2
+        Me.TabPage3.Text = "Directories"
+        Me.TabPage3.UseVisualStyleBackColor = True
         '
         'cbxAskDirectories
         '
         Me.cbxAskDirectories.AutoSize = True
-        Me.cbxAskDirectories.Location = New System.Drawing.Point(8, 22)
+        Me.cbxAskDirectories.Location = New System.Drawing.Point(24, 14)
         Me.cbxAskDirectories.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxAskDirectories.Name = "cbxAskDirectories"
-        Me.cbxAskDirectories.Size = New System.Drawing.Size(134, 21)
+        Me.cbxAskDirectories.Size = New System.Drawing.Size(151, 21)
         Me.cbxAskDirectories.TabIndex = 39
-        Me.cbxAskDirectories.Text = "Ask for directories"
+        Me.cbxAskDirectories.Text = "Show options at start"
         Me.cbxAskDirectories.UseCompatibleTextRendering = True
         Me.cbxAskDirectories.UseVisualStyleBackColor = True
         '
+        'TabPage2
+        '
+        Me.TabPage2.Controls.Add(Me.btnKeyControlChangeDefault)
+        Me.TabPage2.Controls.Add(Me.Label7)
+        Me.TabPage2.Controls.Add(Me.btnKeyControlChangeUnless)
+        Me.TabPage2.Controls.Add(Me.btnKeyControlChange)
+        Me.TabPage2.Controls.Add(Me.lstKeyboardControls)
+        Me.TabPage2.Location = New System.Drawing.Point(4, 25)
+        Me.TabPage2.Name = "TabPage2"
+        Me.TabPage2.Padding = New System.Windows.Forms.Padding(3)
+        Me.TabPage2.Size = New System.Drawing.Size(629, 369)
+        Me.TabPage2.TabIndex = 1
+        Me.TabPage2.Text = "Keyboard"
+        Me.TabPage2.UseVisualStyleBackColor = True
+        '
+        'btnKeyControlChangeDefault
+        '
+        Me.btnKeyControlChangeDefault.Location = New System.Drawing.Point(417, 156)
+        Me.btnKeyControlChangeDefault.Name = "btnKeyControlChangeDefault"
+        Me.btnKeyControlChangeDefault.Size = New System.Drawing.Size(160, 35)
+        Me.btnKeyControlChangeDefault.TabIndex = 4
+        Me.btnKeyControlChangeDefault.Text = "Set To Default"
+        Me.btnKeyControlChangeDefault.UseVisualStyleBackColor = True
+        '
+        'Label7
+        '
+        Me.Label7.Location = New System.Drawing.Point(419, 98)
+        Me.Label7.Name = "Label7"
+        Me.Label7.Size = New System.Drawing.Size(158, 93)
+        Me.Label7.TabIndex = 3
+        Me.Label7.Text = "The control will never be active while an ""unless key"" is pressed."
+        '
+        'btnKeyControlChangeUnless
+        '
+        Me.btnKeyControlChangeUnless.Location = New System.Drawing.Point(417, 59)
+        Me.btnKeyControlChangeUnless.Name = "btnKeyControlChangeUnless"
+        Me.btnKeyControlChangeUnless.Size = New System.Drawing.Size(160, 35)
+        Me.btnKeyControlChangeUnless.TabIndex = 2
+        Me.btnKeyControlChangeUnless.Text = "Change Unless Keys"
+        Me.btnKeyControlChangeUnless.UseVisualStyleBackColor = True
+        '
+        'btnKeyControlChange
+        '
+        Me.btnKeyControlChange.Location = New System.Drawing.Point(417, 18)
+        Me.btnKeyControlChange.Name = "btnKeyControlChange"
+        Me.btnKeyControlChange.Size = New System.Drawing.Size(160, 35)
+        Me.btnKeyControlChange.TabIndex = 1
+        Me.btnKeyControlChange.Text = "Change Keys"
+        Me.btnKeyControlChange.UseVisualStyleBackColor = True
+        '
+        'lstKeyboardControls
+        '
+        Me.lstKeyboardControls.FormattingEnabled = True
+        Me.lstKeyboardControls.ItemHeight = 16
+        Me.lstKeyboardControls.Location = New System.Drawing.Point(17, 18)
+        Me.lstKeyboardControls.Name = "lstKeyboardControls"
+        Me.lstKeyboardControls.ScrollAlwaysVisible = True
+        Me.lstKeyboardControls.Size = New System.Drawing.Size(394, 324)
+        Me.lstKeyboardControls.TabIndex = 0
+        '
         'btnCancel
         '
+        Me.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Ignore
         Me.btnCancel.Location = New System.Drawing.Point(549, 416)
         Me.btnCancel.Name = "btnCancel"
         Me.btnCancel.Size = New System.Drawing.Size(100, 29)
@@ -481,12 +557,102 @@ Partial Class frmOptions
         '
         'btnSave
         '
+        Me.btnSave.DialogResult = System.Windows.Forms.DialogResult.Ignore
         Me.btnSave.Location = New System.Drawing.Point(443, 416)
         Me.btnSave.Name = "btnSave"
         Me.btnSave.Size = New System.Drawing.Size(100, 29)
         Me.btnSave.TabIndex = 40
         Me.btnSave.Text = "Accept"
         Me.btnSave.UseVisualStyleBackColor = True
+        '
+        'TableLayoutPanel1
+        '
+        Me.TableLayoutPanel1.ColumnCount = 1
+        Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.TableLayoutPanel1.Location = New System.Drawing.Point(3, 42)
+        Me.TableLayoutPanel1.Name = "TableLayoutPanel1"
+        Me.TableLayoutPanel1.RowCount = 2
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50.0!))
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50.0!))
+        Me.TableLayoutPanel1.Size = New System.Drawing.Size(623, 324)
+        Me.TableLayoutPanel1.TabIndex = 41
+        '
+        'txtMapDepth
+        '
+        Me.txtMapDepth.Location = New System.Drawing.Point(180, 67)
+        Me.txtMapDepth.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtMapDepth.Name = "txtMapDepth"
+        Me.txtMapDepth.Size = New System.Drawing.Size(61, 22)
+        Me.txtMapDepth.TabIndex = 44
+        '
+        'txtMapBPP
+        '
+        Me.txtMapBPP.Location = New System.Drawing.Point(105, 67)
+        Me.txtMapBPP.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtMapBPP.Name = "txtMapBPP"
+        Me.txtMapBPP.Size = New System.Drawing.Size(61, 22)
+        Me.txtMapBPP.TabIndex = 42
+        '
+        'Label8
+        '
+        Me.Label8.AutoSize = True
+        Me.Label8.Location = New System.Drawing.Point(96, 47)
+        Me.Label8.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label8.Name = "Label8"
+        Me.Label8.Size = New System.Drawing.Size(70, 20)
+        Me.Label8.TabIndex = 45
+        Me.Label8.Text = "Colour Bits"
+        Me.Label8.UseCompatibleTextRendering = True
+        '
+        'Label9
+        '
+        Me.Label9.AutoSize = True
+        Me.Label9.Location = New System.Drawing.Point(174, 47)
+        Me.Label9.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label9.Name = "Label9"
+        Me.Label9.Size = New System.Drawing.Size(67, 20)
+        Me.Label9.TabIndex = 43
+        Me.Label9.Text = "Depth Bits"
+        Me.Label9.UseCompatibleTextRendering = True
+        '
+        'Label10
+        '
+        Me.Label10.AutoSize = True
+        Me.Label10.Location = New System.Drawing.Point(33, 67)
+        Me.Label10.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label10.Name = "Label10"
+        Me.Label10.Size = New System.Drawing.Size(64, 20)
+        Me.Label10.TabIndex = 46
+        Me.Label10.Text = "Map View"
+        Me.Label10.UseCompatibleTextRendering = True
+        '
+        'Label13
+        '
+        Me.Label13.AutoSize = True
+        Me.Label13.Location = New System.Drawing.Point(7, 96)
+        Me.Label13.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label13.Name = "Label13"
+        Me.Label13.Size = New System.Drawing.Size(90, 20)
+        Me.Label13.TabIndex = 50
+        Me.Label13.Text = "Textures View"
+        Me.Label13.UseCompatibleTextRendering = True
+        '
+        'txtTexturesDepth
+        '
+        Me.txtTexturesDepth.Location = New System.Drawing.Point(180, 93)
+        Me.txtTexturesDepth.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtTexturesDepth.Name = "txtTexturesDepth"
+        Me.txtTexturesDepth.Size = New System.Drawing.Size(61, 22)
+        Me.txtTexturesDepth.TabIndex = 49
+        '
+        'txtTexturesBPP
+        '
+        Me.txtTexturesBPP.Location = New System.Drawing.Point(105, 93)
+        Me.txtTexturesBPP.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtTexturesBPP.Name = "txtTexturesBPP"
+        Me.txtTexturesBPP.Size = New System.Drawing.Size(61, 22)
+        Me.txtTexturesBPP.TabIndex = 48
         '
         'frmOptions
         '
@@ -515,8 +681,9 @@ Partial Class frmOptions
         Me.GroupBox2.PerformLayout()
         Me.GroupBox1.ResumeLayout(False)
         Me.GroupBox1.PerformLayout()
-        Me.GroupBox3.ResumeLayout(False)
-        Me.GroupBox3.PerformLayout()
+        Me.TabPage3.ResumeLayout(False)
+        Me.TabPage3.PerformLayout()
+        Me.TabPage2.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
@@ -535,7 +702,6 @@ Partial Class frmOptions
     Public WithEvents GroupBox4 As System.Windows.Forms.GroupBox
     Public WithEvents lblFont As System.Windows.Forms.Label
     Public WithEvents btnFont As System.Windows.Forms.Button
-    Public WithEvents GroupBox3 As System.Windows.Forms.GroupBox
     Public WithEvents cbxAskDirectories As System.Windows.Forms.CheckBox
     Public WithEvents btnCancel As System.Windows.Forms.Button
     Public WithEvents btnSave As System.Windows.Forms.Button
@@ -549,7 +715,6 @@ Partial Class frmOptions
     Public WithEvents GroupBox6 As System.Windows.Forms.GroupBox
     Public WithEvents cbxPointerDirect As System.Windows.Forms.CheckBox
     Public WithEvents btnAutosaveOpen As System.Windows.Forms.Button
-    Public WithEvents btnDirectories As System.Windows.Forms.Button
     Public WithEvents cbxMinimapTeamColourFeatures As System.Windows.Forms.CheckBox
     Friend WithEvents pnlMinimapCliffColour As System.Windows.Forms.Panel
     Public WithEvents Label5 As System.Windows.Forms.Label
@@ -558,4 +723,20 @@ Partial Class frmOptions
     Public WithEvents GroupBox8 As System.Windows.Forms.GroupBox
     Public WithEvents cbxMipmapsHardware As System.Windows.Forms.CheckBox
     Public WithEvents cbxMipmaps As System.Windows.Forms.CheckBox
+    Friend WithEvents TabPage2 As System.Windows.Forms.TabPage
+    Friend WithEvents lstKeyboardControls As System.Windows.Forms.ListBox
+    Friend WithEvents btnKeyControlChange As System.Windows.Forms.Button
+    Friend WithEvents btnKeyControlChangeUnless As System.Windows.Forms.Button
+    Friend WithEvents Label7 As System.Windows.Forms.Label
+    Friend WithEvents btnKeyControlChangeDefault As System.Windows.Forms.Button
+    Friend WithEvents TabPage3 As System.Windows.Forms.TabPage
+    Friend WithEvents TableLayoutPanel1 As System.Windows.Forms.TableLayoutPanel
+    Public WithEvents Label13 As System.Windows.Forms.Label
+    Public WithEvents txtTexturesDepth As System.Windows.Forms.TextBox
+    Public WithEvents txtTexturesBPP As System.Windows.Forms.TextBox
+    Public WithEvents Label10 As System.Windows.Forms.Label
+    Public WithEvents txtMapDepth As System.Windows.Forms.TextBox
+    Public WithEvents txtMapBPP As System.Windows.Forms.TextBox
+    Public WithEvents Label8 As System.Windows.Forms.Label
+    Public WithEvents Label9 As System.Windows.Forms.Label
 End Class

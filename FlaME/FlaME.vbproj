@@ -107,6 +107,7 @@
   <ItemGroup>
     <Import Include="Microsoft.VisualBasic" />
     <Import Include="System" />
+    <Import Include="System.Data" />
     <Import Include="System.Drawing" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Windows.Forms" />
@@ -118,7 +119,13 @@
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
     <Compile Include="clsHeightmap.vb" />
-    <Compile Include="clsInputControl.vb" />
+    <Compile Include="frmKeyboardControl.Designer.vb">
+      <DependentUpon>frmKeyboardControl.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmKeyboardControl.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="KeyboardControls.vb" />
     <Compile Include="clsMap.vb" />
     <Compile Include="clsMapChanges.vb" />
     <Compile Include="clsMapDraw.vb" />
@@ -133,6 +140,8 @@
     <Compile Include="clsPainter.vb" />
     <Compile Include="clsResult.vb" />
     <Compile Include="clsTileset.vb" />
+    <Compile Include="Options.vb" />
+    <Compile Include="Tools.vb" />
     <Compile Include="clsUnitType.vb" />
     <Compile Include="clsViewInfo.vb" />
     <Compile Include="modMain.vb" />
@@ -189,12 +198,6 @@
       <DependentUpon>frmCompile.vb</DependentUpon>
     </Compile>
     <Compile Include="frmCompile.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="frmData.Designer.vb">
-      <DependentUpon>frmData.vb</DependentUpon>
-    </Compile>
-    <Compile Include="frmData.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="frmGenerator.Designer.vb">
@@ -265,6 +268,9 @@
     <Compile Include="TileOrientation.vb" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="frmKeyboardControl.resx">
+      <DependentUpon>frmKeyboardControl.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmQuit.resx">
       <DependentUpon>frmQuit.vb</DependentUpon>
     </EmbeddedResource>
@@ -291,9 +297,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="frmCompile.resx">
       <DependentUpon>frmCompile.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="frmData.resx">
-      <DependentUpon>frmData.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmGenerator.resx">
       <DependentUpon>frmGenerator.vb</DependentUpon>

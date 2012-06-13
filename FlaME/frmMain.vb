@@ -81,10 +81,6 @@ Partial Public Class frmMain
     Public MapView As ctrlMapView
     Public TextureView As ctrlTextureView
 
-    Public lstFeatures_Objects() As clsFeatureType
-    Public lstStructures_Objects() As clsStructureType
-    Public lstDroids_Objects() As clsDroidTemplate
-
     Public cboBody_Objects() As clsBody
     Public cboPropulsion_Objects() As clsPropulsion
     Public cboTurret_Objects() As clsTurret
@@ -100,13 +96,13 @@ Partial Public Class frmMain
     Public WithEvents tmrKey As Timer
     Public WithEvents tmrTool As Timer
 
-    Public WithEvents NewPlayerNum As ctrlPlayerNum
-    Public WithEvents ObjectPlayerNum As ctrlPlayerNum
+    Public NewPlayerNum As ctrlPlayerNum
+    Public ObjectPlayerNum As ctrlPlayerNum
 
-    Public WithEvents ctrlTextureBrush As ctrlBrush
-    Public WithEvents ctrlTerrainBrush As ctrlBrush
-    Public WithEvents ctrlCliffRemoveBrush As ctrlBrush
-    Public WithEvents ctrlHeightBrush As ctrlBrush
+    Public ctrlTextureBrush As ctrlBrush
+    Public ctrlTerrainBrush As ctrlBrush
+    Public ctrlCliffRemoveBrush As ctrlBrush
+    Public ctrlHeightBrush As ctrlBrush
 
     Public Sub New()
         InitializeComponent()
@@ -169,12 +165,12 @@ Partial Public Class frmMain
         LoadInterfaceImage(InterfaceImagesPath & "problem.png", InterfaceImage_Problem, ReturnResult)
         Dim InterfaceImage_Warning As Bitmap = Nothing
         LoadInterfaceImage(InterfaceImagesPath & "warning.png", InterfaceImage_Warning, ReturnResult)
-        frmWarnings.Images.ImageSize = New Drawing.Size(16, 16)
+        WarningImages.ImageSize = New Drawing.Size(16, 16)
         If InterfaceImage_Problem IsNot Nothing Then
-            frmWarnings.Images.Images.Add("problem", InterfaceImage_Problem)
+            WarningImages.Images.Add("problem", InterfaceImage_Problem)
         End If
         If InterfaceImage_Warning IsNot Nothing Then
-            frmWarnings.Images.Images.Add("warning", InterfaceImage_Warning)
+            WarningImages.Images.Add("warning", InterfaceImage_Warning)
         End If
 
         tsbDrawAutotexture.Image = InterfaceImage_DisplayAutoTexture
@@ -283,6 +279,8 @@ Partial Public Class frmMain
 
         InitializeResult.Add(LoadInterfaceImages())
 
+        CreateTools()
+
         Matrix3D.MatrixSetToPY(SunAngleMatrix, New Matrix3D.AnglePY(-22.5# * RadOf1Deg, 157.5# * RadOf1Deg))
 
         NewPlayerNum.Left = 112
@@ -309,12 +307,10 @@ Partial Public Class frmMain
 
         Randomize()
 
-        CreateControls()
-
         CreateTileTypes()
 
-        For A = 0 To 15
-            PlayerColour(A) = New clsPlayer
+        For i As Integer = 0 To 15
+            PlayerColour(i) = New clsPlayer
         Next
         PlayerColour(0).Colour.Red = 0.0F
         PlayerColour(0).Colour.Green = 96.0F / 255.0F
@@ -364,29 +360,33 @@ Partial Public Class frmMain
         PlayerColour(15).Colour.Red = 64.0F / 255.0F
         PlayerColour(15).Colour.Green = 96.0F / 255.0F
         PlayerColour(15).Colour.Blue = 0.0F
-        For A = 0 To 15
-            PlayerColour(A).CalcMinimapColour()
+        For i As Integer = 0 To 15
+            PlayerColour(i).CalcMinimapColour()
         Next
 
         MinimapFeatureColour.Red = 0.5F
         MinimapFeatureColour.Green = 0.5F
         MinimapFeatureColour.Blue = 0.5F
 
-        UpdateINISettings(InitializeINISettings)
-        InitializeINISettings = Nothing
+        UpdateSettings(InitializeSettings)
+        InitializeSettings = Nothing
 
         If Settings.DirectoriesPrompt Then
-            If frmDataInstance.ShowDialog <> Windows.Forms.DialogResult.OK Then
+            frmOptionsInstance = New frmOptions
+            If frmOptionsInstance.ShowDialog = Windows.Forms.DialogResult.Abort Then
                 End
             End If
         End If
-        frmDataInstance.HideButtons()
 
-        Dim TilesetsPath As String = frmDataInstance.TilesetsPathSet.SelectedPath
-        If TilesetsPath IsNot Nothing And TilesetsPath <> "" Then
-            InitializeStatus = "Loading tilesets"
-            InitializeResult.Add(LoadTilesets(EndWithPathSeperator(TilesetsPath)))
-            InitializeStatus = ""
+        Dim TilesetNum As Integer = CType(Settings.Value(Setting_DefaultTilesetsPathNum), Integer)
+        Dim TilesetsList As SimpleList(Of String) = CType(Settings.Value(Setting_TilesetDirectories), SimpleList(Of String))
+        If TilesetNum >= 0 And TilesetNum < TilesetsList.Count Then
+            Dim TilesetsPath As String = TilesetsList(TilesetNum)
+            If TilesetsPath IsNot Nothing And TilesetsPath <> "" Then
+                InitializeStatus = "Loading tilesets"
+                InitializeResult.Add(LoadTilesets(EndWithPathSeperator(TilesetsPath)))
+                InitializeStatus = ""
+            End If
         End If
 
         cboTileset_Update(-1)
@@ -396,12 +396,16 @@ Partial Public Class frmMain
 
         CreateTemplateDroidTypes() 'do before loading data
 
-        Dim ObjectDataPath As String = frmDataInstance.ObjectDataPathSet.SelectedPath
         ObjectData = New clsObjectData
-        If ObjectDataPath IsNot Nothing And ObjectDataPath <> "" Then
-            InitializeStatus = "Loading object data"
-            InitializeResult.Add(ObjectData.LoadDirectory(ObjectDataPath))
-            InitializeStatus = ""
+        Dim ObjectDataNum As Integer = CType(Settings.Value(Setting_DefaultObjectDataPathNum), Integer)
+        Dim ObjectDataList As SimpleList(Of String) = CType(Settings.Value(Setting_ObjectDataDirectories), SimpleList(Of String))
+        If ObjectDataNum >= 0 And ObjectDataNum < TilesetsList.Count Then
+            Dim ObjectDataPath As String = ObjectDataList(ObjectDataNum)
+            If ObjectDataPath IsNot Nothing And ObjectDataPath <> "" Then
+                InitializeStatus = "Loading object data"
+                InitializeResult.Add(ObjectData.LoadDirectory(ObjectDataPath))
+                InitializeStatus = ""
+            End If
         End If
 
         CreateGeneratorTilesets()
@@ -409,7 +413,6 @@ Partial Public Class frmMain
         CreatePainterUrban()
         CreatePainterRockies()
 
-        Objects_Update()
         Components_Update()
 
         MapView.Dock = DockStyle.Fill
@@ -426,7 +429,7 @@ Partial Public Class frmMain
         HeightSetPalette(5) = 128
         HeightSetPalette(6) = 192
         HeightSetPalette(7) = 255
-        For A = 0 To 7
+        For A As Integer = 0 To 7
             tabHeightSetL.TabPages(A).Text = InvariantToString_byte(HeightSetPalette(A))
             tabHeightSetR.TabPages(A).Text = InvariantToString_byte(HeightSetPalette(A))
         Next
@@ -447,8 +450,6 @@ Partial Public Class frmMain
         TextureView.Dock = DockStyle.Fill
         TableLayoutPanel6.Controls.Add(TextureView, 0, 1)
 
-        Tool = enumTool.Texture_Brush
-
         MainMapAfterChanged()
 
         MapView.DrawView_SetEnabled(True)
@@ -458,6 +459,7 @@ Partial Public Class frmMain
 #If Mono = 0.0# Then
         Show()
 #End If
+        Activate()
 
         tmrKey.Enabled = True
         tmrTool.Enabled = True
@@ -488,13 +490,13 @@ Partial Public Class frmMain
         Dim Pan As Double
         Dim OrbitRate As Double
 
-        If Control_Fast.Active Then
-            If Control_Slow.Active Then
+        If KeyboardProfile.Active(Control_Fast) Then
+            If KeyboardProfile.Active(Control_Slow) Then
                 Rate = 8.0#
             Else
                 Rate = 4.0#
             End If
-        ElseIf Control_Slow.Active Then
+        ElseIf KeyboardProfile.Active(Control_Slow) Then
             Rate = 0.25#
         Else
             Rate = 1.0#
@@ -512,235 +514,6 @@ Partial Public Class frmMain
             View_DrawViewLater()
         End If
     End Sub
-
-    Public Sub Controls_Set_Default()
-
-        Dim Control As clsInputControl
-        For Each Control In InputControls
-            Control.SetToDefault()
-        Next
-    End Sub
-
-    Private Sub CreateControls()
-
-        'interface controls
-
-        Control_Deselect = InputControl_Create()
-        With Control_Deselect
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Escape})
-        End With
-
-        'selected unit controls
-
-        Control_Unit_Move = InputControl_Create()
-        With Control_Unit_Move
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.M})
-        End With
-
-        Control_Unit_Delete = InputControl_Create()
-        With Control_Unit_Delete
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Delete})
-        End With
-
-        Control_Unit_Multiselect = InputControl_Create()
-        With Control_Unit_Multiselect
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.ShiftKey})
-        End With
-
-        'generalised controls
-
-        Control_Slow = InputControl_Create()
-        With Control_Slow
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.R})
-        End With
-
-        Control_Fast = InputControl_Create()
-        With Control_Fast
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F})
-        End With
-
-        'picker controls
-
-        Control_Picker = InputControl_Create()
-        With Control_Picker
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.ControlKey})
-        End With
-
-        'view controls
-
-        Control_View_Textures = InputControl_Create()
-        With Control_View_Textures
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F5})
-        End With
-
-        Control_View_Lighting = InputControl_Create()
-        With Control_View_Lighting
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F8})
-        End With
-
-        Control_View_Wireframe = InputControl_Create()
-        With Control_View_Wireframe
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F6})
-        End With
-
-        Control_View_Units = InputControl_Create()
-        With Control_View_Units
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F7})
-        End With
-
-        Control_View_ScriptMarkers = InputControl_Create()
-        With Control_View_ScriptMarkers
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F4})
-        End With
-
-        Control_View_Move_Type = InputControl_Create()
-        With Control_View_Move_Type
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F1})
-        End With
-
-        Control_View_Rotate_Type = InputControl_Create()
-        With Control_View_Rotate_Type
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.F2})
-        End With
-
-        Control_View_Move_Left = InputControl_Create()
-        With Control_View_Move_Left
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.A})
-        End With
-
-        Control_View_Move_Right = InputControl_Create()
-        With Control_View_Move_Right
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.D})
-        End With
-
-        Control_View_Move_Forward = InputControl_Create()
-        With Control_View_Move_Forward
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.W})
-        End With
-
-        Control_View_Move_Backward = InputControl_Create()
-        With Control_View_Move_Backward
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.S})
-        End With
-
-        Control_View_Move_Up = InputControl_Create()
-        With Control_View_Move_Up
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.E})
-        End With
-
-        Control_View_Move_Down = InputControl_Create()
-        With Control_View_Move_Down
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.C})
-        End With
-
-        Control_View_Zoom_In = InputControl_Create()
-        With Control_View_Zoom_In
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Home})
-        End With
-
-        Control_View_Zoom_Out = InputControl_Create()
-        With Control_View_Zoom_Out
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.End})
-        End With
-
-        Control_View_Left = InputControl_Create()
-        With Control_View_Left
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Left})
-        End With
-
-        Control_View_Right = InputControl_Create()
-        With Control_View_Right
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Right})
-        End With
-
-        Control_View_Forward = InputControl_Create()
-        With Control_View_Forward
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Up})
-        End With
-
-        Control_View_Backward = InputControl_Create()
-        With Control_View_Backward
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Down})
-        End With
-
-        Control_View_Up = InputControl_Create()
-        With Control_View_Up
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.PageUp})
-        End With
-
-        Control_View_Down = InputControl_Create()
-        With Control_View_Down
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.PageDown})
-        End With
-
-        Control_View_Roll_Left = InputControl_Create()
-        With Control_View_Roll_Left
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.OemOpenBrackets})
-        End With
-
-        Control_View_Roll_Right = InputControl_Create()
-        With Control_View_Roll_Right
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.OemCloseBrackets})
-        End With
-
-        Control_View_Reset = InputControl_Create()
-        With Control_View_Reset
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.Back})
-        End With
-
-        'texture controls
-
-        Control_CounterClockwise = InputControl_Create()
-        With Control_CounterClockwise
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {CType(188, Keys)}) ',<
-        End With
-
-        Control_Clockwise = InputControl_Create()
-        With Control_Clockwise
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {CType(190, Keys)}) '.>
-        End With
-
-        Control_Texture_Flip = InputControl_Create()
-        With Control_Texture_Flip
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {CType(191, Keys)}) '/?
-        End With
-
-        Control_Tri_Flip = InputControl_Create()
-        With Control_Tri_Flip
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {CType(220, Keys)}) '\|
-        End With
-
-        Control_Gateway_Delete = InputControl_Create()
-        With Control_Gateway_Delete
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.ShiftKey})
-        End With
-
-        'undo controls
-
-        Control_Undo = InputControl_Create()
-        With Control_Undo
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.ControlKey, Keys.Z})
-        End With
-
-        Control_Redo = InputControl_Create()
-        With Control_Redo
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.ControlKey, Keys.Y})
-        End With
-
-        Control_ScriptPosition = InputControl_Create()
-        With Control_ScriptPosition
-            .DefaultKeys = New clsInputControl.clsKeyCombo(New Keys() {Keys.P})
-        End With
-
-        Controls_Set_Default()
-    End Sub
-
-    Public Function InputControl_Create() As clsInputControl
-        Dim NewControl As New clsInputControl
-
-        InputControls.Add(NewControl)
-        Return NewControl
-    End Function
 
     Public Sub Load_Map_Prompt()
         Dim Dialog As New OpenFileDialog
@@ -923,42 +696,50 @@ Partial Public Class frmMain
         lstAutoRoad.SelectedIndex = Road_NewSelectedIndex
     End Sub
 
-    Private Sub TabControl1_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles TabControl.SelectedIndexChanged
+    Private Sub TabControl_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles TabControl.SelectedIndexChanged
 
-        TextureView.OpenGLControl.Visible = (TabControl.SelectedTab Is tpTextures) 'to fix a mac/mono bug
         If TabControl.SelectedTab Is tpTextures Then
-            Tool = enumTool.Texture_Brush
+            Tool = Tools.TextureBrush
             TextureView.DrawViewLater()
         ElseIf TabControl.SelectedTab Is tpHeight Then
             If rdoHeightSet.Checked Then
-                Tool = enumTool.Height_Set_Brush
+                Tool = Tools.HeightSetBrush
             ElseIf rdoHeightSmooth.Checked Then
-                Tool = enumTool.Height_Smooth_Brush
+                Tool = Tools.HeightSmoothBrush
             ElseIf rdoHeightChange.Checked Then
-                Tool = enumTool.Height_Change_Brush
+                Tool = Tools.HeightChangeBrush
             End If
         ElseIf TabControl.SelectedTab Is tpAutoTexture Then
             If rdoAutoTexturePlace.Checked Then
-                Tool = enumTool.AutoTexture_Place
+                Tool = Tools.TerrainBrush
             ElseIf rdoAutoRoadPlace.Checked Then
-                Tool = enumTool.AutoRoad_Place
+                Tool = Tools.RoadPlace
             ElseIf rdoCliffTriBrush.Checked Then
-                Tool = enumTool.CliffTriangle
+                Tool = Tools.CliffTriangle
             ElseIf rdoAutoCliffBrush.Checked Then
-                Tool = enumTool.AutoCliff
+                Tool = Tools.CliffBrush
             ElseIf rdoAutoCliffRemove.Checked Then
-                Tool = enumTool.AutoCliffRemove
+                Tool = Tools.CliffRemove
             ElseIf rdoAutoTextureFill.Checked Then
-                Tool = enumTool.AutoTexture_Fill
+                Tool = Tools.TerrainFill
             ElseIf rdoAutoRoadLine.Checked Then
-                Tool = enumTool.AutoRoad_Line
+                Tool = Tools.RoadLines
             ElseIf rdoRoadRemove.Checked Then
-                Tool = enumTool.AutoRoad_Remove
+                Tool = Tools.RoadRemove
             Else
-                Tool = enumTool.None
+                Tool = Tools.ObjectSelect
+            End If
+        ElseIf TabControl.SelectedTab Is tpObjects Then
+            ObjectsUpdate()
+            If rdoObjectPlace.Checked Then
+                Tool = Tools.ObjectPlace
+            ElseIf rdoObjectLines.Checked Then
+                Tool = Tools.ObjectLines
+            Else
+                Tool = Tools.ObjectSelect
             End If
         Else
-            Tool = enumTool.None
+            Tool = Tools.ObjectSelect
         End If
     End Sub
 
@@ -989,7 +770,7 @@ Partial Public Class frmMain
             rdoHeightSmooth.Checked = False
             rdoHeightChange.Checked = False
 
-            Tool = enumTool.Height_Set_Brush
+            Tool = Tools.HeightSetBrush
         End If
     End Sub
 
@@ -999,7 +780,7 @@ Partial Public Class frmMain
             rdoHeightSet.Checked = False
             rdoHeightSmooth.Checked = False
 
-            Tool = enumTool.Height_Change_Brush
+            Tool = Tools.HeightChangeBrush
         End If
     End Sub
 
@@ -1009,7 +790,7 @@ Partial Public Class frmMain
             rdoHeightSet.Checked = False
             rdoHeightChange.Checked = False
 
-            Tool = enumTool.Height_Smooth_Brush
+            Tool = Tools.HeightSmoothBrush
         End If
     End Sub
 
@@ -1257,12 +1038,12 @@ Partial Public Class frmMain
 
     Private Sub rdoAutoCliffRemove_Click(sender As System.Object, e As System.EventArgs) Handles rdoAutoCliffRemove.Click
 
-        Tool = enumTool.AutoCliffRemove
+        Tool = Tools.CliffRemove
     End Sub
 
     Private Sub rdoAutoCliffBrush_Click(sender As System.Object, e As System.EventArgs) Handles rdoAutoCliffBrush.Click
 
-        Tool = enumTool.AutoCliff
+        Tool = Tools.CliffBrush
     End Sub
 
     Private Sub MinimapBMPToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles MinimapBMPToolStripMenuItem.Click
@@ -1280,8 +1061,13 @@ Partial Public Class frmMain
 
         If Map.Save_FMap_Prompt() Then
             frmMainInstance.tsbSave.Enabled = False
-            Title_Text_Update()
+            TitleTextUpdate()
         End If
+    End Sub
+
+    Private Sub menuSaveFMapQuick_Click(sender As System.Object, e As System.EventArgs) Handles menuSaveFMapQuick.Click
+
+        QuickSave()
     End Sub
 
     Private Sub MapWZToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles MapWZToolStripMenuItem.Click
@@ -1302,7 +1088,7 @@ Partial Public Class frmMain
 
     Private Sub rdoAutoTextureFill_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoAutoTextureFill.Click
 
-        Tool = enumTool.AutoTexture_Fill
+        Tool = Tools.TerrainFill
     End Sub
 
     Private Sub btnHeightOffsetSelection_Click(sender As System.Object, e As System.EventArgs) Handles btnHeightOffsetSelection.Click
@@ -1349,17 +1135,17 @@ Partial Public Class frmMain
 
     Private Sub rdoAutoTexturePlace_Click(sender As System.Object, e As System.EventArgs) Handles rdoAutoTexturePlace.Click
 
-        Tool = enumTool.AutoTexture_Place
+        Tool = Tools.TerrainBrush
     End Sub
 
     Private Sub rdoAutoRoadPlace_Click(sender As System.Object, e As System.EventArgs) Handles rdoAutoRoadPlace.Click
 
-        Tool = enumTool.AutoRoad_Place
+        Tool = Tools.RoadPlace
     End Sub
 
     Private Sub rdoAutoRoadLine_Click(sender As System.Object, e As System.EventArgs) Handles rdoAutoRoadLine.Click
 
-        Tool = enumTool.AutoRoad_Line
+        Tool = Tools.RoadLines
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
             Map.Selected_Tile_A = Nothing
@@ -1369,7 +1155,7 @@ Partial Public Class frmMain
 
     Private Sub rdoRoadRemove_Click(sender As System.Object, e As System.EventArgs) Handles rdoRoadRemove.Click
 
-        Tool = enumTool.AutoRoad_Remove
+        Tool = Tools.RoadRemove
     End Sub
 
     Private Sub btnAutoRoadRemove_Click(sender As System.Object, e As System.EventArgs) Handles btnAutoRoadRemove.Click
@@ -1392,13 +1178,18 @@ Partial Public Class frmMain
         Save_Heightmap_Prompt()
     End Sub
 
-    Private Sub lstFeatures_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstFeatures.SelectedIndexChanged
+    Private Sub dgvFeatures_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvFeatures.RowEnter
+        Dim table As DataTable = CType(dgvFeatures.DataSource, DataTable)
 
-        If lstFeatures.SelectedIndex >= 0 Then
-            Tool = enumTool.ObjectPlace
-            SelectedObjectType = lstFeatures_Objects(lstFeatures.SelectedIndex)
-            lstStructures.SelectedIndex = -1
-            lstDroids.SelectedIndex = -1
+        If rdoObjectPlace.Checked Then
+            Tool = Tools.ObjectPlace
+        ElseIf rdoObjectLines.Checked Then
+            Tool = Tools.ObjectLines
+        End If
+        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
+            SelectedObjectType = CType(dgvFeatures.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
+            dgvStructures.ClearSelection()
+            dgvDroids.ClearSelection()
         End If
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
@@ -1407,13 +1198,18 @@ Partial Public Class frmMain
         End If
     End Sub
 
-    Private Sub lstStructures_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstStructures.SelectedIndexChanged
+    Private Sub dgvStructures_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvStructures.RowEnter
+        Dim table As DataTable = CType(dgvStructures.DataSource, DataTable)
 
-        If lstStructures.SelectedIndex >= 0 Then
-            Tool = enumTool.ObjectPlace
-            SelectedObjectType = lstStructures_Objects(lstStructures.SelectedIndex)
-            lstFeatures.SelectedIndex = -1
-            lstDroids.SelectedIndex = -1
+        If rdoObjectPlace.Checked Then
+            Tool = Tools.ObjectPlace
+        ElseIf rdoObjectLines.Checked Then
+            Tool = Tools.ObjectLines
+        End If
+        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
+            SelectedObjectType = CType(dgvStructures.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
+            dgvFeatures.ClearSelection()
+            dgvDroids.ClearSelection()
         End If
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
@@ -1422,13 +1218,18 @@ Partial Public Class frmMain
         End If
     End Sub
 
-    Private Sub lstDroids_SelectedIndexChanged(sender As System.Object, e As System.EventArgs) Handles lstDroids.SelectedIndexChanged
+    Private Sub dgvDroids_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvDroids.RowEnter
+        Dim table As DataTable = CType(dgvDroids.DataSource, DataTable)
 
-        If lstDroids.SelectedIndex >= 0 Then
-            Tool = enumTool.ObjectPlace
-            SelectedObjectType = lstDroids_Objects(lstDroids.SelectedIndex)
-            lstFeatures.SelectedIndex = -1
-            lstStructures.SelectedIndex = -1
+        If rdoObjectPlace.Checked Then
+            Tool = Tools.ObjectPlace
+        ElseIf rdoObjectLines.Checked Then
+            Tool = Tools.ObjectLines
+        End If
+        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
+            SelectedObjectType = CType(dgvDroids.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
+            dgvFeatures.ClearSelection()
+            dgvStructures.ClearSelection()
         End If
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
@@ -1488,27 +1289,66 @@ Partial Public Class frmMain
         ReDim Preserve cboTurret_Objects(cboDroidTurret1.Items.Count - 1)
 
         cboDroidType.Items.Clear()
-        For A = 0 To TemplateDroidTypeCount - 1
+        For A As Integer = 0 To TemplateDroidTypeCount - 1
             cboDroidType.Items.Add(TemplateDroidTypes(A).Name)
         Next
     End Sub
 
-    Private Sub ObjectListFill(Of ItemType As clsUnitType, SourceType As Class)(Objects As SimpleList(Of ItemType), ObjectList As ListBox, ByRef ObjectArray() As ItemType)
+    Private Sub ObjectListFill(Of ObjectType As clsUnitType)(objects As SimpleList(Of ObjectType), gridView As DataGridView)
 
-        ObjectList.Items.Clear()
-        ReDim ObjectArray(Objects.Count - 1)
-        Dim UnitType As ItemType
-        For Each UnitType In Objects
-            ObjectArray(ObjectList.Items.Add(UnitType.GetDisplayText)) = UnitType
+        Dim filtered As SimpleList(Of ObjectType)
+        Dim searchText As String = txtObjectFind.Text
+        Dim doSearch As Boolean
+        If searchText Is Nothing Then
+            doSearch = False
+        ElseIf searchText = "" Then
+            doSearch = False
+        Else
+            doSearch = True
+        End If
+        If doSearch Then
+            filtered = ObjectFindText(Of ObjectType)(objects, searchText)
+        Else
+            filtered = objects
+        End If
+
+        Dim table As New DataTable
+        table.Columns.Add("Item", GetType(clsUnitType))
+        table.Columns.Add("Internal Name", GetType(String))
+        table.Columns.Add("In-Game Name", GetType(String))
+        'table.Columns.Add("Type")
+        For i As Integer = 0 To filtered.Count - 1
+            Dim item As ObjectType = filtered(i)
+            Dim code As String = Nothing
+            item.GetCode(code)
+            table.Rows.Add(New Object() {item, code, item.GetName.Replace("*", "")})
         Next
+        gridView.DataSource = table
+        gridView.Columns(0).Visible = False
+        gridView.Columns(1).AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+        gridView.Columns(2).AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
     End Sub
 
-    Public Sub Objects_Update()
+    Public Function ObjectFindText(Of ItemType As clsUnitType)(list As SimpleList(Of ItemType), text As String) As SimpleList(Of ItemType)
+        Dim result As New SimpleList(Of ItemType)
+        result.MaintainOrder = True
 
-        ObjectListFill(Of clsFeatureType, clsObjectData)(ObjectData.FeatureTypes.GetItemsAsSimpleList, lstFeatures, lstFeatures_Objects)
-        ObjectListFill(Of clsStructureType, clsObjectData)(ObjectData.StructureTypes.GetItemsAsSimpleList, lstStructures, lstStructures_Objects)
-        ObjectListFill(Of clsDroidTemplate, clsObjectData)(ObjectData.DroidTemplates.GetItemsAsSimpleList, lstDroids, lstDroids_Objects)
-    End Sub
+        text = text.ToLower
+
+        For i As Integer = 0 To list.Count - 1
+            Dim item As ItemType = list(i)
+            Dim code As String = Nothing
+            If item.GetCode(code) Then
+                If code.ToLower.IndexOf(text) >= 0 Or item.GetName.ToLower.IndexOf(text) >= 0 Then
+                    result.Add(item)
+                End If
+            ElseIf item.GetName.ToLower.IndexOf(text) >= 0 Then
+                result.Add(item)
+            End If
+        Next
+
+        Return result
+    End Function
 
     Private Sub txtObjectRotation_LostFocus(sender As System.Object, e As System.EventArgs) Handles txtObjectRotation.Leave
         If Not txtObjectRotation.Enabled Then
@@ -1668,10 +1508,10 @@ Partial Public Class frmMain
         ElseIf Map.SelectedUnits.Count = 1 Then
             Dim A As Integer
             With Map.SelectedUnits.Item(0)
-                lblObjectType.Text = .Type.GetDisplayText
+                lblObjectType.Text = .Type.GetDisplayTextCode
                 ObjectPlayerNum.Target.Item = .UnitGroup
                 txtObjectRotation.Text = InvariantToString_int(.Rotation)
-                txtObjectID.Text = InvariantToString_sng(.ID)
+                txtObjectID.Text = InvariantToString_uint(.ID)
                 txtObjectPriority.Text = InvariantToString_int(.SavePriority)
                 txtObjectHealth.Text = InvariantToString_dbl(.Health * 100.0#)
                 lblObjectType.Enabled = True
@@ -1845,7 +1685,7 @@ Partial Public Class frmMain
 
     Private Sub tsbSelection_Click(sender As System.Object, e As System.EventArgs) Handles tsbSelection.Click
 
-        Tool = enumTool.Terrain_Select
+        Tool = Tools.TerrainSelect
     End Sub
 
     Private Sub tsbSelectionCopy_Click(sender As System.Object, e As System.EventArgs) Handles tsbSelectionCopy.Click
@@ -1987,13 +1827,13 @@ Partial Public Class frmMain
 
     Private Sub tsbGateways_Click(sender As System.Object, e As System.EventArgs) Handles tsbGateways.Click
 
-        If Tool = enumTool.Gateways Then
+        If Tool Is Tools.Gateways Then
             Draw_Gateways = False
-            Tool = enumTool.None
+            Tool = Tools.ObjectSelect
             tsbGateways.Checked = False
         Else
             Draw_Gateways = True
-            Tool = enumTool.Gateways
+            Tool = Tools.Gateways
             tsbGateways.Checked = True
         End If
         Dim Map As clsMap = MainMap
@@ -2213,6 +2053,11 @@ Partial Public Class frmMain
 
     Private Sub tsbSave_Click(sender As System.Object, e As System.EventArgs) Handles tsbSave.Click
 
+        QuickSave()
+    End Sub
+
+    Private Sub QuickSave()
+
         Dim Map As clsMap = MainMap
 
         If Map Is Nothing Then
@@ -2221,6 +2066,7 @@ Partial Public Class frmMain
 
         If Map.Save_FMap_Quick Then
             frmMainInstance.tsbSave.Enabled = False
+            TitleTextUpdate()
         End If
     End Sub
 
@@ -2230,10 +2076,12 @@ Partial Public Class frmMain
         frmGeneratorInstance.Activate()
     End Sub
 
-    Public Sub Title_Text_Update()
+    Public Sub TitleTextUpdate()
         Dim Map As clsMap = MainMap
         Dim MapFileTitle As String
 
+        menuSaveFMapQuick.Text = "Quick Save fmap"
+        menuSaveFMapQuick.Enabled = False
         If Map Is Nothing Then
             MapFileTitle = "No Map"
             tsbSave.ToolTipText = "No Map"
@@ -2245,7 +2093,16 @@ Partial Public Class frmMain
                 Dim SplitPath As New sSplitPath(Map.PathInfo.Path)
                 If Map.PathInfo.IsFMap Then
                     MapFileTitle = SplitPath.FileTitleWithoutExtension
-                    tsbSave.ToolTipText = "Quick save FMap to " & ControlChars.Quote & Map.PathInfo.Path & ControlChars.Quote
+                    Dim quickSavePath As String = Map.PathInfo.Path
+                    tsbSave.ToolTipText = "Quick save FMap to " & ControlChars.Quote & quickSavePath & ControlChars.Quote
+                    menuSaveFMapQuick.Text = "Quick Save fmap to " & ControlChars.Quote
+                    If quickSavePath.Length <= 32 Then
+                        menuSaveFMapQuick.Text &= quickSavePath
+                    Else
+                        menuSaveFMapQuick.Text &= quickSavePath.Substring(0, 10) & "..." & quickSavePath.Substring(quickSavePath.Length - 20, 20)
+                    End If
+                    menuSaveFMapQuick.Text &= ControlChars.Quote
+                    menuSaveFMapQuick.Enabled = True
                 Else
                     MapFileTitle = SplitPath.FileTitle
                     tsbSave.ToolTipText = "Save FMap..."
@@ -2262,7 +2119,7 @@ Partial Public Class frmMain
             Exit Sub
         End If
 
-        If Not (Tool = enumTool.AutoTexture_Place Or Tool = enumTool.AutoTexture_Fill) Then
+        If Not (Tool Is Tools.TerrainBrush Or Tool Is Tools.TerrainFill) Then
             rdoAutoTexturePlace.Checked = True
             rdoAutoTexturePlace_Click(Nothing, Nothing)
         End If
@@ -2270,7 +2127,7 @@ Partial Public Class frmMain
 
     Private Sub lstAutoRoad_Click(sender As System.Object, e As System.EventArgs) Handles lstAutoRoad.Click
 
-        If Not (Tool = enumTool.AutoRoad_Place Or Tool = enumTool.AutoRoad_Line) Then
+        If Not (Tool Is Tools.RoadPlace Or Tool Is Tools.RoadLines) Then
             rdoAutoRoadLine.Checked = True
             rdoAutoRoadLine_Click(Nothing, Nothing)
         End If
@@ -2404,7 +2261,7 @@ Partial Public Class frmMain
         Next
 
         SelectedObject_Changed()
-        Tool = enumTool.None
+        Tool = Tools.ObjectSelect
         View_DrawViewLater()
     End Sub
 
@@ -3067,7 +2924,7 @@ Partial Public Class frmMain
             Exit Sub
         End If
 
-        If Not Control_Unit_Multiselect.Active Then
+        If Not KeyboardProfile.Active(Control_Unit_Multiselect) Then
             Map.SelectedUnits.Clear()
         End If
 
@@ -3103,7 +2960,7 @@ Partial Public Class frmMain
 
     Private Sub rdoCliffTriBrush_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoCliffTriBrush.CheckedChanged
 
-        Tool = enumTool.CliffTriangle
+        Tool = Tools.CliffTriangle
     End Sub
 
     Private Sub LoadInterfaceImage(ImagePath As String, ByRef ResultBitmap As Bitmap, Result As clsResult)
@@ -3154,7 +3011,7 @@ Partial Public Class frmMain
 
         SelectedObject_Changed()
 
-        Title_Text_Update()
+        TitleTextUpdate()
 
         TextureView.ScrollUpdate()
 
@@ -3186,10 +3043,10 @@ Partial Public Class frmMain
 
     Public Sub ObjectPicker(UnitType As clsUnitType)
 
-        Tool = enumTool.ObjectPlace
-        lstFeatures.SelectedIndex = -1
-        lstStructures.SelectedIndex = -1
-        lstDroids.SelectedIndex = -1
+        Tool = Tools.ObjectPlace
+        dgvFeatures.ClearSelection()
+        dgvStructures.ClearSelection()
+        dgvDroids.ClearSelection()
         SelectedObjectType = UnitType
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
@@ -3810,5 +3667,93 @@ Partial Public Class frmMain
     Private Sub cbxDesignableOnly_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles cbxDesignableOnly.CheckedChanged
 
         Components_Update()
+    End Sub
+
+    Private Sub ObjectsUpdate()
+
+        If Not ProgramInitializeFinished Then
+            Exit Sub
+        End If
+
+        Select Case TabControl1.SelectedIndex
+            Case 0
+                ObjectListFill(Of clsFeatureType)(ObjectData.FeatureTypes.GetItemsAsSimpleList, dgvFeatures)
+            Case 1
+                ObjectListFill(Of clsStructureType)(ObjectData.StructureTypes.GetItemsAsSimpleList, dgvStructures)
+            Case 2
+                ObjectListFill(Of clsDroidTemplate)(ObjectData.DroidTemplates.GetItemsAsSimpleList, dgvDroids)
+        End Select
+    End Sub
+
+    Private Sub txtObjectFind_KeyDown(sender As Object, e As System.Windows.Forms.KeyEventArgs) Handles txtObjectFind.KeyDown
+
+        If Not txtObjectFind.Enabled Then
+            Exit Sub
+        End If
+
+        If e.KeyCode <> Keys.Enter Then
+            Exit Sub
+        End If
+
+        txtObjectFind.Enabled = False
+
+        ObjectsUpdate()
+
+        txtObjectFind.Enabled = True
+    End Sub
+
+    Private Sub txtObjectFind_Leave(sender As Object, e As System.EventArgs) Handles txtObjectFind.Leave
+
+        If Not txtObjectFind.Enabled Then
+            Exit Sub
+        End If
+
+        txtObjectFind.Enabled = False
+
+        ObjectsUpdate()
+
+        txtObjectFind.Enabled = True
+    End Sub
+
+    Private Sub rdoObjectPlace_Click(sender As System.Object, e As System.EventArgs) Handles rdoObjectPlace.Click
+
+        Tool = Tools.ObjectPlace
+    End Sub
+
+    Private Sub rdoObjectLine_Click(sender As System.Object, e As System.EventArgs) Handles rdoObjectLines.Click
+
+        Tool = Tools.ObjectLines
+    End Sub
+
+    Private Sub rdoObjectsSortNone_Click(sender As System.Object, e As System.EventArgs)
+
+        If Not ProgramInitializeFinished Then
+            Exit Sub
+        End If
+
+        ObjectsUpdate()
+    End Sub
+
+    Private Sub rdoObjectsSortInternal_Click(sender As System.Object, e As System.EventArgs)
+
+        If Not ProgramInitializeFinished Then
+            Exit Sub
+        End If
+
+        ObjectsUpdate()
+    End Sub
+
+    Private Sub rdoObjectsSortInGame_Click(sender As System.Object, e As System.EventArgs)
+
+        If Not ProgramInitializeFinished Then
+            Exit Sub
+        End If
+
+        ObjectsUpdate()
+    End Sub
+
+    Private Sub TabControl1_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles TabControl1.SelectedIndexChanged
+
+        ObjectsUpdate()
     End Sub
 End Class

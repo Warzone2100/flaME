@@ -3,8 +3,6 @@ Imports OpenTK.Graphics.OpenGL
 
 Public Class clsTileset
 
-    Public Num As Integer = -1
-
     Public Name As String
 
     Public IsOriginal As Boolean

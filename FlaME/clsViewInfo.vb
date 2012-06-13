@@ -509,37 +509,35 @@ Public Class clsViewInfo
                 Next
 
                 If MouseLeftDown IsNot Nothing Then
-                    Select Case Tool
-                        Case enumTool.AutoTexture_Place
-                            Apply_Terrain()
-                            If frmMainInstance.cbxAutoTexSetHeight.Checked Then
-                                Apply_Height_Set(TerrainBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                            End If
-                        Case enumTool.Height_Set_Brush
-                            Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                        Case enumTool.Texture_Brush
-                            Apply_Texture()
-                        Case enumTool.CliffTriangle
-                            Apply_CliffTriangle(False)
-                        Case enumTool.AutoCliff
-                            Apply_Cliff()
-                        Case enumTool.AutoCliffRemove
-                            Apply_Cliff_Remove()
-                        Case enumTool.AutoRoad_Place
-                            Apply_Road()
-                        Case enumTool.AutoRoad_Remove
-                            Apply_Road_Remove()
-                    End Select
+                    If Tool Is Tools.TerrainBrush Then
+                        Apply_Terrain()
+                        If frmMainInstance.cbxAutoTexSetHeight.Checked Then
+                            Apply_Height_Set(TerrainBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                        End If
+                    ElseIf Tool Is Tools.HeightSetBrush Then
+                        Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                    ElseIf Tool Is Tools.TextureBrush Then
+                        Apply_Texture()
+                    ElseIf Tool Is Tools.CliffTriangle Then
+                        Apply_CliffTriangle(False)
+                    ElseIf Tool Is Tools.CliffBrush Then
+                        Apply_Cliff()
+                    ElseIf Tool Is Tools.CliffRemove Then
+                        Apply_Cliff_Remove()
+                    ElseIf Tool Is Tools.RoadPlace Then
+                        Apply_Road()
+                    ElseIf Tool Is Tools.RoadRemove Then
+                        Apply_Road_Remove()
+                    End If
                 End If
                 If MouseRightDown IsNot Nothing Then
-                    Select Case Tool
-                        Case enumTool.Height_Set_Brush
-                            If MouseLeftDown Is Nothing Then
-                                Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
-                            End If
-                        Case enumTool.CliffTriangle
-                            Apply_CliffTriangle(True)
-                    End Select
+                    If Tool Is Tools.HeightSetBrush Then
+                        If MouseLeftDown Is Nothing Then
+                            Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
+                        End If
+                    ElseIf Tool Is Tools.CliffTriangle Then
+                        Apply_CliffTriangle(True)
+                    End If
                 End If
             End If
         End If
@@ -1246,7 +1244,7 @@ Public Class clsViewInfo
 
         Dim Tile As sXY_int = MouseOverTerrain.Tile.Normal
 
-        If Control_Gateway_Delete.Active Then
+        If KeyboardProfile.Active(Control_Gateway_Delete) Then
             Dim A As Integer
             Dim Low As sXY_int
             Dim High As sXY_int
@@ -1283,8 +1281,6 @@ Public Class clsViewInfo
 
     Public Sub MouseDown(e As MouseEventArgs)
         Dim ScreenPos As sXY_int
-        Dim NewUnitType As clsUnitType
-        Dim NewUnit As clsMap.clsUnit
 
         Map.SuppressMinimap = True
 
@@ -1303,141 +1299,109 @@ Public Class clsViewInfo
                 If MouseOverTerrain IsNot Nothing Then
                     MouseLeftDown.OverTerrain = New clsMouseDown.clsOverTerrain
                     MouseLeftDown.OverTerrain.DownPos = MouseOverTerrain.Pos
-                    Select Case Tool
-                        Case enumTool.None
-                            If Control_Picker.Active Then
-                                If MouseOverTerrain.Units.Count > 0 Then
-                                    If MouseOverTerrain.Units.Count = 1 Then
-                                        frmMainInstance.ObjectPicker(MouseOverTerrain.Units.Item(0).Type)
-                                    Else
-                                        MapView.ListSelectBegin(True)
-                                    End If
-                                End If
-                            ElseIf Control_ScriptPosition.Active Then
-                                Dim NewPosition As clsMap.clsScriptPosition = clsMap.clsScriptPosition.Create(Map)
-                                If NewPosition IsNot Nothing Then
-                                    NewPosition.PosX = MouseLeftDown.OverTerrain.DownPos.Horizontal.X
-                                    NewPosition.PosY = MouseLeftDown.OverTerrain.DownPos.Horizontal.Y
-                                    frmMainInstance.ScriptMarkerLists_Update()
-                                End If
-                            Else
-                                If Not Control_Unit_Multiselect.Active Then
-                                    Map.SelectedUnits.Clear()
-                                End If
-                                frmMainInstance.SelectedObject_Changed()
-                                Map.Unit_Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex.Normal)
-                                MapView.DrawViewLater()
-                            End If
-                        Case enumTool.AutoTexture_Place
-                            If Map.Tileset IsNot Nothing Then
-                                If Control_Picker.Active Then
-                                    frmMainInstance.TerrainPicker()
+                    If Tool Is Tools.ObjectSelect Then
+                        If KeyboardProfile.Active(Control_Picker) Then
+                            If MouseOverTerrain.Units.Count > 0 Then
+                                If MouseOverTerrain.Units.Count = 1 Then
+                                    frmMainInstance.ObjectPicker(MouseOverTerrain.Units.Item(0).Type)
                                 Else
-                                    Apply_Terrain()
-                                    If frmMainInstance.cbxAutoTexSetHeight.Checked Then
-                                        Apply_Height_Set(TerrainBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                                    End If
+                                    MapView.ListSelectBegin(True)
                                 End If
                             End If
-                        Case enumTool.Height_Set_Brush
-                            If Control_Picker.Active Then
-                                frmMainInstance.HeightPickerL()
+                        ElseIf KeyboardProfile.Active(Control_ScriptPosition) Then
+                            Dim NewPosition As clsMap.clsScriptPosition = clsMap.clsScriptPosition.Create(Map)
+                            If NewPosition IsNot Nothing Then
+                                NewPosition.PosX = MouseLeftDown.OverTerrain.DownPos.Horizontal.X
+                                NewPosition.PosY = MouseLeftDown.OverTerrain.DownPos.Horizontal.Y
+                                frmMainInstance.ScriptMarkerLists_Update()
+                            End If
+                        Else
+                            If Not KeyboardProfile.Active(Control_Unit_Multiselect) Then
+                                Map.SelectedUnits.Clear()
+                            End If
+                            frmMainInstance.SelectedObject_Changed()
+                            Map.Unit_Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex.Normal)
+                            MapView.DrawViewLater()
+                        End If
+                    ElseIf Tool Is Tools.TerrainBrush Then
+                        If Map.Tileset IsNot Nothing Then
+                            If KeyboardProfile.Active(Control_Picker) Then
+                                frmMainInstance.TerrainPicker()
                             Else
-                                Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
-                            End If
-                        Case enumTool.Texture_Brush
-                            If Map.Tileset IsNot Nothing Then
-                                If Control_Picker.Active Then
-                                    frmMainInstance.TexturePicker()
-                                Else
-                                    Apply_Texture()
+                                Apply_Terrain()
+                                If frmMainInstance.cbxAutoTexSetHeight.Checked Then
+                                    Apply_Height_Set(TerrainBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
                                 End If
                             End If
-                        Case enumTool.CliffTriangle
-                            Apply_CliffTriangle(False)
-                        Case enumTool.AutoCliff
-                            Apply_Cliff()
-                        Case enumTool.AutoCliffRemove
-                            Apply_Cliff_Remove()
-                        Case enumTool.AutoTexture_Fill
-                            If Map.Tileset IsNot Nothing Then
-                                If Control_Picker.Active Then
-                                    frmMainInstance.TerrainPicker()
-                                Else
-                                    Apply_Terrain_Fill(frmMainInstance.FillCliffAction, frmMainInstance.cbxFillInside.Checked)
-                                    MapView.DrawViewLater()
-                                End If
-                            End If
-                        Case enumTool.AutoRoad_Place
-                            If Map.Tileset IsNot Nothing Then
-                                Apply_Road()
-                            End If
-                        Case enumTool.AutoRoad_Line
-                            If Map.Tileset IsNot Nothing Then
-                                Apply_Road_Line_Selection()
-                            End If
-                        Case enumTool.AutoRoad_Remove
-                            Apply_Road_Remove()
-                        Case enumTool.ObjectPlace
-                            If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
-                                Dim AutoWallType As clsWallType = Nothing
-                                If frmMainInstance.cbxAutoWalls.Checked Then
-                                    If frmMainInstance.SelectedObjectType.Type = clsUnitType.enumType.PlayerStructure Then
-                                        Dim StructureType As clsStructureType = CType(frmMainInstance.SelectedObjectType, clsStructureType)
-                                        If StructureType.WallLink.IsConnected Then
-                                            AutoWallType = StructureType.WallLink.Source
-                                            Map.PerformTileWall(AutoWallType, Map.GetPosTileNum(MouseOverTerrain.Pos.Horizontal), True)
-                                        End If
-                                    End If
-                                End If
-                                If AutoWallType Is Nothing Then
-                                    NewUnit = New clsMap.clsUnit
-                                    NewUnitType = frmMainInstance.SelectedObjectType
-                                    If frmMainInstance.cbxObjectRandomRotation.Checked Then
-                                        NewUnit.Rotation = CInt(Int(Rnd() * 360.0#))
-                                    Else
-                                        Try
-                                            Dim Rotation As Integer
-                                            InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
-                                            If Rotation < 0 Or Rotation > 359 Then
-                                                NewUnit.Rotation = 0
-                                            Else
-                                                NewUnit.Rotation = Rotation
-                                            End If
-                                        Catch ex As Exception
-                                            NewUnit.Rotation = 0
-                                        End Try
-                                    End If
-                                    NewUnit.UnitGroup = Map.SelectedUnitGroup.Item
-                                    NewUnit.Pos = Map.TileAlignedPosFromMapPos(MouseOverTerrain.Pos.Horizontal, NewUnitType.GetFootprintSelected(NewUnit.Rotation))
-                                    NewUnit.Type = NewUnitType
-                                    Dim UnitAdd As New clsMap.clsUnitAdd
-                                    UnitAdd.Map = Map
-                                    UnitAdd.NewUnit = NewUnit
-                                    UnitAdd.StoreChange = True
-                                    UnitAdd.Perform()
-                                End If
-                                Map.UndoStepCreate("Place Object")
-                                Map.Update()
-                                Map.MinimapMakeLater()
-                                MapView.DrawViewLater()
-                            End If
-                        Case enumTool.Terrain_Select
-                            If Map.Selected_Area_VertexA Is Nothing Then
-                                Map.Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex.Normal)
-                                MapView.DrawViewLater()
-                            ElseIf Map.Selected_Area_VertexB Is Nothing Then
-                                Map.Selected_Area_VertexB = New clsXY_int(MouseOverTerrain.Vertex.Normal)
-                                MapView.DrawViewLater()
+                        End If
+                    ElseIf Tool Is Tools.HeightSetBrush Then
+                        If KeyboardProfile.Active(Control_Picker) Then
+                            frmMainInstance.HeightPickerL()
+                        Else
+                            Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetL.SelectedIndex))
+                        End If
+                    ElseIf Tool Is Tools.TextureBrush Then
+                        If Map.Tileset IsNot Nothing Then
+                            If KeyboardProfile.Active(Control_Picker) Then
+                                frmMainInstance.TexturePicker()
                             Else
-                                Map.Selected_Area_VertexA = Nothing
-                                Map.Selected_Area_VertexB = Nothing
+                                Apply_Texture()
+                            End If
+                        End If
+                    ElseIf Tool Is Tools.CliffTriangle Then
+                        Apply_CliffTriangle(False)
+                    ElseIf Tool Is Tools.CliffBrush Then
+                        Apply_Cliff()
+                    ElseIf Tool Is Tools.CliffRemove Then
+                        Apply_Cliff_Remove()
+                    ElseIf Tool Is Tools.TerrainFill Then
+                        If Map.Tileset IsNot Nothing Then
+                            If KeyboardProfile.Active(Control_Picker) Then
+                                frmMainInstance.TerrainPicker()
+                            Else
+                                Apply_Terrain_Fill(frmMainInstance.FillCliffAction, frmMainInstance.cbxFillInside.Checked)
                                 MapView.DrawViewLater()
                             End If
-                        Case enumTool.Gateways
-                            Apply_Gateway()
-                    End Select
-                ElseIf Tool = enumTool.None Then
+                        End If
+                    ElseIf Tool Is Tools.RoadPlace Then
+                        If Map.Tileset IsNot Nothing Then
+                            Apply_Road()
+                        End If
+                    ElseIf Tool Is Tools.RoadLines Then
+                        If Map.Tileset IsNot Nothing Then
+                            Apply_Road_Line_Selection()
+                        End If
+                    ElseIf Tool Is Tools.RoadRemove Then
+                        Apply_Road_Remove()
+                    ElseIf Tool Is Tools.ObjectPlace Then
+                        If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
+                            Dim objectCreator As New clsMap.clsUnitCreate
+                            Map.SetObjectCreatorDefaults(objectCreator)
+                            objectCreator.Horizontal = MouseOverTerrain.Pos.Horizontal
+                            objectCreator.Perform()
+                            Map.UndoStepCreate("Place Object")
+                            Map.Update()
+                            Map.MinimapMakeLater()
+                            MapView.DrawViewLater()
+                        End If
+                    ElseIf Tool Is Tools.ObjectLines Then
+                        ApplyObjectLine()
+                    ElseIf Tool Is Tools.TerrainSelect Then
+                        If Map.Selected_Area_VertexA Is Nothing Then
+                            Map.Selected_Area_VertexA = New clsXY_int(MouseOverTerrain.Vertex.Normal)
+                            MapView.DrawViewLater()
+                        ElseIf Map.Selected_Area_VertexB Is Nothing Then
+                            Map.Selected_Area_VertexB = New clsXY_int(MouseOverTerrain.Vertex.Normal)
+                            MapView.DrawViewLater()
+                        Else
+                            Map.Selected_Area_VertexA = Nothing
+                            Map.Selected_Area_VertexB = Nothing
+                            MapView.DrawViewLater()
+                        End If
+                    ElseIf Tool Is Tools.Gateways Then
+                        Apply_Gateway()
+                    End If
+                ElseIf Tool Is Tools.ObjectSelect Then
                     Map.SelectedUnits.Clear()
                     frmMainInstance.SelectedObject_Changed()
                 End If
@@ -1454,27 +1418,26 @@ Public Class clsViewInfo
                     MouseRightDown.OverTerrain.DownPos = MouseOverTerrain.Pos
                 End If
             End If
-            Select Case Tool
-                Case enumTool.AutoRoad_Line
-                    Map.Selected_Tile_A = Nothing
-                    MapView.DrawViewLater()
-                Case enumTool.Terrain_Select
-                    Map.Selected_Area_VertexA = Nothing
-                    Map.Selected_Area_VertexB = Nothing
-                    MapView.DrawViewLater()
-                Case enumTool.CliffTriangle
-                    Apply_CliffTriangle(True)
-                Case enumTool.Gateways
-                    Map.Selected_Tile_A = Nothing
-                    Map.Selected_Tile_B = Nothing
-                    MapView.DrawViewLater()
-                Case enumTool.Height_Set_Brush
-                    If Control_Picker.Active Then
-                        frmMainInstance.HeightPickerR()
-                    Else
-                        Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
-                    End If
-            End Select
+            If Tool Is Tools.RoadLines Or Tool Is Tools.ObjectLines Then
+                Map.Selected_Tile_A = Nothing
+                MapView.DrawViewLater()
+            ElseIf Tool Is Tools.TerrainSelect Then
+                Map.Selected_Area_VertexA = Nothing
+                Map.Selected_Area_VertexB = Nothing
+                MapView.DrawViewLater()
+            ElseIf Tool Is Tools.CliffTriangle Then
+                Apply_CliffTriangle(True)
+            ElseIf Tool Is Tools.Gateways Then
+                Map.Selected_Tile_A = Nothing
+                Map.Selected_Tile_B = Nothing
+                MapView.DrawViewLater()
+            ElseIf Tool Is Tools.HeightSetBrush Then
+                If KeyboardProfile.Active(Control_Picker) Then
+                    frmMainInstance.HeightPickerR()
+                Else
+                    Apply_Height_Set(HeightBrush, frmMainInstance.HeightSetPalette(frmMainInstance.tabHeightSetR.SelectedIndex))
+                End If
+            End If
         End If
     End Sub
 
@@ -1490,10 +1453,10 @@ Public Class clsViewInfo
 
         Move *= FOVMultiplier * (MapView.GLSize.X + MapView.GLSize.Y) * Math.Max(Math.Abs(ViewPos.Y), 512.0#)
 
-        If Control_View_Zoom_In.Active Then
+        If KeyboardProfile.Active(Control_View_Zoom_In) Then
             FOV_Scale_2E_Change(-Zoom)
         End If
-        If Control_View_Zoom_Out.Active Then
+        If KeyboardProfile.Active(Control_View_Zoom_Out) Then
             FOV_Scale_2E_Change(Zoom)
         End If
 
@@ -1501,27 +1464,27 @@ Public Class clsViewInfo
             ViewPosChangeXYZ.X = 0
             ViewPosChangeXYZ.Y = 0
             ViewPosChangeXYZ.Z = 0
-            If Control_View_Move_Forward.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Forward) Then
                 Matrix3D.VectorForwardsRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Backward.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Backward) Then
                 Matrix3D.VectorBackwardsRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Left.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Left) Then
                 Matrix3D.VectorLeftRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Right.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Right) Then
                 Matrix3D.VectorRightRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Up.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Up) Then
                 Matrix3D.VectorUpRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Down.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Down) Then
                 Matrix3D.VectorDownRotationByMatrix(ViewAngleMatrix, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
@@ -1529,27 +1492,27 @@ Public Class clsViewInfo
             ViewAngleChange.X = 0.0#
             ViewAngleChange.Y = 0.0#
             ViewAngleChange.Z = 0.0#
-            If Control_View_Left.Active Then
+            If KeyboardProfile.Active(Control_View_Left) Then
                 Matrix3D.VectorForwardsRotationByMatrix(ViewAngleMatrix, Roll, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
-            If Control_View_Right.Active Then
+            If KeyboardProfile.Active(Control_View_Right) Then
                 Matrix3D.VectorBackwardsRotationByMatrix(ViewAngleMatrix, Roll, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
-            If Control_View_Backward.Active Then
+            If KeyboardProfile.Active(Control_View_Backward) Then
                 Matrix3D.VectorLeftRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
-            If Control_View_Forward.Active Then
+            If KeyboardProfile.Active(Control_View_Forward) Then
                 Matrix3D.VectorRightRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
-            If Control_View_Roll_Left.Active Then
+            If KeyboardProfile.Active(Control_View_Roll_Left) Then
                 Matrix3D.VectorDownRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
-            If Control_View_Roll_Right.Active Then
+            If KeyboardProfile.Active(Control_View_Roll_Right) Then
                 Matrix3D.VectorUpRotationByMatrix(ViewAngleMatrix, PanRate, XYZ_dbl)
                 ViewAngleChange += XYZ_dbl
             End If
@@ -1569,62 +1532,62 @@ Public Class clsViewInfo
 
             Matrix3D.MatrixToPY(ViewAngleMatrix, AnglePY)
             Matrix3D.MatrixSetToYAngle(matrixA, AnglePY.Yaw)
-            If Control_View_Move_Forward.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Forward) Then
                 Matrix3D.VectorForwardsRotationByMatrix(matrixA, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Backward.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Backward) Then
                 Matrix3D.VectorBackwardsRotationByMatrix(matrixA, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Left.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Left) Then
                 Matrix3D.VectorLeftRotationByMatrix(matrixA, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Right.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Right) Then
                 Matrix3D.VectorRightRotationByMatrix(matrixA, Move, XYZ_dbl)
                 ViewPosChangeXYZ.Add_dbl(XYZ_dbl)
             End If
-            If Control_View_Move_Up.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Up) Then
                 ViewPosChangeXYZ.Y += CInt(Move)
             End If
-            If Control_View_Move_Down.Active Then
+            If KeyboardProfile.Active(Control_View_Move_Down) Then
                 ViewPosChangeXYZ.Y -= CInt(Move)
             End If
 
             AngleChanged = False
 
             If RTSOrbit Then
-                If Control_View_Forward.Active Then
+                If KeyboardProfile.Active(Control_View_Forward) Then
                     AnglePY.Pitch = Clamp_dbl(AnglePY.Pitch + OrbitRate, -RadOf90Deg + 0.03125# * RadOf1Deg, RadOf90Deg - 0.03125# * RadOf1Deg)
                     AngleChanged = True
                 End If
-                If Control_View_Backward.Active Then
+                If KeyboardProfile.Active(Control_View_Backward) Then
                     AnglePY.Pitch = Clamp_dbl(AnglePY.Pitch - OrbitRate, -RadOf90Deg + 0.03125# * RadOf1Deg, RadOf90Deg - 0.03125# * RadOf1Deg)
                     AngleChanged = True
                 End If
-                If Control_View_Left.Active Then
+                If KeyboardProfile.Active(Control_View_Left) Then
                     AnglePY.Yaw = AngleClamp(AnglePY.Yaw + OrbitRate)
                     AngleChanged = True
                 End If
-                If Control_View_Right.Active Then
+                If KeyboardProfile.Active(Control_View_Right) Then
                     AnglePY.Yaw = AngleClamp(AnglePY.Yaw - OrbitRate)
                     AngleChanged = True
                 End If
             Else
-                If Control_View_Forward.Active Then
+                If KeyboardProfile.Active(Control_View_Forward) Then
                     AnglePY.Pitch = Clamp_dbl(AnglePY.Pitch - OrbitRate, -RadOf90Deg + 0.03125# * RadOf1Deg, RadOf90Deg - 0.03125# * RadOf1Deg)
                     AngleChanged = True
                 End If
-                If Control_View_Backward.Active Then
+                If KeyboardProfile.Active(Control_View_Backward) Then
                     AnglePY.Pitch = Clamp_dbl(AnglePY.Pitch + OrbitRate, -RadOf90Deg + 0.03125# * RadOf1Deg, RadOf90Deg - 0.03125# * RadOf1Deg)
                     AngleChanged = True
                 End If
-                If Control_View_Left.Active Then
+                If KeyboardProfile.Active(Control_View_Left) Then
                     AnglePY.Yaw = AngleClamp(AnglePY.Yaw - OrbitRate)
                     AngleChanged = True
                 End If
-                If Control_View_Right.Active Then
+                If KeyboardProfile.Active(Control_View_Right) Then
                     AnglePY.Yaw = AngleClamp(AnglePY.Yaw + OrbitRate)
                     AngleChanged = True
                 End If
@@ -1647,7 +1610,7 @@ Public Class clsViewInfo
 
     Public Sub TimedTools()
 
-        If Tool = enumTool.Height_Smooth_Brush Then
+        If Tool Is Tools.HeightSmoothBrush Then
             If GetMouseOverTerrain() IsNot Nothing Then
                 If GetMouseLeftDownOverTerrain() IsNot Nothing Then
                     Dim dblTemp As Double
@@ -1657,7 +1620,7 @@ Public Class clsViewInfo
                     Apply_HeightSmoothing(Clamp_dbl(dblTemp * frmMainInstance.tmrTool.Interval / 1000.0#, 0.0#, 1.0#))
                 End If
             End If
-        ElseIf Tool = enumTool.Height_Change_Brush Then
+        ElseIf Tool Is Tools.HeightChangeBrush Then
             If GetMouseOverTerrain() IsNot Nothing Then
                 Dim dblTemp As Double
                 If Not InvariantParse_dbl(frmMainInstance.txtHeightChangeRate.Text, dblTemp) Then
@@ -1668,6 +1631,72 @@ Public Class clsViewInfo
                 ElseIf GetMouseRightDownOverTerrain() IsNot Nothing Then
                     Apply_Height_Change(Clamp_dbl(-dblTemp, -255.0#, 255.0#))
                 End If
+            End If
+        End If
+    End Sub
+
+    Public Sub ApplyObjectLine()
+
+        If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
+            Dim MouseOverTerrian As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
+
+            If MouseOverTerrian Is Nothing Then
+                Exit Sub
+            End If
+
+            Dim Num As Integer
+            Dim A As Integer
+            Dim B As Integer
+            Dim Tile As sXY_int = MouseOverTerrian.Tile.Normal
+
+            If Map.Selected_Tile_A IsNot Nothing Then
+                If Tile.X = Map.Selected_Tile_A.X Then
+                    If Tile.Y <= Map.Selected_Tile_A.Y Then
+                        A = Tile.Y
+                        B = Map.Selected_Tile_A.Y
+                    Else
+                        A = Map.Selected_Tile_A.Y
+                        B = Tile.Y
+                    End If
+                    Dim objectCreator As New clsMap.clsUnitCreate
+                    Map.SetObjectCreatorDefaults(objectCreator)
+                    For Num = A To B
+                        objectCreator.Horizontal.X = CInt((Tile.X + 0.5#) * TerrainGridSpacing)
+                        objectCreator.Horizontal.Y = CInt((Num + 0.5#) * TerrainGridSpacing)
+                        objectCreator.Perform()
+                    Next
+
+                    Map.UndoStepCreate("Object Line")
+                    Map.Update()
+                    Map.MinimapMakeLater()
+                    Map.Selected_Tile_A = Nothing
+                    MapView.DrawViewLater()
+                ElseIf Tile.Y = Map.Selected_Tile_A.Y Then
+                    If Tile.X <= Map.Selected_Tile_A.X Then
+                        A = Tile.X
+                        B = Map.Selected_Tile_A.X
+                    Else
+                        A = Map.Selected_Tile_A.X
+                        B = Tile.X
+                    End If
+                    Dim objectCreator As New clsMap.clsUnitCreate
+                    Map.SetObjectCreatorDefaults(objectCreator)
+                    For Num = A To B
+                        objectCreator.Horizontal.X = CInt((Num + 0.5#) * TerrainGridSpacing)
+                        objectCreator.Horizontal.Y = CInt((Tile.Y + 0.5#) * TerrainGridSpacing)
+                        objectCreator.Perform()
+                    Next
+
+                    Map.UndoStepCreate("Object Line")
+                    Map.Update()
+                    Map.MinimapMakeLater()
+                    Map.Selected_Tile_A = Nothing
+                    MapView.DrawViewLater()
+                Else
+
+                End If
+            Else
+                Map.Selected_Tile_A = New clsXY_int(Tile)
             End If
         End If
     End Sub

@@ -11,7 +11,7 @@ Public Class ctrlColour
 
         If NewColour Is Nothing Then
             Stop
-            Visible = False
+            Hide()
             Exit Sub
         End If
 
@@ -26,7 +26,7 @@ Public Class ctrlColour
             AddHandler nudAlpha.ValueChanged, AddressOf nudAlpha_Changed
             AddHandler nudAlpha.Leave, AddressOf nudAlpha_Changed
         Else
-            nudAlpha.Visible = False
+            nudAlpha.Hide()
         End If
 
         ColourBoxGraphics = pnlColour.CreateGraphics

@@ -1,22 +1,53 @@
 ﻿
+Public Interface iResultItem
+    ReadOnly Property Text As String
+    Sub DoubleClicked()
+End Interface
+
 Public Class clsResult
+    Implements iResultItem
 
-    Private _Text As String
+    Public Text As String
 
-    Public ReadOnly Property Text As String
+    Public ReadOnly Property GetText As String Implements iResultItem.Text
         Get
-            Return _Text
+            Return Text
         End Get
     End Property
 
     Public Class clsProblem
+        Implements iResultItem
+
         Public Text As String
-    End Class
-    Public Class clsWarning
-        Public Text As String
+
+        Public ReadOnly Property GetText As String Implements iResultItem.Text
+            Get
+                Return Text
+            End Get
+        End Property
+
+        Public Overridable Sub DoubleClicked() Implements iResultItem.DoubleClicked
+
+        End Sub
     End Class
 
-    Private Items As New SimpleList(Of Object)
+    Public Class clsWarning
+        Implements iResultItem
+
+        Public Text As String
+
+        Public ReadOnly Property GetText As String Implements iResultItem.Text
+            Get
+                Return Text
+            End Get
+        End Property
+
+        Public Overridable Sub DoubleClicked() Implements iResultItem.DoubleClicked
+
+        End Sub
+    End Class
+
+    Private Items As New SimpleList(Of iResultItem)
     Private Bad As Boolean = False
 
     Public ReadOnly Property HasWarnings As Boolean
@@ -58,47 +89,124 @@ Public Class clsResult
 
     Public Sub ProblemAdd(Text As String)
 
-        Bad = True
         Dim Problem As New clsProblem
         Problem.Text = Text
-        Items.Add(Problem)
+        ItemAdd(Problem)
     End Sub
 
     Public Sub WarningAdd(Text As String)
 
         Dim Warning As New clsWarning
         Warning.Text = Text
-        Items.Add(Warning)
+        ItemAdd(Warning)
+    End Sub
+
+    Public Sub ItemAdd(item As iResultItem)
+
+        If TypeOf item Is clsProblem Then
+            Bad = True
+        End If
+        Items.Add(item)
     End Sub
 
     Public Sub New(Text As String)
 
         Items.MaintainOrder = True
 
-        Me._Text = Text
+        Me.Text = Text
     End Sub
 
-    Public Function MakeNodes(Owner As TreeNodeCollection) As TreeNode
-        Dim Node As New TreeNode
-        Node.Text = _Text
-        Owner.Add(Node)
-        Dim A As Integer
-        Dim Item As Object
-        For A = 0 To Items.Count - 1
-            Item = Items(A)
+    Public Function MakeNodes(owner As TreeNodeCollection) As TreeNode
+        Dim node As New TreeNode
+        node.Text = Text
+        owner.Add(node)
+        Dim item As iResultItem
+        For i As Integer = 0 To Items.Count - 1
+            item = Items(i)
             Dim ChildNode As New TreeNode
-            If TypeOf Item Is clsProblem Then
-                ChildNode.Text = CType(Item, clsProblem).Text
-                Node.Nodes.Add(ChildNode)
+            ChildNode.Tag = item
+            If TypeOf item Is clsProblem Then
+                ChildNode.Text = item.Text
+                node.Nodes.Add(ChildNode)
                 ChildNode.StateImageKey = "problem"
-            ElseIf TypeOf Item Is clsWarning Then
-                ChildNode.Text = CType(Item, clsWarning).Text
-                Node.Nodes.Add(ChildNode)
+            ElseIf TypeOf item Is clsWarning Then
+                ChildNode.Text = item.Text
+                node.Nodes.Add(ChildNode)
                 ChildNode.StateImageKey = "warning"
-            ElseIf TypeOf Item Is clsResult Then
-                ChildNode = CType(Item, clsResult).MakeNodes(Node.Nodes)
+            ElseIf TypeOf item Is clsResult Then
+                ChildNode = CType(item, clsResult).MakeNodes(node.Nodes)
             End If
         Next
-        Return Node
+        Return node
     End Function
+
+    Public Sub DoubleClicked() Implements iResultItem.DoubleClicked
+
+
+    End Sub
 End Class
+
+Public Class clsResultWarningGoto(Of GotoType As iResultItemGoto)
+    Inherits clsResult.clsWarning
+
+    Public MapGoto As GotoType
+
+    Public Overrides Sub DoubleClicked()
+        MyBase.DoubleClicked()
+
+        MapGoto.Perform()
+    End Sub
+End Class
+
+Public Class clsResultProblemGoto(Of GotoType As iResultItemGoto)
+    Inherits clsResult.clsProblem
+
+    Public MapGoto As GotoType
+
+    Public Overrides Sub DoubleClicked()
+        MyBase.DoubleClicked()
+
+        MapGoto.Perform()
+    End Sub
+End Class
+
+Public Interface iResultItemGoto
+    Sub Perform()
+End Interface
+
+Public Class clsResultItemTileGoto
+    Implements iResultItemGoto
+
+    Public View As clsViewInfo
+    Public TileNum As sXY_int
+
+    Public Sub Perform() Implements iResultItemGoto.Perform
+
+        View.LookAtTile(TileNum)
+    End Sub
+End Class
+
+Public Class clsResultItemPosGoto
+    Implements iResultItemGoto
+
+    Public View As clsViewInfo
+    Public Horizontal As sXY_int
+
+    Public Sub Perform() Implements iResultItemGoto.Perform
+
+        View.LookAtPos(Horizontal)
+    End Sub
+End Class
+
+Public Module modResults
+
+    Public Function CreateResultProblemGotoForObject(unit As clsMap.clsUnit) As clsResultProblemGoto(Of clsResultItemPosGoto)
+
+        Dim resultGoto As New clsResultItemPosGoto
+        resultGoto.View = unit.MapLink.Source.ViewInfo
+        resultGoto.Horizontal = unit.Pos.Horizontal
+        Dim resultProblem As New clsResultProblemGoto(Of clsResultItemPosGoto)
+        resultProblem.MapGoto = resultGoto
+        Return resultProblem
+    End Function
+End Module

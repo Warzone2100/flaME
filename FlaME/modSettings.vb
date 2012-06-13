@@ -1,209 +1,334 @@
 ﻿
 Public Module modSettings
 
-    Public InitializeINISettings As clsINISettings
+    Public Options_Settings As New clsOptionGroup
+    Public InitializeSettings As clsSettings
+    Public Settings As clsSettings
+
+    Public Setting_AutoSaveEnabled As clsOption(Of Boolean)
+    Public Setting_AutoSaveCompress As clsOption(Of Boolean)
+    Public Setting_AutoSaveMinInterval_s As clsOption(Of UInteger)
+    Public Setting_AutoSaveMinChanges As clsOption(Of UInteger)
+    Public Setting_UndoLimit As clsOption(Of UInteger)
+    Public Setting_DirectoriesPrompt As clsOption(Of Boolean)
+    Public Setting_DirectPointer As clsOption(Of Boolean)
+    Public Setting_DisplayFont As clsOption(Of Boolean)
+    Public Setting_FontFamily As clsOption(Of FontFamily)
+    Public Setting_FontBold As clsOption(Of Boolean)
+    Public Setting_FontItalic As clsOption(Of Boolean)
+    Public Class clsOption_FontSize
+        Inherits clsOption(Of Single)
+
+        Public Sub New(saveKey As String, defaultValue As Single)
+            MyBase.New(saveKey, defaultValue)
+        End Sub
+
+        Public Overrides Function IsValueValid(value As Object) As Boolean
+            Return CType(value, Single) >= 0.0F
+        End Function
+
+        Public Class clsCreator_FontSize
+            Inherits clsOption(Of Single).clsCreator
+
+            Public Overrides Function Create() As clsOption(Of Single)
+                Return New clsOption_FontSize(SaveKey, DefaultValue)
+            End Function
+        End Class
+    End Class
+    Public Setting_FontSize As clsOption_FontSize
+    Public Class clsOption_MinimapSize
+        Inherits clsOption(Of Integer)
+
+        Public Sub New(saveKey As String, defaultValue As Integer)
+            MyBase.New(saveKey, defaultValue)
+        End Sub
+
+        Public Overrides Function IsValueValid(value As Object) As Boolean
+            Dim intValue As Integer = CType(value, Integer)
+            Return intValue >= 0 And intValue <= MinimapMaxSize
+        End Function
+
+        Public Class clsCreator_MinimapSize
+            Inherits clsOption(Of Integer).clsCreator
+
+            Public Overrides Function Create() As clsOption(Of Integer)
+                Return New clsOption_MinimapSize(SaveKey, DefaultValue)
+            End Function
+        End Class
+    End Class
+    Public Setting_MinimapSize As clsOption_MinimapSize
+    Public Setting_MinimapTeamColours As clsOption(Of Boolean)
+    Public Setting_MinimapTeamColoursExceptFeatures As clsOption(Of Boolean)
+    Public Setting_MinimapCliffColour As clsOption(Of clsRGBA_sng)
+    Public Setting_MinimapSelectedObjectsColour As clsOption(Of clsRGBA_sng)
+    Public Class clsOption_FOVDefault
+        Inherits clsOption(Of Double)
+
+        Public Sub New(saveKey As String, defaultValue As Double)
+            MyBase.New(saveKey, defaultValue)
+        End Sub
+
+        Public Overrides Function IsValueValid(value As Object) As Boolean
+            Dim dblValue As Double = CType(value, Double)
+            Return dblValue >= 0.00005# And dblValue <= 0.005#
+        End Function
+
+        Public Class clsCreator_FOVDefault
+            Inherits clsOption(Of Double).clsCreator
+
+            Public Overrides Function Create() As clsOption(Of Double)
+                Return New clsOption_FOVDefault(SaveKey, DefaultValue)
+            End Function
+        End Class
+    End Class
+    Public Setting_FOVDefault As clsOption_FOVDefault
+    Public Setting_Mipmaps As clsOption(Of Boolean)
+    Public Setting_MipmapsHardware As clsOption(Of Boolean)
+    Public Setting_OpenPath As clsOption(Of String)
+    Public Setting_SavePath As clsOption(Of String)
+    Public Setting_MapViewBPP As clsOption(Of Integer)
+    Public Setting_TextureViewBPP As clsOption(Of Integer)
+    Public Setting_MapViewDepth As clsOption(Of Integer)
+    Public Setting_TextureViewDepth As clsOption(Of Integer)
+    Public Setting_TilesetDirectories As clsOption(Of SimpleList(Of String))
+    Public Setting_ObjectDataDirectories As clsOption(Of SimpleList(Of String))
+    Public Setting_DefaultTilesetsPathNum As clsOption(Of Integer)
+    Public Setting_DefaultObjectDataPathNum As clsOption(Of Integer)
 
     Public Class clsSettings
+        Inherits clsOptionProfile
 
-        Public AutoSaveEnabled As Boolean = True
-        Public AutoSaveCompress As Boolean = False
-        Public AutoSaveMinInterval_s As UInteger = 180UI
-        Public AutoSaveMinChanges As UInteger = 20UI
-        Public UndoLimit As UInteger = 256UI
-        Public DirectoriesPrompt As Boolean = True
-        Public DirectPointer As Boolean = True
-        Public DisplayFont As Font 'set by INI settings class
-        Public MinimapSize As Integer = 160
-        Public MinimapTeamColours As Boolean = True
-        Public MinimapTeamColoursExceptFeatures As Boolean = True
-        Public MinimapCliffColour As New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F)
-        Public MinimapSelectedObjectsColour As New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F)
-        Public FOVDefault As Double = 30.0# / (50.0# * 900.0#) ' screen_vertical_size / ( screen_dist * screen_vertical_pixels )
-        Public Mipmaps As Boolean = True
-        Public MipmapsHardware As Boolean = False
-        Public OpenPath As String = Nothing
-        Public SavePath As String = Nothing
-        Public MapViewBPP As Integer = 32
-        Public TextureViewBPP As Integer = 32
-        Public MapViewDepth As Integer = 24
-        Public TextureViewDepth As Integer = 24
-    End Class
+        Public Class clsSettingsCreator
+            Inherits clsOptionProfile.clsCreator
 
-    Public Class clsINISettings
-        Inherits clsINIRead.clsTranslator
+            Public Overrides Function Create() As clsOptionProfile
+                Return New clsSettings
+            End Function
+        End Class
 
-        Public FontFamily As String = "Verdana"
-        Public FontBold As Boolean = True
-        Public FontItalic As Boolean = False
-        Public FontSize As Single = 20.0F
+        Public Sub New()
+            MyBase.New(Options_Settings)
+        End Sub
 
-        Public NewSettings As New clsSettings
+        Public ReadOnly Property AutoSaveEnabled As Boolean
+            Get
+                Return CType(Value(Setting_AutoSaveEnabled), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property AutoSaveCompress As Boolean
+            Get
+                Return CType(Value(Setting_AutoSaveCompress), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property AutoSaveMinInterval_s As UInteger
+            Get
+                Return CType(Value(Setting_AutoSaveMinInterval_s), UInteger)
+            End Get
+        End Property
+        Public ReadOnly Property AutoSaveMinChanges As UInteger
+            Get
+                Return CType(Value(Setting_AutoSaveMinChanges), UInteger)
+            End Get
+        End Property
+        Public ReadOnly Property UndoLimit As UInteger
+            Get
+                Return CType(Value(Setting_UndoLimit), UInteger)
+            End Get
+        End Property
+        Public ReadOnly Property DirectoriesPrompt As Boolean
+            Get
+                Return CType(Value(Setting_DirectoriesPrompt), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property DirectPointer As Boolean
+            Get
+                Return CType(Value(Setting_DirectPointer), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property DisplayFont As Boolean
+            Get
+                Return CType(Value(Setting_DisplayFont), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property FontFamily As FontFamily
+            Get
+                Return CType(Value(Setting_FontFamily), FontFamily)
+            End Get
+        End Property
+        Public ReadOnly Property FontBold As Boolean
+            Get
+                Return CType(Value(Setting_FontBold), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property FontItalic As Boolean
+            Get
+                Return CType(Value(Setting_FontItalic), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property FontSize As Single
+            Get
+                Return CType(Value(Setting_FontSize), Single)
+            End Get
+        End Property
+        Public ReadOnly Property MinimapSize As Integer
+            Get
+                Return CType(Value(Setting_MinimapSize), Integer)
+            End Get
+        End Property
+        Public ReadOnly Property MinimapTeamColours As Boolean
+            Get
+                Return CType(Value(Setting_MinimapTeamColours), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property MinimapTeamColoursExceptFeatures As Boolean
+            Get
+                Return CType(Value(Setting_MinimapTeamColoursExceptFeatures), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property MinimapCliffColour As clsRGBA_sng
+            Get
+                Return CType(Value(Setting_MinimapCliffColour), clsRGBA_sng)
+            End Get
+        End Property
+        Public ReadOnly Property MinimapSelectedObjectsColour As clsRGBA_sng
+            Get
+                Return CType(Value(Setting_MinimapSelectedObjectsColour), clsRGBA_sng)
+            End Get
+        End Property
+        Public ReadOnly Property FOVDefault As Double
+            Get
+                Return CType(Value(Setting_FOVDefault), Double)
+            End Get
+        End Property
+        Public ReadOnly Property Mipmaps As Boolean
+            Get
+                Return CType(Value(Setting_Mipmaps), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property MipmapsHardware As Boolean
+            Get
+                Return CType(Value(Setting_MipmapsHardware), Boolean)
+            End Get
+        End Property
+        Public Property OpenPath As String
+            Get
+                Return CType(Value(Setting_OpenPath), String)
+            End Get
+            Set(value As String)
+                Changes(Setting_OpenPath) = New clsOptionProfile.clsChange(Of String)(value)
+            End Set
+        End Property
+        Public Property SavePath As String
+            Get
+                Return CType(Value(Setting_SavePath), String)
+            End Get
+            Set(value As String)
+                Changes(Setting_SavePath) = New clsOptionProfile.clsChange(Of String)(value)
+            End Set
+        End Property
+        Public ReadOnly Property MapViewBPP As Integer
+            Get
+                Return CType(Value(Setting_MapViewBPP), Integer)
+            End Get
+        End Property
+        Public ReadOnly Property TextureViewBPP As Integer
+            Get
+                Return CType(Value(Setting_TextureViewBPP), Integer)
+            End Get
+        End Property
+        Public ReadOnly Property MapViewDepth As Integer
+            Get
+                Return CType(Value(Setting_MapViewDepth), Integer)
+            End Get
+        End Property
+        Public ReadOnly Property TextureViewDepth As Integer
+            Get
+                Return CType(Value(Setting_TextureViewDepth), Integer)
+            End Get
+        End Property
+        Public ReadOnly Property TilesetDirectories As SimpleList(Of String)
+            Get
+                Return CType(Value(Setting_TilesetDirectories), SimpleList(Of String))
+            End Get
+        End Property
+        Public ReadOnly Property ObjectDataDirectories As SimpleList(Of String)
+            Get
+                Return CType(Value(Setting_ObjectDataDirectories), SimpleList(Of String))
+            End Get
+        End Property
 
-        Public TilesetsPaths As New SimpleList(Of String)
-        Public ObjectDataPaths As New SimpleList(Of String)
+        Public Function MakeFont() As Font
 
-        Public DefaultTilesetPathNum As Integer = -1
-        Public DefaultObjectDataPathNum As Integer = -1
-
-        Public Overrides Function Translate(INIProperty As clsINIRead.clsSection.sProperty) As clsINIRead.enumTranslatorResult
-
-            Select Case INIProperty.Name
-                Case "directpointer"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.DirectPointer) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "fontfamily"
-                    FontFamily = INIProperty.Value
-                Case "fontbold"
-                    If Not InvariantParse_bool(INIProperty.Value, FontBold) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "fontitalic"
-                    If Not InvariantParse_bool(INIProperty.Value, FontItalic) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "fontsize"
-                    Dim sngTemp As Single
-                    If Not InvariantParse_sng(INIProperty.Value, sngTemp) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    If sngTemp <= 0.0F Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    FontSize = sngTemp
-                Case "minimapsize"
-                    Dim Size As Integer
-                    If Not InvariantParse_int(INIProperty.Value, Size) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    If Size < 0 Or Size > MinimapMaxSize Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                    NewSettings.MinimapSize = Size
-                Case "minimapteamcolours"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MinimapTeamColours) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "minimapteamcoloursexceptfeatures"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MinimapTeamColoursExceptFeatures) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "minimapcliffcolour"
-                    If Not NewSettings.MinimapCliffColour.ReadINIText(New clsSplitCommaText(INIProperty.Value)) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "minimapselectedobjectscolour"
-                    If Not NewSettings.MinimapSelectedObjectsColour.ReadINIText(New clsSplitCommaText(INIProperty.Value)) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "undolimit"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.UndoLimit) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "autosave"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.AutoSaveEnabled) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "autosavemininterval"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSaveMinInterval_s) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "autosaveminchanges"
-                    If Not InvariantParse_uint(INIProperty.Value, NewSettings.AutoSaveMinChanges) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "autosavecompress"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.AutoSaveCompress) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "tilesetspath"
-                    TilesetsPaths.Add(INIProperty.Value)
-                Case "objectdatapath"
-                    ObjectDataPaths.Add(INIProperty.Value)
-                Case "defaulttilesetspathnum"
-                    If Not InvariantParse_int(INIProperty.Value, DefaultTilesetPathNum) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "defaultobjectdatapathnum"
-                    If Not InvariantParse_int(INIProperty.Value, DefaultObjectDataPathNum) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "directoriesprompt"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.DirectoriesPrompt) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "fovdefault"
-                    If Not InvariantParse_dbl(INIProperty.Value, NewSettings.FOVDefault) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "mipmaps"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.Mipmaps) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "mipmapshardware"
-                    If Not InvariantParse_bool(INIProperty.Value, NewSettings.MipmapsHardware) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "openpath"
-                    NewSettings.OpenPath = INIProperty.Value
-                Case "savepath"
-                    NewSettings.SavePath = INIProperty.Value
-                Case "mapviewbpp"
-                    If Not InvariantParse_int(INIProperty.Value, NewSettings.MapViewBPP) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "textureviewbpp"
-                    If Not InvariantParse_int(INIProperty.Value, NewSettings.TextureViewBPP) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "mapviewdepth"
-                    If Not InvariantParse_int(INIProperty.Value, NewSettings.MapViewDepth) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case "textureviewdepth"
-                    If Not InvariantParse_int(INIProperty.Value, NewSettings.TextureViewDepth) Then
-                        Return clsINIRead.enumTranslatorResult.ValueInvalid
-                    End If
-                Case Else
-                    Return clsINIRead.enumTranslatorResult.NameUnknown
-            End Select
-            Return clsINIRead.enumTranslatorResult.Translated
+            Dim style As FontStyle = FontStyle.Regular
+            If FontBold Then
+                style = style Or FontStyle.Bold
+            End If
+            If FontItalic Then
+                style = style Or FontStyle.Italic
+            End If
+            Return New Font(FontFamily, FontSize, style, GraphicsUnit.Point)
         End Function
     End Class
 
-    Public Function Read_Settings(File As IO.StreamReader, ByRef Result As clsINISettings) As clsResult
+    Private Function CreateSetting(Of T)(creator As clsOption(Of T).clsCreator, saveKey As String, defaultValue As T) As clsOption(Of T)
+
+        creator.SaveKey = saveKey
+        creator.DefaultValue = defaultValue
+        Dim result As clsOption(Of T) = creator.Create
+        Options_Settings.Options.Add(result.GroupLink)
+        Return result
+    End Function
+
+    Public Sub CreateSettingOptions()
+
+        Setting_AutoSaveEnabled = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "AutoSave", True)
+        Setting_AutoSaveCompress = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "AutoSaveCompress", False)
+        Setting_AutoSaveMinInterval_s = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "AutoSaveMinInterval", 180UI)
+        Setting_AutoSaveMinChanges = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "AutoSaveMinChanges", 20UI)
+        Setting_UndoLimit = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "UndoLimit", 256UI)
+        Setting_DirectoriesPrompt = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "DirectoriesPrompt", True)
+        Setting_DirectPointer = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "DirectPointer", True)
+        Setting_FontFamily = CreateSetting(Of FontFamily)(New clsOption(Of FontFamily).clsCreator, "FontFamily", FontFamily.GenericSerif)
+        Setting_FontBold = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "FontBold", True)
+        Setting_FontItalic = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "FontItalic", False)
+        Setting_FontSize = CType(CreateSetting(Of Single)(New clsOption_FontSize.clsCreator_FontSize, "FontSize", 20.0F), clsOption_FontSize)
+        Setting_MinimapSize = CType(CreateSetting(Of Integer)(New clsOption_MinimapSize.clsCreator_MinimapSize, "MinimapSize", 160), clsOption_MinimapSize)
+        Setting_MinimapTeamColours = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MinimapTeamColours", True)
+        Setting_MinimapTeamColoursExceptFeatures = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MinimapTeamColoursExceptFeatures", True)
+        Setting_MinimapCliffColour = CreateSetting(Of clsRGBA_sng)(New clsOption(Of clsRGBA_sng).clsCreator, "MinimapCliffColour", New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F))
+        Setting_MinimapSelectedObjectsColour = CreateSetting(Of clsRGBA_sng)(New clsOption(Of clsRGBA_sng).clsCreator, "MinimapSelectedObjectsColour", New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F))
+        Setting_FOVDefault = CType(CreateSetting(Of Double)(New clsOption_FOVDefault.clsCreator_FOVDefault, "FOVDefault", 30.0# / (50.0# * 900.0#)), clsOption_FOVDefault)  'screenVerticalSize/(screenDist*screenVerticalPixels)
+        Setting_Mipmaps = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "Mipmaps", False)
+        Setting_MipmapsHardware = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MipmapsHardware", False)
+        Setting_OpenPath = CreateSetting(Of String)(New clsOption(Of String).clsCreator, "OpenPath", Nothing)
+        Setting_SavePath = CreateSetting(Of String)(New clsOption(Of String).clsCreator, "SavePath", Nothing)
+        Setting_MapViewBPP = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "MapViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
+        Setting_TextureViewBPP = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "TextureViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
+        Setting_MapViewDepth = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "MapViewDepth", 24)
+        Setting_TextureViewDepth = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "TextureViewDepth", 24)
+        Setting_TilesetDirectories = CreateSetting(New clsOption(Of SimpleList(Of String)).clsCreator, "TilesetsPath", New SimpleList(Of String))
+        Setting_ObjectDataDirectories = CreateSetting(New clsOption(Of SimpleList(Of String)).clsCreator, "ObjectDataPath", New SimpleList(Of String))
+        Setting_DefaultTilesetsPathNum = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "DefaultTilesetsPathNum", -1)
+        Setting_DefaultObjectDataPathNum = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "DefaultObjectDataPathNum", -1)
+    End Sub
+
+    Public Function Read_Settings(File As IO.StreamReader, ByRef Result As clsSettings) As clsResult
         Dim ReturnResult As New clsResult("Reading settings")
 
-        Dim INISection As New clsINIRead.clsSection
-        ReturnResult.Take(INISection.ReadFile(File))
-        Result = New clsINISettings
-        ReturnResult.Take(INISection.Translate(Result))
+        Dim INIReader As New clsINIRead
+        ReturnResult.Take(INIReader.ReadFile(File))
+        Result = New clsSettings
+        ReturnResult.Take(INIReader.RootSection.Translate(Result))
+        For Each section As clsINIRead.clsSection In INIReader.Sections
+            If section.Name.ToLower = "keyboardcontrols" Then
+                Dim keyResults As New clsResult("Keyboard controls")
+                keyResults.Take(section.Translate(KeyboardProfile))
+                ReturnResult.Take(keyResults)
+            End If
+        Next
 
         Return ReturnResult
     End Function
-
-    Public Sub UpdateINISettings(NewSettingsINI As clsINISettings)
-
-        Dim FontStyle As Drawing.FontStyle = FontStyle.Regular
-        If NewSettingsINI.FontBold Then
-            FontStyle = (FontStyle Or FontStyle.Bold)
-        End If
-        If NewSettingsINI.FontItalic Then
-            FontStyle = (FontStyle Or FontStyle.Italic)
-        End If
-        NewSettingsINI.NewSettings.DisplayFont = New Font(NewSettingsINI.FontFamily, Math.Max(NewSettingsINI.FontSize, 1.0F), FontStyle)
-
-        UpdateSettings(NewSettingsINI.NewSettings)
-
-        frmDataInstance.TilesetsPathSet.SetPaths(NewSettingsINI.TilesetsPaths)
-        If NewSettingsINI.DefaultTilesetPathNum >= -1 And NewSettingsINI.DefaultTilesetPathNum < NewSettingsINI.TilesetsPaths.Count Then
-            frmDataInstance.TilesetsPathSet.SelectedNum = NewSettingsINI.DefaultTilesetPathNum
-        End If
-        frmDataInstance.ObjectDataPathSet.SetPaths(NewSettingsINI.ObjectDataPaths)
-        If NewSettingsINI.DefaultObjectDataPathNum >= -1 And NewSettingsINI.DefaultObjectDataPathNum < NewSettingsINI.ObjectDataPaths.Count Then
-            frmDataInstance.ObjectDataPathSet.SelectedNum = NewSettingsINI.DefaultObjectDataPathNum
-        End If
-    End Sub
 
     Public Sub UpdateSettings(NewSettings As clsSettings)
         Dim FontChanged As Boolean
@@ -211,19 +336,16 @@ Public Module modSettings
         If Settings Is Nothing Then
             FontChanged = True
         Else
-            If Settings.DisplayFont Is Nothing Then
-                If NewSettings.DisplayFont Is Nothing Then
-                    FontChanged = False
-                Else
-                    FontChanged = True
-                End If
+            If Settings.FontFamily Is Nothing Then
+                FontChanged = (NewSettings.FontFamily IsNot Nothing)
             Else
-                If NewSettings.DisplayFont Is Nothing Then
+                If NewSettings.FontFamily Is Nothing Then
                     FontChanged = True
                 Else
-                    If Settings.DisplayFont.FontFamily.Name = NewSettings.DisplayFont.FontFamily.Name _
-                        And Settings.DisplayFont.Style = NewSettings.DisplayFont.Style _
-                        And Settings.DisplayFont.SizeInPoints = NewSettings.DisplayFont.SizeInPoints Then
+                    If Settings.FontFamily.Name = NewSettings.FontFamily.Name _
+                        And Settings.FontBold = NewSettings.FontBold _
+                        And Settings.FontItalic = NewSettings.FontItalic _
+                        And Settings.FontSize = NewSettings.FontSize Then
                         FontChanged = False
                     Else
                         FontChanged = True
@@ -232,22 +354,18 @@ Public Module modSettings
             End If
         End If
         If FontChanged Then
-            SetFont(NewSettings.DisplayFont)
+            SetFont(NewSettings.MakeFont)
         End If
 
         Settings = NewSettings
     End Sub
 
-    Private Sub SetFont(NewFont As Font)
+    Private Sub SetFont(newFont As Font)
 
         If UnitLabelFont IsNot Nothing Then
             UnitLabelFont.Deallocate()
         End If
-        'If TextureViewFont IsNot Nothing Then
-        '    TextureViewFont.Deallocate()
-        'End If
-        UnitLabelFont = frmMainInstance.MapView.CreateGLFont(NewFont)
-        'TextureViewFont = frmMainInstance.TextureView.CreateGLFont(NewFont)
+        UnitLabelFont = frmMainInstance.MapView.CreateGLFont(newFont)
     End Sub
 
     Public Function Settings_Write() As clsResult
@@ -273,74 +391,32 @@ Public Module modSettings
             Return ReturnResult
         End Try
 
-        Serialize_Settings(INI_Settings)
+        ReturnResult.Take(Serialize_Settings(INI_Settings))
         INI_Settings.File.Close()
 
         Return ReturnResult
     End Function
 
-    Private Sub Serialize_Settings(File As clsINIWrite)
+    Private Function Serialize_Settings(File As clsINIWrite) As clsResult
         Dim ReturnResult As New clsResult("Serializing settings")
 
-        File.Property_Append("DirectPointer", InvariantToString_bool(Settings.DirectPointer))
-        If UnitLabelFont IsNot Nothing Then
-            File.Property_Append("FontFamily", Settings.DisplayFont.FontFamily.Name)
-            File.Property_Append("FontBold", InvariantToString_bool(Settings.DisplayFont.Bold))
-            File.Property_Append("FontItalic", InvariantToString_bool(Settings.DisplayFont.Italic))
-            File.Property_Append("FontSize", InvariantToString_sng(Settings.DisplayFont.SizeInPoints))
+        ReturnResult.Take(Settings.INIWrite(File))
+        If KeyboardProfile.IsAnythingChanged Then
+            File.SectionName_Append("KeyboardControls")
+            ReturnResult.Take(KeyboardProfile.INIWrite(File))
         End If
-        File.Property_Append("MinimapSize", InvariantToString_int(Settings.MinimapSize))
-        File.Property_Append("MinimapTeamColours", InvariantToString_bool(Settings.MinimapTeamColours))
-        File.Property_Append("MinimapTeamColoursExceptFeatures", InvariantToString_bool(Settings.MinimapTeamColoursExceptFeatures))
-        File.Property_Append("MinimapCliffColour", Settings.MinimapCliffColour.GetINIOutput)
-        File.Property_Append("MinimapSelectedObjectsColour", Settings.MinimapSelectedObjectsColour.GetINIOutput)
-        File.Property_Append("UndoLimit", InvariantToString_sng(Settings.UndoLimit))
-        File.Property_Append("AutoSave", InvariantToString_bool(Settings.AutoSaveEnabled))
-        File.Property_Append("AutoSaveMinInterval", InvariantToString_sng(Settings.AutoSaveMinInterval_s))
-        File.Property_Append("AutoSaveMinChanges", InvariantToString_sng(Settings.AutoSaveMinChanges))
-        File.Property_Append("AutoSaveCompress", InvariantToString_bool(Settings.AutoSaveCompress))
-        File.Property_Append("DirectoriesPrompt", InvariantToString_bool(Settings.DirectoriesPrompt))
-        File.Property_Append("FOVDefault", InvariantToString_dbl(Settings.FOVDefault))
-        Dim A As Integer
-        Dim Paths() As String
-        Paths = frmDataInstance.TilesetsPathSet.GetPaths
-        For A = 0 To Paths.GetUpperBound(0)
-            File.Property_Append("TilesetsPath", Paths(A))
-        Next
-        A = frmDataInstance.TilesetsPathSet.SelectedNum
-        If A >= 0 Then
-            File.Property_Append("DefaultTilesetsPathNum", InvariantToString_int(A))
-        End If
-        Paths = frmDataInstance.ObjectDataPathSet.GetPaths
-        For A = 0 To Paths.GetUpperBound(0)
-            File.Property_Append("ObjectDataPath", Paths(A))
-        Next
-        A = frmDataInstance.ObjectDataPathSet.SelectedNum
-        If A >= 0 Then
-            File.Property_Append("DefaultObjectDataPathNum", InvariantToString_int(A))
-        End If
-        File.Property_Append("Mipmaps", InvariantToString_bool(Settings.Mipmaps))
-        File.Property_Append("MipmapsHardware", InvariantToString_bool(Settings.MipmapsHardware))
-        If Settings.OpenPath IsNot Nothing Then
-            File.Property_Append("OpenPath", Settings.OpenPath)
-        End If
-        If Settings.SavePath IsNot Nothing Then
-            File.Property_Append("SavePath", Settings.SavePath)
-        End If
-        File.Property_Append("MapViewBPP", InvariantToString_int(Settings.MapViewBPP))
-        File.Property_Append("TextureViewBPP", InvariantToString_int(Settings.TextureViewBPP))
-        File.Property_Append("MapViewDepth", InvariantToString_int(Settings.MapViewDepth))
-        File.Property_Append("TextureViewDepth", InvariantToString_int(Settings.TextureViewDepth))
-    End Sub
 
-    Public Function Settings_Load(ByRef Result As clsINISettings) As clsResult
+        Return ReturnResult
+    End Function
+
+    Public Function Settings_Load(ByRef Result As clsSettings) As clsResult
         Dim ReturnResult As New clsResult("Loading settings from " & ControlChars.Quote & SettingsPath & ControlChars.Quote)
 
         Dim File_Settings As IO.StreamReader
         Try
             File_Settings = New IO.StreamReader(SettingsPath)
-        Catch ex As Exception
-            Result = New clsINISettings
+        Catch
+            Result = New clsSettings
             Return ReturnResult
         End Try
 

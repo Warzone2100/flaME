@@ -281,6 +281,16 @@ Public Module modLists
 
         End Sub
 
+        Public Function ToArray() As ItemType()
+            Dim result(ItemCount - 1) As ItemType
+
+            For i As Integer = 0 To ItemCount - 1
+                result(i) = Items(i)
+            Next
+
+            Return result
+        End Function
+
         Public Function GetEnumeratorType() As System.Collections.Generic.IEnumerator(Of ItemType) Implements System.Collections.Generic.IEnumerable(Of ItemType).GetEnumerator
 
             Return New EnumeratorType(Me)

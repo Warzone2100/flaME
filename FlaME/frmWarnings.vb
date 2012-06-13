@@ -1,17 +1,33 @@
 ﻿
+Public Module modWarnings
+
+    Public WarningImages As New ImageList
+End Module
+
 Public Class frmWarnings
 
-    Public Shared Images As New ImageList
-
-    Public Sub New(Result As clsResult, WindowTitle As String)
+    Public Sub New(result As clsResult, windowTitle As String)
         InitializeComponent()
 
         Icon = ProgramIcon
 
-        Text = WindowTitle
+        Text = windowTitle
 
-        tvwWarnings.StateImageList = Images
-        Result.MakeNodes(tvwWarnings.Nodes)
+        tvwWarnings.StateImageList = WarningImages
+        result.MakeNodes(tvwWarnings.Nodes)
         tvwWarnings.ExpandAll()
+
+        AddHandler tvwWarnings.NodeMouseDoubleClick, AddressOf NodeDoubleClicked
+    End Sub
+
+    Private Sub NodeDoubleClicked(sender As Object, e As TreeNodeMouseClickEventArgs)
+
+        Dim item As iResultItem = CType(e.Node.Tag, iResultItem)
+        item.DoubleClicked()
+    End Sub
+
+    Private Sub frmWarnings_FormClosed(sender As Object, e As System.Windows.Forms.FormClosedEventArgs) Handles Me.FormClosed
+
+        RemoveHandler tvwWarnings.NodeMouseDoubleClick, AddressOf NodeDoubleClicked
     End Sub
 End Class

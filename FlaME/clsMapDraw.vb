@@ -194,7 +194,7 @@ Partial Public Class clsMap
                 XYZ_dbl.Z = -Selected_Area_VertexB.Y * TerrainGridSpacing - ViewInfo.ViewPos.Z
                 XYZ_dbl.Y = GetVertexAltitude(Selected_Area_VertexB.XY) - ViewInfo.ViewPos.Y
                 DrawIt = True
-            ElseIf Tool = enumTool.Terrain_Select Then
+            ElseIf Tool Is Tools.TerrainSelect Then
                 If MouseOverTerrain IsNot Nothing Then
                     'selection is changing under pointer
                     ReorderXY(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
@@ -213,7 +213,7 @@ Partial Public Class clsMap
                         SelectionLabel.Colour.Blue = 1.0F
                         SelectionLabel.Colour.Alpha = 1.0F
                         SelectionLabel.TextFont = UnitLabelFont
-                        SelectionLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        SelectionLabel.SizeY = Settings.FontSize
                         SelectionLabel.Pos = ScreenPos
                         SelectionLabel.Text = FinishXY.X - StartXY.X & "x" & FinishXY.Y - StartXY.Y
                     End If
@@ -230,7 +230,7 @@ Partial Public Class clsMap
             DebugGLError("Terrain selection box")
         End If
 
-        If Tool = enumTool.Terrain_Select Then
+        If Tool Is Tools.TerrainSelect Then
             If MouseOverTerrain IsNot Nothing Then
                 'draw mouseover vertex
                 GL.LineWidth(3.0F)
@@ -368,7 +368,7 @@ Partial Public Class clsMap
 
         If MouseOverTerrain IsNot Nothing Then
 
-            If Tool = enumTool.None Then
+            If Tool Is Tools.ObjectSelect Then
                 If Unit_Selected_Area_VertexA IsNot Nothing Then
                     'selection is changing under pointer
                     ReorderXY(Unit_Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
@@ -438,7 +438,7 @@ Partial Public Class clsMap
                 End If
             End If
 
-            If Tool = enumTool.AutoRoad_Place Then
+            If Tool Is Tools.RoadPlace Then
                 GL.LineWidth(2.0F)
 
                 If MouseOverTerrain.Side_IsV Then
@@ -464,7 +464,7 @@ Partial Public Class clsMap
                 GL.End()
 
                 DebugGLError("Road place brush")
-            ElseIf Tool = enumTool.AutoRoad_Line Or Tool = enumTool.Gateways Then
+            ElseIf Tool Is Tools.RoadLines Or Tool Is Tools.Gateways Or Tool Is Tools.ObjectLines Then
                 GL.LineWidth(2.0F)
 
                 If Selected_Tile_A IsNot Nothing Then
@@ -583,18 +583,17 @@ Partial Public Class clsMap
 
             Dim ToolBrush As clsBrush
 
-            Select Case Tool
-                Case enumTool.Texture_Brush
-                    ToolBrush = TextureBrush
-                Case enumTool.AutoCliff
-                    ToolBrush = CliffBrush
-                Case enumTool.AutoCliffRemove
-                    ToolBrush = CliffBrush
-                Case enumTool.AutoRoad_Remove
-                    ToolBrush = CliffBrush
-                Case Else
-                    ToolBrush = Nothing
-            End Select
+            If Tool Is Tools.TextureBrush Then
+                ToolBrush = TextureBrush
+            ElseIf Tool Is Tools.CliffBrush Then
+                ToolBrush = CliffBrush
+            ElseIf Tool Is Tools.CliffRemove Then
+                ToolBrush = CliffBrush
+            ElseIf Tool Is Tools.RoadRemove Then
+                ToolBrush = CliffBrush
+            Else
+                ToolBrush = Nothing
+            End If
 
             If ToolBrush IsNot Nothing Then
                 GL.LineWidth(2.0F)
@@ -610,7 +609,7 @@ Partial Public Class clsMap
             End If
 
             'draw mouseover vertex
-            If Tool = enumTool.AutoTexture_Fill Then
+            If Tool Is Tools.TerrainFill Then
                 GL.LineWidth(2.0F)
 
                 Vertex0.X = MouseOverTerrain.Vertex.Normal.X * TerrainGridSpacing
@@ -627,18 +626,17 @@ Partial Public Class clsMap
                 DebugGLError("Mouse over vertex")
             End If
 
-            Select Case Tool
-                Case enumTool.AutoTexture_Place
-                    ToolBrush = TerrainBrush
-                Case enumTool.Height_Set_Brush
-                    ToolBrush = HeightBrush
-                Case enumTool.Height_Change_Brush
-                    ToolBrush = HeightBrush
-                Case enumTool.Height_Smooth_Brush
-                    ToolBrush = HeightBrush
-                Case Else
-                    ToolBrush = Nothing
-            End Select
+            If Tool Is Tools.TerrainBrush Then
+                ToolBrush = TerrainBrush
+            ElseIf Tool Is Tools.HeightSetBrush Then
+                ToolBrush = HeightBrush
+            ElseIf Tool Is Tools.HeightChangeBrush Then
+                ToolBrush = HeightBrush
+            ElseIf Tool Is Tools.HeightSmoothBrush Then
+                ToolBrush = HeightBrush
+            Else
+                ToolBrush = Nothing
+            End If
 
             If ToolBrush IsNot Nothing Then
                 GL.LineWidth(2.0F)
@@ -678,7 +676,7 @@ Partial Public Class clsMap
 
         If MouseOverTerrain IsNot Nothing Then
             GL.Enable(EnableCap.Texture2D)
-            If Tool = enumTool.ObjectPlace Then
+            If Tool Is Tools.ObjectPlace Then
                 If frmMainInstance.SelectedObjectType IsNot Nothing Then
                     Dim Rotation As Integer
                     Try
@@ -731,7 +729,7 @@ Partial Public Class clsMap
                         TextLabel.Colour.Blue = 0.5F
                         TextLabel.Colour.Alpha = 0.75F
                         TextLabel.TextFont = UnitLabelFont
-                        TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        TextLabel.SizeY = Settings.FontSize
                         TextLabel.Pos = ScreenPos
                         TextLabel.Text = ScriptPosition.Label
                         ScriptMarkerTextLabels.Add(TextLabel)
@@ -755,7 +753,7 @@ Partial Public Class clsMap
                         TextLabel.Colour.Blue = 0.5F
                         TextLabel.Colour.Alpha = 0.75F
                         TextLabel.TextFont = UnitLabelFont
-                        TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                        TextLabel.SizeY = Settings.FontSize
                         TextLabel.Pos = ScreenPos
                         TextLabel.Text = ScriptArea.Label
                         ScriptMarkerTextLabels.Add(TextLabel)
@@ -778,7 +776,7 @@ Partial Public Class clsMap
                 TextLabel.Colour.Blue = 1.0F
                 TextLabel.Colour.Alpha = 1.0F
                 TextLabel.TextFont = UnitLabelFont
-                TextLabel.SizeY = Settings.DisplayFont.SizeInPoints
+                TextLabel.SizeY = Settings.FontSize
                 TextLabel.Pos.X = 32 + MinimapSizeXY.X
                 TextLabel.Pos.Y = 32 + CInt(Math.Ceiling(B * TextLabel.SizeY))
                 TextLabel.Text = Messages.Item(A).Text
@@ -799,7 +797,7 @@ Partial Public Class clsMap
         Next
         If MouseOverTerrain IsNot Nothing Then
             For Each Unit In MouseOverTerrain.Units
-                If Unit IsNot Nothing And Tool = enumTool.None Then
+                If Unit IsNot Nothing And Tool Is Tools.ObjectSelect Then
                     RGB_sng = GetUnitGroupColour(Unit.UnitGroup)
                     GL.Color4((0.5F + RGB_sng.Red) / 1.5F, (0.5F + RGB_sng.Green) / 1.5F, (0.5F + RGB_sng.Blue) / 1.5F, 0.75F)
                     Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
@@ -921,7 +919,7 @@ Partial Public Class clsMap
                     'area is selected
                     ReorderXY(Selected_Area_VertexA.XY, Selected_Area_VertexB.XY, StartXY, FinishXY)
                     DrawIt = True
-                ElseIf Tool = enumTool.Terrain_Select Then
+                ElseIf Tool Is Tools.TerrainSelect Then
                     If MouseOverTerrain IsNot Nothing Then
                         'selection is changing under mouse
                         ReorderXY(Selected_Area_VertexA.XY, MouseOverTerrain.Vertex.Normal, StartXY, FinishXY)
@@ -1438,14 +1436,14 @@ Partial Public Class clsMap
                                 TextLabel = New clsTextLabel
                                 With TextLabel
                                     .TextFont = UnitLabelFont
-                                    .SizeY = Settings.DisplayFont.SizeInPoints
+                                    .SizeY = Settings.FontSize
                                     .Colour.Red = 1.0F
                                     .Colour.Green = 1.0F
                                     .Colour.Blue = 1.0F
                                     .Colour.Alpha = 1.0F
                                     .Pos.X = ScreenPos.X + 32
                                     .Pos.Y = ScreenPos.Y
-                                    .Text = Unit.Type.GetDisplayText
+                                    .Text = Unit.Type.GetDisplayTextCode
                                 End With
                                 UnitTextLabels.Add(TextLabel)
                             End If

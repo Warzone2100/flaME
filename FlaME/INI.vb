@@ -135,7 +135,8 @@ Public Class clsINIRead
             Return Nothing
         End Function
     End Class
-    Public Sections As New SimpleClassList(Of clsSection)
+    Public Sections As New SimpleList(Of clsSection)
+    Public RootSection As clsSection
 
     Public Sub CreateSection(Name As String)
         Dim newSection As New clsSection
@@ -152,6 +153,8 @@ Public Class clsINIRead
         Dim LineText As String = Nothing
         Dim A As Integer
         Dim SectionName As String
+
+        RootSection = New clsSection
 
         Do
             LineText = File.ReadLine
@@ -187,7 +190,12 @@ Public Class clsINIRead
                         InvalidLineCount += 1
                     End If
                 Else
-                    InvalidLineCount += 1
+                    A = LineText.IndexOf("="c)
+                    If A >= 0 Then
+                        RootSection.CreateProperty(LineText.Substring(0, A).ToLower.Trim, LineText.Substring(A + 1, LineText.Length - A - 1).Trim)
+                    Else
+                        InvalidLineCount += 1
+                    End If
                 End If
             ElseIf LineText.Length > 0 Then
                 InvalidLineCount += 1

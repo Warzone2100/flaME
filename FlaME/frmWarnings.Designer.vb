@@ -29,6 +29,7 @@ Partial Class frmWarnings
         '
         Me.tvwWarnings.Dock = System.Windows.Forms.DockStyle.Fill
         Me.tvwWarnings.Location = New System.Drawing.Point(0, 0)
+        Me.tvwWarnings.Margin = New System.Windows.Forms.Padding(3, 2, 3, 2)
         Me.tvwWarnings.Name = "tvwWarnings"
         Me.tvwWarnings.Size = New System.Drawing.Size(429, 247)
         Me.tvwWarnings.TabIndex = 0
@@ -39,7 +40,9 @@ Partial Class frmWarnings
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(429, 247)
         Me.Controls.Add(Me.tvwWarnings)
+        Me.Margin = New System.Windows.Forms.Padding(3, 2, 3, 2)
         Me.Name = "frmWarnings"
+        Me.TopMost = True
         Me.ResumeLayout(False)
 
     End Sub

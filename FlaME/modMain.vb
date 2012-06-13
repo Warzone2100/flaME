@@ -7,7 +7,6 @@ Public Module modMain
 
     Public frmMainInstance As frmMain
     Public frmGeneratorInstance As frmGenerator
-    Public frmDataInstance As frmData
     Public frmOptionsInstance As frmOptions
 
     Public OpenGL1 As OpenTK.GLControl
@@ -20,19 +19,19 @@ Public Module modMain
         PlatformPathSeparator = IO.Path.DirectorySeparatorChar
         SetProgramSubDirs()
 
-        Dim SettingsLoadResult As clsResult = Settings_Load(InitializeINISettings)
+        CreateSettingOptions()
+        CreateControls() 'needed to load key control settings
+        Dim SettingsLoadResult As clsResult = Settings_Load(InitializeSettings)
         InitializeResult.Add(SettingsLoadResult)
 
-        Dim initSettings As clsSettings = InitializeINISettings.NewSettings
-        OpenGL1 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(initSettings.MapViewBPP), initSettings.MapViewDepth, 0))
-        OpenGL2 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(initSettings.TextureViewBPP), initSettings.TextureViewDepth, 0))
+        OpenGL1 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.MapViewBPP), InitializeSettings.MapViewDepth, 0))
+        OpenGL2 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.TextureViewBPP), InitializeSettings.TextureViewDepth, 0))
 
         Do While OpenGL1.Context Is Nothing Or OpenGL2.Context Is Nothing
             'todo, why is this needed?
         Loop
 
         frmMainInstance = New frmMain
-        frmDataInstance = New frmData
 
         Try
             ProgramIcon = New Icon(My.Application.Info.DirectoryPath & PlatformPathSeparator & "flaME.ico")
@@ -41,7 +40,6 @@ Public Module modMain
         End Try
         frmMainInstance.Icon = ProgramIcon
         frmGeneratorInstance.Icon = ProgramIcon
-        frmDataInstance.Icon = ProgramIcon
 
         InitializeDelay = New Timer
         AddHandler InitializeDelay.Tick, AddressOf frmMainInstance.Initialize

@@ -382,8 +382,8 @@ Partial Public Class clsMap
             File.Property_Append("AutoScrollLimits", InvariantToString_bool(InterfaceOptions.AutoScrollLimits))
             File.Property_Append("ScrollMinX", InvariantToString_int(InterfaceOptions.ScrollMin.X))
             File.Property_Append("ScrollMinY", InvariantToString_int(InterfaceOptions.ScrollMin.Y))
-            File.Property_Append("ScrollMaxX", InvariantToString_sng(InterfaceOptions.ScrollMax.X))
-            File.Property_Append("ScrollMaxY", InvariantToString_sng(InterfaceOptions.ScrollMax.Y))
+            File.Property_Append("ScrollMaxX", InvariantToString_uint(InterfaceOptions.ScrollMax.X))
+            File.Property_Append("ScrollMaxY", InvariantToString_uint(InterfaceOptions.ScrollMax.Y))
 
             File.Property_Append("Name", InterfaceOptions.CompileName)
             File.Property_Append("Players", InterfaceOptions.CompileMultiPlayers)
@@ -688,7 +688,7 @@ Partial Public Class clsMap
                     Case Else
                         WarningCount += 1
                 End Select
-                File.Property_Append("ID", InvariantToString_sng(Unit.ID))
+                File.Property_Append("ID", InvariantToString_uint(Unit.ID))
                 File.Property_Append("Priority", InvariantToString_int(Unit.SavePriority))
                 File.Property_Append("Pos", InvariantToString_int(Unit.Pos.Horizontal.X) & ", " & InvariantToString_int(Unit.Pos.Horizontal.Y))
                 File.Property_Append("Heading", InvariantToString_int(Unit.Rotation))

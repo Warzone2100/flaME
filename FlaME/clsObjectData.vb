@@ -481,7 +481,6 @@ MonoContinueDo:
         Dim Sensor As clsSensor
         Dim Brain As clsBrain
         Dim ECM As clsECM
-        Dim B As Integer
         Dim Fields() As String
 
         'interpret body
@@ -511,8 +510,8 @@ MonoContinueDo:
         'interpret body-propulsions
 
         Dim BodyPropulsionPIEs(Bodies.Count - 1, Propulsions.Count - 1) As BodyProp
-        For A = 0 To Bodies.Count - 1
-            For B = 0 To Propulsions.Count - 1
+        For A As Integer = 0 To Bodies.Count - 1
+            For B As Integer = 0 To Propulsions.Count - 1
                 BodyPropulsionPIEs(A, B) = New BodyProp
                 BodyPropulsionPIEs(A, B).LeftPIE = "0"
                 BodyPropulsionPIEs(A, B).RightPIE = "0"
@@ -534,9 +533,9 @@ MonoContinueDo:
 
         'set propulsion-body PIEs
 
-        For A = 0 To Propulsions.Count - 1
+        For A As Integer = 0 To Propulsions.Count - 1
             Propulsion = Propulsions(A)
-            For B = 0 To Bodies.Count - 1
+            For B As Integer = 0 To Bodies.Count - 1
                 Body = Bodies(B)
                 Propulsion.Bodies(B).LeftAttachment = New clsUnitType.clsAttachment
                 Propulsion.Bodies(B).LeftAttachment.Models.Add(GetModelForPIE(PIE_List, BodyPropulsionPIEs(B, A).LeftPIE, ReturnResult))
@@ -831,7 +830,7 @@ MonoContinueDo:
                     Template.TemplateDroidType = TemplateDroidType_Person
                 Case Else
                     Template.TemplateDroidType = Nothing
-                    ReturnResult.WarningAdd("Template " & Template.GetDisplayText & " had an unrecognised type.")
+                    ReturnResult.WarningAdd("Template " & Template.GetDisplayTextCode & " had an unrecognised type.")
             End Select
             Dim LoadPartsArgs As New clsDroidDesign.sLoadPartsArgs
             LoadPartsArgs.Body = FindBodyCode(Fields(2))
@@ -858,7 +857,7 @@ MonoContinueDo:
             End If
             If Not Template.LoadParts(LoadPartsArgs) Then
                 If TurretConflictCount < 16 Then
-                    ReturnResult.WarningAdd("Template " & Template.GetDisplayText & " had multiple conflicting turrets.")
+                    ReturnResult.WarningAdd("Template " & Template.GetDisplayTextCode & " had multiple conflicting turrets.")
                 End If
                 TurretConflictCount += 1
             End If

@@ -1,6 +1,6 @@
 ﻿Imports OpenTK.Graphics.OpenGL
 
-Public Class clsUnitType
+Public MustInherit Class clsUnitType
 
     Public UnitType_ObjectDataLink As New ConnectedListLink(Of clsUnitType, clsObjectData)(Me)
 
@@ -180,7 +180,7 @@ Public Class clsUnitType
         End Select
     End Function
 
-    Public Function GetDisplayText() As String
+    Public Function GetDisplayTextCode() As String
 
         Select Case Type
             Case enumType.Feature
@@ -200,6 +200,33 @@ Public Class clsUnitType
             Case Else
                 Return ""
         End Select
+    End Function
+
+    Public Function GetDisplayTextName() As String
+
+        Select Case Type
+            Case enumType.Feature
+                Dim FeatureType As clsFeatureType = CType(Me, clsFeatureType)
+                Return FeatureType.Name & " (" & FeatureType.Code & ")"
+            Case enumType.PlayerStructure
+                Dim StructureType As clsStructureType = CType(Me, clsStructureType)
+                Return StructureType.Name & " (" & StructureType.Code & ")"
+            Case enumType.PlayerDroid
+                Dim DroidType As clsDroidDesign = CType(Me, clsDroidDesign)
+                If DroidType.IsTemplate Then
+                    Dim Template As clsDroidTemplate = CType(Me, clsDroidTemplate)
+                    Return Template.Name & " (" & Template.Code & ")"
+                Else
+                    Return DroidType.GenerateName & " (<droid>)"
+                End If
+            Case Else
+                Return ""
+        End Select
+    End Function
+
+    Public Overridable Function GetName() As String
+
+        Return ""
     End Function
 End Class
 
@@ -230,6 +257,11 @@ Public Class clsFeatureType
             BaseAttachment.GLDraw()
         End If
     End Sub
+
+    Public Overrides Function GetName() As String
+        
+        Return Name
+    End Function
 End Class
 
 Public Class clsStructureType
@@ -290,6 +322,11 @@ Public Class clsStructureType
         Return (StructureType = clsStructureType.enumStructureType.FactoryModule _
             Or StructureType = clsStructureType.enumStructureType.PowerModule _
             Or StructureType = clsStructureType.enumStructureType.ResearchModule)
+    End Function
+
+    Public Overrides Function GetName() As String
+
+        Return Name
     End Function
 End Class
 
@@ -751,6 +788,11 @@ Public Class clsDroidDesign
         Else
             Return Turret1.Code
         End If
+    End Function
+
+    Public Overrides Function GetName() As String
+
+        Return Name
     End Function
 End Class
 

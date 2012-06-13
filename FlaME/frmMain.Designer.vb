@@ -111,7 +111,7 @@ Partial Class frmMain
         Me.rdoHeightSet = New System.Windows.Forms.RadioButton()
         Me.txtHeightSetL = New System.Windows.Forms.TextBox()
         Me.Label5 = New System.Windows.Forms.Label()
-        Me.tpAutoHeight = New System.Windows.Forms.TabPage()
+        Me.tpMisc = New System.Windows.Forms.TabPage()
         Me.GroupBox2 = New System.Windows.Forms.GroupBox()
         Me.btnFlatOil = New System.Windows.Forms.Button()
         Me.btnFlatSelected = New System.Windows.Forms.Button()
@@ -135,6 +135,11 @@ Partial Class frmMain
         Me.tpObjects = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
         Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.Label44 = New System.Windows.Forms.Label()
+        Me.GroupBox3 = New System.Windows.Forms.GroupBox()
+        Me.rdoObjectPlace = New System.Windows.Forms.RadioButton()
+        Me.rdoObjectLines = New System.Windows.Forms.RadioButton()
+        Me.txtObjectFind = New System.Windows.Forms.TextBox()
         Me.cbxFootprintRotate = New System.Windows.Forms.CheckBox()
         Me.txtNewObjectRotation = New System.Windows.Forms.TextBox()
         Me.Label19 = New System.Windows.Forms.Label()
@@ -145,11 +150,11 @@ Partial Class frmMain
         Me.Label22 = New System.Windows.Forms.Label()
         Me.TabControl1 = New System.Windows.Forms.TabControl()
         Me.TabPage1 = New System.Windows.Forms.TabPage()
-        Me.lstFeatures = New System.Windows.Forms.ListBox()
+        Me.dgvFeatures = New System.Windows.Forms.DataGridView()
         Me.TabPage2 = New System.Windows.Forms.TabPage()
-        Me.lstStructures = New System.Windows.Forms.ListBox()
+        Me.dgvStructures = New System.Windows.Forms.DataGridView()
         Me.TabPage3 = New System.Windows.Forms.TabPage()
-        Me.lstDroids = New System.Windows.Forms.ListBox()
+        Me.dgvDroids = New System.Windows.Forms.DataGridView()
         Me.tpObject = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel8 = New System.Windows.Forms.TableLayoutPanel()
         Me.TableLayoutPanel9 = New System.Windows.Forms.TableLayoutPanel()
@@ -257,6 +262,8 @@ Partial Class frmMain
         Me.ToolStripSeparator2 = New System.Windows.Forms.ToolStripSeparator()
         Me.SaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuSaveFMap = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuSaveFMapQuick = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuSaveFME = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
@@ -298,16 +305,20 @@ Partial Class frmMain
         Me.tpHeight.SuspendLayout()
         Me.tabHeightSetR.SuspendLayout()
         Me.tabHeightSetL.SuspendLayout()
-        Me.tpAutoHeight.SuspendLayout()
+        Me.tpMisc.SuspendLayout()
         Me.GroupBox2.SuspendLayout()
         Me.tpResize.SuspendLayout()
         Me.tpObjects.SuspendLayout()
         Me.TableLayoutPanel1.SuspendLayout()
         Me.Panel1.SuspendLayout()
+        Me.GroupBox3.SuspendLayout()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
+        CType(Me.dgvFeatures, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.TabPage2.SuspendLayout()
+        CType(Me.dgvStructures, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.TabPage3.SuspendLayout()
+        CType(Me.dgvDroids, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.tpObject.SuspendLayout()
         Me.TableLayoutPanel8.SuspendLayout()
         Me.TableLayoutPanel9.SuspendLayout()
@@ -356,7 +367,7 @@ Partial Class frmMain
         Me.TabControl.Controls.Add(Me.tpTextures)
         Me.TabControl.Controls.Add(Me.tpAutoTexture)
         Me.TabControl.Controls.Add(Me.tpHeight)
-        Me.TabControl.Controls.Add(Me.tpAutoHeight)
+        Me.TabControl.Controls.Add(Me.tpMisc)
         Me.TabControl.Controls.Add(Me.tpResize)
         Me.TabControl.Controls.Add(Me.tpObjects)
         Me.TabControl.Controls.Add(Me.tpObject)
@@ -646,12 +657,12 @@ Partial Class frmMain
         Me.tpAutoTexture.Controls.Add(Me.Label1)
         Me.tpAutoTexture.Controls.Add(Me.lstAutoTexture)
         Me.tpAutoTexture.Controls.Add(Me.Label3)
-        Me.tpAutoTexture.Location = New System.Drawing.Point(4, 51)
+        Me.tpAutoTexture.Location = New System.Drawing.Point(4, 26)
         Me.tpAutoTexture.Margin = New System.Windows.Forms.Padding(4)
         Me.tpAutoTexture.Name = "tpAutoTexture"
-        Me.tpAutoTexture.Size = New System.Drawing.Size(410, 557)
+        Me.tpAutoTexture.Size = New System.Drawing.Size(410, 582)
         Me.tpAutoTexture.TabIndex = 2
-        Me.tpAutoTexture.Text = "Terrain Painter"
+        Me.tpAutoTexture.Text = "Terrain"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
         '
         'Panel15
@@ -970,11 +981,11 @@ Partial Class frmMain
         Me.tpHeight.Controls.Add(Me.rdoHeightSet)
         Me.tpHeight.Controls.Add(Me.txtHeightSetL)
         Me.tpHeight.Controls.Add(Me.Label5)
-        Me.tpHeight.Location = New System.Drawing.Point(4, 51)
+        Me.tpHeight.Location = New System.Drawing.Point(4, 26)
         Me.tpHeight.Margin = New System.Windows.Forms.Padding(4)
         Me.tpHeight.Name = "tpHeight"
         Me.tpHeight.Padding = New System.Windows.Forms.Padding(4)
-        Me.tpHeight.Size = New System.Drawing.Size(410, 557)
+        Me.tpHeight.Size = New System.Drawing.Size(410, 582)
         Me.tpHeight.TabIndex = 1
         Me.tpHeight.Text = "Height"
         Me.tpHeight.UseVisualStyleBackColor = True
@@ -1401,21 +1412,21 @@ Partial Class frmMain
         Me.Label5.TextAlign = System.Drawing.ContentAlignment.MiddleRight
         Me.Label5.UseCompatibleTextRendering = True
         '
-        'tpAutoHeight
+        'tpMisc
         '
-        Me.tpAutoHeight.Controls.Add(Me.GroupBox2)
-        Me.tpAutoHeight.Controls.Add(Me.btnAlignObjects)
-        Me.tpAutoHeight.Controls.Add(Me.btnGenerator)
-        Me.tpAutoHeight.Controls.Add(Me.btnWaterTri)
-        Me.tpAutoHeight.Controls.Add(Me.btnReinterpretTerrain)
-        Me.tpAutoHeight.Controls.Add(Me.btnAutoTri)
-        Me.tpAutoHeight.Location = New System.Drawing.Point(4, 51)
-        Me.tpAutoHeight.Margin = New System.Windows.Forms.Padding(4)
-        Me.tpAutoHeight.Name = "tpAutoHeight"
-        Me.tpAutoHeight.Size = New System.Drawing.Size(410, 557)
-        Me.tpAutoHeight.TabIndex = 3
-        Me.tpAutoHeight.Text = "Misc"
-        Me.tpAutoHeight.UseVisualStyleBackColor = True
+        Me.tpMisc.Controls.Add(Me.GroupBox2)
+        Me.tpMisc.Controls.Add(Me.btnAlignObjects)
+        Me.tpMisc.Controls.Add(Me.btnGenerator)
+        Me.tpMisc.Controls.Add(Me.btnWaterTri)
+        Me.tpMisc.Controls.Add(Me.btnReinterpretTerrain)
+        Me.tpMisc.Controls.Add(Me.btnAutoTri)
+        Me.tpMisc.Location = New System.Drawing.Point(4, 26)
+        Me.tpMisc.Margin = New System.Windows.Forms.Padding(4)
+        Me.tpMisc.Name = "tpMisc"
+        Me.tpMisc.Size = New System.Drawing.Size(410, 582)
+        Me.tpMisc.TabIndex = 3
+        Me.tpMisc.Text = "Misc"
+        Me.tpMisc.UseVisualStyleBackColor = True
         '
         'GroupBox2
         '
@@ -1529,10 +1540,10 @@ Partial Class frmMain
         Me.tpResize.Controls.Add(Me.Label13)
         Me.tpResize.Controls.Add(Me.txtSizeX)
         Me.tpResize.Controls.Add(Me.Label12)
-        Me.tpResize.Location = New System.Drawing.Point(4, 51)
+        Me.tpResize.Location = New System.Drawing.Point(4, 26)
         Me.tpResize.Margin = New System.Windows.Forms.Padding(4)
         Me.tpResize.Name = "tpResize"
-        Me.tpResize.Size = New System.Drawing.Size(410, 557)
+        Me.tpResize.Size = New System.Drawing.Size(410, 582)
         Me.tpResize.TabIndex = 4
         Me.tpResize.Text = "Resize"
         Me.tpResize.UseVisualStyleBackColor = True
@@ -1669,6 +1680,9 @@ Partial Class frmMain
         '
         'Panel1
         '
+        Me.Panel1.Controls.Add(Me.Label44)
+        Me.Panel1.Controls.Add(Me.GroupBox3)
+        Me.Panel1.Controls.Add(Me.txtObjectFind)
         Me.Panel1.Controls.Add(Me.cbxFootprintRotate)
         Me.Panel1.Controls.Add(Me.txtNewObjectRotation)
         Me.Panel1.Controls.Add(Me.Label19)
@@ -1684,9 +1698,64 @@ Partial Class frmMain
         Me.Panel1.Size = New System.Drawing.Size(402, 184)
         Me.Panel1.TabIndex = 0
         '
+        'Label44
+        '
+        Me.Label44.Location = New System.Drawing.Point(3, 163)
+        Me.Label44.Name = "Label44"
+        Me.Label44.Size = New System.Drawing.Size(38, 21)
+        Me.Label44.TabIndex = 57
+        Me.Label44.Text = "Find:"
+        Me.Label44.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        Me.Label44.UseCompatibleTextRendering = True
+        '
+        'GroupBox3
+        '
+        Me.GroupBox3.Controls.Add(Me.rdoObjectPlace)
+        Me.GroupBox3.Controls.Add(Me.rdoObjectLines)
+        Me.GroupBox3.Location = New System.Drawing.Point(282, 51)
+        Me.GroupBox3.Name = "GroupBox3"
+        Me.GroupBox3.Size = New System.Drawing.Size(120, 75)
+        Me.GroupBox3.TabIndex = 56
+        Me.GroupBox3.TabStop = False
+        Me.GroupBox3.Text = "Tool"
+        Me.GroupBox3.UseCompatibleTextRendering = True
+        '
+        'rdoObjectPlace
+        '
+        Me.rdoObjectPlace.AutoSize = True
+        Me.rdoObjectPlace.Checked = True
+        Me.rdoObjectPlace.Location = New System.Drawing.Point(7, 22)
+        Me.rdoObjectPlace.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoObjectPlace.Name = "rdoObjectPlace"
+        Me.rdoObjectPlace.Size = New System.Drawing.Size(59, 21)
+        Me.rdoObjectPlace.TabIndex = 54
+        Me.rdoObjectPlace.TabStop = True
+        Me.rdoObjectPlace.Text = "Place"
+        Me.rdoObjectPlace.UseCompatibleTextRendering = True
+        Me.rdoObjectPlace.UseVisualStyleBackColor = True
+        '
+        'rdoObjectLines
+        '
+        Me.rdoObjectLines.AutoSize = True
+        Me.rdoObjectLines.Location = New System.Drawing.Point(7, 47)
+        Me.rdoObjectLines.Margin = New System.Windows.Forms.Padding(4)
+        Me.rdoObjectLines.Name = "rdoObjectLines"
+        Me.rdoObjectLines.Size = New System.Drawing.Size(58, 21)
+        Me.rdoObjectLines.TabIndex = 55
+        Me.rdoObjectLines.Text = "Lines"
+        Me.rdoObjectLines.UseCompatibleTextRendering = True
+        Me.rdoObjectLines.UseVisualStyleBackColor = True
+        '
+        'txtObjectFind
+        '
+        Me.txtObjectFind.Location = New System.Drawing.Point(47, 160)
+        Me.txtObjectFind.Name = "txtObjectFind"
+        Me.txtObjectFind.Size = New System.Drawing.Size(175, 22)
+        Me.txtObjectFind.TabIndex = 53
+        '
         'cbxFootprintRotate
         '
-        Me.cbxFootprintRotate.Location = New System.Drawing.Point(231, 124)
+        Me.cbxFootprintRotate.Location = New System.Drawing.Point(244, 133)
         Me.cbxFootprintRotate.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxFootprintRotate.Name = "cbxFootprintRotate"
         Me.cbxFootprintRotate.Size = New System.Drawing.Size(201, 21)
@@ -1716,7 +1785,7 @@ Partial Class frmMain
         '
         'cbxAutoWalls
         '
-        Me.cbxAutoWalls.Location = New System.Drawing.Point(16, 153)
+        Me.cbxAutoWalls.Location = New System.Drawing.Point(244, 161)
         Me.cbxAutoWalls.Margin = New System.Windows.Forms.Padding(4)
         Me.cbxAutoWalls.Name = "cbxAutoWalls"
         Me.cbxAutoWalls.Size = New System.Drawing.Size(152, 21)
@@ -1738,7 +1807,7 @@ Partial Class frmMain
         '
         'btnPlayerSelectObjects
         '
-        Me.btnPlayerSelectObjects.Location = New System.Drawing.Point(253, 82)
+        Me.btnPlayerSelectObjects.Location = New System.Drawing.Point(282, 10)
         Me.btnPlayerSelectObjects.Name = "btnPlayerSelectObjects"
         Me.btnPlayerSelectObjects.Size = New System.Drawing.Size(92, 32)
         Me.btnPlayerSelectObjects.TabIndex = 17
@@ -1780,7 +1849,7 @@ Partial Class frmMain
         '
         'TabPage1
         '
-        Me.TabPage1.Controls.Add(Me.lstFeatures)
+        Me.TabPage1.Controls.Add(Me.dgvFeatures)
         Me.TabPage1.Location = New System.Drawing.Point(4, 28)
         Me.TabPage1.Name = "TabPage1"
         Me.TabPage1.Size = New System.Drawing.Size(396, 327)
@@ -1788,22 +1857,24 @@ Partial Class frmMain
         Me.TabPage1.Text = "Features"
         Me.TabPage1.UseVisualStyleBackColor = True
         '
-        'lstFeatures
+        'dgvFeatures
         '
-        Me.lstFeatures.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lstFeatures.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lstFeatures.FormattingEnabled = True
-        Me.lstFeatures.ItemHeight = 17
-        Me.lstFeatures.Location = New System.Drawing.Point(0, 0)
-        Me.lstFeatures.Margin = New System.Windows.Forms.Padding(4)
-        Me.lstFeatures.Name = "lstFeatures"
-        Me.lstFeatures.ScrollAlwaysVisible = True
-        Me.lstFeatures.Size = New System.Drawing.Size(396, 327)
-        Me.lstFeatures.TabIndex = 5
+        Me.dgvFeatures.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells
+        Me.dgvFeatures.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.dgvFeatures.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dgvFeatures.Location = New System.Drawing.Point(0, 0)
+        Me.dgvFeatures.MultiSelect = False
+        Me.dgvFeatures.Name = "dgvFeatures"
+        Me.dgvFeatures.ReadOnly = True
+        Me.dgvFeatures.RowHeadersVisible = False
+        Me.dgvFeatures.RowTemplate.Height = 24
+        Me.dgvFeatures.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.dgvFeatures.Size = New System.Drawing.Size(396, 327)
+        Me.dgvFeatures.TabIndex = 0
         '
         'TabPage2
         '
-        Me.TabPage2.Controls.Add(Me.lstStructures)
+        Me.TabPage2.Controls.Add(Me.dgvStructures)
         Me.TabPage2.Location = New System.Drawing.Point(4, 28)
         Me.TabPage2.Name = "TabPage2"
         Me.TabPage2.Size = New System.Drawing.Size(396, 327)
@@ -1811,22 +1882,24 @@ Partial Class frmMain
         Me.TabPage2.Text = "Structures"
         Me.TabPage2.UseVisualStyleBackColor = True
         '
-        'lstStructures
+        'dgvStructures
         '
-        Me.lstStructures.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lstStructures.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lstStructures.FormattingEnabled = True
-        Me.lstStructures.ItemHeight = 17
-        Me.lstStructures.Location = New System.Drawing.Point(0, 0)
-        Me.lstStructures.Margin = New System.Windows.Forms.Padding(4)
-        Me.lstStructures.Name = "lstStructures"
-        Me.lstStructures.ScrollAlwaysVisible = True
-        Me.lstStructures.Size = New System.Drawing.Size(396, 327)
-        Me.lstStructures.TabIndex = 12
+        Me.dgvStructures.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells
+        Me.dgvStructures.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.dgvStructures.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dgvStructures.Location = New System.Drawing.Point(0, 0)
+        Me.dgvStructures.MultiSelect = False
+        Me.dgvStructures.Name = "dgvStructures"
+        Me.dgvStructures.ReadOnly = True
+        Me.dgvStructures.RowHeadersVisible = False
+        Me.dgvStructures.RowTemplate.Height = 24
+        Me.dgvStructures.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.dgvStructures.Size = New System.Drawing.Size(396, 327)
+        Me.dgvStructures.TabIndex = 1
         '
         'TabPage3
         '
-        Me.TabPage3.Controls.Add(Me.lstDroids)
+        Me.TabPage3.Controls.Add(Me.dgvDroids)
         Me.TabPage3.Location = New System.Drawing.Point(4, 28)
         Me.TabPage3.Name = "TabPage3"
         Me.TabPage3.Size = New System.Drawing.Size(396, 327)
@@ -1834,18 +1907,20 @@ Partial Class frmMain
         Me.TabPage3.Text = "Droids"
         Me.TabPage3.UseVisualStyleBackColor = True
         '
-        'lstDroids
+        'dgvDroids
         '
-        Me.lstDroids.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lstDroids.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lstDroids.FormattingEnabled = True
-        Me.lstDroids.ItemHeight = 17
-        Me.lstDroids.Location = New System.Drawing.Point(0, 0)
-        Me.lstDroids.Margin = New System.Windows.Forms.Padding(4)
-        Me.lstDroids.Name = "lstDroids"
-        Me.lstDroids.ScrollAlwaysVisible = True
-        Me.lstDroids.Size = New System.Drawing.Size(396, 327)
-        Me.lstDroids.TabIndex = 10
+        Me.dgvDroids.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells
+        Me.dgvDroids.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.dgvDroids.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dgvDroids.Location = New System.Drawing.Point(0, 0)
+        Me.dgvDroids.MultiSelect = False
+        Me.dgvDroids.Name = "dgvDroids"
+        Me.dgvDroids.ReadOnly = True
+        Me.dgvDroids.RowHeadersVisible = False
+        Me.dgvDroids.RowTemplate.Height = 24
+        Me.dgvDroids.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.dgvDroids.Size = New System.Drawing.Size(396, 327)
+        Me.dgvDroids.TabIndex = 1
         '
         'tpObject
         '
@@ -2618,6 +2693,7 @@ Partial Class frmMain
         Me.tsTools.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.tsbGateways, Me.tsbDrawAutotexture, Me.tsbDrawTileOrientation})
         Me.tsTools.Location = New System.Drawing.Point(372, 2)
         Me.tsTools.Name = "tsTools"
+        Me.tsTools.RenderMode = System.Windows.Forms.ToolStripRenderMode.System
         Me.tsTools.Size = New System.Drawing.Size(72, 25)
         Me.tsTools.TabIndex = 2
         '
@@ -2654,6 +2730,7 @@ Partial Class frmMain
         Me.tsFile.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.tsbSave})
         Me.tsFile.Location = New System.Drawing.Point(453, 2)
         Me.tsFile.Name = "tsFile"
+        Me.tsFile.RenderMode = System.Windows.Forms.ToolStripRenderMode.System
         Me.tsFile.Size = New System.Drawing.Size(26, 25)
         Me.tsFile.TabIndex = 3
         '
@@ -2672,6 +2749,7 @@ Partial Class frmMain
         Me.tsSelection.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripLabel1, Me.tsbSelection, Me.tsbSelectionCopy, Me.tsbSelectionPasteOptions, Me.tsbSelectionPaste, Me.tsbSelectionRotateCounterClockwise, Me.tsbSelectionRotateClockwise, Me.tsbSelectionFlipX, Me.tsbSelectionObjects})
         Me.tsSelection.Location = New System.Drawing.Point(98, 0)
         Me.tsSelection.Name = "tsSelection"
+        Me.tsSelection.RenderMode = System.Windows.Forms.ToolStripRenderMode.System
         Me.tsSelection.Size = New System.Drawing.Size(250, 25)
         Me.tsSelection.TabIndex = 0
         Me.tsSelection.Text = "ToolStrip1"
@@ -2825,6 +2903,7 @@ Partial Class frmMain
         Me.tsMinimap.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuMinimap})
         Me.tsMinimap.Location = New System.Drawing.Point(0, 0)
         Me.tsMinimap.Name = "tsMinimap"
+        Me.tsMinimap.RenderMode = System.Windows.Forms.ToolStripRenderMode.System
         Me.tsMinimap.Size = New System.Drawing.Size(84, 27)
         Me.tsMinimap.TabIndex = 1
         '
@@ -2894,6 +2973,7 @@ Partial Class frmMain
         Me.menuMain.Location = New System.Drawing.Point(0, 0)
         Me.menuMain.Name = "menuMain"
         Me.menuMain.Padding = New System.Windows.Forms.Padding(8, 2, 0, 2)
+        Me.menuMain.RenderMode = System.Windows.Forms.ToolStripRenderMode.System
         Me.menuMain.Size = New System.Drawing.Size(1296, 31)
         Me.menuMain.TabIndex = 0
         Me.menuMain.Text = "MenuStrip1"
@@ -2929,7 +3009,7 @@ Partial Class frmMain
         '
         'SaveToolStripMenuItem
         '
-        Me.SaveToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuSaveFMap, Me.ToolStripSeparator11, Me.menuSaveFME, Me.ToolStripSeparator5, Me.MapLNDToolStripMenuItem, Me.ToolStripSeparator6, Me.menuExportMapTileTypes, Me.ToolStripMenuItem1, Me.MinimapBMPToolStripMenuItem, Me.ToolStripMenuItem3})
+        Me.SaveToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuSaveFMap, Me.ToolStripSeparator7, Me.menuSaveFMapQuick, Me.ToolStripSeparator11, Me.menuSaveFME, Me.ToolStripSeparator5, Me.MapLNDToolStripMenuItem, Me.ToolStripSeparator6, Me.menuExportMapTileTypes, Me.ToolStripMenuItem1, Me.MinimapBMPToolStripMenuItem, Me.ToolStripMenuItem3})
         Me.SaveToolStripMenuItem.Name = "SaveToolStripMenuItem"
         Me.SaveToolStripMenuItem.Size = New System.Drawing.Size(177, 24)
         Me.SaveToolStripMenuItem.Text = "Save"
@@ -2939,6 +3019,17 @@ Partial Class frmMain
         Me.menuSaveFMap.Name = "menuSaveFMap"
         Me.menuSaveFMap.Size = New System.Drawing.Size(284, 24)
         Me.menuSaveFMap.Text = "Map fmap..."
+        '
+        'ToolStripSeparator7
+        '
+        Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
+        Me.ToolStripSeparator7.Size = New System.Drawing.Size(281, 6)
+        '
+        'menuSaveFMapQuick
+        '
+        Me.menuSaveFMapQuick.Name = "menuSaveFMapQuick"
+        Me.menuSaveFMapQuick.Size = New System.Drawing.Size(284, 24)
+        Me.menuSaveFMapQuick.Text = "Quick Save fmap"
         '
         'ToolStripSeparator11
         '
@@ -3164,7 +3255,7 @@ Partial Class frmMain
         Me.tpHeight.PerformLayout()
         Me.tabHeightSetR.ResumeLayout(False)
         Me.tabHeightSetL.ResumeLayout(False)
-        Me.tpAutoHeight.ResumeLayout(False)
+        Me.tpMisc.ResumeLayout(False)
         Me.GroupBox2.ResumeLayout(False)
         Me.tpResize.ResumeLayout(False)
         Me.tpResize.PerformLayout()
@@ -3172,10 +3263,15 @@ Partial Class frmMain
         Me.TableLayoutPanel1.ResumeLayout(False)
         Me.Panel1.ResumeLayout(False)
         Me.Panel1.PerformLayout()
+        Me.GroupBox3.ResumeLayout(False)
+        Me.GroupBox3.PerformLayout()
         Me.TabControl1.ResumeLayout(False)
         Me.TabPage1.ResumeLayout(False)
+        CType(Me.dgvFeatures, System.ComponentModel.ISupportInitialize).EndInit()
         Me.TabPage2.ResumeLayout(False)
+        CType(Me.dgvStructures, System.ComponentModel.ISupportInitialize).EndInit()
         Me.TabPage3.ResumeLayout(False)
+        CType(Me.dgvDroids, System.ComponentModel.ISupportInitialize).EndInit()
         Me.tpObject.ResumeLayout(False)
         Me.TableLayoutPanel8.ResumeLayout(False)
         Me.TableLayoutPanel9.ResumeLayout(False)
@@ -3221,7 +3317,7 @@ Partial Class frmMain
     Public WithEvents cboTileset As System.Windows.Forms.ComboBox
     Public WithEvents txtAutoCliffSlope As System.Windows.Forms.TextBox
     Public WithEvents Label1 As System.Windows.Forms.Label
-    Public WithEvents tpAutoHeight As System.Windows.Forms.TabPage
+    Public WithEvents tpMisc As System.Windows.Forms.TabPage
     Public WithEvents btnAutoTri As System.Windows.Forms.Button
     Public WithEvents txtHeightSetL As System.Windows.Forms.TextBox
     Public WithEvents Label5 As System.Windows.Forms.Label
@@ -3269,8 +3365,6 @@ Partial Class frmMain
     Public WithEvents ToolStripMenuItem2 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents CloseToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents tpObjects As System.Windows.Forms.TabPage
-    Public WithEvents lstDroids As System.Windows.Forms.ListBox
-    Public WithEvents lstFeatures As System.Windows.Forms.ListBox
     Public WithEvents Label22 As System.Windows.Forms.Label
     Public WithEvents tpObject As System.Windows.Forms.TabPage
     Public WithEvents lblObjectType As System.Windows.Forms.Label
@@ -3466,7 +3560,6 @@ Partial Class frmMain
     Friend WithEvents TabControl1 As System.Windows.Forms.TabControl
     Friend WithEvents TabPage1 As System.Windows.Forms.TabPage
     Friend WithEvents TabPage2 As System.Windows.Forms.TabPage
-    Public WithEvents lstStructures As System.Windows.Forms.ListBox
     Friend WithEvents TabPage3 As System.Windows.Forms.TabPage
     Public WithEvents cbxAutoWalls As System.Windows.Forms.CheckBox
     Public WithEvents txtNewObjectRotation As System.Windows.Forms.TextBox
@@ -3475,4 +3568,14 @@ Partial Class frmMain
     Public WithEvents Label31 As System.Windows.Forms.Label
     Public WithEvents Label30 As System.Windows.Forms.Label
     Public WithEvents cbxFootprintRotate As System.Windows.Forms.CheckBox
+    Friend WithEvents txtObjectFind As System.Windows.Forms.TextBox
+    Friend WithEvents menuSaveFMapQuick As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator7 As System.Windows.Forms.ToolStripSeparator
+    Public WithEvents rdoObjectPlace As System.Windows.Forms.RadioButton
+    Public WithEvents rdoObjectLines As System.Windows.Forms.RadioButton
+    Friend WithEvents GroupBox3 As System.Windows.Forms.GroupBox
+    Friend WithEvents dgvFeatures As System.Windows.Forms.DataGridView
+    Friend WithEvents dgvStructures As System.Windows.Forms.DataGridView
+    Friend WithEvents dgvDroids As System.Windows.Forms.DataGridView
+    Public WithEvents Label44 As System.Windows.Forms.Label
 End Class

@@ -45,8 +45,8 @@ Public Class frmCompile
         AutoScrollLimits_Update()
         txtScrollMinX.Text = InvariantToString_int(Map.InterfaceOptions.ScrollMin.X)
         txtScrollMinY.Text = InvariantToString_int(Map.InterfaceOptions.ScrollMin.Y)
-        txtScrollMaxX.Text = InvariantToString_sng(Map.InterfaceOptions.ScrollMax.X)
-        txtScrollMaxY.Text = InvariantToString_sng(Map.InterfaceOptions.ScrollMax.Y)
+        txtScrollMaxX.Text = InvariantToString_uint(Map.InterfaceOptions.ScrollMax.X)
+        txtScrollMaxY.Text = InvariantToString_uint(Map.InterfaceOptions.ScrollMax.Y)
     End Sub
 
     Private Sub SaveToMap()
@@ -146,6 +146,9 @@ Public Class frmCompile
             Exit Sub
         End If
         Dim CompileMultiDialog As New SaveFileDialog
+        If Map.PathInfo IsNot Nothing Then
+            CompileMultiDialog.InitialDirectory = Map.PathInfo.Path
+        End If
         CompileMultiDialog.FileName = PlayerCount & "c-" & MapName
         CompileMultiDialog.Filter = "WZ Files (*.wz)|*.wz"
         If CompileMultiDialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
@@ -214,12 +217,16 @@ Public Class frmCompile
                 Map.GetFootprintTileRange(Unit.Pos.Horizontal, Footprint, StartPos, FinishPos)
                 If StartPos.X < 0 Or FinishPos.X >= Map.Terrain.TileSize.X _
                   Or StartPos.Y < 0 Or FinishPos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.ProblemAdd("Unit off map at position " & Unit.GetPosText & ".")
+                    Dim resultItem As clsResultProblemGoto(Of clsResultItemPosGoto) = CreateResultProblemGotoForObject(Unit)
+                    resultItem.Text = "Unit off map at position " & Unit.GetPosText & "."
+                    Result.ItemAdd(resultItem)
                 Else
                     For Y = StartPos.Y To FinishPos.Y
                         For X = StartPos.X To FinishPos.X
                             If TileHasUnit(X, Y) Then
-                                Result.ProblemAdd("Bad unit overlap on tile " & X & ", " & Y & ".")
+                                Dim resultItem As clsResultProblemGoto(Of clsResultItemPosGoto) = CreateResultProblemGotoForObject(Unit)
+                                resultItem.Text = "Bad unit overlap on tile " & X & ", " & Y & "."
+                                Result.ItemAdd(resultItem)
                             Else
                                 TileHasUnit(X, Y) = True
                                 If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
@@ -242,7 +249,9 @@ Public Class frmCompile
                 CentrePos.Y = CInt(Int(Unit.Pos.Horizontal.Y / TerrainGridSpacing))
                 If CentrePos.X < 0 Or CentrePos.X >= Map.Terrain.TileSize.X _
                   Or CentrePos.Y < 0 Or CentrePos.Y >= Map.Terrain.TileSize.Y Then
-                    Result.ProblemAdd("Module off map at position " & Unit.GetPosText & ".")
+                    Dim resultItem As clsResultProblemGoto(Of clsResultItemPosGoto) = CreateResultProblemGotoForObject(Unit)
+                    resultItem.Text = "Module off map at position " & Unit.GetPosText & "."
+                    Result.ItemAdd(resultItem)
                 Else
                     If TileStructureType(CentrePos.X, CentrePos.Y) IsNot Nothing Then
                         If TileObjectGroup(CentrePos.X, CentrePos.Y) Is Unit.UnitGroup Then
@@ -287,7 +296,9 @@ Public Class frmCompile
                         IsValid = False
                     End If
                     If Not IsValid Then
-                        Result.ProblemAdd("Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & ".")
+                        Dim resultItem As clsResultProblemGoto(Of clsResultItemPosGoto) = CreateResultProblemGotoForObject(Unit)
+                        resultItem.Text = "Bad module on tile " & CentrePos.X & ", " & CentrePos.Y & "."
+                        Result.ItemAdd(resultItem)
                     End If
                 End If
             End If
@@ -345,7 +356,9 @@ Public Class frmCompile
                 ElseIf Unit.UnitGroup.WZ_StartPos >= PlayerCount Then
                     If UnusedPlayerUnitWarningCount < 32 Then
                         UnusedPlayerUnitWarningCount += 1
-                        Result.ProblemAdd("An unused player (" & Unit.UnitGroup.WZ_StartPos & ") has a unit at " & Unit.GetPosText & ".")
+                        Dim resultItem As clsResultProblemGoto(Of clsResultItemPosGoto) = CreateResultProblemGotoForObject(Unit)
+                        resultItem.Text = "An unused player (" & Unit.UnitGroup.WZ_StartPos & ") has a unit at " & Unit.GetPosText & "."
+                        Result.ItemAdd(resultItem)
                     End If
                 End If
             End If
@@ -357,7 +370,7 @@ Public Class frmCompile
             Result.ProblemAdd("Scavengers are not supported on a map with this number of players without enabling X player support.")
         End If
 
-        For A = 0 To PlayerCount - 1
+        For A As Integer = 0 To PlayerCount - 1
             If PlayerHQCount(A) = 0 Then
                 Result.ProblemAdd("There is no Command Centre for player " & A & ".")
             End If
