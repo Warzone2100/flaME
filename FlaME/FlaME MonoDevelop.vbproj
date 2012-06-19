@@ -161,6 +161,7 @@
     <Compile Include="Options.vb" />
     <Compile Include="frmKeyboardControl.Designer.vb" />
     <Compile Include="frmKeyboardControl.vb" />
+    <Compile Include="clsMapRender.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

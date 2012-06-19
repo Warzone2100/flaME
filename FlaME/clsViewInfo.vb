@@ -240,13 +240,11 @@ Public Class clsViewInfo
         Dim dblTemp As Double
         Dim XYZ_dbl As Matrix3D.XYZ_dbl
         Dim XYZ_dbl2 As Matrix3D.XYZ_dbl
-        Dim dblTemp2 As Double
 
         Try
             'convert screen pos to vector of one pos unit
-            dblTemp2 = FOVMultiplier
-            XYZ_dbl.X = (ScreenPos.X - MapView.GLSize.X / 2.0#) * dblTemp2
-            XYZ_dbl.Y = (MapView.GLSize.Y / 2.0# - ScreenPos.Y) * dblTemp2
+            XYZ_dbl.X = (ScreenPos.X - MapView.GLSize.X / 2.0#) * FOVMultiplier
+            XYZ_dbl.Y = (MapView.GLSize.Y / 2.0# - ScreenPos.Y) * FOVMultiplier
             XYZ_dbl.Z = 1.0#
             'factor in the view angle
             Matrix3D.VectorRotationByMatrix(ViewAngleMatrix, XYZ_dbl, XYZ_dbl2)
@@ -1374,7 +1372,7 @@ Public Class clsViewInfo
                     ElseIf Tool Is Tools.RoadRemove Then
                         Apply_Road_Remove()
                     ElseIf Tool Is Tools.ObjectPlace Then
-                        If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
+                        If frmMainInstance.SingleSelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
                             Dim objectCreator As New clsMap.clsUnitCreate
                             Map.SetObjectCreatorDefaults(objectCreator)
                             objectCreator.Horizontal = MouseOverTerrain.Pos.Horizontal
@@ -1637,7 +1635,7 @@ Public Class clsViewInfo
 
     Public Sub ApplyObjectLine()
 
-        If frmMainInstance.SelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
+        If frmMainInstance.SingleSelectedObjectType IsNot Nothing And Map.SelectedUnitGroup IsNot Nothing Then
             Dim MouseOverTerrian As clsMouseOver.clsOverTerrain = GetMouseOverTerrain()
 
             If MouseOverTerrian Is Nothing Then

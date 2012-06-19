@@ -31,13 +31,12 @@ Partial Class frmSplash
         '
         Me.lblVersion.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblVersion.BackColor = System.Drawing.Color.Transparent
-        Me.lblVersion.Font = New System.Drawing.Font("Verdana", 10.2!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblVersion.ForeColor = System.Drawing.Color.Black
         Me.lblVersion.Location = New System.Drawing.Point(312, 164)
         Me.lblVersion.Name = "lblVersion"
         Me.lblVersion.Size = New System.Drawing.Size(72, 33)
         Me.lblVersion.TabIndex = 0
-        Me.lblVersion.Text = "1.## "
+        Me.lblVersion.Text = "#.## "
         Me.lblVersion.TextAlign = System.Drawing.ContentAlignment.MiddleRight
         Me.lblVersion.UseCompatibleTextRendering = True
         '
@@ -45,7 +44,6 @@ Partial Class frmSplash
         '
         Me.lblStatus.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
         Me.lblStatus.BackColor = System.Drawing.Color.Transparent
-        Me.lblStatus.Font = New System.Drawing.Font("Verdana", 10.2!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblStatus.ForeColor = System.Drawing.Color.Black
         Me.lblStatus.Location = New System.Drawing.Point(12, 164)
         Me.lblStatus.Name = "lblStatus"
@@ -64,6 +62,7 @@ Partial Class frmSplash
         Me.ClientSize = New System.Drawing.Size(396, 197)
         Me.Controls.Add(Me.lblStatus)
         Me.Controls.Add(Me.lblVersion)
+        Me.Font = New System.Drawing.Font("Verdana", 10.2!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Name = "frmSplash"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen

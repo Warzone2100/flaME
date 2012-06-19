@@ -30,7 +30,7 @@ Public Class frmOptions
         TableLayoutPanel1.Controls.Add(TilesetsPathSet, 0, 0)
         TableLayoutPanel1.Controls.Add(ObjectDataPathSet, 0, 1)
 
-        ChangedKeyControls = CType(KeyboardProfile.GetCopy(New clsKeyboardProfile.clsKeyboardCreator), clsKeyboardProfile)
+        ChangedKeyControls = CType(KeyboardProfile.GetCopy(New clsKeyboardProfileCreator), clsKeyboardProfile)
 
         txtAutosaveChanges.Text = InvariantToString_uint(Settings.AutoSaveMinChanges)
         txtAutosaveInterval.Text = InvariantToString_uint(Settings.AutoSaveMinInterval_s)
@@ -67,12 +67,14 @@ Public Class frmOptions
         txtTexturesBPP.Text = InvariantToString_int(Settings.TextureViewBPP)
         txtTexturesDepth.Text = InvariantToString_int(Settings.TextureViewDepth)
 
+        cbxPickerOrientation.Checked = Settings.PickOrientation
+
         UpdateKeyboardControls(-1)
     End Sub
 
     Private Sub btnSave_Click(sender As System.Object, e As System.EventArgs) Handles btnSave.Click
 
-        Dim NewSettings As clsSettings = CType(Settings.GetCopy(New clsSettings.clsSettingsCreator), clsSettings)
+        Dim NewSettings As clsSettings = CType(Settings.GetCopy(New clsSettingsCreator), clsSettings)
         Dim dblTemp As Double
         Dim intTemp As Integer
 
@@ -128,6 +130,7 @@ Public Class frmOptions
         If InvariantParse_int(txtTexturesDepth.Text, intTemp) Then
             NewSettings.Changes(Setting_TextureViewDepth) = New clsOptionProfile.clsChange(Of Integer)(intTemp)
         End If
+        NewSettings.Changes(Setting_PickOrientation) = New clsOptionProfile.clsChange(Of Boolean)(cbxPickerOrientation.Checked)
 
         UpdateSettings(NewSettings)
 
@@ -139,14 +142,35 @@ Public Class frmOptions
 
         KeyboardProfile = ChangedKeyControls
 
-        AllowClose = True
-        Close()
+        Finish(Windows.Forms.DialogResult.OK)
     End Sub
 
     Private Sub btnCancel_Click(sender As System.Object, e As System.EventArgs) Handles btnCancel.Click
 
+        Finish(Windows.Forms.DialogResult.Cancel)
+    End Sub
+
+    Private AllowClose As Boolean = False
+
+    Private Sub frmOptions_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+
+        e.Cancel = Not AllowClose
+    End Sub
+
+    'setting DialogResult in mono tries to close the form
+
+    Private Sub Finish(result As Windows.Forms.DialogResult)
+
         AllowClose = True
-        Close()
+        frmOptionsInstance = Nothing
+        If Modal Then
+            DialogResult = result 'mono closes here
+#If Mono = 0.0# Then
+            Close()
+#End If
+        Else
+            Close()
+        End If
     End Sub
 
     Private Sub btnFont_Click(sender As System.Object, e As System.EventArgs) Handles btnFont.Click
@@ -169,19 +193,6 @@ Public Class frmOptions
     Private Sub btnAutosaveOpen_Click(sender As System.Object, e As System.EventArgs) Handles btnAutosaveOpen.Click
 
         frmMainInstance.Load_Autosave_Prompt()
-    End Sub
-
-    Private AllowClose As Boolean = False
-
-    Private Sub frmOptions_FormClosing(sender As Object, e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
-
-        If AllowClose Then
-            frmOptionsInstance = Nothing
-        ElseIf Modal Then
-            DialogResult = Windows.Forms.DialogResult.Abort
-        Else
-            e.Cancel = True
-        End If
     End Sub
 
     Private Sub UpdateDisplayFontLabel()

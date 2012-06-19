@@ -2,7 +2,9 @@
 
 Public MustInherit Class clsUnitType
 
-    Public UnitType_ObjectDataLink As New ConnectedListLink(Of clsUnitType, clsObjectData)(Me)
+    Public ReadOnly UnitType_ObjectDataLink As New ConnectedListLink(Of clsUnitType, clsObjectData)(Me)
+
+    Public ReadOnly UnitType_frmMainSelectedLink As New ConnectedListLink(Of clsUnitType, frmMain)(Me)
 
     Public IsUnknown As Boolean = False
 

@@ -31,16 +31,6 @@ Public Class clsOption(Of ValueType)
         End Get
     End Property
 
-    Public Class clsCreator
-
-        Public SaveKey As String
-        Public DefaultValue As ValueType
-
-        Public Overridable Function Create() As clsOption(Of ValueType)
-            Return New clsOption(Of ValueType)(SaveKey, DefaultValue)
-        End Function
-    End Class
-
     Public Sub New(saveKey As String, defaultValue As ValueType)
 
         Me._SaveKey = saveKey
@@ -62,6 +52,16 @@ Public Class clsOption(Of ValueType)
     Public Overrides Function IsValueValid(value As Object) As Boolean
 
         Return True
+    End Function
+End Class
+
+Public Class clsOptionCreator(Of ValueType)
+
+    Public SaveKey As String
+    Public DefaultValue As ValueType
+
+    Public Overridable Function Create() As clsOption(Of ValueType)
+        Return New clsOption(Of ValueType)(SaveKey, DefaultValue)
     End Function
 End Class
 
@@ -142,26 +142,7 @@ Public Class clsOptionProfile
         ReDim _Changes(options.Options.Count - 1)
     End Sub
 
-    Public Class clsCreator
-
-        Public Options As clsOptionGroup
-
-        Public Sub New()
-
-        End Sub
-
-        Public Sub New(options As clsOptionGroup)
-
-            Me.Options = options
-        End Sub
-
-        Public Overridable Function Create() As clsOptionProfile
-
-            Return New clsOptionProfile(Options)
-        End Function
-    End Class
-
-    Public Overridable Function GetCopy(creator As clsCreator) As clsOptionProfile
+    Public Overridable Function GetCopy(creator As clsOptionProfileCreator) As clsOptionProfile
 
         creator.Options = _Options
         Dim result As clsOptionProfile = creator.Create
@@ -412,5 +393,24 @@ Public Class clsOptionProfile
         Next
 
         Return clsINIRead.enumTranslatorResult.ValueInvalid
+    End Function
+End Class
+
+Public Class clsOptionProfileCreator
+
+    Public Options As clsOptionGroup
+
+    Public Sub New()
+
+    End Sub
+
+    Public Sub New(options As clsOptionGroup)
+
+        Me.Options = options
+    End Sub
+
+    Public Overridable Function Create() As clsOptionProfile
+
+        Return New clsOptionProfile(Options)
     End Function
 End Class

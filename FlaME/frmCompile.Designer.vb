@@ -57,7 +57,7 @@ Partial Class frmCompile
         '
         'txtName
         '
-        Me.txtName.Location = New System.Drawing.Point(84, 15)
+        Me.txtName.Location = New System.Drawing.Point(107, 15)
         Me.txtName.Margin = New System.Windows.Forms.Padding(4)
         Me.txtName.Name = "txtName"
         Me.txtName.Size = New System.Drawing.Size(140, 22)
@@ -69,9 +69,9 @@ Partial Class frmCompile
         Me.Label1.Location = New System.Drawing.Point(25, 18)
         Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(44, 20)
+        Me.Label1.Size = New System.Drawing.Size(74, 20)
         Me.Label1.TabIndex = 1
-        Me.Label1.Text = "Name:"
+        Me.Label1.Text = "Map Name:"
         Me.Label1.UseCompatibleTextRendering = True
         '
         'Label2
@@ -341,9 +341,9 @@ Partial Class frmCompile
         Me.cbxAutoScrollLimits.AutoSize = True
         Me.cbxAutoScrollLimits.Location = New System.Drawing.Point(12, 253)
         Me.cbxAutoScrollLimits.Name = "cbxAutoScrollLimits"
-        Me.cbxAutoScrollLimits.Size = New System.Drawing.Size(162, 21)
+        Me.cbxAutoScrollLimits.Size = New System.Drawing.Size(206, 21)
         Me.cbxAutoScrollLimits.TabIndex = 32
-        Me.cbxAutoScrollLimits.Text = "Automatic Scroll Limits"
+        Me.cbxAutoScrollLimits.Text = "Set Scroll Limits Automatically"
         Me.cbxAutoScrollLimits.UseCompatibleTextRendering = True
         Me.cbxAutoScrollLimits.UseVisualStyleBackColor = True
         '

@@ -1,53 +1,53 @@
 ﻿
-Public Interface iResultItem
-    ReadOnly Property Text As String
-    Sub DoubleClicked()
-End Interface
+Public MustInherit Class clsResultItemInterface
+    Public MustOverride ReadOnly Property GetText As String
+    Public MustOverride Sub DoubleClicked()
+End Class
 
 Public Class clsResult
-    Implements iResultItem
+    Inherits clsResultItemInterface
 
     Public Text As String
 
-    Public ReadOnly Property GetText As String Implements iResultItem.Text
+    Public Overrides ReadOnly Property GetText As String
         Get
             Return Text
         End Get
     End Property
 
     Public Class clsProblem
-        Implements iResultItem
+        Inherits clsResultItemInterface
 
         Public Text As String
 
-        Public ReadOnly Property GetText As String Implements iResultItem.Text
+        Public Overrides ReadOnly Property GetText As String
             Get
                 Return Text
             End Get
         End Property
 
-        Public Overridable Sub DoubleClicked() Implements iResultItem.DoubleClicked
+        Public Overrides Sub DoubleClicked()
 
         End Sub
     End Class
 
     Public Class clsWarning
-        Implements iResultItem
+        Inherits clsResultItemInterface
 
         Public Text As String
 
-        Public ReadOnly Property GetText As String Implements iResultItem.Text
+        Public Overrides ReadOnly Property GetText As String
             Get
                 Return Text
             End Get
         End Property
 
-        Public Overridable Sub DoubleClicked() Implements iResultItem.DoubleClicked
+        Public Overrides Sub DoubleClicked()
 
         End Sub
     End Class
 
-    Private Items As New SimpleList(Of iResultItem)
+    Private Items As New SimpleList(Of clsResultItemInterface)
     Private Bad As Boolean = False
 
     Public ReadOnly Property HasWarnings As Boolean
@@ -101,7 +101,7 @@ Public Class clsResult
         ItemAdd(Warning)
     End Sub
 
-    Public Sub ItemAdd(item As iResultItem)
+    Public Sub ItemAdd(item As clsResultItemInterface)
 
         If TypeOf item Is clsProblem Then
             Bad = True
@@ -120,17 +120,17 @@ Public Class clsResult
         Dim node As New TreeNode
         node.Text = Text
         owner.Add(node)
-        Dim item As iResultItem
+        Dim item As clsResultItemInterface
         For i As Integer = 0 To Items.Count - 1
             item = Items(i)
             Dim ChildNode As New TreeNode
             ChildNode.Tag = item
             If TypeOf item Is clsProblem Then
-                ChildNode.Text = item.Text
+                ChildNode.Text = item.GetText
                 node.Nodes.Add(ChildNode)
                 ChildNode.StateImageKey = "problem"
             ElseIf TypeOf item Is clsWarning Then
-                ChildNode.Text = item.Text
+                ChildNode.Text = item.GetText
                 node.Nodes.Add(ChildNode)
                 ChildNode.StateImageKey = "warning"
             ElseIf TypeOf item Is clsResult Then
@@ -140,13 +140,13 @@ Public Class clsResult
         Return node
     End Function
 
-    Public Sub DoubleClicked() Implements iResultItem.DoubleClicked
+    Public Overrides Sub DoubleClicked()
 
 
     End Sub
 End Class
 
-Public Class clsResultWarningGoto(Of GotoType As iResultItemGoto)
+Public Class clsResultWarningGoto(Of GotoType As clsResultItemGotoInterface)
     Inherits clsResult.clsWarning
 
     Public MapGoto As GotoType
@@ -158,7 +158,7 @@ Public Class clsResultWarningGoto(Of GotoType As iResultItemGoto)
     End Sub
 End Class
 
-Public Class clsResultProblemGoto(Of GotoType As iResultItemGoto)
+Public Class clsResultProblemGoto(Of GotoType As clsResultItemGotoInterface)
     Inherits clsResult.clsProblem
 
     Public MapGoto As GotoType
@@ -170,29 +170,29 @@ Public Class clsResultProblemGoto(Of GotoType As iResultItemGoto)
     End Sub
 End Class
 
-Public Interface iResultItemGoto
-    Sub Perform()
-End Interface
+Public MustInherit Class clsResultItemGotoInterface
+    Public MustOverride Sub Perform()
+End Class
 
 Public Class clsResultItemTileGoto
-    Implements iResultItemGoto
+    Inherits clsResultItemGotoInterface
 
     Public View As clsViewInfo
     Public TileNum As sXY_int
 
-    Public Sub Perform() Implements iResultItemGoto.Perform
+    Public Overrides Sub Perform()
 
         View.LookAtTile(TileNum)
     End Sub
 End Class
 
 Public Class clsResultItemPosGoto
-    Implements iResultItemGoto
+    Inherits clsResultItemGotoInterface
 
     Public View As clsViewInfo
     Public Horizontal As sXY_int
 
-    Public Sub Perform() Implements iResultItemGoto.Perform
+    Public Overrides Sub Perform()
 
         View.LookAtPos(Horizontal)
     End Sub

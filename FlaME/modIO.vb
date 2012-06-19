@@ -76,13 +76,6 @@ Public Module modIO
         Return Integer.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
     End Function
 
-    Public Function InvariantParse_intB(Text As String, ByRef Succeeded As Boolean) As Integer
-        Dim Result As Integer
-
-        Succeeded = Integer.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
-        Return Result
-    End Function
-
     Public Function InvariantParse_uint(Text As String, ByRef Result As UInteger) As Boolean
 
         Return UInteger.TryParse(Text, NumberStyles.Any, CultureInfo.InvariantCulture, Result)
@@ -255,7 +248,6 @@ Public Module modIO
     Public Function WorldPosFromINIText(Text As String, ByRef Result As clsWorldPos) As Boolean
         Dim VectorText As New clsSplitCommaText(Text)
         Dim A As Integer
-        Dim Success As Boolean
         Dim B As Integer
 
         If VectorText.PartCount <> 3 Then
@@ -263,8 +255,7 @@ Public Module modIO
         End If
         Dim Positions(2) As Integer
         For A = 0 To 2
-            B = InvariantParse_intB(VectorText.Parts(A), Success)
-            If Success Then
+            If InvariantParse_int(VectorText.Parts(A), B) Then
                 Positions(A) = B
             Else
                 Return False
@@ -304,7 +295,7 @@ Public Module modIO
         Return Nothing
     End Function
 
-    Public Function BytesToLinesRemoveComments(Reader As IO.BinaryReader) As SimpleList(Of String)
+    Public Function BytesToLinesRemoveComments(reader As IO.BinaryReader) As SimpleList(Of String)
         Dim CurrentChar As Char
         Dim CurrentCharExists As Boolean
         Dim InLineComment As Boolean
@@ -319,7 +310,7 @@ MonoContinueDo:
             PrevChar = CurrentChar
             PrevCharExists = CurrentCharExists
             Try
-                CurrentChar = Reader.ReadChar
+                CurrentChar = reader.ReadChar
                 CurrentCharExists = True
             Catch ex As Exception
                 CurrentCharExists = False
@@ -387,20 +378,17 @@ Public Class clsPositionFromText
 
     Public Function Translate(Text As String) As Boolean
         Dim A As Integer
-        Dim ParseSuccess As Boolean
         Dim Positions As New clsSplitCommaText(Text)
 
         If Positions.PartCount < 2 Then
             Return False
         End If
-        A = InvariantParse_intB(Positions.Parts(0), ParseSuccess)
-        If ParseSuccess Then
+        If InvariantParse_int(Positions.Parts(0), A) Then
             Pos.X = A
         Else
             Return False
         End If
-        A = InvariantParse_intB(Positions.Parts(1), ParseSuccess)
-        If ParseSuccess Then
+        If InvariantParse_int(Positions.Parts(1), A) Then
             Pos.Y = A
         Else
             Return False

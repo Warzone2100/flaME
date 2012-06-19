@@ -12,7 +12,6 @@ Public Module modSettings
     Public Setting_UndoLimit As clsOption(Of UInteger)
     Public Setting_DirectoriesPrompt As clsOption(Of Boolean)
     Public Setting_DirectPointer As clsOption(Of Boolean)
-    Public Setting_DisplayFont As clsOption(Of Boolean)
     Public Setting_FontFamily As clsOption(Of FontFamily)
     Public Setting_FontBold As clsOption(Of Boolean)
     Public Setting_FontItalic As clsOption(Of Boolean)
@@ -26,14 +25,13 @@ Public Module modSettings
         Public Overrides Function IsValueValid(value As Object) As Boolean
             Return CType(value, Single) >= 0.0F
         End Function
+    End Class
+    Public Class clsOptionCreator_FontSize
+        Inherits clsOptionCreator(Of Single)
 
-        Public Class clsCreator_FontSize
-            Inherits clsOption(Of Single).clsCreator
-
-            Public Overrides Function Create() As clsOption(Of Single)
-                Return New clsOption_FontSize(SaveKey, DefaultValue)
-            End Function
-        End Class
+        Public Overrides Function Create() As clsOption(Of Single)
+            Return New clsOption_FontSize(SaveKey, DefaultValue)
+        End Function
     End Class
     Public Setting_FontSize As clsOption_FontSize
     Public Class clsOption_MinimapSize
@@ -47,14 +45,13 @@ Public Module modSettings
             Dim intValue As Integer = CType(value, Integer)
             Return intValue >= 0 And intValue <= MinimapMaxSize
         End Function
+    End Class
+    Public Class clsOptionCreator_MinimapSize
+        Inherits clsOptionCreator(Of Integer)
 
-        Public Class clsCreator_MinimapSize
-            Inherits clsOption(Of Integer).clsCreator
-
-            Public Overrides Function Create() As clsOption(Of Integer)
-                Return New clsOption_MinimapSize(SaveKey, DefaultValue)
-            End Function
-        End Class
+        Public Overrides Function Create() As clsOption(Of Integer)
+            Return New clsOption_MinimapSize(SaveKey, DefaultValue)
+        End Function
     End Class
     Public Setting_MinimapSize As clsOption_MinimapSize
     Public Setting_MinimapTeamColours As clsOption(Of Boolean)
@@ -72,14 +69,13 @@ Public Module modSettings
             Dim dblValue As Double = CType(value, Double)
             Return dblValue >= 0.00005# And dblValue <= 0.005#
         End Function
+    End Class
+    Public Class clsOptionCreator_FOVDefault
+        Inherits clsOptionCreator(Of Double)
 
-        Public Class clsCreator_FOVDefault
-            Inherits clsOption(Of Double).clsCreator
-
-            Public Overrides Function Create() As clsOption(Of Double)
-                Return New clsOption_FOVDefault(SaveKey, DefaultValue)
-            End Function
-        End Class
+        Public Overrides Function Create() As clsOption(Of Double)
+            Return New clsOption_FOVDefault(SaveKey, DefaultValue)
+        End Function
     End Class
     Public Setting_FOVDefault As clsOption_FOVDefault
     Public Setting_Mipmaps As clsOption(Of Boolean)
@@ -94,17 +90,10 @@ Public Module modSettings
     Public Setting_ObjectDataDirectories As clsOption(Of SimpleList(Of String))
     Public Setting_DefaultTilesetsPathNum As clsOption(Of Integer)
     Public Setting_DefaultObjectDataPathNum As clsOption(Of Integer)
+    Public Setting_PickOrientation As clsOption(Of Boolean)
 
     Public Class clsSettings
         Inherits clsOptionProfile
-
-        Public Class clsSettingsCreator
-            Inherits clsOptionProfile.clsCreator
-
-            Public Overrides Function Create() As clsOptionProfile
-                Return New clsSettings
-            End Function
-        End Class
 
         Public Sub New()
             MyBase.New(Options_Settings)
@@ -143,11 +132,6 @@ Public Module modSettings
         Public ReadOnly Property DirectPointer As Boolean
             Get
                 Return CType(Value(Setting_DirectPointer), Boolean)
-            End Get
-        End Property
-        Public ReadOnly Property DisplayFont As Boolean
-            Get
-                Return CType(Value(Setting_DisplayFont), Boolean)
             End Get
         End Property
         Public ReadOnly Property FontFamily As FontFamily
@@ -256,6 +240,11 @@ Public Module modSettings
                 Return CType(Value(Setting_ObjectDataDirectories), SimpleList(Of String))
             End Get
         End Property
+        Public ReadOnly Property PickOrientation As Boolean
+            Get
+                Return CType(Value(Setting_PickOrientation), Boolean)
+            End Get
+        End Property
 
         Public Function MakeFont() As Font
 
@@ -269,8 +258,25 @@ Public Module modSettings
             Return New Font(FontFamily, FontSize, style, GraphicsUnit.Point)
         End Function
     End Class
+    Public Class clsSettingsCreator
+        Inherits clsOptionProfileCreator
 
-    Private Function CreateSetting(Of T)(creator As clsOption(Of T).clsCreator, saveKey As String, defaultValue As T) As clsOption(Of T)
+        Public Overrides Function Create() As clsOptionProfile
+            Return New clsSettings
+        End Function
+    End Class
+
+    Private Function CreateSetting(Of T)(saveKey As String, defaultValue As T) As clsOption(Of T)
+
+        Dim creator As New clsOptionCreator(Of T)
+        creator.SaveKey = saveKey
+        creator.DefaultValue = defaultValue
+        Dim result As clsOption(Of T) = creator.Create
+        Options_Settings.Options.Add(result.GroupLink)
+        Return result
+    End Function
+
+    Private Function CreateSetting(Of T)(creator As clsOptionCreator(Of T), saveKey As String, defaultValue As T) As clsOption(Of T)
 
         creator.SaveKey = saveKey
         creator.DefaultValue = defaultValue
@@ -281,35 +287,36 @@ Public Module modSettings
 
     Public Sub CreateSettingOptions()
 
-        Setting_AutoSaveEnabled = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "AutoSave", True)
-        Setting_AutoSaveCompress = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "AutoSaveCompress", False)
-        Setting_AutoSaveMinInterval_s = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "AutoSaveMinInterval", 180UI)
-        Setting_AutoSaveMinChanges = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "AutoSaveMinChanges", 20UI)
-        Setting_UndoLimit = CreateSetting(Of UInteger)(New clsOption(Of UInteger).clsCreator, "UndoLimit", 256UI)
-        Setting_DirectoriesPrompt = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "DirectoriesPrompt", True)
-        Setting_DirectPointer = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "DirectPointer", True)
-        Setting_FontFamily = CreateSetting(Of FontFamily)(New clsOption(Of FontFamily).clsCreator, "FontFamily", FontFamily.GenericSerif)
-        Setting_FontBold = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "FontBold", True)
-        Setting_FontItalic = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "FontItalic", False)
-        Setting_FontSize = CType(CreateSetting(Of Single)(New clsOption_FontSize.clsCreator_FontSize, "FontSize", 20.0F), clsOption_FontSize)
-        Setting_MinimapSize = CType(CreateSetting(Of Integer)(New clsOption_MinimapSize.clsCreator_MinimapSize, "MinimapSize", 160), clsOption_MinimapSize)
-        Setting_MinimapTeamColours = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MinimapTeamColours", True)
-        Setting_MinimapTeamColoursExceptFeatures = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MinimapTeamColoursExceptFeatures", True)
-        Setting_MinimapCliffColour = CreateSetting(Of clsRGBA_sng)(New clsOption(Of clsRGBA_sng).clsCreator, "MinimapCliffColour", New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F))
-        Setting_MinimapSelectedObjectsColour = CreateSetting(Of clsRGBA_sng)(New clsOption(Of clsRGBA_sng).clsCreator, "MinimapSelectedObjectsColour", New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F))
-        Setting_FOVDefault = CType(CreateSetting(Of Double)(New clsOption_FOVDefault.clsCreator_FOVDefault, "FOVDefault", 30.0# / (50.0# * 900.0#)), clsOption_FOVDefault)  'screenVerticalSize/(screenDist*screenVerticalPixels)
-        Setting_Mipmaps = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "Mipmaps", False)
-        Setting_MipmapsHardware = CreateSetting(Of Boolean)(New clsOption(Of Boolean).clsCreator, "MipmapsHardware", False)
-        Setting_OpenPath = CreateSetting(Of String)(New clsOption(Of String).clsCreator, "OpenPath", Nothing)
-        Setting_SavePath = CreateSetting(Of String)(New clsOption(Of String).clsCreator, "SavePath", Nothing)
-        Setting_MapViewBPP = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "MapViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
-        Setting_TextureViewBPP = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "TextureViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
-        Setting_MapViewDepth = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "MapViewDepth", 24)
-        Setting_TextureViewDepth = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "TextureViewDepth", 24)
-        Setting_TilesetDirectories = CreateSetting(New clsOption(Of SimpleList(Of String)).clsCreator, "TilesetsPath", New SimpleList(Of String))
-        Setting_ObjectDataDirectories = CreateSetting(New clsOption(Of SimpleList(Of String)).clsCreator, "ObjectDataPath", New SimpleList(Of String))
-        Setting_DefaultTilesetsPathNum = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "DefaultTilesetsPathNum", -1)
-        Setting_DefaultObjectDataPathNum = CreateSetting(Of Integer)(New clsOption(Of Integer).clsCreator, "DefaultObjectDataPathNum", -1)
+        Setting_AutoSaveEnabled = CreateSetting(Of Boolean)("AutoSave", True)
+        Setting_AutoSaveCompress = CreateSetting(Of Boolean)("AutoSaveCompress", False)
+        Setting_AutoSaveMinInterval_s = CreateSetting(Of UInteger)("AutoSaveMinInterval", 180UI)
+        Setting_AutoSaveMinChanges = CreateSetting(Of UInteger)("AutoSaveMinChanges", 20UI)
+        Setting_UndoLimit = CreateSetting(Of UInteger)("UndoLimit", 256UI)
+        Setting_DirectoriesPrompt = CreateSetting(Of Boolean)("DirectoriesPrompt", True)
+        Setting_DirectPointer = CreateSetting(Of Boolean)("DirectPointer", True)
+        Setting_FontFamily = CreateSetting(Of FontFamily)("FontFamily", FontFamily.GenericSerif)
+        Setting_FontBold = CreateSetting(Of Boolean)("FontBold", True)
+        Setting_FontItalic = CreateSetting(Of Boolean)("FontItalic", False)
+        Setting_FontSize = CType(CreateSetting(Of Single)(New clsOptionCreator_FontSize, "FontSize", 20.0F), clsOption_FontSize)
+        Setting_MinimapSize = CType(CreateSetting(Of Integer)(New clsOptionCreator_MinimapSize, "MinimapSize", 160), clsOption_MinimapSize)
+        Setting_MinimapTeamColours = CreateSetting(Of Boolean)("MinimapTeamColours", True)
+        Setting_MinimapTeamColoursExceptFeatures = CreateSetting(Of Boolean)("MinimapTeamColoursExceptFeatures", True)
+        Setting_MinimapCliffColour = CreateSetting(Of clsRGBA_sng)("MinimapCliffColour", New clsRGBA_sng(1.0F, 0.25F, 0.25F, 0.5F))
+        Setting_MinimapSelectedObjectsColour = CreateSetting(Of clsRGBA_sng)("MinimapSelectedObjectsColour", New clsRGBA_sng(1.0F, 1.0F, 1.0F, 0.75F))
+        Setting_FOVDefault = CType(CreateSetting(Of Double)(New clsOptionCreator_FOVDefault, "FOVDefault", 30.0# / (50.0# * 900.0#)), clsOption_FOVDefault)  'screenVerticalSize/(screenDist*screenVerticalPixels)
+        Setting_Mipmaps = CreateSetting(Of Boolean)("Mipmaps", False)
+        Setting_MipmapsHardware = CreateSetting(Of Boolean)("MipmapsHardware", False)
+        Setting_OpenPath = CreateSetting(Of String)("OpenPath", Nothing)
+        Setting_SavePath = CreateSetting(Of String)("SavePath", Nothing)
+        Setting_MapViewBPP = CreateSetting(Of Integer)("MapViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
+        Setting_TextureViewBPP = CreateSetting(Of Integer)("TextureViewBPP", OpenTK.DisplayDevice.Default.BitsPerPixel)
+        Setting_MapViewDepth = CreateSetting(Of Integer)("MapViewDepth", 24)
+        Setting_TextureViewDepth = CreateSetting(Of Integer)("TextureViewDepth", 24)
+        Setting_TilesetDirectories = CreateSetting(Of SimpleList(Of String))("TilesetsPath", New SimpleList(Of String))
+        Setting_ObjectDataDirectories = CreateSetting(Of SimpleList(Of String))("ObjectDataPath", New SimpleList(Of String))
+        Setting_DefaultTilesetsPathNum = CreateSetting(Of Integer)("DefaultTilesetsPathNum", -1)
+        Setting_DefaultObjectDataPathNum = CreateSetting(Of Integer)("DefaultObjectDataPathNum", -1)
+        Setting_PickOrientation = CreateSetting(Of Boolean)("PickOrientation", True)
     End Sub
 
     Public Function Read_Settings(File As IO.StreamReader, ByRef Result As clsSettings) As clsResult

@@ -677,7 +677,8 @@ Partial Public Class clsMap
         If MouseOverTerrain IsNot Nothing Then
             GL.Enable(EnableCap.Texture2D)
             If Tool Is Tools.ObjectPlace Then
-                If frmMainInstance.SelectedObjectType IsNot Nothing Then
+                Dim placeObject As clsUnitType = frmMainInstance.SingleSelectedObjectType
+                If placeObject IsNot Nothing Then
                     Dim Rotation As Integer
                     Try
                         InvariantParse_int(frmMainInstance.txtNewObjectRotation.Text, Rotation)
@@ -687,10 +688,10 @@ Partial Public Class clsMap
                     Catch
                         Rotation = 0
                     End Try
-                    WorldPos = TileAlignedPosFromMapPos(MouseOverTerrain.Pos.Horizontal, frmMainInstance.SelectedObjectType.GetFootprintSelected(Rotation))
+                    WorldPos = TileAlignedPosFromMapPos(MouseOverTerrain.Pos.Horizontal, placeObject.GetFootprintSelected(Rotation))
                     GL.PushMatrix()
                     GL.Translate(WorldPos.Horizontal.X - ViewInfo.ViewPos.X, WorldPos.Altitude - ViewInfo.ViewPos.Y + 2.0#, ViewInfo.ViewPos.Z + WorldPos.Horizontal.Y)
-                    frmMainInstance.SelectedObjectType.GLDraw(CSng(Rotation))
+                    placeObject.GLDraw(CSng(Rotation))
                     GL.PopMatrix()
                 End If
             End If

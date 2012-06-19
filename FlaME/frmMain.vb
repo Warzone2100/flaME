@@ -87,7 +87,7 @@ Partial Public Class frmMain
 
     Public HeightSetPalette(7) As Byte
 
-    Public SelectedObjectType As clsUnitType
+    Public SelectedObjectTypes As New ConnectedList(Of clsUnitType, frmMain)(Me)
 
     Public TextureTerrainAction As enumTextureTerrainAction = enumTextureTerrainAction.Reinterpret
 
@@ -373,7 +373,7 @@ Partial Public Class frmMain
 
         If Settings.DirectoriesPrompt Then
             frmOptionsInstance = New frmOptions
-            If frmOptionsInstance.ShowDialog = Windows.Forms.DialogResult.Abort Then
+            If frmOptionsInstance.ShowDialog = Windows.Forms.DialogResult.Cancel Then
                 End
             End If
         End If
@@ -741,27 +741,6 @@ Partial Public Class frmMain
         Else
             Tool = Tools.ObjectSelect
         End If
-    End Sub
-
-    Private Sub btnAutoTri_Click(sender As System.Object, e As System.EventArgs) Handles btnAutoTri.Click
-
-        Dim Map As clsMap = MainMap
-
-        If Map Is Nothing Then
-            Exit Sub
-        End If
-
-        Dim ApplyAutoTri As New clsMap.clsApplyAutoTri
-        ApplyAutoTri.Map = Map
-        Dim AllTiles As New clsMap.clsPointChanges(Map.Terrain.TileSize)
-        AllTiles.SetAllChanged()
-        AllTiles.PerformTool(ApplyAutoTri)
-
-        Map.Update()
-
-        Map.UndoStepCreate("Set All Triangles")
-
-        View_DrawViewLater()
     End Sub
 
     Private Sub rdoHeightSet_CheckedChanged(sender As System.Object, e As System.EventArgs) Handles rdoHeightSet.Click
@@ -1178,66 +1157,6 @@ Partial Public Class frmMain
         Save_Heightmap_Prompt()
     End Sub
 
-    Private Sub dgvFeatures_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvFeatures.RowEnter
-        Dim table As DataTable = CType(dgvFeatures.DataSource, DataTable)
-
-        If rdoObjectPlace.Checked Then
-            Tool = Tools.ObjectPlace
-        ElseIf rdoObjectLines.Checked Then
-            Tool = Tools.ObjectLines
-        End If
-        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
-            SelectedObjectType = CType(dgvFeatures.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
-            dgvStructures.ClearSelection()
-            dgvDroids.ClearSelection()
-        End If
-        Dim Map As clsMap = MainMap
-        If Map IsNot Nothing Then
-            Map.MinimapMakeLater() 'for unit highlight
-            View_DrawViewLater()
-        End If
-    End Sub
-
-    Private Sub dgvStructures_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvStructures.RowEnter
-        Dim table As DataTable = CType(dgvStructures.DataSource, DataTable)
-
-        If rdoObjectPlace.Checked Then
-            Tool = Tools.ObjectPlace
-        ElseIf rdoObjectLines.Checked Then
-            Tool = Tools.ObjectLines
-        End If
-        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
-            SelectedObjectType = CType(dgvStructures.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
-            dgvFeatures.ClearSelection()
-            dgvDroids.ClearSelection()
-        End If
-        Dim Map As clsMap = MainMap
-        If Map IsNot Nothing Then
-            Map.MinimapMakeLater() 'for unit highlight
-            View_DrawViewLater()
-        End If
-    End Sub
-
-    Private Sub dgvDroids_RowEnter(sender As Object, e As System.Windows.Forms.DataGridViewCellEventArgs) Handles dgvDroids.RowEnter
-        Dim table As DataTable = CType(dgvDroids.DataSource, DataTable)
-
-        If rdoObjectPlace.Checked Then
-            Tool = Tools.ObjectPlace
-        ElseIf rdoObjectLines.Checked Then
-            Tool = Tools.ObjectLines
-        End If
-        If e.RowIndex >= 0 And e.RowIndex < table.Rows.Count Then
-            SelectedObjectType = CType(dgvDroids.Rows(e.RowIndex).Cells(0).Value, clsUnitType)
-            dgvFeatures.ClearSelection()
-            dgvStructures.ClearSelection()
-        End If
-        Dim Map As clsMap = MainMap
-        If Map IsNot Nothing Then
-            Map.MinimapMakeLater() 'for unit highlight
-            View_DrawViewLater()
-        End If
-    End Sub
-
     Public Sub Components_Update()
 
         If ObjectData Is Nothing Then
@@ -1327,6 +1246,12 @@ Partial Public Class frmMain
         gridView.Columns(0).Visible = False
         gridView.Columns(1).AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
         gridView.Columns(2).AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+
+#If Mono = 0.0# Then
+        ObjectTypeSelectionUpdate(gridView)
+#Else
+        gridView.ClearSelection() 'mono selects its rows too late
+#End If
     End Sub
 
     Public Function ObjectFindText(Of ItemType As clsUnitType)(list As SimpleList(Of ItemType), text As String) As SimpleList(Of ItemType)
@@ -2070,12 +1995,6 @@ Partial Public Class frmMain
         End If
     End Sub
 
-    Private Sub btnGenerator_Click(sender As System.Object, e As System.EventArgs) Handles btnGenerator.Click
-
-        frmGeneratorInstance.Show()
-        frmGeneratorInstance.Activate()
-    End Sub
-
     Public Sub TitleTextUpdate()
         Dim Map As clsMap = MainMap
         Dim MapFileTitle As String
@@ -2131,24 +2050,6 @@ Partial Public Class frmMain
             rdoAutoRoadLine.Checked = True
             rdoAutoRoadLine_Click(Nothing, Nothing)
         End If
-    End Sub
-
-    Private Sub btnReinterpretTerrain_Click(sender As System.Object, e As System.EventArgs) Handles btnReinterpretTerrain.Click
-        Dim Map As clsMap = MainMap
-
-        If Map Is Nothing Then
-            Exit Sub
-        End If
-
-        If MsgBox("Are you sure?", (MsgBoxStyle.OkCancel Or MsgBoxStyle.Question), "Reinterpret Terrain") <> MsgBoxResult.Ok Then
-            Exit Sub
-        End If
-
-        Map.TerrainInterpretChanges.SetAllChanged()
-
-        Map.Update()
-
-        Map.UndoStepCreate("Interpret Terrain")
     End Sub
 
     Private Sub tabPlayerNum_SelectedIndexChanged()
@@ -2270,22 +2171,6 @@ Partial Public Class frmMain
         If MapView IsNot Nothing Then
             MapView.DrawViewLater()
         End If
-    End Sub
-
-    Private Sub btnWaterTri_Click(sender As System.Object, e As System.EventArgs) Handles btnWaterTri.Click
-        Dim Map As clsMap = MainMap
-
-        If Map Is Nothing Then
-            Exit Sub
-        End If
-
-        Map.WaterTriCorrection()
-
-        Map.Update()
-
-        Map.UndoStepCreate("Water Triangle Correction")
-
-        View_DrawViewLater()
     End Sub
 
     Private Sub tsbSelectionFlipX_Click(sender As System.Object, e As System.EventArgs) Handles tsbSelectionFlipX.Click
@@ -3044,10 +2929,13 @@ Partial Public Class frmMain
     Public Sub ObjectPicker(UnitType As clsUnitType)
 
         Tool = Tools.ObjectPlace
-        dgvFeatures.ClearSelection()
-        dgvStructures.ClearSelection()
-        dgvDroids.ClearSelection()
-        SelectedObjectType = UnitType
+        If Not KeyboardProfile.Active(Control_Unit_Multiselect) Then
+            dgvFeatures.ClearSelection()
+            dgvStructures.ClearSelection()
+            dgvDroids.ClearSelection()
+        End If
+        SelectedObjectTypes.Clear()
+        SelectedObjectTypes.Add(UnitType.UnitType_frmMainSelectedLink)
         Dim Map As clsMap = MainMap
         If Map IsNot Nothing Then
             Map.MinimapMakeLater() 'for unit highlight
@@ -3098,6 +2986,11 @@ Partial Public Class frmMain
                 TextureView.DrawViewLater()
             End If
         End If
+
+        If Settings.PickOrientation Then
+            TextureOrientation = Map.Terrain.Tiles(Tile.X, Tile.Y).Texture.Orientation
+            TextureView.DrawViewLater()
+        End If
     End Sub
 
     Public Sub HeightPickerL()
@@ -3146,53 +3039,6 @@ Partial Public Class frmMain
             Result.Take(LoadMap(Path))
         Next
         ShowWarnings(Result)
-    End Sub
-
-    Private Sub btnFlatOil_Click(sender As System.Object, e As System.EventArgs) Handles btnFlatOil.Click
-        Dim Map As clsMap = MainMap
-
-        If Map Is Nothing Then
-            Exit Sub
-        End If
-
-        If UnitType_OilResource Is Nothing Then
-            MsgBox("Unable. Oil resource is not loaded.")
-            Exit Sub
-        End If
-
-        Dim OilList As New SimpleClassList(Of clsMap.clsUnit)
-        Dim Unit As clsMap.clsUnit
-        For Each Unit In Map.Units
-            If Unit.Type Is UnitType_OilResource Then
-                OilList.Add(Unit)
-            End If
-        Next
-        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
-        OilList.PerformTool(FlattenTool)
-
-        Map.Update()
-        Map.UndoStepCreate("Flatten Under Oil")
-    End Sub
-
-    Private Sub btnFlatStructures_Click(sender As Object, e As EventArgs) Handles btnFlatStructures.Click
-        Dim Map As clsMap = MainMap
-
-        If Map Is Nothing Then
-            Exit Sub
-        End If
-
-        Dim StructureList As New SimpleClassList(Of clsMap.clsUnit)
-        Dim Unit As clsMap.clsUnit
-        For Each Unit In Map.Units
-            If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                StructureList.Add(Unit)
-            End If
-        Next
-        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
-        StructureList.PerformTool(FlattenTool)
-
-        Map.Update()
-        Map.UndoStepCreate("Flatten Under Structures")
     End Sub
 
     Private Sub btnFlatSelected_Click(sender As Object, e As EventArgs) Handles btnFlatSelected.Click
@@ -3752,8 +3598,166 @@ Partial Public Class frmMain
         ObjectsUpdate()
     End Sub
 
+    Private Sub ActivateObjectTool()
+
+        If rdoObjectPlace.Checked Then
+            Tool = Tools.ObjectPlace
+        ElseIf rdoObjectLines.Checked Then
+            Tool = Tools.ObjectLines
+        End If
+    End Sub
+
     Private Sub TabControl1_SelectedIndexChanged(sender As Object, e As System.EventArgs) Handles TabControl1.SelectedIndexChanged
 
+        ActivateObjectTool()
         ObjectsUpdate()
+    End Sub
+
+    Private Sub GeneratorToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles menuGenerator.Click
+
+        frmGeneratorInstance.Show()
+        frmGeneratorInstance.Activate()
+    End Sub
+
+    Private Sub ReinterpretTerrainToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles menuReinterpret.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Map.TerrainInterpretChanges.SetAllChanged()
+
+        Map.Update()
+
+        Map.UndoStepCreate("Interpret Terrain")
+    End Sub
+
+    Private Sub WaterTriangleCorrectionToolStripMenuItem_Click(sender As System.Object, e As System.EventArgs) Handles menuWaterCorrection.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Map.WaterTriCorrection()
+
+        Map.Update()
+
+        Map.UndoStepCreate("Water Triangle Correction")
+
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub ToolStripMenuItem5_Click(sender As System.Object, e As System.EventArgs) Handles menuFlatOil.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        If UnitType_OilResource Is Nothing Then
+            MsgBox("Unable. Oil resource is not loaded.")
+            Exit Sub
+        End If
+
+        Dim OilList As New SimpleClassList(Of clsMap.clsUnit)
+        Dim Unit As clsMap.clsUnit
+        For Each Unit In Map.Units
+            If Unit.Type Is UnitType_OilResource Then
+                OilList.Add(Unit)
+            End If
+        Next
+        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
+        OilList.PerformTool(FlattenTool)
+
+        Map.Update()
+        Map.UndoStepCreate("Flatten Under Oil")
+    End Sub
+
+    Private Sub ToolStripMenuItem6_Click(sender As System.Object, e As System.EventArgs) Handles menuFlatStructures.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim StructureList As New SimpleClassList(Of clsMap.clsUnit)
+        Dim Unit As clsMap.clsUnit
+        For Each Unit In Map.Units
+            If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                StructureList.Add(Unit)
+            End If
+        Next
+        Dim FlattenTool As New clsMap.clsObjectFlattenTerrain
+        StructureList.PerformTool(FlattenTool)
+
+        Map.Update()
+        Map.UndoStepCreate("Flatten Under Structures")
+    End Sub
+
+    Private Sub btnObjectTypeSelect_Click(sender As System.Object, e As System.EventArgs) Handles btnObjectTypeSelect.Click
+        Dim Map As clsMap = MainMap
+
+        If Map Is Nothing Then
+            Exit Sub
+        End If
+
+        If Not KeyboardProfile.Active(Control_Unit_Multiselect) Then
+            Map.SelectedUnits.Clear()
+        End If
+        For Each Unit As clsMap.clsUnit In Map.Units
+            If Unit.Type.UnitType_frmMainSelectedLink.IsConnected Then
+                If Not Unit.MapSelectedUnitLink.IsConnected Then
+                    Unit.MapSelectedUnitLink.Connect(Map.SelectedUnits)
+                End If
+            End If
+        Next
+
+        View_DrawViewLater()
+    End Sub
+
+    Public ReadOnly Property SingleSelectedObjectType As clsUnitType
+        Get
+            If SelectedObjectTypes.Count = 1 Then
+                Return SelectedObjectTypes(0)
+            Else
+                Return Nothing
+            End If
+        End Get
+    End Property
+
+    Private Sub ObjectTypeSelectionUpdate(dataView As DataGridView)
+
+        SelectedObjectTypes.Clear()
+        For Each selection As DataGridViewRow In dataView.SelectedRows
+            Dim objectType As clsUnitType = CType(selection.Cells(0).Value, clsUnitType)
+            If Not objectType.UnitType_frmMainSelectedLink.IsConnected Then
+                SelectedObjectTypes.Add(objectType.UnitType_frmMainSelectedLink)
+            End If
+        Next
+        Dim Map As clsMap = MainMap
+        If Map IsNot Nothing Then
+            Map.MinimapMakeLater() 'for unit highlight
+            View_DrawViewLater()
+        End If
+    End Sub
+
+    Private Sub dgvFeatures_SelectionChanged(sender As Object, e As System.EventArgs) Handles dgvFeatures.Click
+
+        ActivateObjectTool()
+        ObjectTypeSelectionUpdate(dgvFeatures)
+    End Sub
+
+    Private Sub dgvStructures_SelectionChanged(sender As Object, e As System.EventArgs) Handles dgvStructures.Click
+
+        ActivateObjectTool()
+        ObjectTypeSelectionUpdate(dgvStructures)
+    End Sub
+
+    Private Sub dgvDroids_SelectionChanged(sender As Object, e As System.EventArgs) Handles dgvDroids.Click
+
+        ActivateObjectTool()
+        ObjectTypeSelectionUpdate(dgvDroids)
     End Sub
 End Class

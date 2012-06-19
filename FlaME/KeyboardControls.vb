@@ -12,14 +12,13 @@ Public Module modControls
         Public Sub New(options As clsOptionGroup)
             MyBase.New(options)
         End Sub
+    End Class
+    Public Class clsKeyboardProfileCreator
+        Inherits clsOptionProfileCreator
 
-        Public Class clsKeyboardCreator
-            Inherits clsOptionProfile.clsCreator
-
-            Public Overrides Function Create() As clsOptionProfile
-                Return New clsKeyboardProfile(Options)
-            End Function
-        End Class
+        Public Overrides Function Create() As clsOptionProfile
+            Return New clsKeyboardProfile(Options)
+        End Function
     End Class
 
     Public Options_KeyboardControls As New clsOptionGroup
@@ -101,7 +100,7 @@ Public Module modControls
         'interface controls
 
         Control_Deselect = KeyboardControlOptionCreate("ObjectSelectTool", New Keys() {Keys.Escape})
-        Control_PreviousTool = KeyboardControlOptionCreate("PreviousTool", New Keys() {CType(221, Keys)}) ']}
+        Control_PreviousTool = KeyboardControlOptionCreate("PreviousTool", New Keys() {Keys.Oemtilde})
 
         'selected unit controls
 
@@ -147,10 +146,10 @@ Public Module modControls
         
         'texture controls
 
-        Control_CounterClockwise = KeyboardControlOptionCreate("CounterClockwise", New Keys() {CType(188, Keys)}) ',<
-        Control_Clockwise = KeyboardControlOptionCreate("Clockwise", New Keys() {CType(190, Keys)}) '.>
-        Control_Texture_Flip = KeyboardControlOptionCreate("TextureFlip", New Keys() {CType(191, Keys)}) '/?
-        Control_Tri_Flip = KeyboardControlOptionCreate("TriangleFlip", New Keys() {CType(220, Keys)}) '\|
+        Control_CounterClockwise = KeyboardControlOptionCreate("CounterClockwise", New Keys() {Keys.Oemcomma})
+        Control_Clockwise = KeyboardControlOptionCreate("Clockwise", New Keys() {Keys.OemPeriod})
+        Control_Texture_Flip = KeyboardControlOptionCreate("TextureFlip", New Keys() {Keys.OemQuestion})
+        Control_Tri_Flip = KeyboardControlOptionCreate("TriangleFlip", New Keys() {Keys.OemPipe}) '\|
         Control_Gateway_Delete = KeyboardControlOptionCreate("GatewayDelete", New Keys() {Keys.ShiftKey})
 
         'undo controls

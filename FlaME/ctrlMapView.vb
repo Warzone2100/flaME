@@ -355,7 +355,7 @@ Public Class ctrlMapView
                 Dim MapMessage As New clsMap.clsMessage
                 MapMessage.Text = Message
                 Map.Messages.Add(MapMessage)
-                Map.Undo_Perform()
+                Map.UndoPerform()
                 DrawViewLater()
             Else
                 Message = "Nothing to undo"
@@ -369,7 +369,7 @@ Public Class ctrlMapView
                 Dim MapMessage As New clsMap.clsMessage
                 MapMessage.Text = Message
                 Map.Messages.Add(MapMessage)
-                Map.Redo_Perform()
+                Map.RedoPerform()
                 DrawViewLater()
             Else
                 Message = "Nothing to redo"

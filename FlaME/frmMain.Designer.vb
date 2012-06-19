@@ -111,16 +111,6 @@ Partial Class frmMain
         Me.rdoHeightSet = New System.Windows.Forms.RadioButton()
         Me.txtHeightSetL = New System.Windows.Forms.TextBox()
         Me.Label5 = New System.Windows.Forms.Label()
-        Me.tpMisc = New System.Windows.Forms.TabPage()
-        Me.GroupBox2 = New System.Windows.Forms.GroupBox()
-        Me.btnFlatOil = New System.Windows.Forms.Button()
-        Me.btnFlatSelected = New System.Windows.Forms.Button()
-        Me.btnFlatStructures = New System.Windows.Forms.Button()
-        Me.btnAlignObjects = New System.Windows.Forms.Button()
-        Me.btnGenerator = New System.Windows.Forms.Button()
-        Me.btnWaterTri = New System.Windows.Forms.Button()
-        Me.btnReinterpretTerrain = New System.Windows.Forms.Button()
-        Me.btnAutoTri = New System.Windows.Forms.Button()
         Me.tpResize = New System.Windows.Forms.TabPage()
         Me.btnSelResize = New System.Windows.Forms.Button()
         Me.btnResize = New System.Windows.Forms.Button()
@@ -135,6 +125,7 @@ Partial Class frmMain
         Me.tpObjects = New System.Windows.Forms.TabPage()
         Me.TableLayoutPanel1 = New System.Windows.Forms.TableLayoutPanel()
         Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.btnPlayerSelectObjects = New System.Windows.Forms.Button()
         Me.Label44 = New System.Windows.Forms.Label()
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
         Me.rdoObjectPlace = New System.Windows.Forms.RadioButton()
@@ -145,9 +136,10 @@ Partial Class frmMain
         Me.Label19 = New System.Windows.Forms.Label()
         Me.cbxAutoWalls = New System.Windows.Forms.CheckBox()
         Me.cbxObjectRandomRotation = New System.Windows.Forms.CheckBox()
-        Me.btnPlayerSelectObjects = New System.Windows.Forms.Button()
         Me.Label32 = New System.Windows.Forms.Label()
         Me.Label22 = New System.Windows.Forms.Label()
+        Me.Panel2 = New System.Windows.Forms.Panel()
+        Me.btnObjectTypeSelect = New System.Windows.Forms.Button()
         Me.TabControl1 = New System.Windows.Forms.TabControl()
         Me.TabPage1 = New System.Windows.Forms.TabPage()
         Me.dgvFeatures = New System.Windows.Forms.DataGridView()
@@ -179,6 +171,8 @@ Partial Class frmMain
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Panel14 = New System.Windows.Forms.Panel()
+        Me.btnFlatSelected = New System.Windows.Forms.Button()
+        Me.btnAlignObjects = New System.Windows.Forms.Button()
         Me.Label31 = New System.Windows.Forms.Label()
         Me.Label30 = New System.Windows.Forms.Label()
         Me.cbxDesignableOnly = New System.Windows.Forms.CheckBox()
@@ -199,7 +193,7 @@ Partial Class frmMain
         Me.Label33 = New System.Windows.Forms.Label()
         Me.txtObjectID = New System.Windows.Forms.TextBox()
         Me.Label26 = New System.Windows.Forms.Label()
-        Me.tpCampaignMarkers = New System.Windows.Forms.TabPage()
+        Me.tpLabels = New System.Windows.Forms.TabPage()
         Me.Label11 = New System.Windows.Forms.Label()
         Me.Label43 = New System.Windows.Forms.Label()
         Me.Label42 = New System.Windows.Forms.Label()
@@ -282,6 +276,14 @@ Partial Class frmMain
         Me.MapWZToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
         Me.CloseToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuTools = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuReinterpret = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuWaterCorrection = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuFlatOil = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuFlatStructures = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator12 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuGenerator = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuOptions = New System.Windows.Forms.ToolStripMenuItem()
         Me.TableLayoutPanel5 = New System.Windows.Forms.TableLayoutPanel()
         Me.TabPage13 = New System.Windows.Forms.TabPage()
@@ -305,13 +307,12 @@ Partial Class frmMain
         Me.tpHeight.SuspendLayout()
         Me.tabHeightSetR.SuspendLayout()
         Me.tabHeightSetL.SuspendLayout()
-        Me.tpMisc.SuspendLayout()
-        Me.GroupBox2.SuspendLayout()
         Me.tpResize.SuspendLayout()
         Me.tpObjects.SuspendLayout()
         Me.TableLayoutPanel1.SuspendLayout()
         Me.Panel1.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
+        Me.Panel2.SuspendLayout()
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         CType(Me.dgvFeatures, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -329,7 +330,7 @@ Partial Class frmMain
         Me.Panel9.SuspendLayout()
         Me.Panel8.SuspendLayout()
         Me.Panel14.SuspendLayout()
-        Me.tpCampaignMarkers.SuspendLayout()
+        Me.tpLabels.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
         Me.TableLayoutPanel7.SuspendLayout()
         Me.Panel7.SuspendLayout()
@@ -367,11 +368,10 @@ Partial Class frmMain
         Me.TabControl.Controls.Add(Me.tpTextures)
         Me.TabControl.Controls.Add(Me.tpAutoTexture)
         Me.TabControl.Controls.Add(Me.tpHeight)
-        Me.TabControl.Controls.Add(Me.tpMisc)
         Me.TabControl.Controls.Add(Me.tpResize)
         Me.TabControl.Controls.Add(Me.tpObjects)
         Me.TabControl.Controls.Add(Me.tpObject)
-        Me.TabControl.Controls.Add(Me.tpCampaignMarkers)
+        Me.TabControl.Controls.Add(Me.tpLabels)
         Me.TabControl.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TabControl.ItemSize = New System.Drawing.Size(72, 22)
         Me.TabControl.Location = New System.Drawing.Point(0, 0)
@@ -436,7 +436,7 @@ Partial Class frmMain
         'rdoTextureRemoveTerrain
         '
         Me.rdoTextureRemoveTerrain.AutoSize = True
-        Me.rdoTextureRemoveTerrain.Location = New System.Drawing.Point(280, 139)
+        Me.rdoTextureRemoveTerrain.Location = New System.Drawing.Point(280, 129)
         Me.rdoTextureRemoveTerrain.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoTextureRemoveTerrain.Name = "rdoTextureRemoveTerrain"
         Me.rdoTextureRemoveTerrain.Size = New System.Drawing.Size(122, 21)
@@ -449,7 +449,7 @@ Partial Class frmMain
         '
         Me.rdoTextureReinterpretTerrain.AutoSize = True
         Me.rdoTextureReinterpretTerrain.Checked = True
-        Me.rdoTextureReinterpretTerrain.Location = New System.Drawing.Point(280, 110)
+        Me.rdoTextureReinterpretTerrain.Location = New System.Drawing.Point(280, 109)
         Me.rdoTextureReinterpretTerrain.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoTextureReinterpretTerrain.Name = "rdoTextureReinterpretTerrain"
         Me.rdoTextureReinterpretTerrain.Size = New System.Drawing.Size(92, 21)
@@ -462,7 +462,7 @@ Partial Class frmMain
         'rdoTextureIgnoreTerrain
         '
         Me.rdoTextureIgnoreTerrain.AutoSize = True
-        Me.rdoTextureIgnoreTerrain.Location = New System.Drawing.Point(280, 81)
+        Me.rdoTextureIgnoreTerrain.Location = New System.Drawing.Point(280, 87)
         Me.rdoTextureIgnoreTerrain.Margin = New System.Windows.Forms.Padding(4)
         Me.rdoTextureIgnoreTerrain.Name = "rdoTextureIgnoreTerrain"
         Me.rdoTextureIgnoreTerrain.Size = New System.Drawing.Size(110, 21)
@@ -657,10 +657,10 @@ Partial Class frmMain
         Me.tpAutoTexture.Controls.Add(Me.Label1)
         Me.tpAutoTexture.Controls.Add(Me.lstAutoTexture)
         Me.tpAutoTexture.Controls.Add(Me.Label3)
-        Me.tpAutoTexture.Location = New System.Drawing.Point(4, 26)
+        Me.tpAutoTexture.Location = New System.Drawing.Point(4, 51)
         Me.tpAutoTexture.Margin = New System.Windows.Forms.Padding(4)
         Me.tpAutoTexture.Name = "tpAutoTexture"
-        Me.tpAutoTexture.Size = New System.Drawing.Size(410, 582)
+        Me.tpAutoTexture.Size = New System.Drawing.Size(410, 557)
         Me.tpAutoTexture.TabIndex = 2
         Me.tpAutoTexture.Text = "Terrain"
         Me.tpAutoTexture.UseVisualStyleBackColor = True
@@ -830,6 +830,7 @@ Partial Class frmMain
         Me.btnAutoTextureRemove.Size = New System.Drawing.Size(85, 30)
         Me.btnAutoTextureRemove.TabIndex = 31
         Me.btnAutoTextureRemove.Text = "Erase"
+        Me.btnAutoTextureRemove.UseCompatibleTextRendering = True
         Me.btnAutoTextureRemove.UseVisualStyleBackColor = True
         '
         'btnAutoRoadRemove
@@ -840,6 +841,7 @@ Partial Class frmMain
         Me.btnAutoRoadRemove.Size = New System.Drawing.Size(85, 30)
         Me.btnAutoRoadRemove.TabIndex = 30
         Me.btnAutoRoadRemove.Text = "Erase"
+        Me.btnAutoRoadRemove.UseCompatibleTextRendering = True
         Me.btnAutoRoadRemove.UseVisualStyleBackColor = True
         '
         'rdoAutoRoadPlace
@@ -981,11 +983,11 @@ Partial Class frmMain
         Me.tpHeight.Controls.Add(Me.rdoHeightSet)
         Me.tpHeight.Controls.Add(Me.txtHeightSetL)
         Me.tpHeight.Controls.Add(Me.Label5)
-        Me.tpHeight.Location = New System.Drawing.Point(4, 26)
+        Me.tpHeight.Location = New System.Drawing.Point(4, 51)
         Me.tpHeight.Margin = New System.Windows.Forms.Padding(4)
         Me.tpHeight.Name = "tpHeight"
         Me.tpHeight.Padding = New System.Windows.Forms.Padding(4)
-        Me.tpHeight.Size = New System.Drawing.Size(410, 582)
+        Me.tpHeight.Size = New System.Drawing.Size(410, 557)
         Me.tpHeight.TabIndex = 1
         Me.tpHeight.Text = "Height"
         Me.tpHeight.UseVisualStyleBackColor = True
@@ -1412,122 +1414,6 @@ Partial Class frmMain
         Me.Label5.TextAlign = System.Drawing.ContentAlignment.MiddleRight
         Me.Label5.UseCompatibleTextRendering = True
         '
-        'tpMisc
-        '
-        Me.tpMisc.Controls.Add(Me.GroupBox2)
-        Me.tpMisc.Controls.Add(Me.btnAlignObjects)
-        Me.tpMisc.Controls.Add(Me.btnGenerator)
-        Me.tpMisc.Controls.Add(Me.btnWaterTri)
-        Me.tpMisc.Controls.Add(Me.btnReinterpretTerrain)
-        Me.tpMisc.Controls.Add(Me.btnAutoTri)
-        Me.tpMisc.Location = New System.Drawing.Point(4, 26)
-        Me.tpMisc.Margin = New System.Windows.Forms.Padding(4)
-        Me.tpMisc.Name = "tpMisc"
-        Me.tpMisc.Size = New System.Drawing.Size(410, 582)
-        Me.tpMisc.TabIndex = 3
-        Me.tpMisc.Text = "Misc"
-        Me.tpMisc.UseVisualStyleBackColor = True
-        '
-        'GroupBox2
-        '
-        Me.GroupBox2.Controls.Add(Me.btnFlatOil)
-        Me.GroupBox2.Controls.Add(Me.btnFlatSelected)
-        Me.GroupBox2.Controls.Add(Me.btnFlatStructures)
-        Me.GroupBox2.Location = New System.Drawing.Point(4, 117)
-        Me.GroupBox2.Name = "GroupBox2"
-        Me.GroupBox2.Size = New System.Drawing.Size(237, 141)
-        Me.GroupBox2.TabIndex = 8
-        Me.GroupBox2.TabStop = False
-        Me.GroupBox2.Text = "Flatten Terrain Under"
-        '
-        'btnFlatOil
-        '
-        Me.btnFlatOil.Location = New System.Drawing.Point(7, 22)
-        Me.btnFlatOil.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnFlatOil.Name = "btnFlatOil"
-        Me.btnFlatOil.Size = New System.Drawing.Size(223, 30)
-        Me.btnFlatOil.TabIndex = 4
-        Me.btnFlatOil.Text = "All Oils"
-        Me.btnFlatOil.UseCompatibleTextRendering = True
-        Me.btnFlatOil.UseVisualStyleBackColor = True
-        '
-        'btnFlatSelected
-        '
-        Me.btnFlatSelected.Location = New System.Drawing.Point(7, 98)
-        Me.btnFlatSelected.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnFlatSelected.Name = "btnFlatSelected"
-        Me.btnFlatSelected.Size = New System.Drawing.Size(223, 30)
-        Me.btnFlatSelected.TabIndex = 7
-        Me.btnFlatSelected.Text = "Selected Objects"
-        Me.btnFlatSelected.UseCompatibleTextRendering = True
-        Me.btnFlatSelected.UseVisualStyleBackColor = True
-        '
-        'btnFlatStructures
-        '
-        Me.btnFlatStructures.Location = New System.Drawing.Point(7, 60)
-        Me.btnFlatStructures.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnFlatStructures.Name = "btnFlatStructures"
-        Me.btnFlatStructures.Size = New System.Drawing.Size(223, 30)
-        Me.btnFlatStructures.TabIndex = 5
-        Me.btnFlatStructures.Text = "All Structures"
-        Me.btnFlatStructures.UseCompatibleTextRendering = True
-        Me.btnFlatStructures.UseVisualStyleBackColor = True
-        '
-        'btnAlignObjects
-        '
-        Me.btnAlignObjects.Location = New System.Drawing.Point(4, 80)
-        Me.btnAlignObjects.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnAlignObjects.Name = "btnAlignObjects"
-        Me.btnAlignObjects.Size = New System.Drawing.Size(223, 30)
-        Me.btnAlignObjects.TabIndex = 6
-        Me.btnAlignObjects.Text = "Realign Selected Objects"
-        Me.btnAlignObjects.UseCompatibleTextRendering = True
-        Me.btnAlignObjects.UseVisualStyleBackColor = True
-        '
-        'btnGenerator
-        '
-        Me.btnGenerator.Location = New System.Drawing.Point(4, 303)
-        Me.btnGenerator.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnGenerator.Name = "btnGenerator"
-        Me.btnGenerator.Size = New System.Drawing.Size(223, 30)
-        Me.btnGenerator.TabIndex = 3
-        Me.btnGenerator.Text = "Generator"
-        Me.btnGenerator.UseCompatibleTextRendering = True
-        Me.btnGenerator.UseVisualStyleBackColor = True
-        '
-        'btnWaterTri
-        '
-        Me.btnWaterTri.Location = New System.Drawing.Point(4, 42)
-        Me.btnWaterTri.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnWaterTri.Name = "btnWaterTri"
-        Me.btnWaterTri.Size = New System.Drawing.Size(223, 30)
-        Me.btnWaterTri.TabIndex = 2
-        Me.btnWaterTri.Text = "Water Triangle Correction"
-        Me.btnWaterTri.UseCompatibleTextRendering = True
-        Me.btnWaterTri.UseVisualStyleBackColor = True
-        '
-        'btnReinterpretTerrain
-        '
-        Me.btnReinterpretTerrain.Location = New System.Drawing.Point(4, 4)
-        Me.btnReinterpretTerrain.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnReinterpretTerrain.Name = "btnReinterpretTerrain"
-        Me.btnReinterpretTerrain.Size = New System.Drawing.Size(223, 30)
-        Me.btnReinterpretTerrain.TabIndex = 1
-        Me.btnReinterpretTerrain.Text = "Reinterpret Terrain"
-        Me.btnReinterpretTerrain.UseCompatibleTextRendering = True
-        Me.btnReinterpretTerrain.UseVisualStyleBackColor = True
-        '
-        'btnAutoTri
-        '
-        Me.btnAutoTri.Location = New System.Drawing.Point(4, 265)
-        Me.btnAutoTri.Margin = New System.Windows.Forms.Padding(4)
-        Me.btnAutoTri.Name = "btnAutoTri"
-        Me.btnAutoTri.Size = New System.Drawing.Size(223, 30)
-        Me.btnAutoTri.TabIndex = 0
-        Me.btnAutoTri.Text = "Set All Triangles"
-        Me.btnAutoTri.UseCompatibleTextRendering = True
-        Me.btnAutoTri.UseVisualStyleBackColor = True
-        '
         'tpResize
         '
         Me.tpResize.Controls.Add(Me.btnSelResize)
@@ -1540,10 +1426,10 @@ Partial Class frmMain
         Me.tpResize.Controls.Add(Me.Label13)
         Me.tpResize.Controls.Add(Me.txtSizeX)
         Me.tpResize.Controls.Add(Me.Label12)
-        Me.tpResize.Location = New System.Drawing.Point(4, 26)
+        Me.tpResize.Location = New System.Drawing.Point(4, 51)
         Me.tpResize.Margin = New System.Windows.Forms.Padding(4)
         Me.tpResize.Name = "tpResize"
-        Me.tpResize.Size = New System.Drawing.Size(410, 582)
+        Me.tpResize.Size = New System.Drawing.Size(410, 557)
         Me.tpResize.TabIndex = 4
         Me.tpResize.Text = "Resize"
         Me.tpResize.UseVisualStyleBackColor = True
@@ -1667,7 +1553,7 @@ Partial Class frmMain
         Me.TableLayoutPanel1.ColumnCount = 1
         Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
         Me.TableLayoutPanel1.Controls.Add(Me.Panel1, 0, 0)
-        Me.TableLayoutPanel1.Controls.Add(Me.TabControl1, 0, 1)
+        Me.TableLayoutPanel1.Controls.Add(Me.Panel2, 0, 1)
         Me.TableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TableLayoutPanel1.Location = New System.Drawing.Point(0, 0)
         Me.TableLayoutPanel1.Margin = New System.Windows.Forms.Padding(4)
@@ -1680,6 +1566,7 @@ Partial Class frmMain
         '
         'Panel1
         '
+        Me.Panel1.Controls.Add(Me.btnPlayerSelectObjects)
         Me.Panel1.Controls.Add(Me.Label44)
         Me.Panel1.Controls.Add(Me.GroupBox3)
         Me.Panel1.Controls.Add(Me.txtObjectFind)
@@ -1688,7 +1575,6 @@ Partial Class frmMain
         Me.Panel1.Controls.Add(Me.Label19)
         Me.Panel1.Controls.Add(Me.cbxAutoWalls)
         Me.Panel1.Controls.Add(Me.cbxObjectRandomRotation)
-        Me.Panel1.Controls.Add(Me.btnPlayerSelectObjects)
         Me.Panel1.Controls.Add(Me.Label32)
         Me.Panel1.Controls.Add(Me.Label22)
         Me.Panel1.Dock = System.Windows.Forms.DockStyle.Fill
@@ -1697,6 +1583,16 @@ Partial Class frmMain
         Me.Panel1.Name = "Panel1"
         Me.Panel1.Size = New System.Drawing.Size(402, 184)
         Me.Panel1.TabIndex = 0
+        '
+        'btnPlayerSelectObjects
+        '
+        Me.btnPlayerSelectObjects.Location = New System.Drawing.Point(282, 10)
+        Me.btnPlayerSelectObjects.Name = "btnPlayerSelectObjects"
+        Me.btnPlayerSelectObjects.Size = New System.Drawing.Size(111, 35)
+        Me.btnPlayerSelectObjects.TabIndex = 17
+        Me.btnPlayerSelectObjects.Text = "Select All"
+        Me.btnPlayerSelectObjects.UseCompatibleTextRendering = True
+        Me.btnPlayerSelectObjects.UseVisualStyleBackColor = True
         '
         'Label44
         '
@@ -1805,15 +1701,6 @@ Partial Class frmMain
         Me.cbxObjectRandomRotation.UseCompatibleTextRendering = True
         Me.cbxObjectRandomRotation.UseVisualStyleBackColor = True
         '
-        'btnPlayerSelectObjects
-        '
-        Me.btnPlayerSelectObjects.Location = New System.Drawing.Point(282, 10)
-        Me.btnPlayerSelectObjects.Name = "btnPlayerSelectObjects"
-        Me.btnPlayerSelectObjects.Size = New System.Drawing.Size(92, 32)
-        Me.btnPlayerSelectObjects.TabIndex = 17
-        Me.btnPlayerSelectObjects.Text = "Select All"
-        Me.btnPlayerSelectObjects.UseVisualStyleBackColor = True
-        '
         'Label32
         '
         Me.Label32.Location = New System.Drawing.Point(16, 82)
@@ -1834,6 +1721,27 @@ Partial Class frmMain
         Me.Label22.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label22.UseCompatibleTextRendering = True
         '
+        'Panel2
+        '
+        Me.Panel2.Controls.Add(Me.btnObjectTypeSelect)
+        Me.Panel2.Controls.Add(Me.TabControl1)
+        Me.Panel2.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.Panel2.Location = New System.Drawing.Point(3, 195)
+        Me.Panel2.Name = "Panel2"
+        Me.Panel2.Size = New System.Drawing.Size(404, 359)
+        Me.Panel2.TabIndex = 1
+        '
+        'btnObjectTypeSelect
+        '
+        Me.btnObjectTypeSelect.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.btnObjectTypeSelect.Location = New System.Drawing.Point(313, 0)
+        Me.btnObjectTypeSelect.Name = "btnObjectTypeSelect"
+        Me.btnObjectTypeSelect.Size = New System.Drawing.Size(90, 28)
+        Me.btnObjectTypeSelect.TabIndex = 58
+        Me.btnObjectTypeSelect.Text = "Select"
+        Me.btnObjectTypeSelect.UseCompatibleTextRendering = True
+        Me.btnObjectTypeSelect.UseVisualStyleBackColor = True
+        '
         'TabControl1
         '
         Me.TabControl1.Appearance = System.Windows.Forms.TabAppearance.Buttons
@@ -1841,7 +1749,7 @@ Partial Class frmMain
         Me.TabControl1.Controls.Add(Me.TabPage2)
         Me.TabControl1.Controls.Add(Me.TabPage3)
         Me.TabControl1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.TabControl1.Location = New System.Drawing.Point(3, 195)
+        Me.TabControl1.Location = New System.Drawing.Point(0, 0)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
         Me.TabControl1.Size = New System.Drawing.Size(404, 359)
@@ -1863,7 +1771,6 @@ Partial Class frmMain
         Me.dgvFeatures.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
         Me.dgvFeatures.Dock = System.Windows.Forms.DockStyle.Fill
         Me.dgvFeatures.Location = New System.Drawing.Point(0, 0)
-        Me.dgvFeatures.MultiSelect = False
         Me.dgvFeatures.Name = "dgvFeatures"
         Me.dgvFeatures.ReadOnly = True
         Me.dgvFeatures.RowHeadersVisible = False
@@ -1888,7 +1795,6 @@ Partial Class frmMain
         Me.dgvStructures.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
         Me.dgvStructures.Dock = System.Windows.Forms.DockStyle.Fill
         Me.dgvStructures.Location = New System.Drawing.Point(0, 0)
-        Me.dgvStructures.MultiSelect = False
         Me.dgvStructures.Name = "dgvStructures"
         Me.dgvStructures.ReadOnly = True
         Me.dgvStructures.RowHeadersVisible = False
@@ -1913,7 +1819,6 @@ Partial Class frmMain
         Me.dgvDroids.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
         Me.dgvDroids.Dock = System.Windows.Forms.DockStyle.Fill
         Me.dgvDroids.Location = New System.Drawing.Point(0, 0)
-        Me.dgvDroids.MultiSelect = False
         Me.dgvDroids.Name = "dgvDroids"
         Me.dgvDroids.ReadOnly = True
         Me.dgvDroids.RowHeadersVisible = False
@@ -1930,7 +1835,7 @@ Partial Class frmMain
         Me.tpObject.Name = "tpObject"
         Me.tpObject.Size = New System.Drawing.Size(410, 557)
         Me.tpObject.TabIndex = 6
-        Me.tpObject.Text = "Object Properties"
+        Me.tpObject.Text = "Object"
         Me.tpObject.UseVisualStyleBackColor = True
         '
         'TableLayoutPanel8
@@ -2215,6 +2120,8 @@ Partial Class frmMain
         '
         'Panel14
         '
+        Me.Panel14.Controls.Add(Me.btnFlatSelected)
+        Me.Panel14.Controls.Add(Me.btnAlignObjects)
         Me.Panel14.Controls.Add(Me.Label31)
         Me.Panel14.Controls.Add(Me.Label30)
         Me.Panel14.Controls.Add(Me.cbxDesignableOnly)
@@ -2240,6 +2147,28 @@ Partial Class frmMain
         Me.Panel14.Name = "Panel14"
         Me.Panel14.Size = New System.Drawing.Size(404, 344)
         Me.Panel14.TabIndex = 1
+        '
+        'btnFlatSelected
+        '
+        Me.btnFlatSelected.Location = New System.Drawing.Point(238, 147)
+        Me.btnFlatSelected.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnFlatSelected.Name = "btnFlatSelected"
+        Me.btnFlatSelected.Size = New System.Drawing.Size(120, 30)
+        Me.btnFlatSelected.TabIndex = 7
+        Me.btnFlatSelected.Text = "Flatten Terrain"
+        Me.btnFlatSelected.UseCompatibleTextRendering = True
+        Me.btnFlatSelected.UseVisualStyleBackColor = True
+        '
+        'btnAlignObjects
+        '
+        Me.btnAlignObjects.Location = New System.Drawing.Point(238, 117)
+        Me.btnAlignObjects.Margin = New System.Windows.Forms.Padding(4)
+        Me.btnAlignObjects.Name = "btnAlignObjects"
+        Me.btnAlignObjects.Size = New System.Drawing.Size(120, 30)
+        Me.btnAlignObjects.TabIndex = 6
+        Me.btnAlignObjects.Text = "Realign"
+        Me.btnAlignObjects.UseCompatibleTextRendering = True
+        Me.btnAlignObjects.UseVisualStyleBackColor = True
         '
         'Label31
         '
@@ -2455,21 +2384,21 @@ Partial Class frmMain
         Me.Label26.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         Me.Label26.UseCompatibleTextRendering = True
         '
-        'tpCampaignMarkers
+        'tpLabels
         '
-        Me.tpCampaignMarkers.Controls.Add(Me.Label11)
-        Me.tpCampaignMarkers.Controls.Add(Me.Label43)
-        Me.tpCampaignMarkers.Controls.Add(Me.Label42)
-        Me.tpCampaignMarkers.Controls.Add(Me.lstScriptAreas)
-        Me.tpCampaignMarkers.Controls.Add(Me.lstScriptPositions)
-        Me.tpCampaignMarkers.Controls.Add(Me.btnScriptAreaCreate)
-        Me.tpCampaignMarkers.Controls.Add(Me.GroupBox1)
-        Me.tpCampaignMarkers.Location = New System.Drawing.Point(4, 51)
-        Me.tpCampaignMarkers.Name = "tpCampaignMarkers"
-        Me.tpCampaignMarkers.Size = New System.Drawing.Size(410, 557)
-        Me.tpCampaignMarkers.TabIndex = 7
-        Me.tpCampaignMarkers.Text = "Script Markers"
-        Me.tpCampaignMarkers.UseVisualStyleBackColor = True
+        Me.tpLabels.Controls.Add(Me.Label11)
+        Me.tpLabels.Controls.Add(Me.Label43)
+        Me.tpLabels.Controls.Add(Me.Label42)
+        Me.tpLabels.Controls.Add(Me.lstScriptAreas)
+        Me.tpLabels.Controls.Add(Me.lstScriptPositions)
+        Me.tpLabels.Controls.Add(Me.btnScriptAreaCreate)
+        Me.tpLabels.Controls.Add(Me.GroupBox1)
+        Me.tpLabels.Location = New System.Drawing.Point(4, 51)
+        Me.tpLabels.Name = "tpLabels"
+        Me.tpLabels.Size = New System.Drawing.Size(410, 557)
+        Me.tpLabels.TabIndex = 7
+        Me.tpLabels.Text = "Labels"
+        Me.tpLabels.UseVisualStyleBackColor = True
         '
         'Label11
         '
@@ -2894,7 +2823,7 @@ Partial Class frmMain
         Me.tsbSelectionObjects.ImageTransparentColor = System.Drawing.Color.Magenta
         Me.tsbSelectionObjects.Name = "tsbSelectionObjects"
         Me.tsbSelectionObjects.Size = New System.Drawing.Size(23, 22)
-        Me.tsbSelectionObjects.Text = "Select Units"
+        Me.tsbSelectionObjects.Text = "Select Objects"
         '
         'tsMinimap
         '
@@ -2969,7 +2898,7 @@ Partial Class frmMain
         'menuMain
         '
         Me.menuMain.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.menuOptions})
+        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.menuTools, Me.menuOptions})
         Me.menuMain.Location = New System.Drawing.Point(0, 0)
         Me.menuMain.Name = "menuMain"
         Me.menuMain.Padding = New System.Windows.Forms.Padding(8, 2, 0, 2)
@@ -3132,11 +3061,58 @@ Partial Class frmMain
         Me.CloseToolStripMenuItem.Size = New System.Drawing.Size(177, 24)
         Me.CloseToolStripMenuItem.Text = "Quit"
         '
+        'menuTools
+        '
+        Me.menuTools.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuReinterpret, Me.menuWaterCorrection, Me.ToolStripSeparator9, Me.menuFlatOil, Me.menuFlatStructures, Me.ToolStripSeparator12, Me.menuGenerator})
+        Me.menuTools.Name = "menuTools"
+        Me.menuTools.Size = New System.Drawing.Size(57, 27)
+        Me.menuTools.Text = "Tools"
+        '
+        'menuReinterpret
+        '
+        Me.menuReinterpret.Name = "menuReinterpret"
+        Me.menuReinterpret.Size = New System.Drawing.Size(249, 24)
+        Me.menuReinterpret.Text = "Reinterpret Terrain"
+        '
+        'menuWaterCorrection
+        '
+        Me.menuWaterCorrection.Name = "menuWaterCorrection"
+        Me.menuWaterCorrection.Size = New System.Drawing.Size(249, 24)
+        Me.menuWaterCorrection.Text = "Water Triangle Correction"
+        '
+        'ToolStripSeparator9
+        '
+        Me.ToolStripSeparator9.Name = "ToolStripSeparator9"
+        Me.ToolStripSeparator9.Size = New System.Drawing.Size(246, 6)
+        '
+        'menuFlatOil
+        '
+        Me.menuFlatOil.Name = "menuFlatOil"
+        Me.menuFlatOil.Size = New System.Drawing.Size(249, 24)
+        Me.menuFlatOil.Text = "Flatten Under Oils"
+        '
+        'menuFlatStructures
+        '
+        Me.menuFlatStructures.Name = "menuFlatStructures"
+        Me.menuFlatStructures.Size = New System.Drawing.Size(249, 24)
+        Me.menuFlatStructures.Text = "Flatten Under Structures"
+        '
+        'ToolStripSeparator12
+        '
+        Me.ToolStripSeparator12.Name = "ToolStripSeparator12"
+        Me.ToolStripSeparator12.Size = New System.Drawing.Size(246, 6)
+        '
+        'menuGenerator
+        '
+        Me.menuGenerator.Name = "menuGenerator"
+        Me.menuGenerator.Size = New System.Drawing.Size(249, 24)
+        Me.menuGenerator.Text = "Generator..."
+        '
         'menuOptions
         '
         Me.menuOptions.Name = "menuOptions"
-        Me.menuOptions.Size = New System.Drawing.Size(73, 27)
-        Me.menuOptions.Text = "Options"
+        Me.menuOptions.Size = New System.Drawing.Size(82, 27)
+        Me.menuOptions.Text = "Options..."
         '
         'TableLayoutPanel5
         '
@@ -3255,8 +3231,6 @@ Partial Class frmMain
         Me.tpHeight.PerformLayout()
         Me.tabHeightSetR.ResumeLayout(False)
         Me.tabHeightSetL.ResumeLayout(False)
-        Me.tpMisc.ResumeLayout(False)
-        Me.GroupBox2.ResumeLayout(False)
         Me.tpResize.ResumeLayout(False)
         Me.tpResize.PerformLayout()
         Me.tpObjects.ResumeLayout(False)
@@ -3265,6 +3239,7 @@ Partial Class frmMain
         Me.Panel1.PerformLayout()
         Me.GroupBox3.ResumeLayout(False)
         Me.GroupBox3.PerformLayout()
+        Me.Panel2.ResumeLayout(False)
         Me.TabControl1.ResumeLayout(False)
         Me.TabPage1.ResumeLayout(False)
         CType(Me.dgvFeatures, System.ComponentModel.ISupportInitialize).EndInit()
@@ -3286,8 +3261,8 @@ Partial Class frmMain
         Me.Panel8.ResumeLayout(False)
         Me.Panel14.ResumeLayout(False)
         Me.Panel14.PerformLayout()
-        Me.tpCampaignMarkers.ResumeLayout(False)
-        Me.tpCampaignMarkers.PerformLayout()
+        Me.tpLabels.ResumeLayout(False)
+        Me.tpLabels.PerformLayout()
         Me.GroupBox1.ResumeLayout(False)
         Me.GroupBox1.PerformLayout()
         Me.TableLayoutPanel7.ResumeLayout(False)
@@ -3317,8 +3292,6 @@ Partial Class frmMain
     Public WithEvents cboTileset As System.Windows.Forms.ComboBox
     Public WithEvents txtAutoCliffSlope As System.Windows.Forms.TextBox
     Public WithEvents Label1 As System.Windows.Forms.Label
-    Public WithEvents tpMisc As System.Windows.Forms.TabPage
-    Public WithEvents btnAutoTri As System.Windows.Forms.Button
     Public WithEvents txtHeightSetL As System.Windows.Forms.TextBox
     Public WithEvents Label5 As System.Windows.Forms.Label
     Public WithEvents txtSmoothRate As System.Windows.Forms.TextBox
@@ -3426,7 +3399,6 @@ Partial Class frmMain
     Public WithEvents TableLayoutPanel7 As System.Windows.Forms.TableLayoutPanel
     Public WithEvents Panel7 As System.Windows.Forms.Panel
     Public WithEvents pnlView As System.Windows.Forms.Panel
-    Public WithEvents btnReinterpretTerrain As System.Windows.Forms.Button
     Public WithEvents Label26 As System.Windows.Forms.Label
     Public WithEvents txtHeightSetR As System.Windows.Forms.TextBox
     Public WithEvents Label27 As System.Windows.Forms.Label
@@ -3459,7 +3431,6 @@ Partial Class frmMain
     Private WithEvents TabControl As System.Windows.Forms.TabControl
     Public WithEvents tsbSelectionObjects As System.Windows.Forms.ToolStripButton
     Public WithEvents tsbDrawAutotexture As System.Windows.Forms.ToolStripButton
-    Public WithEvents btnWaterTri As System.Windows.Forms.Button
     Public WithEvents tsbSelectionFlipX As System.Windows.Forms.ToolStripButton
     Public WithEvents btnHeightOffsetSelection As System.Windows.Forms.Button
     Public WithEvents btnHeightsMultiplySelection As System.Windows.Forms.Button
@@ -3477,7 +3448,6 @@ Partial Class frmMain
     Public WithEvents ToolStripSeparator10 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents menuSelPasteGateways As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents menuSelPasteDeleteGateways As System.Windows.Forms.ToolStripMenuItem
-    Public WithEvents btnGenerator As System.Windows.Forms.Button
     Public WithEvents menuMiniShowCliffs As System.Windows.Forms.ToolStripMenuItem
     Public WithEvents cbxInvalidTiles As System.Windows.Forms.CheckBox
     Public WithEvents menuRotateWalls As System.Windows.Forms.ToolStripMenuItem
@@ -3525,13 +3495,12 @@ Partial Class frmMain
     Public WithEvents ToolStripSeparator11 As System.Windows.Forms.ToolStripSeparator
     Public WithEvents rdoCliffTriBrush As System.Windows.Forms.RadioButton
     Public WithEvents btnTextureClockwise As System.Windows.Forms.Button
-    Public WithEvents btnFlatOil As System.Windows.Forms.Button
     Public WithEvents rdoFillCliffIgnore As System.Windows.Forms.RadioButton
     Public WithEvents rdoFillCliffStopAfter As System.Windows.Forms.RadioButton
     Public WithEvents rdoFillCliffStopBefore As System.Windows.Forms.RadioButton
     Friend WithEvents Panel15 As System.Windows.Forms.Panel
     Friend WithEvents ToolStripSeparator8 As System.Windows.Forms.ToolStripSeparator
-    Friend WithEvents tpCampaignMarkers As System.Windows.Forms.TabPage
+    Friend WithEvents tpLabels As System.Windows.Forms.TabPage
     Friend WithEvents GroupBox1 As System.Windows.Forms.GroupBox
     Public WithEvents Label2 As System.Windows.Forms.Label
     Public WithEvents txtScriptMarkerY As System.Windows.Forms.TextBox
@@ -3554,8 +3523,6 @@ Partial Class frmMain
     Public WithEvents txtObjectLabel As System.Windows.Forms.TextBox
     Public WithEvents Label17 As System.Windows.Forms.Label
     Public WithEvents btnAlignObjects As System.Windows.Forms.Button
-    Public WithEvents btnFlatStructures As System.Windows.Forms.Button
-    Friend WithEvents GroupBox2 As System.Windows.Forms.GroupBox
     Public WithEvents btnFlatSelected As System.Windows.Forms.Button
     Friend WithEvents TabControl1 As System.Windows.Forms.TabControl
     Friend WithEvents TabPage1 As System.Windows.Forms.TabPage
@@ -3578,4 +3545,14 @@ Partial Class frmMain
     Friend WithEvents dgvStructures As System.Windows.Forms.DataGridView
     Friend WithEvents dgvDroids As System.Windows.Forms.DataGridView
     Public WithEvents Label44 As System.Windows.Forms.Label
+    Friend WithEvents menuTools As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuReinterpret As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuWaterCorrection As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator9 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents menuGenerator As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuFlatOil As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuFlatStructures As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator12 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents Panel2 As System.Windows.Forms.Panel
+    Public WithEvents btnObjectTypeSelect As System.Windows.Forms.Button
 End Class

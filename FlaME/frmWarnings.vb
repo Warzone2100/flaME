@@ -22,7 +22,13 @@ Public Class frmWarnings
 
     Private Sub NodeDoubleClicked(sender As Object, e As TreeNodeMouseClickEventArgs)
 
-        Dim item As iResultItem = CType(e.Node.Tag, iResultItem)
+        If e.Button <> Windows.Forms.MouseButtons.Left Then
+            Exit Sub
+        End If
+        Dim item As clsResultItemInterface = CType(e.Node.Tag, clsResultItemInterface)
+        If item Is Nothing Then
+            Exit Sub
+        End If
         item.DoubleClicked()
     End Sub
 

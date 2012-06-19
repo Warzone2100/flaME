@@ -751,17 +751,25 @@ Partial Public Class clsMap
                     End If
                 End If
             Next
+            Dim drawTile As New clsDrawTileOld
+            drawTile.Map = Me
             For TileY = StartY To FinishY
+                drawTile.TileY = TileY
                 For TileX = StartX To FinishX
                     If Not IsBasePlate(TileX - StartX, TileY - StartY) Then
-                        DrawTile(TileX, TileY)
+                        drawTile.TileX = TileX
+                        drawTile.Perform()
                     End If
                 Next
             Next
         Else
+            Dim drawTile As New clsDrawTileOld
+            drawTile.Map = Me
             For TileY = StartY To FinishY
+                drawTile.TileY = TileY
                 For TileX = StartX To FinishX
-                    DrawTile(TileX, TileY)
+                    drawTile.TileX = TileX
+                    drawTile.Perform()
                 Next
             Next
         End If
@@ -864,108 +872,6 @@ Partial Public Class clsMap
         GL.Vertex3(Vertex2.Horizontal.X, Vertex2.Altitude, Vertex2.Horizontal.Y)
     End Sub
 
-    Public Sub DrawTile(TileX As Integer, TileY As Integer)
-        Dim TileTerrainHeight(3) As Double
-        Dim Vertex0 As sXYZ_sng
-        Dim Vertex1 As sXYZ_sng
-        Dim Vertex2 As sXYZ_sng
-        Dim Vertex3 As sXYZ_sng
-        Dim Normal0 As sXYZ_sng
-        Dim Normal1 As sXYZ_sng
-        Dim Normal2 As sXYZ_sng
-        Dim Normal3 As sXYZ_sng
-        Dim TexCoord0 As sXY_sng
-        Dim TexCoord1 As sXY_sng
-        Dim TexCoord2 As sXY_sng
-        Dim TexCoord3 As sXY_sng
-        Dim A As Integer
-
-        If Terrain.Tiles(TileX, TileY).Texture.TextureNum < 0 Then
-            GL.BindTexture(TextureTarget.Texture2D, GLTexture_NoTile)
-        ElseIf Tileset Is Nothing Then
-            GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
-        ElseIf Terrain.Tiles(TileX, TileY).Texture.TextureNum < Tileset.TileCount Then
-            A = Tileset.Tiles(Terrain.Tiles(TileX, TileY).Texture.TextureNum).MapView_GL_Texture_Num
-            If A = 0 Then
-                GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
-            Else
-                GL.BindTexture(TextureTarget.Texture2D, A)
-            End If
-        Else
-            GL.BindTexture(TextureTarget.Texture2D, GLTexture_OverflowTile)
-        End If
-        GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
-
-        TileTerrainHeight(0) = Terrain.Vertices(TileX, TileY).Height
-        TileTerrainHeight(1) = Terrain.Vertices(TileX + 1, TileY).Height
-        TileTerrainHeight(2) = Terrain.Vertices(TileX, TileY + 1).Height
-        TileTerrainHeight(3) = Terrain.Vertices(TileX + 1, TileY + 1).Height
-
-        GetTileRotatedTexCoords(Terrain.Tiles(TileX, TileY).Texture.Orientation, TexCoord0, TexCoord1, TexCoord2, TexCoord3)
-
-        Vertex0.X = CSng(TileX * TerrainGridSpacing)
-        Vertex0.Y = CSng(TileTerrainHeight(0) * HeightMultiplier)
-        Vertex0.Z = CSng(-TileY * TerrainGridSpacing)
-        Vertex1.X = CSng((TileX + 1) * TerrainGridSpacing)
-        Vertex1.Y = CSng(TileTerrainHeight(1) * HeightMultiplier)
-        Vertex1.Z = CSng(-TileY * TerrainGridSpacing)
-        Vertex2.X = CSng(TileX * TerrainGridSpacing)
-        Vertex2.Y = CSng(TileTerrainHeight(2) * HeightMultiplier)
-        Vertex2.Z = CSng(-(TileY + 1) * TerrainGridSpacing)
-        Vertex3.X = CSng((TileX + 1) * TerrainGridSpacing)
-        Vertex3.Y = CSng(TileTerrainHeight(3) * HeightMultiplier)
-        Vertex3.Z = CSng(-(TileY + 1) * TerrainGridSpacing)
-
-        Normal0 = TerrainVertexNormalCalc(TileX, TileY)
-        Normal1 = TerrainVertexNormalCalc(TileX + 1, TileY)
-        Normal2 = TerrainVertexNormalCalc(TileX, TileY + 1)
-        Normal3 = TerrainVertexNormalCalc(TileX + 1, TileY + 1)
-
-        GL.Begin(BeginMode.Triangles)
-        If Terrain.Tiles(TileX, TileY).Tri Then
-            GL.Normal3(Normal0.X, Normal0.Y, -Normal0.Z)
-            GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-            GL.Normal3(Normal2.X, Normal2.Y, -Normal2.Z)
-            GL.TexCoord2(TexCoord2.X, TexCoord2.Y)
-            GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-            GL.Normal3(Normal1.X, Normal1.Y, -Normal1.Z)
-            GL.TexCoord2(TexCoord1.X, TexCoord1.Y)
-            GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-
-            GL.Normal3(Normal1.X, Normal1.Y, -Normal1.Z)
-            GL.TexCoord2(TexCoord1.X, TexCoord1.Y)
-            GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-            GL.Normal3(Normal2.X, Normal2.Y, -Normal2.Z)
-            GL.TexCoord2(TexCoord2.X, TexCoord2.Y)
-            GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-            GL.Normal3(Normal3.X, Normal3.Y, -Normal3.Z)
-            GL.TexCoord2(TexCoord3.X, TexCoord3.Y)
-            GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-        Else
-            GL.Normal3(Normal0.X, Normal0.Y, -Normal0.Z)
-            GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-            GL.Normal3(Normal2.X, Normal2.Y, -Normal2.Z)
-            GL.TexCoord2(TexCoord2.X, TexCoord2.Y)
-            GL.Vertex3(Vertex2.X, Vertex2.Y, -Vertex2.Z)
-            GL.Normal3(Normal3.X, Normal3.Y, -Normal3.Z)
-            GL.TexCoord2(TexCoord3.X, TexCoord3.Y)
-            GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-
-            GL.Normal3(Normal0.X, Normal0.Y, -Normal0.Z)
-            GL.TexCoord2(TexCoord0.X, TexCoord0.Y)
-            GL.Vertex3(Vertex0.X, Vertex0.Y, -Vertex0.Z)
-            GL.Normal3(Normal3.X, Normal3.Y, -Normal3.Z)
-            GL.TexCoord2(TexCoord3.X, TexCoord3.Y)
-            GL.Vertex3(Vertex3.X, Vertex3.Y, -Vertex3.Z)
-            GL.Normal3(Normal1.X, Normal1.Y, -Normal1.Z)
-            GL.TexCoord2(TexCoord1.X, TexCoord1.Y)
-            GL.Vertex3(Vertex1.X, Vertex1.Y, -Vertex1.Z)
-        End If
-        GL.End()
-    End Sub
-
     Protected Sub MinimapTextureFill(Texture As clsMinimapTexture)
         Dim X As Integer
         Dim Y As Integer
@@ -1056,7 +962,7 @@ Partial Public Class clsMap
             Dim Unit As clsUnit
             For Each Unit In Units
                 Flag = True
-                If frmMainInstance.SelectedObjectType Is Unit.Type Then
+                If Unit.Type.UnitType_frmMainSelectedLink.IsConnected Then
                     Flag = False
                 Else
                     Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
@@ -1099,7 +1005,7 @@ Partial Public Class clsMap
             AntiAlpha = 1.0F - Alpha
             For Each Unit In Units
                 Flag = False
-                If frmMainInstance.SelectedObjectType Is Unit.Type Then
+                If Unit.Type.UnitType_frmMainSelectedLink.IsConnected Then
                     Flag = True
                     Footprint = Unit.Type.GetFootprintSelected(Unit.Rotation)
                     Footprint.X += 2
@@ -1414,7 +1320,7 @@ Partial Public Class clsMap
         UndoPosition = Undos.Count
     End Sub
 
-    Public Sub Undo_Perform()
+    Public Sub UndoPerform()
         Dim ThisUndo As clsMap.clsUndo
 
         UndoStepCreate("Incomplete Action") 'make another redo step incase something has changed, such as if user presses undo while still dragging a tool
@@ -1486,7 +1392,7 @@ Partial Public Class clsMap
         frmMainInstance.SelectedObject_Changed()
     End Sub
 
-    Public Sub Redo_Perform()
+    Public Sub RedoPerform()
         Dim ThisUndo As clsUndo
 
         ThisUndo = Undos(UndoPosition)
@@ -1535,7 +1441,7 @@ Partial Public Class clsMap
         Next
 
         Dim GatewayChange As clsGatewayChange
-        For A As Integer = 0 To ThisUndo.GatewayChanges.Count - 1 'forward order in important
+        For A As Integer = 0 To ThisUndo.GatewayChanges.Count - 1 'forward order is important
             GatewayChange = ThisUndo.GatewayChanges(A)
             Select Case GatewayChange.Type
                 Case clsGatewayChange.enumType.Added

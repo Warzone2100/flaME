@@ -44,7 +44,7 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>Mono=0.0,Portable=0.0</DefineConstants>
+    <DefineConstants>Mono=0.0,Portable=1.0</DefineConstants>
     <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
@@ -59,8 +59,9 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>Mono=0.0,Portable=0.0</DefineConstants>
+    <DefineConstants>Mono=0.0,Portable=1.0</DefineConstants>
     <UseVSHostingProcess>true</UseVSHostingProcess>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -119,6 +120,7 @@
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
     <Compile Include="clsHeightmap.vb" />
+    <Compile Include="clsMapRender.vb" />
     <Compile Include="frmKeyboardControl.Designer.vb">
       <DependentUpon>frmKeyboardControl.vb</DependentUpon>
     </Compile>

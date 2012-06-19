@@ -563,7 +563,8 @@ Partial Public Class clsMap
     Public Sub SetObjectCreatorDefaults(objectCreator As clsMap.clsUnitCreate)
 
         objectCreator.Map = Me
-        objectCreator.ObjectType = frmMainInstance.SelectedObjectType
+
+        objectCreator.ObjectType = frmMainInstance.SingleSelectedObjectType
         objectCreator.AutoWalls = frmMainInstance.cbxAutoWalls.Checked
         objectCreator.UnitGroup = SelectedUnitGroup.Item
         Try
