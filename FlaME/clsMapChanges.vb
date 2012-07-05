@@ -176,6 +176,23 @@ Partial Public Class clsMap
 
             SectorNum = Map.GetTileSectorNum(Num)
             Changed(SectorNum)
+            'for v3 renderer
+            SectorNum = Map.GetTileSectorNum(New sXY_int(Num.X - 1, Num.Y - 1))
+            If Map.SectorIsOnMap(SectorNum) Then
+                Changed(SectorNum)
+            End If
+            SectorNum = Map.GetTileSectorNum(New sXY_int(Num.X + 1, Num.Y - 1))
+            If Map.SectorIsOnMap(SectorNum) Then
+                Changed(SectorNum)
+            End If
+            SectorNum = Map.GetTileSectorNum(New sXY_int(Num.X - 1, Num.Y + 1))
+            If Map.SectorIsOnMap(SectorNum) Then
+                Changed(SectorNum)
+            End If
+            SectorNum = Map.GetTileSectorNum(New sXY_int(Num.X + 1, Num.Y + 1))
+            If Map.SectorIsOnMap(SectorNum) Then
+                Changed(SectorNum)
+            End If
         End Sub
     End Class
 

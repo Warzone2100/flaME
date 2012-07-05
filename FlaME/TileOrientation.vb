@@ -11,10 +11,10 @@ Public Module TileOrientation
         Public ResultYFlip As Boolean
         Public SwitchedAxes As Boolean
 
-        Public Sub New(ResultXFlip As Boolean, ResultZFlip As Boolean, SwitchedAxes As Boolean)
+        Public Sub New(ResultXFlip As Boolean, ResultYFlip As Boolean, SwitchedAxes As Boolean)
 
             Me.ResultXFlip = ResultXFlip
-            Me.ResultYFlip = ResultZFlip
+            Me.ResultYFlip = ResultYFlip
             Me.SwitchedAxes = SwitchedAxes
         End Sub
 
@@ -139,7 +139,7 @@ Public Module TileOrientation
             Y = byteTemp
         End Sub
 
-        Public Sub RotateAnticlockwise()
+        Public Sub RotateCounterClockwise()
             Dim byteTemp As Byte
 
             byteTemp = X
@@ -166,7 +166,7 @@ Public Module TileOrientation
     Public TileDirection_Left As New sTileDirection(0, 1)
     Public TileDirection_None As New sTileDirection(1, 1)
 
-    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.sTileOrientationChance, NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
+    Public Function OrientateTile(ByRef TileChance As clsPainter.clsTileList.clsTileOrientationChance, NewDirection As sTileDirection) As clsMap.clsTerrain.Tile.sTexture
         Dim ReturnResult As clsMap.clsTerrain.Tile.sTexture
 
         'use random for empty tiles

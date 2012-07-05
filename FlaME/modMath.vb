@@ -44,6 +44,15 @@ Public Module modMath
             Return result
         End Operator
 
+        Public Shared Operator *(a As sXY_int, b As Integer) As sXY_int
+            Dim result As sXY_int
+
+            result.X = a.X * b
+            result.Y = a.Y * b
+
+            Return result
+        End Operator
+
         Public Shared Operator *(a As sXY_int, b As Double) As Matrix3D.XY_dbl
             Dim result As Matrix3D.XY_dbl
 

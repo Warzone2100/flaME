@@ -319,7 +319,7 @@ Public Class frmCompile
 
         Dim PlayerHQCount(PlayerCountMax - 1) As Integer
         Dim Player23TruckCount(PlayerCountMax - 1) As Integer
-        Dim PlayerMasterTruckCount(PlayerCountMax - 1) As Integer
+        Dim Player31TruckCount(PlayerCountMax - 1) As Integer
         Dim ScavPlayerNum As Integer
         Dim ScavObjectCount As Integer = 0
         Dim DroidType As clsDroidDesign
@@ -337,7 +337,7 @@ Public Class frmCompile
                     DroidType = CType(Unit.Type, clsDroidDesign)
                     If DroidType.Body IsNot Nothing And DroidType.Propulsion IsNot Nothing And DroidType.Turret1 IsNot Nothing And DroidType.TurretCount = 1 Then
                         If DroidType.Turret1.TurretType = clsTurret.enumTurretType.Construct Then
-                            PlayerMasterTruckCount(Unit.UnitGroup.WZ_StartPos) += 1
+                            Player31TruckCount(Unit.UnitGroup.WZ_StartPos) += 1
                             If DroidType.IsTemplate Then
                                 Player23TruckCount(Unit.UnitGroup.WZ_StartPos) += 1
                             End If
@@ -374,10 +374,10 @@ Public Class frmCompile
             If PlayerHQCount(A) = 0 Then
                 Result.ProblemAdd("There is no Command Centre for player " & A & ".")
             End If
-            If PlayerMasterTruckCount(A) = 0 Then
+            If Player31TruckCount(A) = 0 Then
                 Result.ProblemAdd("There are no constructor units for player " & A & ".")
             ElseIf Player23TruckCount(A) = 0 Then
-                Result.WarningAdd("All constructor units for player " & A & " will only exist in master.")
+                Result.WarningAdd("All constructor units for player " & A & " will only exist in 3.1+.")
             End If
         Next
 
@@ -443,7 +443,7 @@ Public Class frmCompile
             For X = 0 To Map.Terrain.TileSize.X - 1
                 If Map.Terrain.Tiles(X, Y).Tri Then
                     If Map.Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Map.Terrain.Tiles(X, Y).Texture.TextureNum < Map.Tileset.TileCount Then
-                        If Map.Tileset.Tiles(Map.Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
+                        If Map.Tileset.Tiles(Map.Terrain.Tiles(X, Y).Texture.TextureNum).DefaultType = TileTypeNum_Water Then
                             Count += 1
                         End If
                     End If

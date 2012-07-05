@@ -8,7 +8,8 @@ Public Class frmOptions
     Private MinimapSelectedObjectColour As clsRGBA_sng
     Private clrMinimapSelectedObjects As ctrlColour
     Private ObjectDataPathSet As New ctrlPathSet("Object Data Directories")
-    Private TilesetsPathSet As New ctrlPathSet("Tilesets Directories")
+    Private TilesetsPathSet As New ctrlPathSet("v2 Tilesets Directories")
+    Private RendererPathSet As New ctrlPathSet("v3 Tilesets Directories")
 
     Private ChangedKeyControls As clsKeyboardProfile
 
@@ -27,8 +28,10 @@ Public Class frmOptions
 
         TilesetsPathSet.Dock = DockStyle.Fill
         ObjectDataPathSet.Dock = DockStyle.Fill
+        RendererPathSet.Dock = DockStyle.Fill
         TableLayoutPanel1.Controls.Add(TilesetsPathSet, 0, 0)
         TableLayoutPanel1.Controls.Add(ObjectDataPathSet, 0, 1)
+        TableLayoutPanel1.Controls.Add(RendererPathSet, 0, 2)
 
         ChangedKeyControls = CType(KeyboardProfile.GetCopy(New clsKeyboardProfileCreator), clsKeyboardProfile)
 
@@ -59,13 +62,16 @@ Public Class frmOptions
 
         TilesetsPathSet.SetPaths(Settings.TilesetDirectories)
         ObjectDataPathSet.SetPaths(Settings.ObjectDataDirectories)
+        RendererPathSet.SetPaths(Settings.RendererDirectories)
         TilesetsPathSet.SelectedNum = Clamp_int(CType(Settings.Value(Setting_DefaultTilesetsPathNum), Integer), -1, Settings.TilesetDirectories.Count - 1)
         ObjectDataPathSet.SelectedNum = Clamp_int(CType(Settings.Value(Setting_DefaultObjectDataPathNum), Integer), -1, Settings.ObjectDataDirectories.Count - 1)
+        RendererPathSet.SelectedNum = Clamp_int(CType(Settings.Value(Setting_DefaultRendererPathNum), Integer), -1, Settings.RendererDirectories.Count - 1)
 
         txtMapBPP.Text = InvariantToString_int(Settings.MapViewBPP)
         txtMapDepth.Text = InvariantToString_int(Settings.MapViewDepth)
         txtTexturesBPP.Text = InvariantToString_int(Settings.TextureViewBPP)
         txtTexturesDepth.Text = InvariantToString_int(Settings.TextureViewDepth)
+        txtAA.Text = InvariantToString_int(Settings.Antialiasing)
 
         cbxPickerOrientation.Checked = Settings.PickOrientation
 
@@ -89,6 +95,9 @@ Public Class frmOptions
         NewSettings.Changes(Setting_DirectoriesPrompt) = New clsOptionProfile.clsChange(Of Boolean)(cbxAskDirectories.Checked)
         NewSettings.Changes(Setting_DirectPointer) = New clsOptionProfile.clsChange(Of Boolean)(cbxPointerDirect.Checked)
         NewSettings.Changes(Setting_FontFamily) = New clsOptionProfile.clsChange(Of FontFamily)(DisplayFont.FontFamily)
+        NewSettings.Changes(Setting_FontSize) = New clsOptionProfile.clsChange(Of Single)(DisplayFont.SizeInPoints)
+        NewSettings.Changes(Setting_FontBold) = New clsOptionProfile.clsChange(Of Boolean)(DisplayFont.Bold)
+        NewSettings.Changes(Setting_FontItalic) = New clsOptionProfile.clsChange(Of Boolean)(DisplayFont.Italic)
         If InvariantParse_dbl(txtFOV.Text, dblTemp) Then
             NewSettings.Changes(Setting_FOVDefault) = New clsOptionProfile.clsChange(Of Double)(dblTemp)
         End If
@@ -106,18 +115,25 @@ Public Class frmOptions
         End If
         Dim tilesetPaths As New SimpleList(Of String)
         Dim objectsPaths As New SimpleList(Of String)
+        Dim rendererPaths As New SimpleList(Of String)
         Dim controlTilesetPaths() As String = TilesetsPathSet.GetPaths
         Dim controlobjectsPaths() As String = ObjectDataPathSet.GetPaths
+        Dim controlrendererPaths() As String = RendererPathSet.GetPaths
         For i As Integer = 0 To controlTilesetPaths.GetUpperBound(0)
             tilesetPaths.Add(controlTilesetPaths(i))
         Next
         For i As Integer = 0 To controlobjectsPaths.GetUpperBound(0)
             objectsPaths.Add(controlobjectsPaths(i))
         Next
+        For i As Integer = 0 To controlrendererPaths.GetUpperBound(0)
+            rendererPaths.Add(controlrendererPaths(i))
+        Next
         NewSettings.Changes(Setting_TilesetDirectories) = New clsOptionProfile.clsChange(Of SimpleList(Of String))(tilesetPaths)
         NewSettings.Changes(Setting_ObjectDataDirectories) = New clsOptionProfile.clsChange(Of SimpleList(Of String))(objectsPaths)
+        NewSettings.Changes(Setting_RendererDirectories) = New clsOptionProfile.clsChange(Of SimpleList(Of String))(rendererPaths)
         NewSettings.Changes(Setting_DefaultTilesetsPathNum) = New clsOptionProfile.clsChange(Of Integer)(TilesetsPathSet.SelectedNum)
         NewSettings.Changes(Setting_DefaultObjectDataPathNum) = New clsOptionProfile.clsChange(Of Integer)(ObjectDataPathSet.SelectedNum)
+        NewSettings.Changes(Setting_DefaultRendererPathNum) = New clsOptionProfile.clsChange(Of Integer)(RendererPathSet.SelectedNum)
         If InvariantParse_int(txtMapBPP.Text, intTemp) Then
             NewSettings.Changes(Setting_MapViewBPP) = New clsOptionProfile.clsChange(Of Integer)(intTemp)
         End If
@@ -131,6 +147,9 @@ Public Class frmOptions
             NewSettings.Changes(Setting_TextureViewDepth) = New clsOptionProfile.clsChange(Of Integer)(intTemp)
         End If
         NewSettings.Changes(Setting_PickOrientation) = New clsOptionProfile.clsChange(Of Boolean)(cbxPickerOrientation.Checked)
+        If InvariantParse_int(txtAA.Text, intTemp) Then
+            NewSettings.Changes(Setting_AA) = New clsOptionProfile.clsChange(Of Integer)(intTemp)
+        End If
 
         UpdateSettings(NewSettings)
 
@@ -177,7 +196,7 @@ Public Class frmOptions
         Dim FontDialog As New Windows.Forms.FontDialog
 
         Dim Result As DialogResult
-        Try 'mono 267 has crashed here
+        Try
             FontDialog.Font = DisplayFont
             FontDialog.FontMustExist = True
             Result = FontDialog.ShowDialog(Me)

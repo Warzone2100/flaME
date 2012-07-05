@@ -44,7 +44,7 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>Mono=0.0,Portable=1.0</DefineConstants>
+    <DefineConstants>Mono=0.0,Portable=0.0</DefineConstants>
     <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
@@ -59,7 +59,7 @@
     </NoWarn>
     <WarningsAsErrors>
     </WarningsAsErrors>
-    <DefineConstants>Mono=0.0,Portable=1.0</DefineConstants>
+    <DefineConstants>Mono=0.0,Portable=0.0</DefineConstants>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
@@ -119,6 +119,7 @@
     <Compile Include="clsComponent.vb" />
     <Compile Include="clsGeneratorMap.vb" />
     <Compile Include="clsGeneratorTileset.vb" />
+    <Compile Include="clsGLView.vb" />
     <Compile Include="clsHeightmap.vb" />
     <Compile Include="clsMapRender.vb" />
     <Compile Include="frmKeyboardControl.Designer.vb">
@@ -143,6 +144,7 @@
     <Compile Include="clsResult.vb" />
     <Compile Include="clsTileset.vb" />
     <Compile Include="Options.vb" />
+    <Compile Include="Renderer.vb" />
     <Compile Include="Tools.vb" />
     <Compile Include="clsUnitType.vb" />
     <Compile Include="clsViewInfo.vb" />

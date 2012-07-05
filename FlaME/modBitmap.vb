@@ -49,12 +49,13 @@ Public Module modBitmap
         Return ReturnResult
     End Function
 
-    Public Structure sBitmapGLTexture
+    Public Class clsBitmapGLTexture
         Public Texture As Bitmap
         Public TextureNum As Integer
         Public MipMapLevel As Integer
         Public MinFilter As TextureMinFilter
         Public MagFilter As TextureMagFilter
+        Public WrapMode As TextureWrapMode = TextureWrapMode.ClampToEdge
 
         Public Sub Perform()
 
@@ -65,8 +66,8 @@ Public Module modBitmap
             End If
             GL.BindTexture(TextureTarget.Texture2D, TextureNum)
             If MipMapLevel = 0 Then
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, TextureWrapMode.ClampToEdge)
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, TextureWrapMode.ClampToEdge)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, WrapMode)
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, WrapMode)
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, MagFilter)
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, MinFilter)
             End If
@@ -74,7 +75,7 @@ Public Module modBitmap
 
             Texture.UnlockBits(BitmapData)
         End Sub
-    End Structure
+    End Class
 
     Public Function BitmapIsGLCompatible(BitmapToCheck As Bitmap) As clsResult
         Dim ReturnResult As New clsResult("Compatability check")

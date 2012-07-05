@@ -97,20 +97,68 @@ Partial Public Class clsMap
 
     Public Class clsSector
         Public Pos As sXY_int
+        Public Structure sGLLayerBuffer
+            Public VertexBuffer As Integer
+            Public Count As Integer
+            Public IndicesBuffer As Integer
+        End Structure
+        Public GLLayerBuffers() As sGLLayerBuffer
+        Public Black As sGLLayerBuffer
         Public GLList_Textured As Integer
         Public GLList_Wireframe As Integer
+        Public GLList_Decals As Integer
         Public Units As New ConnectedList(Of clsMap.clsUnitSectorConnection, clsMap.clsSector)(Me)
 
-        Public Sub DeleteLists()
+        Public Sub DeleteGLRendererTerrain()
+
+            GL.DeleteBuffers(1, Black.VertexBuffer)
+            GL.DeleteBuffers(1, Black.IndicesBuffer)
+            Black.Count = 0
+            If GLLayerBuffers IsNot Nothing Then
+                For i As Integer = 0 To GLLayerBuffers.GetUpperBound(0)
+                    GL.DeleteBuffers(1, GLLayerBuffers(i).VertexBuffer)
+                    GL.DeleteBuffers(1, GLLayerBuffers(i).IndicesBuffer)
+                    'GLLayerBuffers(i).Count = 0
+                Next
+                GLLayerBuffers = Nothing
+            End If
+        End Sub
+
+        Public Sub DeleteGLRendererDecals()
+
+            If GLList_Decals <> 0 Then
+                GL.DeleteLists(GLList_Decals, 1)
+                GLList_Decals = 0
+            End If
+        End Sub
+
+        Public Sub DeleteGLRenderer()
+
+            DeleteGLRendererTerrain()
+            DeleteGLRendererDecals()
+        End Sub
+
+        Public Sub DeleteGLOld()
 
             If GLList_Textured <> 0 Then
                 GL.DeleteLists(GLList_Textured, 1)
                 GLList_Textured = 0
             End If
+        End Sub
+
+        Public Sub DeleteGLWireframe()
+
             If GLList_Wireframe <> 0 Then
                 GL.DeleteLists(GLList_Wireframe, 1)
                 GLList_Wireframe = 0
             End If
+        End Sub
+
+        Public Sub DeleteGL()
+
+            DeleteGLRenderer()
+            DeleteGLOld()
+            DeleteGLWireframe()
         End Sub
 
         Public Sub Deallocate()
@@ -390,6 +438,12 @@ Partial Public Class clsMap
         YG = CInt(Int(Horizontal.Y / TerrainGridSpacing))
         InTileX = Clamp_dbl(Horizontal.X / TerrainGridSpacing - XG, 0.0#, 1.0#)
         InTileZ = Clamp_dbl(Horizontal.Y / TerrainGridSpacing - YG, 0.0#, 1.0#)
+        If XG >= Terrain.TileSize.X Then
+            InTileX = 1.0#
+        End If
+        If YG >= Terrain.TileSize.Y Then
+            InTileZ = 1.0#
+        End If
         X1 = Clamp_int(XG, 0, Terrain.TileSize.X - 1)
         Y1 = Clamp_int(YG, 0, Terrain.TileSize.Y - 1)
         If Terrain.Tiles(X1, Y1).Tri Then
@@ -428,6 +482,12 @@ Partial Public Class clsMap
         YG = CInt(Int(Horizontal.Y / TerrainGridSpacing))
         InTileX = Clamp_dbl(Horizontal.X / TerrainGridSpacing - XG, 0.0#, 1.0#)
         InTileZ = Clamp_dbl(Horizontal.Y / TerrainGridSpacing - YG, 0.0#, 1.0#)
+        If XG >= Terrain.TileSize.X Then
+            InTileX = 1.0#
+        End If
+        If YG >= Terrain.TileSize.Y Then
+            InTileZ = 1.0#
+        End If
         X1 = Clamp_int(XG, 0, Terrain.TileSize.X - 1)
         Y1 = Clamp_int(YG, 0, Terrain.TileSize.Y - 1)
         X2 = Clamp_int(XG + 1, 0, Terrain.TileSize.X)
@@ -488,6 +548,12 @@ Partial Public Class clsMap
         YG = CInt(Int(Horizontal.Y / TerrainGridSpacing))
         InTileX = Clamp_dbl(Horizontal.X / TerrainGridSpacing - XG, 0.0#, 1.0#)
         InTileZ = Clamp_dbl(Horizontal.Y / TerrainGridSpacing - YG, 0.0#, 1.0#)
+        If XG >= Terrain.TileSize.X Then
+            InTileX = 1.0#
+        End If
+        If YG >= Terrain.TileSize.Y Then
+            InTileZ = 1.0#
+        End If
         X1 = Clamp_int(XG, 0, Terrain.TileSize.X - 1)
         Y1 = Clamp_int(YG, 0, Terrain.TileSize.Y - 1)
         X2 = Clamp_int(XG + 1, 0, Terrain.TileSize.X)
@@ -570,7 +636,7 @@ Partial Public Class clsMap
 
         For Y = 0 To SectorCount.Y - 1
             For X = 0 To SectorCount.X - 1
-                Sectors(X, Y).DeleteLists()
+                Sectors(X, Y).DeleteGL()
             Next
         Next
     End Sub
@@ -708,84 +774,6 @@ Partial Public Class clsMap
             CancelUserInput()
             InitializeUserInput()
         End If
-    End Sub
-
-    Public Sub Sector_GLList_Make(X As Integer, Y As Integer)
-        Dim TileX As Integer
-        Dim TileY As Integer
-        Dim StartX As Integer
-        Dim StartY As Integer
-        Dim FinishX As Integer
-        Dim FinishY As Integer
-
-        Sectors(X, Y).DeleteLists()
-
-        StartX = X * SectorTileSize
-        StartY = Y * SectorTileSize
-        FinishX = Math.Min(StartX + SectorTileSize, Terrain.TileSize.X) - 1
-        FinishY = Math.Min(StartY + SectorTileSize, Terrain.TileSize.Y) - 1
-
-        Sectors(X, Y).GLList_Textured = GL.GenLists(1)
-        GL.NewList(Sectors(X, Y).GLList_Textured, ListMode.Compile)
-
-        If Draw_Units Then
-            Dim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1) As Boolean
-            Dim Unit As clsUnit
-            Dim StructureType As clsStructureType
-            Dim Footprint As sXY_int
-            Dim Connection As clsUnitSectorConnection
-            Dim FootprintStart As sXY_int
-            Dim FootprintFinish As sXY_int
-            For Each Connection In Sectors(X, Y).Units
-                Unit = Connection.Unit
-                If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
-                    StructureType = CType(Unit.Type, clsStructureType)
-                    If StructureType.StructureBasePlate IsNot Nothing Then
-                        Footprint = StructureType.GetFootprintSelected(Unit.Rotation)
-                        GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Footprint, FootprintStart, FootprintFinish)
-                        For TileY = Math.Max(FootprintStart.Y, StartY) To Math.Min(FootprintFinish.Y, FinishY)
-                            For TileX = Math.Max(FootprintStart.X, StartX) To Math.Min(FootprintFinish.X, FinishX)
-                                IsBasePlate(TileX - StartX, TileY - StartY) = True
-                            Next
-                        Next
-                    End If
-                End If
-            Next
-            Dim drawTile As New clsDrawTileOld
-            drawTile.Map = Me
-            For TileY = StartY To FinishY
-                drawTile.TileY = TileY
-                For TileX = StartX To FinishX
-                    If Not IsBasePlate(TileX - StartX, TileY - StartY) Then
-                        drawTile.TileX = TileX
-                        drawTile.Perform()
-                    End If
-                Next
-            Next
-        Else
-            Dim drawTile As New clsDrawTileOld
-            drawTile.Map = Me
-            For TileY = StartY To FinishY
-                drawTile.TileY = TileY
-                For TileX = StartX To FinishX
-                    drawTile.TileX = TileX
-                    drawTile.Perform()
-                Next
-            Next
-        End If
-
-        GL.EndList()
-
-        Sectors(X, Y).GLList_Wireframe = GL.GenLists(1)
-        GL.NewList(Sectors(X, Y).GLList_Wireframe, ListMode.Compile)
-
-        For TileY = StartY To FinishY
-            For TileX = StartX To FinishX
-                DrawTileWireframe(TileX, TileY)
-            Next
-        Next
-
-        GL.EndList()
     End Sub
 
     Public Sub DrawTileWireframe(TileX As Integer, TileY As Integer)
@@ -934,7 +922,7 @@ Partial Public Class clsMap
                 For Y = 0 To Terrain.TileSize.Y - 1
                     For X = 0 To Terrain.TileSize.X - 1
                         If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 And Terrain.Tiles(X, Y).Texture.TextureNum < Tileset.TileCount Then
-                            If Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Cliff Then
+                            If Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).DefaultType = TileTypeNum_Cliff Then
                                 sngTexture(Y, X, 0) = sngTexture(Y, X, 0) * AntiAlpha + Settings.MinimapCliffColour.Red * Alpha
                                 sngTexture(Y, X, 1) = sngTexture(Y, X, 1) * AntiAlpha + Settings.MinimapCliffColour.Green * Alpha
                                 sngTexture(Y, X, 2) = sngTexture(Y, X, 2) * AntiAlpha + Settings.MinimapCliffColour.Blue * Alpha
@@ -1338,7 +1326,7 @@ Partial Public Class clsMap
             'store existing state for redo
             CurrentSector = ShadowSectors(SectorNum.X, SectorNum.Y)
             'remove graphics from sector
-            Sectors(SectorNum.X, SectorNum.Y).DeleteLists()
+            Sectors(SectorNum.X, SectorNum.Y).DeleteGL()
             'perform the undo
             Undo_Sector_Rejoin(UndoSector)
             'update the backup
@@ -1406,7 +1394,7 @@ Partial Public Class clsMap
             'store existing state for undo
             CurrentSector = ShadowSectors(SectorNum.X, SectorNum.Y)
             'remove graphics from sector
-            Sectors(SectorNum.X, SectorNum.Y).DeleteLists()
+            Sectors(SectorNum.X, SectorNum.Y).DeleteGL()
             'perform the redo
             Undo_Sector_Rejoin(UndoSector)
             'update the backup
@@ -1706,7 +1694,7 @@ Partial Public Class clsMap
 
             ReDim Tile_TypeNum(Tileset.TileCount - 1)
             For A = 0 To Tileset.TileCount - 1
-                Tile_TypeNum(A) = Tileset.Tiles(A).Default_Type
+                Tile_TypeNum(A) = Tileset.Tiles(A).DefaultType
             Next
         End If
     End Sub
@@ -1832,6 +1820,11 @@ Partial Public Class clsMap
         Result.Y = Clamp_int(TileNum.Y, 0, Terrain.TileSize.Y - 1)
 
         Return Result
+    End Function
+
+    Public Function SectorIsOnMap(sectorNum As sXY_int) As Boolean
+
+        Return sectorNum.X >= 0 And sectorNum.Y >= 0 And sectorNum.X < SectorCount.X And sectorNum.Y < SectorCount.Y
     End Function
 
     Public CompileScreen As frmCompile
@@ -1964,16 +1957,6 @@ Partial Public Class clsMap
             Return SplitPath.FilePath
         End If
     End Function
-
-    Public Class clsUpdateSectorGraphics
-        Inherits clsMap.clsAction
-
-        Public Overrides Sub ActionPerform()
-
-            Map.Sector_GLList_Make(PosNum.X, PosNum.Y)
-            Map.MinimapMakeLater()
-        End Sub
-    End Class
 
     Public Sub Update()
         Dim PrevSuppress As Boolean = SuppressMinimap
@@ -2127,7 +2110,6 @@ Partial Public Class clsMap
         Private Terrain As clsTerrain
         Private ResultTiles As clsPainter.clsTileList
         Private ResultDirection As sTileDirection
-        Private ResultTexture As clsPainter.clsTileList.sTileOrientationChance
 
         Public Overrides Sub ActionPerform()
 
@@ -2140,7 +2122,7 @@ Partial Public Class clsMap
 
             'apply centre brushes
             If Not Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Then
-                For BrushNum As Integer = 0 To Painter.TerrainCount - 1
+                For BrushNum As Integer = 0 To Painter.Terrains.Count - 1
                     Terrain_Inner = Painter.Terrains(BrushNum)
                     If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then
                         If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Inner Then
@@ -2158,7 +2140,7 @@ Partial Public Class clsMap
 
             'apply transition brushes
             If Not Terrain.Tiles(PosNum.X, PosNum.Y).Terrain_IsCliff Then
-                For BrushNum As Integer = 0 To Painter.TransitionBrushCount - 1
+                For BrushNum As Integer = 0 To Painter.TransitionBrushes.Count - 1
                     Terrain_Inner = Painter.TransitionBrushes(BrushNum).Terrain_Inner
                     Terrain_Outer = Painter.TransitionBrushes(BrushNum).Terrain_Outer
                     If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Inner Then
@@ -2276,7 +2258,7 @@ Partial Public Class clsMap
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopLeftIsCliff Then
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
                         Dim BrushNum As Integer = 0
-                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                             Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                             Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain_Inner Is Terrain_Outer Then
@@ -2309,13 +2291,13 @@ Partial Public Class clsMap
                                 Exit For
                             End If
                         Next
-                        If BrushNum = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushes.Count Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     Else
                         Dim BrushNum As Integer = 0
-                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                             Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                             Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain.Vertices(PosNum.X, PosNum.Y).Terrain Is Terrain_Outer Then
@@ -2340,14 +2322,14 @@ Partial Public Class clsMap
                                 End If
                             End If
                         Next
-                        If BrushNum = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushes.Count Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     End If
                 ElseIf Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff Then
                     Dim BrushNum As Integer = 0
-                    For BrushNum = 0 To Painter.CliffBrushCount - 1
+                    For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                         Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                         Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                         If Terrain.Vertices(PosNum.X + 1, PosNum.Y + 1).Terrain Is Terrain_Outer Then
@@ -2372,7 +2354,7 @@ Partial Public Class clsMap
                             End If
                         End If
                     Next
-                    If BrushNum = Painter.CliffBrushCount Then
+                    If BrushNum = Painter.CliffBrushes.Count Then
                         ResultTiles = Nothing
                         ResultDirection = TileDirection_None
                     End If
@@ -2384,7 +2366,7 @@ Partial Public Class clsMap
                 If Terrain.Tiles(PosNum.X, PosNum.Y).TriTopRightIsCliff Then
                     If Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
                         Dim BrushNum As Integer = 0
-                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                             Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                             Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain_Inner Is Terrain_Outer Then
@@ -2417,13 +2399,13 @@ Partial Public Class clsMap
                                 Exit For
                             End If
                         Next
-                        If BrushNum = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushes.Count Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     Else
                         Dim BrushNum As Integer = 0
-                        For BrushNum = 0 To Painter.CliffBrushCount - 1
+                        For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                             Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                             Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                             If Terrain.Vertices(PosNum.X + 1, PosNum.Y).Terrain Is Terrain_Outer Then
@@ -2448,14 +2430,14 @@ Partial Public Class clsMap
                                 End If
                             End If
                         Next
-                        If BrushNum = Painter.CliffBrushCount Then
+                        If BrushNum = Painter.CliffBrushes.Count Then
                             ResultTiles = Nothing
                             ResultDirection = TileDirection_None
                         End If
                     End If
                 ElseIf Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomLeftIsCliff Then
                     Dim BrushNum As Integer = 0
-                    For BrushNum = 0 To Painter.CliffBrushCount - 1
+                    For BrushNum = 0 To Painter.CliffBrushes.Count - 1
                         Terrain_Inner = Painter.CliffBrushes(BrushNum).Terrain_Inner
                         Terrain_Outer = Painter.CliffBrushes(BrushNum).Terrain_Outer
                         If Terrain.Vertices(PosNum.X, PosNum.Y + 1).Terrain Is Terrain_Outer Then
@@ -2480,7 +2462,7 @@ Partial Public Class clsMap
                             End If
                         End If
                     Next
-                    If BrushNum = Painter.CliffBrushCount Then
+                    If BrushNum = Painter.CliffBrushes.Count Then
                         ResultTiles = Nothing
                         ResultDirection = TileDirection_None
                     End If
@@ -2502,7 +2484,7 @@ Partial Public Class clsMap
             End If
             If Road IsNot Nothing Then
                 Dim BrushNum As Integer = 0
-                For BrushNum = 0 To Painter.RoadBrushCount - 1
+                For BrushNum = 0 To Painter.RoadBrushes.Count - 1
                     If Painter.RoadBrushes(BrushNum).Road Is Road Then
                         Terrain_Outer = Painter.RoadBrushes(BrushNum).Terrain
                         Dim A As Integer = 0
@@ -2525,7 +2507,7 @@ Partial Public Class clsMap
                 ResultTiles = Nothing
                 ResultDirection = TileDirection_None
 
-                If BrushNum < Painter.RoadBrushCount Then
+                If BrushNum < Painter.RoadBrushes.Count Then
                     RoadTop = (Terrain.SideH(PosNum.X, PosNum.Y).Road Is Road)
                     RoadLeft = (Terrain.SideV(PosNum.X, PosNum.Y).Road Is Road)
                     RoadRight = (Terrain.SideV(PosNum.X + 1, PosNum.Y).Road Is Road)
@@ -2592,7 +2574,9 @@ Partial Public Class clsMap
                 End If
             End If
 
+            Dim ResultTexture As clsPainter.clsTileList.clsTileOrientationChance
             If ResultTiles Is Nothing Then
+                ResultTexture = New clsPainter.clsTileList.clsTileOrientationChance
                 ResultTexture.TextureNum = -1
                 ResultTexture.Direction = TileDirection_None
             Else

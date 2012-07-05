@@ -3,7 +3,7 @@ Public Module modProgram
 
     Public Const ProgramName As String = "FlaME"
 
-    Public Const ProgramVersionNumber As String = "1.29"
+    Public Const ProgramVersionNumber As String = "1.30"
 
 #If Mono <> 0.0# Then
     Public Const ProgramPlatform As String = "Mono 2.10"
@@ -238,7 +238,7 @@ Public Module modProgram
         End If
     End Sub
 
-    Public Function EndWithPathSeperator(Text As String) As String
+    Public Function EndWithPathSeparator(Text As String) As String
 
         If Strings.Right(Text, 1) = PlatformPathSeparator Then
             Return Text
@@ -521,6 +521,7 @@ Public Module modProgram
     Public Draw_VertexTerrain As Boolean
     Public Draw_Gateways As Boolean
     Public Draw_ScriptMarkers As Boolean = True
+    Public Draw_Renderer As Boolean = False
 
     Enum enumView_Move_Type As Byte
         Free

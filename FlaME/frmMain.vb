@@ -383,8 +383,8 @@ Partial Public Class frmMain
         If TilesetNum >= 0 And TilesetNum < TilesetsList.Count Then
             Dim TilesetsPath As String = TilesetsList(TilesetNum)
             If TilesetsPath IsNot Nothing And TilesetsPath <> "" Then
-                InitializeStatus = "Loading tilesets"
-                InitializeResult.Add(LoadTilesets(EndWithPathSeperator(TilesetsPath)))
+                InitializeStatus = "Loading v2 tilesets"
+                InitializeResult.Add(LoadTilesets(EndWithPathSeparator(TilesetsPath)))
                 InitializeStatus = ""
             End If
         End If
@@ -399,7 +399,7 @@ Partial Public Class frmMain
         ObjectData = New clsObjectData
         Dim ObjectDataNum As Integer = CType(Settings.Value(Setting_DefaultObjectDataPathNum), Integer)
         Dim ObjectDataList As SimpleList(Of String) = CType(Settings.Value(Setting_ObjectDataDirectories), SimpleList(Of String))
-        If ObjectDataNum >= 0 And ObjectDataNum < TilesetsList.Count Then
+        If ObjectDataNum >= 0 And ObjectDataNum < ObjectDataList.Count Then
             Dim ObjectDataPath As String = ObjectDataList(ObjectDataNum)
             If ObjectDataPath IsNot Nothing And ObjectDataPath <> "" Then
                 InitializeStatus = "Loading object data"
@@ -412,6 +412,17 @@ Partial Public Class frmMain
         CreatePainterArizona()
         CreatePainterUrban()
         CreatePainterRockies()
+
+        Dim RendererNum As Integer = CType(Settings.Value(Setting_DefaultRendererPathNum), Integer)
+        Dim RendererList As SimpleList(Of String) = CType(Settings.Value(Setting_RendererDirectories), SimpleList(Of String))
+        If RendererNum >= 0 And RendererNum < RendererList.Count Then
+            Dim RendererPath As String = RendererList(RendererNum)
+            If RendererPath IsNot Nothing And RendererPath <> "" Then
+                InitializeStatus = "Loading v3 tilesets"
+                InitializeResult.Add(LoadRendererTilesets(RendererPath))
+                InitializeStatus = ""
+            End If
+        End If
 
         Components_Update()
 
@@ -600,7 +611,7 @@ Partial Public Class frmMain
         Dialog.InitialDirectory = Settings.OpenPath
         Dialog.FileName = ""
         Dialog.Filter = "TTP Files (*.ttp)|*.ttp|All Files (*.*)|*.*"
-        If Not Dialog.ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
+        If Dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
             Exit Sub
         End If
         Settings.OpenPath = IO.Path.GetDirectoryName(Dialog.FileName)
@@ -686,10 +697,10 @@ Partial Public Class frmMain
         End If
 
         Dim A As Integer
-        For A = 0 To Map.Painter.TerrainCount - 1
+        For A = 0 To Map.Painter.Terrains.Count - 1
             lstAutoTexture.Items.Add(Map.Painter.Terrains(A).Name)
         Next
-        For A = 0 To Map.Painter.RoadCount - 1
+        For A = 0 To Map.Painter.Roads.Count - 1
             lstAutoRoad.Items.Add(Map.Painter.Roads(A).Name)
         Next
         lstAutoTexture.SelectedIndex = Terrain_NewSelectedIndex
@@ -1391,25 +1402,31 @@ Partial Public Class frmMain
             txtObjectHealth.Enabled = True
             'design
             Dim Unit As clsMap.clsUnit
+            Dim hasTemplate As Boolean
+
+            hasTemplate = False
             For Each Unit In Map.SelectedUnits
                 If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
                     If CType(Unit.Type, clsDroidDesign).IsTemplate Then
+                        hasTemplate = True
                         Exit For
                     End If
                 End If
             Next
-            If A < Map.SelectedUnits.Count Then
+            If hasTemplate Then
                 btnDroidToDesign.Enabled = True
             End If
 
+            hasTemplate = False
             For Each Unit In Map.SelectedUnits
                 If Unit.Type.Type = clsUnitType.enumType.PlayerDroid Then
                     If Not CType(Unit.Type, clsDroidDesign).IsTemplate Then
+                        hasTemplate = True
                         Exit For
                     End If
                 End If
             Next
-            If A < Map.SelectedUnits.Count Then
+            If hasTemplate Then
                 cboDroidType.SelectedIndex = -1
                 cboDroidBody.SelectedIndex = -1
                 cboDroidPropulsion.SelectedIndex = -1
@@ -1723,14 +1740,14 @@ Partial Public Class frmMain
 
         Dim Bitmap As Bitmap = Nothing
 
-        Dim BitmapTextureArgs As sBitmapGLTexture
+        Dim BitmapTextureArgs As New clsBitmapGLTexture
 
         BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
         BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
         BitmapTextureArgs.TextureNum = 0
         BitmapTextureArgs.MipMapLevel = 0
 
-        If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "notile.png", Bitmap).Success Then
+        If LoadBitmap(EndWithPathSeparator(My.Application.Info.DirectoryPath) & "notile.png", Bitmap).Success Then
             Dim Result As New clsResult("notile.png")
             Result.Take(BitmapIsGLCompatible(Bitmap))
             ReturnResult.Add(Result)
@@ -1738,7 +1755,7 @@ Partial Public Class frmMain
             BitmapTextureArgs.Perform()
             GLTexture_NoTile = BitmapTextureArgs.TextureNum
         End If
-        If LoadBitmap(EndWithPathSeperator(My.Application.Info.DirectoryPath) & "overflow.png", Bitmap).Success Then
+        If LoadBitmap(EndWithPathSeparator(My.Application.Info.DirectoryPath) & "overflow.png", Bitmap).Success Then
             Dim Result As New clsResult("overflow.png")
             Result.Take(BitmapIsGLCompatible(Bitmap))
             ReturnResult.Add(Result)
@@ -1851,6 +1868,8 @@ Partial Public Class frmMain
 
     Private Sub CreateTileTypes()
         Dim NewTileType As clsTileType
+
+        TileTypes.MaintainOrder = True
 
         NewTileType = New clsTileType
         With NewTileType
@@ -2259,7 +2278,7 @@ Partial Public Class frmMain
 
         If lstAutoTexture.SelectedIndex < 0 Then
             SelectedTerrain = Nothing
-        ElseIf lstAutoTexture.SelectedIndex < Map.Painter.TerrainCount Then
+        ElseIf lstAutoTexture.SelectedIndex < Map.Painter.Terrains.Count Then
             SelectedTerrain = Map.Painter.Terrains(lstAutoTexture.SelectedIndex)
         Else
             Stop
@@ -2276,7 +2295,7 @@ Partial Public Class frmMain
 
         If lstAutoRoad.SelectedIndex < 0 Then
             SelectedRoad = Nothing
-        ElseIf lstAutoRoad.SelectedIndex < Map.Painter.RoadCount Then
+        ElseIf lstAutoRoad.SelectedIndex < Map.Painter.Roads.Count Then
             SelectedRoad = Map.Painter.Roads(lstAutoRoad.SelectedIndex)
         Else
             Stop
@@ -3731,9 +3750,11 @@ Partial Public Class frmMain
 
         SelectedObjectTypes.Clear()
         For Each selection As DataGridViewRow In dataView.SelectedRows
-            Dim objectType As clsUnitType = CType(selection.Cells(0).Value, clsUnitType)
-            If Not objectType.UnitType_frmMainSelectedLink.IsConnected Then
-                SelectedObjectTypes.Add(objectType.UnitType_frmMainSelectedLink)
+            If TypeOf selection.Cells(0).Value Is clsUnitType Then
+                Dim objectType As clsUnitType = CType(selection.Cells(0).Value, clsUnitType)
+                If Not objectType.UnitType_frmMainSelectedLink.IsConnected Then
+                    SelectedObjectTypes.Add(objectType.UnitType_frmMainSelectedLink)
+                End If
             End If
         Next
         Dim Map As clsMap = MainMap
@@ -3759,5 +3780,91 @@ Partial Public Class frmMain
 
         ActivateObjectTool()
         ObjectTypeSelectionUpdate(dgvDroids)
+    End Sub
+
+    Private Sub menuCreateTerrain2_Click(sender As System.Object, e As System.EventArgs) Handles menuCreateTerrain2.Click
+
+        StoreOldTerrain = menuCreateTerrain2.Checked
+        Dim map As clsMap = MainMap
+        map.SectorGraphicsChanges.SetAllChanged()
+        map.Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub menuCreateTerrain3_Click(sender As System.Object, e As System.EventArgs) Handles menuCreateTerrain3.Click
+
+        StoreRendererTerrain = menuCreateTerrain3.Checked
+        Dim map As clsMap = MainMap
+        map.SectorGraphicsChanges.SetAllChanged()
+        map.Update()
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub menuShowRenderer_Click(sender As System.Object, e As System.EventArgs) Handles menuShowRenderer.Click
+
+        Draw_Renderer = menuShowRenderer.Checked
+        If Draw_Renderer Then
+            If Not StoreRendererTerrain Then
+                Dim map As clsMap = MainMap
+                map.SectorGraphicsChanges.SetAllChanged()
+                map.Update()
+            End If
+        Else
+            If Not StoreOldTerrain Then
+                Dim map As clsMap = MainMap
+                map.SectorGraphicsChanges.SetAllChanged()
+                map.Update()
+            End If
+        End If
+        View_DrawViewLater()
+    End Sub
+
+    Private Sub TTypesCombine(sender As System.Object, e As System.EventArgs)
+
+        Dim dialog As New Windows.Forms.SaveFileDialog
+        If dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+
+        Dim file As New IO.BinaryWriter(IO.File.Open(dialog.FileName, IO.FileMode.CreateNew))
+
+        Dim tileCount As Integer = Tileset_Arizona.LoadedTextureCount + Tileset_Urban.LoadedTextureCount + Tileset_Rockies.LoadedTextureCount
+        Dim tileset As clsTileset
+        WriteText(file, False, "ttyp")
+        file.Write(8UI)
+        file.Write(CUInt(256))
+        tileset = Tileset_Arizona
+        For i As Integer = 0 To tileset.LoadedTextureCount - 1
+            file.Write(CUShort(tileset.Tiles(i).DefaultType))
+        Next
+        tileset = Tileset_Urban
+        For i As Integer = 0 To tileset.LoadedTextureCount - 1
+            file.Write(CUShort(tileset.Tiles(i).DefaultType))
+        Next
+        tileset = Tileset_Rockies
+        For i As Integer = 0 To tileset.LoadedTextureCount - 1
+            file.Write(CUShort(tileset.Tiles(i).DefaultType))
+        Next
+
+        For i As Integer = tileCount To 255
+            file.Write(CUShort(0))
+        Next
+
+        file.Close()
+    End Sub
+
+    Private Sub TileTexturePadding(sender As System.Object, e As System.EventArgs)
+
+        Dim dialog As New Windows.Forms.FolderBrowserDialog
+        If dialog.ShowDialog(Me) <> Windows.Forms.DialogResult.OK Then
+            Exit Sub
+        End If
+
+        Dim image As New Bitmap(dialog.SelectedPath & PlatformPathSeparator & "tile-00.png")
+
+        For i As Integer = Tileset_Arizona.LoadedTextureCount To 255
+            Dim file As IO.FileStream = IO.File.Open(dialog.SelectedPath & PlatformPathSeparator & "tile-" & MinDigits(i, 2) & ".png", IO.FileMode.CreateNew)
+            image.Save(file, Drawing.Imaging.ImageFormat.Png)
+        Next
     End Sub
 End Class

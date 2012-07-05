@@ -2299,8 +2299,8 @@ Partial Public Class clsMap
             WriteText(File_TTP, False, "ttyp")
             File_TTP.Write(8UI)
             File_TTP.Write(CUInt(Tileset.TileCount))
-            For A = 0 To Tileset.TileCount - 1
-                File_TTP.Write(CUShort(Tile_TypeNum(A)))
+            For i As Integer = 0 To Tileset.TileCount - 1
+                File_TTP.Write(CUShort(Tile_TypeNum(i)))
             Next
 
             WriteText(File_structBJO, False, "stru")
@@ -2537,7 +2537,7 @@ Partial Public Class clsMap
 
             ElseIf Args.CompileType = sWrite_WZ_Args.enumCompileType.Campaign Then
 
-                Dim CampDirectory As String = EndWithPathSeperator(Args.Path)
+                Dim CampDirectory As String = EndWithPathSeparator(Args.Path)
 
                 If Not IO.Directory.Exists(CampDirectory) Then
                     ReturnResult.ProblemAdd("Directory " & CampDirectory & " does not exist.")
@@ -2602,8 +2602,7 @@ Partial Public Class clsMap
         Dim strTemp As String = ""
         Dim uintTemp As UInteger
         Dim ushortTemp As UShort
-        Dim A As Integer
-
+        
         Try
             strTemp = ReadOldTextOfLength(File, 4)
             If strTemp <> "ttyp" Then
@@ -2617,13 +2616,13 @@ Partial Public Class clsMap
                 Return ReturnResult
             End If
             uintTemp = File.ReadUInt32
-            For A = 0 To CInt(Math.Min(uintTemp, CUInt(Tileset.TileCount))) - 1
+            For i As Integer = 0 To CInt(Math.Min(uintTemp, CUInt(Tileset.TileCount))) - 1
                 ushortTemp = File.ReadUInt16
                 If ushortTemp > 11 Then
                     ReturnResult.Problem = "Unknown tile type number."
                     Return ReturnResult
                 End If
-                Tile_TypeNum(A) = CByte(ushortTemp)
+                Tile_TypeNum(i) = CByte(ushortTemp)
             Next
         Catch ex As Exception
             ReturnResult.Problem = ex.Message

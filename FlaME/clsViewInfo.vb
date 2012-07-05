@@ -88,8 +88,8 @@ Public Class clsViewInfo
     Public Sub ViewPosChange(Displacement As sXYZ_int)
 
         ViewPos.X += Displacement.X
-        ViewPos.Z += Displacement.Z
         ViewPos.Y += Displacement.Y
+        ViewPos.Z += Displacement.Z
         ViewPosClamp()
 
         MapView.DrawViewLater()

@@ -98,7 +98,7 @@ Partial Public Class clsMap
                         intTemp = CInt(byteTemp) - 1
                         If intTemp < 0 Then
                             Terrain.Vertices(X, Y).Terrain = Nothing
-                        ElseIf intTemp >= Painter.TerrainCount Then
+                        ElseIf intTemp >= Painter.Terrains.Count Then
                             WarningCount += 1
                             Terrain.Vertices(X, Y).Terrain = Nothing
                         Else
@@ -189,7 +189,7 @@ Partial Public Class clsMap
                         intTemp = CInt(byteTemp) - 1
                         If intTemp < 0 Then
                             Terrain.SideH(X, Y).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
+                        ElseIf intTemp >= Painter.Roads.Count Then
                             WarningCount += 1
                             Terrain.SideH(X, Y).Road = Nothing
                         Else
@@ -203,7 +203,7 @@ Partial Public Class clsMap
                         intTemp = CInt(byteTemp) - 1
                         If intTemp < 0 Then
                             Terrain.SideV(X, Y).Road = Nothing
-                        ElseIf intTemp >= Painter.RoadCount Then
+                        ElseIf intTemp >= Painter.Roads.Count Then
                             WarningCount += 1
                             Terrain.SideV(X, Y).Road = Nothing
                         Else

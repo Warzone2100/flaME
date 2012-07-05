@@ -1,4 +1,5 @@
-﻿Public Class clsHeightmap
+﻿
+Public Class clsHeightmap
 
     Public HeightScale As Double = 0.0001#
 

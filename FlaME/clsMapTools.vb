@@ -216,7 +216,7 @@ Partial Public Class clsMap
             For X = 0 To Terrain.TileSize.X - 1
                 TextureNum = Terrain.Tiles(X, Y).Texture.TextureNum
                 If TextureNum >= 0 And TextureNum < Tileset.TileCount Then
-                    If Tileset.Tiles(TextureNum).Default_Type = TileTypeNum_Water Then
+                    If Tileset.Tiles(TextureNum).DefaultType = TileTypeNum_Water Then
                         Terrain.Vertices(X, Y).Height = 0
                         Terrain.Vertices(X + 1, Y).Height = 0
                         Terrain.Vertices(X, Y + 1).Height = 0
@@ -622,7 +622,7 @@ Partial Public Class clsMap
                 TileNum.X = X
                 If Terrain.Tiles(X, Y).Tri Then
                     If Terrain.Tiles(X, Y).Texture.TextureNum >= 0 Then
-                        If Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).Default_Type = TileTypeNum_Water Then
+                        If Tileset.Tiles(Terrain.Tiles(X, Y).Texture.TextureNum).DefaultType = TileTypeNum_Water Then
                             Terrain.Tiles(X, Y).Tri = False
                             SectorGraphicsChanges.TileChanged(TileNum)
                             SectorTerrainUndoChanges.TileChanged(TileNum)
@@ -1253,7 +1253,6 @@ Partial Public Class clsMap
         Private PainterTerrainB As clsPainter.clsTerrain
         Private Texture As clsTerrain.Tile.sTexture
         Private ResultDirection As sTileDirection
-        Private PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Private OppositeDirection As sTileDirection
         Private BestNum As Integer
         Private BestCount As Integer
@@ -1261,22 +1260,23 @@ Partial Public Class clsMap
         Private Terrain As clsTerrain
 
         Private Sub ToolPerformTile()
+            Dim PainterTexture As clsPainter.clsTileList.clsTileOrientationChance
             Dim PainterBrushNum As Integer
             Dim A As Integer
 
-            For PainterBrushNum = 0 To Painter.TerrainCount - 1
+            For PainterBrushNum = 0 To Painter.Terrains.Count - 1
                 PainterTerrainA = Painter.Terrains(PainterBrushNum)
-                For A = 0 To PainterTerrainA.Tiles.TileCount - 1
+                For A = 0 To PainterTerrainA.Tiles.Tiles.Count - 1
                     PainterTexture = PainterTerrainA.Tiles.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
                     End If
                 Next
             Next
-            For PainterBrushNum = 0 To Painter.TransitionBrushCount - 1
+            For PainterBrushNum = 0 To Painter.TransitionBrushes.Count - 1
                 PainterTerrainA = Painter.TransitionBrushes(PainterBrushNum).Terrain_Inner
                 PainterTerrainB = Painter.TransitionBrushes(PainterBrushNum).Terrain_Outer
-                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.Tiles.Count - 1
                     PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1287,7 +1287,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.Tiles.Count - 1
                     PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1298,7 +1298,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                For A = 0 To Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles.Count - 1
                     PainterTexture = Painter.TransitionBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         OppositeDirection = PainterTexture.Direction
@@ -1314,10 +1314,10 @@ Partial Public Class clsMap
                 Next
             Next
 
-            For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
+            For PainterBrushNum = 0 To Painter.CliffBrushes.Count - 1
                 PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
                 PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1328,7 +1328,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1339,7 +1339,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         OppositeDirection = PainterTexture.Direction
@@ -1355,33 +1355,33 @@ Partial Public Class clsMap
                 Next
             Next
 
-            For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
+            For PainterBrushNum = 0 To Painter.RoadBrushes.Count - 1
                 PainterTerrainA = Painter.RoadBrushes(PainterBrushNum).Terrain
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         TerrainCount(PainterTerrainA.Num) += 1
@@ -1396,7 +1396,7 @@ Partial Public Class clsMap
             Terrain = Map.Terrain
 
             Painter = Map.Painter
-            ReDim TerrainCount(Painter.TerrainCount - 1)
+            ReDim TerrainCount(Painter.Terrains.Count - 1)
 
             If PosNum.Y > 0 Then
                 If PosNum.X > 0 Then
@@ -1429,7 +1429,7 @@ Partial Public Class clsMap
 
             BestNum = -1
             BestCount = 0
-            For A = 0 To Painter.TerrainCount - 1
+            For A = 0 To Painter.Terrains.Count - 1
                 If TerrainCount(A) > BestCount Then
                     BestNum = A
                     BestCount = TerrainCount(A)
@@ -1453,12 +1453,12 @@ Partial Public Class clsMap
         Private PainterTerrainB As clsPainter.clsTerrain
         Private Texture As clsTerrain.Tile.sTexture
         Private ResultDirection As sTileDirection
-        Private PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Private OppositeDirection As sTileDirection
         Private Tile As clsTerrain.Tile
         Private Terrain As clsTerrain
 
         Public Overrides Sub ActionPerform()
+            Dim PainterTexture As clsPainter.clsTileList.clsTileOrientationChance
             Dim PainterBrushNum As Integer
             Dim A As Integer
 
@@ -1475,10 +1475,10 @@ Partial Public Class clsMap
             Terrain.Tiles(PosNum.X, PosNum.Y).TriBottomRightIsCliff = False
             Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = TileDirection_None
 
-            For PainterBrushNum = 0 To Painter.CliffBrushCount - 1
+            For PainterBrushNum = 0 To Painter.CliffBrushes.Count - 1
                 PainterTerrainA = Painter.CliffBrushes(PainterBrushNum).Terrain_Inner
                 PainterTerrainB = Painter.CliffBrushes(PainterBrushNum).Terrain_Outer
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Straight.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         If Tile.Tri Then
@@ -1493,7 +1493,7 @@ Partial Public Class clsMap
                         Terrain.Tiles(PosNum.X, PosNum.Y).DownSide = ResultDirection
                     End If
                 Next
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_In.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1516,7 +1516,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.TileCount - 1
+                For A = 0 To Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles.Count - 1
                     PainterTexture = Painter.CliffBrushes(PainterBrushNum).Tiles_Corner_Out.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         OppositeDirection = PainterTexture.Direction
@@ -1556,7 +1556,6 @@ Partial Public Class clsMap
         Protected PainterRoad As clsPainter.clsRoad
         Protected Texture As clsTerrain.Tile.sTexture
         Protected ResultDirection As sTileDirection
-        Protected PainterTexture As clsPainter.clsTileList.sTileOrientationChance
         Protected OppositeDirection As sTileDirection
         Protected Tile As clsTerrain.Tile
         Protected RoadCount() As Integer
@@ -1566,13 +1565,14 @@ Partial Public Class clsMap
         Protected Terrain As clsTerrain
 
         Protected Sub ToolPerformTile()
+            Dim PainterTexture As clsPainter.clsTileList.clsTileOrientationChance
             Dim PainterBrushNum As Integer
             Dim A As Integer
 
-            For PainterBrushNum = 0 To Painter.RoadBrushCount - 1
+            For PainterBrushNum = 0 To Painter.RoadBrushes.Count - 1
                 PainterRoad = Painter.RoadBrushes(PainterBrushNum).Road
                 PainterTerrain = Painter.RoadBrushes(PainterBrushNum).Terrain
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Corner_In.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1581,13 +1581,13 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_CrossIntersection.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RoadCount(PainterRoad.Num) += 1
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_End.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1596,7 +1596,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_Straight.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1605,7 +1605,7 @@ Partial Public Class clsMap
                         End If
                     End If
                 Next
-                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.TileCount - 1
+                For A = 0 To Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles.Count - 1
                     PainterTexture = Painter.RoadBrushes(PainterBrushNum).Tile_TIntersection.Tiles(A)
                     If PainterTexture.TextureNum = Texture.TextureNum Then
                         RotateDirection(PainterTexture.Direction, Texture.Orientation, ResultDirection)
@@ -1622,7 +1622,7 @@ Partial Public Class clsMap
             Terrain = Map.Terrain
 
             Painter = Map.Painter
-            ReDim RoadCount(Painter.RoadCount - 1)
+            ReDim RoadCount(Painter.Roads.Count - 1)
         End Sub
     End Class
 
@@ -1649,7 +1649,7 @@ Partial Public Class clsMap
 
             BestNum = -1
             BestCount = 0
-            For A = 0 To Painter.RoadCount - 1
+            For A = 0 To Painter.Roads.Count - 1
                 If RoadCount(A) > BestCount Then
                     BestNum = A
                     BestCount = RoadCount(A)
@@ -1688,7 +1688,7 @@ Partial Public Class clsMap
 
             BestNum = -1
             BestCount = 0
-            For A = 0 To Painter.RoadCount - 1
+            For A = 0 To Painter.Roads.Count - 1
                 If RoadCount(A) > BestCount Then
                     BestNum = A
                     BestCount = RoadCount(A)

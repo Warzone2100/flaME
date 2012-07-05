@@ -431,17 +431,14 @@ Public Class ctrlMapView
         End If
         If KeyboardProfile.Active(Control_View_Units) Then
             Draw_Units = Not Draw_Units
-            Dim X As Integer
-            Dim Y As Integer
-            Dim SectorNum As sXY_int
-            Dim Unit As clsMap.clsUnit
             Dim Connection As clsMap.clsUnitSectorConnection
-            For Y = 0 To Map.SectorCount.Y - 1
-                For X = 0 To Map.SectorCount.X - 1
+            For Y As Integer = 0 To Map.SectorCount.Y - 1
+                For X As Integer = 0 To Map.SectorCount.X - 1
                     For Each Connection In Map.Sectors(X, Y).Units
-                        Unit = Connection.Unit
+                        Dim Unit As clsMap.clsUnit = Connection.Unit
                         If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
                             If CType(Unit.Type, clsStructureType).StructureBasePlate IsNot Nothing Then
+                                Dim SectorNum As sXY_int
                                 SectorNum.X = X
                                 SectorNum.Y = Y
                                 Map.SectorGraphicsChanges.Changed(SectorNum)

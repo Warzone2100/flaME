@@ -24,8 +24,8 @@ Public Module modMain
         Dim SettingsLoadResult As clsResult = Settings_Load(InitializeSettings)
         InitializeResult.Add(SettingsLoadResult)
 
-        OpenGL1 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.MapViewBPP), InitializeSettings.MapViewDepth, 0))
-        OpenGL2 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.TextureViewBPP), InitializeSettings.TextureViewDepth, 0))
+        OpenGL1 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.MapViewBPP), InitializeSettings.MapViewDepth, 0, InitializeSettings.Antialiasing))
+        OpenGL2 = New OpenTK.GLControl(New GraphicsMode(New ColorFormat(InitializeSettings.TextureViewBPP), InitializeSettings.TextureViewDepth, 0, InitializeSettings.Antialiasing))
 
         Do While OpenGL1.Context Is Nothing Or OpenGL2.Context Is Nothing
             'todo, why is this needed?

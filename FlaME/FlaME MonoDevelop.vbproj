@@ -27,10 +27,10 @@
     <ApplicationVersion>0.0.0.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <ReleaseVersion>1.29</ReleaseVersion>
+    <ReleaseVersion>1.30</ReleaseVersion>
     <OutputType>Exe</OutputType>
-    <OptionStrict>On</OptionStrict>
     <OptionInfer>On</OptionInfer>
+    <OptionStrict>On</OptionStrict>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -162,6 +162,7 @@
     <Compile Include="frmKeyboardControl.Designer.vb" />
     <Compile Include="frmKeyboardControl.vb" />
     <Compile Include="clsMapRender.vb" />
+    <Compile Include="Renderer.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

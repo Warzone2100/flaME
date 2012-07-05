@@ -103,8 +103,10 @@ Partial Public Class clsMap
                 GL.Enable(EnableCap.Light1)
             End If
             GL.Enable(EnableCap.Lighting)
+            GL.Enable(EnableCap.ColorMaterial)
         Else
             GL.Disable(EnableCap.Lighting)
+            GL.Disable(EnableCap.ColorMaterial)
         End If
 
         dblTemp = 127.5# * HeightMultiplier
@@ -129,12 +131,25 @@ Partial Public Class clsMap
         If Draw_TileTextures Then
             GL.Color3(1.0F, 1.0F, 1.0F)
             GL.Enable(EnableCap.Texture2D)
-            MapAction = New clsMap.clsDrawCallTerrain
+            If Draw_Renderer Then
+                GL.Disable(EnableCap.Lighting)
+                GL.DepthFunc(DepthFunction.Lequal)
+                GL.Disable(EnableCap.ColorMaterial)
+                MapAction = New clsMap.clsDrawRendererTerrain
+            Else
+                MapAction = New clsMap.clsDrawCallTerrain
+            End If
             MapAction.Map = Me
             VisionSectors.PerformActionMapSectors(MapAction, DrawCentreSector)
+            If Draw_Renderer Then
+                MapAction = New clsMap.clsDrawRendererDecals
+                MapAction.Map = Me
+                VisionSectors.PerformActionMapSectors(MapAction, DrawCentreSector)
+            End If
+            GL.DepthFunc(DepthFunction.Less)
             GL.Disable(EnableCap.Texture2D)
 
-            DebugGLError("Tile textures")
+            DebugGLError("Terrain textures")
         End If
 
         GL.Disable(EnableCap.DepthTest)
@@ -1209,6 +1224,86 @@ Partial Public Class clsMap
         End Sub
     End Class
 
+    Public Class clsDrawRendererDecals
+        Inherits clsMap.clsAction
+
+        Public Overrides Sub ActionPerform()
+
+            GL.CallList(Map.Sectors(PosNum.X, PosNum.Y).GLList_Decals)
+        End Sub
+    End Class
+
+    Public Class clsDrawRendererTerrain
+        Inherits clsMap.clsAction
+
+        Public Overrides Sub ActionPerform()
+
+            Dim sector As clsMap.clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+
+            If sector.GLLayerBuffers Is Nothing Then
+                Exit Sub
+            End If
+
+            GL.Disable(EnableCap.Blend)
+            GL.Disable(EnableCap.Texture2D)
+
+            GL.BindTexture(TextureTarget.Texture2D, 0)
+            GL.BindBuffer(BufferTarget.ArrayBuffer, sector.Black.VertexBuffer)
+            GL.EnableClientState(ArrayCap.VertexArray)
+            GL.EnableClientState(ArrayCap.NormalArray)
+            GL.VertexPointer(3, VertexPointerType.Float, 64, 0)
+            GL.NormalPointer(NormalPointerType.Float, 64, 12)
+            GL.ClientActiveTexture(TextureUnit.Texture0)
+            GL.EnableClientState(ArrayCap.TextureCoordArray)
+            GL.TexCoordPointer(2, TexCoordPointerType.Float, 64, 24)
+            GL.EnableClientState(ArrayCap.ColorArray)
+            GL.ColorPointer(4, ColorPointerType.Float, 64, 32)
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, sector.Black.IndicesBuffer)
+            GL.DrawElements(BeginMode.Triangles, sector.Black.Count, DrawElementsType.UnsignedInt, 0)
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0)
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+
+            GL.Flush()
+
+            If Map.Tileset Is Nothing Then
+                Exit Sub
+            End If
+
+            GL.Enable(EnableCap.Blend)
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One)
+            GL.ActiveTexture(TextureUnit.Texture1)
+            GL.Disable(EnableCap.Texture2D)
+            GL.ActiveTexture(TextureUnit.Texture2)
+            GL.Disable(EnableCap.Texture2D)
+            GL.ActiveTexture(TextureUnit.Texture0)
+            GL.Enable(EnableCap.Texture2D)
+
+            For i As Integer = 0 To Map.Tileset.RendererTerrains.Count - 1
+                GL.BindBuffer(BufferTarget.ArrayBuffer, sector.GLLayerBuffers(i).VertexBuffer)
+                GL.EnableClientState(ArrayCap.VertexArray)
+                GL.EnableClientState(ArrayCap.NormalArray)
+                GL.VertexPointer(3, VertexPointerType.Float, 64, 0)
+                GL.NormalPointer(NormalPointerType.Float, 64, 12)
+                GL.ClientActiveTexture(TextureUnit.Texture0)
+                GL.EnableClientState(ArrayCap.TextureCoordArray)
+                GL.TexCoordPointer(2, TexCoordPointerType.Float, 64, 24)
+                GL.EnableClientState(ArrayCap.ColorArray)
+                GL.ColorPointer(4, ColorPointerType.Float, 64, 32)
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, sector.GLLayerBuffers(i).IndicesBuffer)
+                GL.BindTexture(TextureTarget.Texture2D, Map.Tileset.RendererTerrains(i).GLTexture)
+                GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, TextureEnvMode.Modulate)
+                GL.DrawElements(BeginMode.Triangles, sector.GLLayerBuffers(i).Count, DrawElementsType.UnsignedInt, 0)
+                GL.BindTexture(TextureTarget.Texture2D, 0)
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0)
+                GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+            Next
+
+            GL.Flush()
+
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha)
+        End Sub
+    End Class
+
     Public Class clsDrawCallTerrainWireframe
         Inherits clsMap.clsAction
 
@@ -1257,8 +1352,8 @@ Partial Public Class clsMap
                 For X = PosNum.X * SectorTileSize To Math.Min((PosNum.X + 1) * SectorTileSize - 1, Map.Terrain.TileSize.X)
                     If Map.Terrain.Vertices(X, Y).Terrain IsNot Nothing Then
                         A = Map.Terrain.Vertices(X, Y).Terrain.Num
-                        If A < Map.Painter.TerrainCount Then
-                            If Map.Painter.Terrains(A).Tiles.TileCount >= 1 Then
+                        If A < Map.Painter.Terrains.Count Then
+                            If Map.Painter.Terrains(A).Tiles.Tiles.Count >= 1 Then
                                 RGB_sng = Map.Tileset.Tiles(Map.Painter.Terrains(A).Tiles.Tiles(0).TextureNum).AverageColour
                                 If RGB_sng.Red + RGB_sng.Green + RGB_sng.Blue < 1.5F Then
                                     RGB_sng2.Red = (RGB_sng.Red + 1.0F) / 2.0F
@@ -1452,6 +1547,279 @@ Partial Public Class clsMap
                     End If
                 End If
             Next
+        End Sub
+    End Class
+
+    Public Class clsUpdateSectorGraphics
+        Inherits clsMap.clsAction
+
+        Private IsBasePlate(,) As Boolean
+        Private LayerBuffers() As clsBufferData
+        Private BlackBuffer As clsBufferData
+
+        Public Overrides Sub ActionPerform()
+
+            Dim CreateRendererTerrain As Boolean = StoreRendererTerrain Or Draw_Renderer
+            Dim CreateOldTerrain As Boolean = StoreOldTerrain Or (Not Draw_Renderer)
+
+            Dim sector As clsMap.clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+            Dim terrain As clsMap.clsTerrain = Map.Terrain
+            Dim startX As Integer = PosNum.X * SectorTileSize
+            Dim startY As Integer = PosNum.Y * SectorTileSize
+            Dim finishX As Integer = Math.Min(startX + SectorTileSize, terrain.TileSize.X) - 1
+            Dim finishY As Integer = Math.Min(startY + SectorTileSize, terrain.TileSize.Y) - 1
+
+            LayerBuffers = Nothing
+            BlackBuffer = Nothing
+
+            'create grid
+            sector.DeleteGLWireframe()
+            sector.GLList_Wireframe = GL.GenLists(1)
+            GL.NewList(sector.GLList_Wireframe, ListMode.Compile)
+            For tileY As Integer = startY To finishY
+                For tileX As Integer = startX To finishX
+                    Map.DrawTileWireframe(tileX, tileY)
+                Next
+            Next
+            GL.EndList()
+
+            If CreateOldTerrain Or CreateRendererTerrain Then
+                If Draw_Units Then
+                    'create base plate coverage array
+                    ReDim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1)
+                    Dim Unit As clsUnit
+                    Dim StructureType As clsStructureType
+                    Dim Footprint As sXY_int
+                    Dim Connection As clsUnitSectorConnection
+                    Dim FootprintStart As sXY_int
+                    Dim FootprintFinish As sXY_int
+                    For Each Connection In sector.Units
+                        Unit = Connection.Unit
+                        If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                            StructureType = CType(Unit.Type, clsStructureType)
+                            If StructureType.StructureBasePlate IsNot Nothing Then
+                                Footprint = StructureType.GetFootprintSelected(Unit.Rotation)
+                                Map.GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Footprint, FootprintStart, FootprintFinish)
+                                For tileY As Integer = Math.Max(FootprintStart.Y, startY) To Math.Min(FootprintFinish.Y, finishY)
+                                    For tileX As Integer = Math.Max(FootprintStart.X, startX) To Math.Min(FootprintFinish.X, finishX)
+                                        IsBasePlate(tileX - startX, tileY - startY) = True
+                                    Next
+                                Next
+                            End If
+                        End If
+                    Next
+                Else
+                    IsBasePlate = Nothing
+                End If
+            End If
+
+            sector.DeleteGLOld()
+            If CreateOldTerrain Then
+                SectorGLUpdateOld()
+            End If
+
+            If CreateRendererTerrain Then
+                Dim vertexUpper As Integer = SectorTileSize * SectorTileSize * 4 * 4 * 3 - 1 '4 vertex textures * 4 triangles * 3 vertices
+                If Map.Tileset Is Nothing Then
+                    ReDim LayerBuffers(-1)
+                Else
+                    ReDim LayerBuffers(Map.Tileset.RendererTerrains.Count - 1)
+                    For i As Integer = 0 To LayerBuffers.GetUpperBound(0)
+                        LayerBuffers(i) = New clsBufferData
+                        ReDim LayerBuffers(i).Vertices(vertexUpper)
+                    Next
+                    If sector.GLLayerBuffers IsNot Nothing Then
+                        If sector.GLLayerBuffers.GetUpperBound(0) <> LayerBuffers.GetUpperBound(0) Then
+                            sector.DeleteGLRendererTerrain()
+                        End If
+                    End If
+                End If
+                BlackBuffer = New clsBufferData
+                ReDim BlackBuffer.Vertices(vertexUpper)
+
+                If sector.GLLayerBuffers Is Nothing Then
+                    GL.GenBuffers(1, sector.Black.VertexBuffer)
+                    GL.GenBuffers(1, sector.Black.IndicesBuffer)
+                    ReDim sector.GLLayerBuffers(LayerBuffers.GetUpperBound(0))
+                    For i As Integer = 0 To LayerBuffers.GetUpperBound(0)
+                        GL.GenBuffers(1, sector.GLLayerBuffers(i).VertexBuffer)
+                        GL.GenBuffers(1, sector.GLLayerBuffers(i).IndicesBuffer)
+                        sector.GLLayerBuffers(i).Count = 0
+                    Next
+                End If
+
+                sector.DeleteGLRendererDecals()
+                SectorGLUpdateRenderer()
+
+                For i As Integer = 0 To LayerBuffers.GetUpperBound(0)
+                    sector.GLLayerBuffers(i).Count = LayerBuffers(i).Position
+                    LayerBuffers(i).SendData(sector.GLLayerBuffers(i).VertexBuffer)
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, sector.GLLayerBuffers(i).IndicesBuffer)
+                    Dim indices(LayerBuffers(i).Position - 1) As UInteger
+                    Dim indexNum As Integer
+                    For indexNum = 0 To indices.GetUpperBound(0)
+                        indices(indexNum) = CUInt(indexNum)
+                    Next
+                    GL.BufferData(Of UInteger)(BufferTarget.ElementArrayBuffer, New IntPtr(indices.GetLength(0) * 4), indices, BufferUsageHint.DynamicDraw)
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0)
+                Next
+                BlackBuffer.SendData(sector.Black.VertexBuffer)
+                sector.Black.Count = BlackBuffer.Position
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, sector.Black.IndicesBuffer)
+                Dim blackIndices(BlackBuffer.Position - 1) As UInteger
+                For blackIndexNum As Integer = 0 To blackIndices.GetUpperBound(0)
+                    blackIndices(blackIndexNum) = CUInt(blackIndexNum)
+                Next
+                GL.BufferData(Of UInteger)(BufferTarget.ElementArrayBuffer, New IntPtr(blackIndices.GetLength(0) * 4), blackIndices, BufferUsageHint.DynamicDraw)
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0)
+            Else
+                sector.DeleteGLRenderer()
+            End If
+
+            LayerBuffers = Nothing
+            BlackBuffer = Nothing
+
+            Map.MinimapMakeLater()
+        End Sub
+
+        Private Sub SectorGLUpdateRenderer()
+            Dim terrain As clsMap.clsTerrain = Map.Terrain
+            Dim tileX As Integer
+            Dim tileY As Integer
+            Dim startX As Integer
+            Dim startY As Integer
+            Dim finishX As Integer
+            Dim finishY As Integer
+            Dim sector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+
+            startX = PosNum.X * SectorTileSize
+            startY = PosNum.Y * SectorTileSize
+            finishX = Math.Min(startX + SectorTileSize, terrain.TileSize.X) - 1
+            finishY = Math.Min(startY + SectorTileSize, terrain.TileSize.Y) - 1
+
+            Dim drawTileNew As New clsDrawTileNew
+            drawTileNew.Map = Map
+            drawTileNew.LayerBuffers = LayerBuffers
+            drawTileNew.BlackBuffer = BlackBuffer
+            If Draw_Units Then
+                For tileY = startY To finishY
+                    drawTileNew.TileY = tileY
+                    For tileX = startX To finishX
+                        If Not IsBasePlate(tileX - startX, tileY - startY) Then
+                            drawTileNew.TileX = tileX
+                            drawTileNew.Perform()
+                        End If
+                    Next
+                Next
+            Else
+                For tileY = startY To finishY
+                    drawTileNew.TileY = tileY
+                    For tileX = startX To finishX
+                        drawTileNew.TileX = tileX
+                        drawTileNew.Perform()
+                    Next
+                Next
+            End If
+
+            If Map.Tileset Is Nothing Then
+                Exit Sub
+            End If
+
+            sector.GLList_Decals = GL.GenLists(1)
+            GL.NewList(sector.GLList_Decals, ListMode.Compile)
+
+            Dim drawTileNewDecal As New clsDrawTileDecal
+            drawTileNewDecal.Map = Map
+            If Draw_Units Then
+                For tileY = startY To finishY
+                    drawTileNewDecal.TileY = tileY
+                    For tileX = startX To finishX
+                        If Not IsBasePlate(tileX - startX, tileY - startY) Then
+                            drawTileNewDecal.TileX = tileX
+                            drawTileNewDecal.Perform()
+                        End If
+                    Next
+                Next
+            Else
+                For tileY = startY To finishY
+                    drawTileNewDecal.TileY = tileY
+                    For tileX = startX To finishX
+                        drawTileNewDecal.TileX = tileX
+                        drawTileNewDecal.Perform()
+                    Next
+                Next
+            End If
+
+            GL.EndList()
+        End Sub
+
+        Private Sub SectorGLUpdateOld()
+            Dim terrain As clsMap.clsTerrain = Map.Terrain
+            Dim tileX As Integer
+            Dim tileY As Integer
+            Dim startX As Integer
+            Dim startY As Integer
+            Dim finishX As Integer
+            Dim finishY As Integer
+            Dim sector As clsSector = Map.Sectors(PosNum.X, PosNum.Y)
+
+            startX = PosNum.X * SectorTileSize
+            startY = PosNum.Y * SectorTileSize
+            finishX = Math.Min(startX + SectorTileSize, terrain.TileSize.X) - 1
+            finishY = Math.Min(startY + SectorTileSize, terrain.TileSize.Y) - 1
+
+            Dim IsBasePlate(,) As Boolean = Nothing
+            If Draw_Units Then
+                ReDim IsBasePlate(SectorTileSize - 1, SectorTileSize - 1)
+            End If
+
+            sector.GLList_Textured = GL.GenLists(1)
+            GL.NewList(sector.GLList_Textured, ListMode.Compile)
+
+            Dim drawTileOld As New clsDrawTileOld
+            drawTileOld.Map = Map
+            If Draw_Units Then
+                Dim Unit As clsUnit
+                Dim StructureType As clsStructureType
+                Dim Footprint As sXY_int
+                Dim Connection As clsUnitSectorConnection
+                Dim FootprintStart As sXY_int
+                Dim FootprintFinish As sXY_int
+                For Each Connection In sector.Units
+                    Unit = Connection.Unit
+                    If Unit.Type.Type = clsUnitType.enumType.PlayerStructure Then
+                        StructureType = CType(Unit.Type, clsStructureType)
+                        If StructureType.StructureBasePlate IsNot Nothing Then
+                            Footprint = StructureType.GetFootprintSelected(Unit.Rotation)
+                            Map.GetFootprintTileRangeClamped(Unit.Pos.Horizontal, Footprint, FootprintStart, FootprintFinish)
+                            For tileY = Math.Max(FootprintStart.Y, startY) To Math.Min(FootprintFinish.Y, finishY)
+                                For tileX = Math.Max(FootprintStart.X, startX) To Math.Min(FootprintFinish.X, finishX)
+                                    IsBasePlate(tileX - startX, tileY - startY) = True
+                                Next
+                            Next
+                        End If
+                    End If
+                Next
+                For tileY = startY To finishY
+                    drawTileOld.TileY = tileY
+                    For tileX = startX To finishX
+                        If Not IsBasePlate(tileX - startX, tileY - startY) Then
+                            drawTileOld.TileX = tileX
+                            drawTileOld.Perform()
+                        End If
+                    Next
+                Next
+            Else
+                For tileY = startY To finishY
+                    drawTileOld.TileY = tileY
+                    For tileX = startX To finishX
+                        drawTileOld.TileX = tileX
+                        drawTileOld.Perform()
+                    Next
+                Next
+            End If
+
+            GL.EndList()
         End Sub
     End Class
 End Class

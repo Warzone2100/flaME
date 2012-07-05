@@ -8,13 +8,33 @@ Public Class clsTileset
     Public IsOriginal As Boolean
 
     Public Structure sTile
-        Public MapView_GL_Texture_Num As Integer
-        Public TextureView_GL_Texture_Num As Integer
+        Public MapViewGLTexture As Integer
+        Public TextureViewGLTexture As Integer
         Public AverageColour As sRGB_sng
-        Public Default_Type As Byte
+        Public DefaultType As Byte
+        Public CornerTerrains(,) As clsRendererTerrain
+        Public DecalGLTexture As Integer
+        Public UseDecal As Boolean
     End Structure
     Public Tiles() As sTile
     Public TileCount As Integer
+    Public LoadedTextureCount As Integer
+
+    Public Class clsRendererTerrainsList
+        Inherits SimpleList(Of clsRendererTerrain)
+
+        Public Sub New()
+
+            MaintainOrder = True
+        End Sub
+
+        Public Overrides Sub Add(NewItem As clsRendererTerrain)
+            MyBase.Add(NewItem)
+
+            NewItem.Number = Count - 1
+        End Sub
+    End Class
+    Public RendererTerrains As New clsRendererTerrainsList
 
     Public BGColour As New sRGB_sng(0.5F, 0.5F, 0.5F)
 
@@ -59,6 +79,9 @@ Public Class clsTileset
             uintTemp = File.ReadUInt32
             TileCount = CInt(uintTemp)
             ReDim Tiles(TileCount - 1)
+            For i As Integer = 0 To TileCount - 1
+                ReDim Tiles(i).CornerTerrains(1, 1)
+            Next
 
             For A = 0 To Math.Min(CInt(uintTemp), TileCount) - 1
                 ushortTemp = File.ReadUInt16
@@ -66,7 +89,7 @@ Public Class clsTileset
                     ReturnResult.Problem = "Unknown tile type."
                     Return ReturnResult
                 End If
-                Tiles(A).Default_Type = CByte(ushortTemp)
+                Tiles(A).DefaultType = CByte(ushortTemp)
             Next
         Catch ex As Exception
             ReturnResult.Problem = ex.Message
@@ -82,7 +105,7 @@ Public Class clsTileset
 
         Dim Bitmap As Bitmap = Nothing
         Dim SplitPath As New sSplitPath(Path)
-        Dim SlashPath As String = EndWithPathSeperator(Path)
+        Dim SlashPath As String = EndWithPathSeparator(Path)
         Dim Result As sResult
 
         If SplitPath.FileTitle <> "" Then
@@ -102,7 +125,7 @@ Public Class clsTileset
         Dim BlueTotal As Integer
         Dim TileNum As Integer
         Dim strTile As String
-        Dim BitmapTextureArgs As sBitmapGLTexture
+        Dim BitmapTextureArgs As New clsBitmapGLTexture
         Dim AverageColour(3) As Single
         Dim X As Integer
         Dim Y As Integer
@@ -112,6 +135,7 @@ Public Class clsTileset
 
         'tile count has been set by the ttp file
 
+        LoadedTextureCount = 0
         For TileNum = 0 To TileCount - 1
             strTile = "tile-" & MinDigits(TileNum, 2) & ".png"
 
@@ -130,13 +154,15 @@ Public Class clsTileset
                 Return ReturnResult
             End If
 
+            LoadedTextureCount += 1
+
             BitmapTextureArgs.Texture = Bitmap
             BitmapTextureArgs.MipMapLevel = 0
             BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
             BitmapTextureArgs.MinFilter = TextureMinFilter.Nearest
             BitmapTextureArgs.TextureNum = 0
             BitmapTextureArgs.Perform()
-            Tiles(TileNum).TextureView_GL_Texture_Num = BitmapTextureArgs.TextureNum
+            Tiles(TileNum).TextureViewGLTexture = BitmapTextureArgs.TextureNum
 
             BitmapTextureArgs.MagFilter = TextureMagFilter.Nearest
             If Settings.Mipmaps Then
@@ -147,7 +173,7 @@ Public Class clsTileset
             BitmapTextureArgs.TextureNum = 0
 
             BitmapTextureArgs.Perform()
-            Tiles(TileNum).MapView_GL_Texture_Num = BitmapTextureArgs.TextureNum
+            Tiles(TileNum).MapViewGLTexture = BitmapTextureArgs.TextureNum
 
             If Settings.Mipmaps Then
                 If Settings.MipmapsHardware Then
@@ -188,7 +214,7 @@ Public Class clsTileset
         Return ReturnResult
     End Function
 
-    Public Function GenerateMipMaps(SlashPath As String, strTile As String, BitmapTextureArgs As sBitmapGLTexture, TileNum As Integer) As clsResult
+    Public Function GenerateMipMaps(SlashPath As String, strTile As String, BitmapTextureArgs As clsBitmapGLTexture, TileNum As Integer) As clsResult
         Dim ReturnResult As New clsResult("Generating mipmaps")
         Dim GraphicPath As String
         Dim PixX As Integer
@@ -366,5 +392,15 @@ Public Class clsTileset
         BitmapTextureArgs.Perform()
 
         Return ReturnResult
+    End Function
+
+    Public Function FindRendererTerrain(Name As String) As clsRendererTerrain
+
+        For Each terrain As clsRendererTerrain In RendererTerrains
+            If terrain.Name = Name Then
+                Return terrain
+            End If
+        Next
+        Return Nothing
     End Function
 End Class

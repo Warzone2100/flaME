@@ -193,7 +193,7 @@ Public Class ctrlTextureView
                     If Num >= Map.Tileset.TileCount Then
                         GoTo EndOfTextures1
                     End If
-                    A = Map.Tileset.Tiles(Num).TextureView_GL_Texture_Num
+                    A = Map.Tileset.Tiles(Num).TextureViewGLTexture
                     If A = 0 Then
                         GL.BindTexture(TextureTarget.Texture2D, 0)
                     Else

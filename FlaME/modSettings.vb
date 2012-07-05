@@ -88,9 +88,12 @@ Public Module modSettings
     Public Setting_TextureViewDepth As clsOption(Of Integer)
     Public Setting_TilesetDirectories As clsOption(Of SimpleList(Of String))
     Public Setting_ObjectDataDirectories As clsOption(Of SimpleList(Of String))
+    Public Setting_RendererDirectories As clsOption(Of SimpleList(Of String))
     Public Setting_DefaultTilesetsPathNum As clsOption(Of Integer)
     Public Setting_DefaultObjectDataPathNum As clsOption(Of Integer)
+    Public Setting_DefaultRendererPathNum As clsOption(Of Integer)
     Public Setting_PickOrientation As clsOption(Of Boolean)
+    Public Setting_AA As clsOption(Of Integer)
 
     Public Class clsSettings
         Inherits clsOptionProfile
@@ -240,9 +243,19 @@ Public Module modSettings
                 Return CType(Value(Setting_ObjectDataDirectories), SimpleList(Of String))
             End Get
         End Property
+        Public ReadOnly Property RendererDirectories As SimpleList(Of String)
+            Get
+                Return CType(Value(Setting_RendererDirectories), SimpleList(Of String))
+            End Get
+        End Property
         Public ReadOnly Property PickOrientation As Boolean
             Get
                 Return CType(Value(Setting_PickOrientation), Boolean)
+            End Get
+        End Property
+        Public ReadOnly Property Antialiasing As Integer
+            Get
+                Return CType(Value(Setting_AA), Integer)
             End Get
         End Property
 
@@ -314,9 +327,12 @@ Public Module modSettings
         Setting_TextureViewDepth = CreateSetting(Of Integer)("TextureViewDepth", 24)
         Setting_TilesetDirectories = CreateSetting(Of SimpleList(Of String))("TilesetsPath", New SimpleList(Of String))
         Setting_ObjectDataDirectories = CreateSetting(Of SimpleList(Of String))("ObjectDataPath", New SimpleList(Of String))
+        Setting_RendererDirectories = CreateSetting(Of SimpleList(Of String))("RendererPath", New SimpleList(Of String))
         Setting_DefaultTilesetsPathNum = CreateSetting(Of Integer)("DefaultTilesetsPathNum", -1)
         Setting_DefaultObjectDataPathNum = CreateSetting(Of Integer)("DefaultObjectDataPathNum", -1)
+        Setting_DefaultRendererPathNum = CreateSetting(Of Integer)("DefaultRendererPathNum", -1)
         Setting_PickOrientation = CreateSetting(Of Boolean)("PickOrientation", True)
+        Setting_AA = CreateSetting(Of Integer)("Antialiasing", 1)
     End Sub
 
     Public Function Read_Settings(File As IO.StreamReader, ByRef Result As clsSettings) As clsResult

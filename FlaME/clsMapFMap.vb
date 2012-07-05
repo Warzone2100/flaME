@@ -1041,7 +1041,7 @@ Partial Public Class clsMap
                     Value = CInt(byteTemp) - 1
                     If Value < 0 Then
                         Terrain.Vertices(X, Y).Terrain = Nothing
-                    ElseIf Value >= Painter.TerrainCount Then
+                    ElseIf Value >= Painter.Terrains.Count Then
                         If WarningCount < 16 Then
                             ReturnResult.WarningAdd("Painted terrain at vertex " & X & ", " & Y & " was invalid.")
                         End If
@@ -1248,7 +1248,7 @@ Partial Public Class clsMap
                     Value = File.ReadByte - 1
                     If Value < 0 Then
                         Terrain.SideH(X, Y).Road = Nothing
-                    ElseIf Value >= Painter.RoadCount Then
+                    ElseIf Value >= Painter.Roads.Count Then
                         If WarningCount < 16 Then
                             ReturnResult.WarningAdd("Invalid road value for horizontal side " & X & ", " & Y & ".")
                         End If
@@ -1264,7 +1264,7 @@ Partial Public Class clsMap
                     Value = File.ReadByte - 1
                     If Value < 0 Then
                         Terrain.SideV(X, Y).Road = Nothing
-                    ElseIf Value >= Painter.RoadCount Then
+                    ElseIf Value >= Painter.Roads.Count Then
                         If WarningCount < 16 Then
                             ReturnResult.WarningAdd("Invalid road value for vertical side " & X & ", " & Y & ".")
                         End If
@@ -1546,18 +1546,21 @@ Partial Public Class clsMap
     Public Function Read_FMap_TileTypes(File As IO.BinaryReader) As clsResult
         Dim ReturnResult As New clsResult("Reading tile types")
 
-        Dim A As Integer
         Dim byteTemp As Byte
         Dim InvalidTypeCount As Integer
 
         Try
             If Tileset IsNot Nothing Then
-                For A = 0 To Tileset.TileCount - 1
+                Dim byteCount As Integer = Math.Min(Tileset.TileCount, CInt(File.BaseStream.Length - File.BaseStream.Position))
+                If byteCount <> Tileset.TileCount Then
+                    ReturnResult.WarningAdd("The number of tile types in the map is different from the number of tiles in the tileset.")
+                End If
+                For i As Integer = 0 To byteCount - 1
                     byteTemp = File.ReadByte()
                     If byteTemp >= TileTypes.Count Then
                         InvalidTypeCount += 1
                     Else
-                        Tile_TypeNum(A) = byteTemp
+                        Tile_TypeNum(i) = byteTemp
                     End If
                 Next
             End If

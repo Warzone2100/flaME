@@ -31,6 +31,8 @@ Partial Class frmOptions
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
         Me.cbxPickerOrientation = New System.Windows.Forms.CheckBox()
         Me.GroupBox8 = New System.Windows.Forms.GroupBox()
+        Me.Label14 = New System.Windows.Forms.Label()
+        Me.txtAA = New System.Windows.Forms.TextBox()
         Me.Label13 = New System.Windows.Forms.Label()
         Me.txtTexturesDepth = New System.Windows.Forms.TextBox()
         Me.txtTexturesBPP = New System.Windows.Forms.TextBox()
@@ -96,10 +98,10 @@ Partial Class frmOptions
         Me.TabControl1.Controls.Add(Me.TabPage3)
         Me.TabControl1.Controls.Add(Me.TabPage1)
         Me.TabControl1.Controls.Add(Me.TabPage2)
-        Me.TabControl1.Location = New System.Drawing.Point(12, 12)
+        Me.TabControl1.Location = New System.Drawing.Point(1, 4)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
-        Me.TabControl1.Size = New System.Drawing.Size(637, 398)
+        Me.TabControl1.Size = New System.Drawing.Size(648, 427)
         Me.TabControl1.TabIndex = 35
         '
         'TabPage3
@@ -110,7 +112,7 @@ Partial Class frmOptions
         Me.TabPage3.Location = New System.Drawing.Point(4, 25)
         Me.TabPage3.Margin = New System.Windows.Forms.Padding(0)
         Me.TabPage3.Name = "TabPage3"
-        Me.TabPage3.Size = New System.Drawing.Size(629, 369)
+        Me.TabPage3.Size = New System.Drawing.Size(640, 398)
         Me.TabPage3.TabIndex = 2
         Me.TabPage3.Text = "Directories"
         Me.TabPage3.UseVisualStyleBackColor = True
@@ -121,9 +123,9 @@ Partial Class frmOptions
         Me.Label12.Location = New System.Drawing.Point(302, 15)
         Me.Label12.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label12.Name = "Label12"
-        Me.Label12.Size = New System.Drawing.Size(245, 20)
+        Me.Label12.Size = New System.Drawing.Size(282, 20)
         Me.Label12.TabIndex = 42
-        Me.Label12.Text = "Options on this tab take effect on restart."
+        Me.Label12.Text = "Data directories changes take effect on restart."
         Me.Label12.UseCompatibleTextRendering = True
         '
         'cbxAskDirectories
@@ -142,13 +144,13 @@ Partial Class frmOptions
         '
         Me.TableLayoutPanel1.ColumnCount = 1
         Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.TableLayoutPanel1.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
         Me.TableLayoutPanel1.Location = New System.Drawing.Point(3, 42)
         Me.TableLayoutPanel1.Name = "TableLayoutPanel1"
-        Me.TableLayoutPanel1.RowCount = 2
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50.0!))
-        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50.0!))
-        Me.TableLayoutPanel1.Size = New System.Drawing.Size(623, 324)
+        Me.TableLayoutPanel1.RowCount = 3
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.TableLayoutPanel1.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.TableLayoutPanel1.Size = New System.Drawing.Size(623, 353)
         Me.TableLayoutPanel1.TabIndex = 41
         '
         'TabPage1
@@ -164,7 +166,7 @@ Partial Class frmOptions
         Me.TabPage1.Location = New System.Drawing.Point(4, 25)
         Me.TabPage1.Name = "TabPage1"
         Me.TabPage1.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabPage1.Size = New System.Drawing.Size(629, 369)
+        Me.TabPage1.Size = New System.Drawing.Size(640, 398)
         Me.TabPage1.TabIndex = 0
         Me.TabPage1.Text = "General"
         Me.TabPage1.UseVisualStyleBackColor = True
@@ -194,6 +196,8 @@ Partial Class frmOptions
         '
         'GroupBox8
         '
+        Me.GroupBox8.Controls.Add(Me.Label14)
+        Me.GroupBox8.Controls.Add(Me.txtAA)
         Me.GroupBox8.Controls.Add(Me.Label13)
         Me.GroupBox8.Controls.Add(Me.txtTexturesDepth)
         Me.GroupBox8.Controls.Add(Me.txtTexturesBPP)
@@ -206,11 +210,30 @@ Partial Class frmOptions
         Me.GroupBox8.Controls.Add(Me.cbxMipmaps)
         Me.GroupBox8.Location = New System.Drawing.Point(6, 244)
         Me.GroupBox8.Name = "GroupBox8"
-        Me.GroupBox8.Size = New System.Drawing.Size(304, 119)
+        Me.GroupBox8.Size = New System.Drawing.Size(304, 148)
         Me.GroupBox8.TabIndex = 45
         Me.GroupBox8.TabStop = False
         Me.GroupBox8.Text = "Graphics"
         Me.GroupBox8.UseCompatibleTextRendering = True
+        '
+        'Label14
+        '
+        Me.Label14.AutoSize = True
+        Me.Label14.Location = New System.Drawing.Point(23, 122)
+        Me.Label14.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
+        Me.Label14.Name = "Label14"
+        Me.Label14.Size = New System.Drawing.Size(74, 20)
+        Me.Label14.TabIndex = 52
+        Me.Label14.Text = "Antialiasing"
+        Me.Label14.UseCompatibleTextRendering = True
+        '
+        'txtAA
+        '
+        Me.txtAA.Location = New System.Drawing.Point(105, 119)
+        Me.txtAA.Margin = New System.Windows.Forms.Padding(4)
+        Me.txtAA.Name = "txtAA"
+        Me.txtAA.Size = New System.Drawing.Size(61, 22)
+        Me.txtAA.TabIndex = 51
         '
         'Label13
         '
@@ -626,7 +649,7 @@ Partial Class frmOptions
         Me.TabPage2.Location = New System.Drawing.Point(4, 25)
         Me.TabPage2.Name = "TabPage2"
         Me.TabPage2.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabPage2.Size = New System.Drawing.Size(629, 369)
+        Me.TabPage2.Size = New System.Drawing.Size(640, 398)
         Me.TabPage2.TabIndex = 1
         Me.TabPage2.Text = "Keyboard"
         Me.TabPage2.UseVisualStyleBackColor = True
@@ -682,7 +705,7 @@ Partial Class frmOptions
         '
         'btnCancel
         '
-        Me.btnCancel.Location = New System.Drawing.Point(549, 416)
+        Me.btnCancel.Location = New System.Drawing.Point(549, 437)
         Me.btnCancel.Name = "btnCancel"
         Me.btnCancel.Size = New System.Drawing.Size(100, 29)
         Me.btnCancel.TabIndex = 39
@@ -692,7 +715,7 @@ Partial Class frmOptions
         '
         'btnSave
         '
-        Me.btnSave.Location = New System.Drawing.Point(443, 416)
+        Me.btnSave.Location = New System.Drawing.Point(443, 437)
         Me.btnSave.Name = "btnSave"
         Me.btnSave.Size = New System.Drawing.Size(100, 29)
         Me.btnSave.TabIndex = 40
@@ -703,7 +726,7 @@ Partial Class frmOptions
         'frmOptions
         '
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None
-        Me.ClientSize = New System.Drawing.Size(659, 452)
+        Me.ClientSize = New System.Drawing.Size(659, 478)
         Me.Controls.Add(Me.btnSave)
         Me.Controls.Add(Me.btnCancel)
         Me.Controls.Add(Me.TabControl1)
@@ -790,4 +813,6 @@ Partial Class frmOptions
     Public WithEvents GroupBox3 As System.Windows.Forms.GroupBox
     Public WithEvents cbxPickerOrientation As System.Windows.Forms.CheckBox
     Public WithEvents Label12 As System.Windows.Forms.Label
+    Public WithEvents Label14 As System.Windows.Forms.Label
+    Public WithEvents txtAA As System.Windows.Forms.TextBox
 End Class

@@ -22,7 +22,7 @@ Public Class clsObjectData
 
     Public Class clsTexturePage
         Public FileTitle As String
-        Public GLTexture_Num As Integer
+        Public GLTextureNum As Integer
     End Class
     Public TexturePages As New SimpleList(Of clsTexturePage)
 
@@ -240,7 +240,7 @@ MonoContinueDo:
     Public Function LoadDirectory(Path As String) As clsResult
         Dim ReturnResult As New clsResult("Loading object data from " & ControlChars.Quote & Path & ControlChars.Quote)
 
-        Path = EndWithPathSeperator(Path)
+        Path = EndWithPathSeparator(Path)
 
         Dim SubDirNames As String
         Dim SubDirStructures As String
@@ -409,7 +409,7 @@ MonoContinueDo:
         Dim Text As String
         Dim Bitmap As Bitmap = Nothing
         Dim InstrPos2 As Integer
-        Dim BitmapTextureArgs As sBitmapGLTexture
+        Dim BitmapTextureArgs As New clsBitmapGLTexture
         Dim BitmapResult As sResult
 
         For Each Text In TexFiles
@@ -426,7 +426,7 @@ MonoContinueDo:
                         BitmapTextureArgs.MipMapLevel = 0
                         BitmapTextureArgs.Texture = Bitmap
                         BitmapTextureArgs.Perform()
-                        NewPage.GLTexture_Num = BitmapTextureArgs.TextureNum
+                        NewPage.GLTextureNum = BitmapTextureArgs.TextureNum
                     Else
                         Result.WarningAdd(BitmapResult.Problem)
                     End If
@@ -1146,7 +1146,7 @@ MonoContinueDo:
 
         For Each TexPage In TexturePages
             If TexPage.FileTitle.ToLower = LCaseTitle Then
-                Return TexPage.GLTexture_Num
+                Return TexPage.GLTextureNum
             End If
         Next
         Return 0

@@ -370,6 +370,34 @@ MonoContinueDo:
 
         Return Result
     End Function
+
+    Public Function OpenStream(Path As String, ByRef Result As IO.FileStream) As clsResult
+        Dim ReturnResult As New clsResult("")
+
+        Try
+            Result = IO.File.OpenRead(Path)
+        Catch ex As Exception
+            Result = Nothing
+            ReturnResult.ProblemAdd(ex.Message)
+            Return ReturnResult
+        End Try
+
+        Return ReturnResult
+    End Function
+
+    Public Function OpenStreamReader(Path As String, ByRef Result As IO.StreamReader) As clsResult
+      Dim ReturnResult As New clsResult("")
+
+        Try
+            Result = New IO.StreamReader(Path)
+        Catch ex As Exception
+            Result = Nothing
+            ReturnResult.ProblemAdd(ex.Message)
+            Return ReturnResult
+        End Try
+
+        Return ReturnResult
+    End Function
 End Module
 
 Public Class clsPositionFromText

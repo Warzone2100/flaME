@@ -285,6 +285,11 @@ Partial Class frmMain
         Me.ToolStripSeparator12 = New System.Windows.Forms.ToolStripSeparator()
         Me.menuGenerator = New System.Windows.Forms.ToolStripMenuItem()
         Me.menuOptions = New System.Windows.Forms.ToolStripMenuItem()
+        Me.DisplayToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuShowRenderer = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripSeparator13 = New System.Windows.Forms.ToolStripSeparator()
+        Me.menuCreateTerrain2 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.menuCreateTerrain3 = New System.Windows.Forms.ToolStripMenuItem()
         Me.TableLayoutPanel5 = New System.Windows.Forms.TableLayoutPanel()
         Me.TabPage13 = New System.Windows.Forms.TabPage()
         Me.TabPage14 = New System.Windows.Forms.TabPage()
@@ -2898,7 +2903,7 @@ Partial Class frmMain
         'menuMain
         '
         Me.menuMain.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.menuTools, Me.menuOptions})
+        Me.menuMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuFile, Me.menuTools, Me.menuOptions, Me.DisplayToolStripMenuItem})
         Me.menuMain.Location = New System.Drawing.Point(0, 0)
         Me.menuMain.Name = "menuMain"
         Me.menuMain.Padding = New System.Windows.Forms.Padding(8, 2, 0, 2)
@@ -3113,6 +3118,41 @@ Partial Class frmMain
         Me.menuOptions.Name = "menuOptions"
         Me.menuOptions.Size = New System.Drawing.Size(82, 27)
         Me.menuOptions.Text = "Options..."
+        '
+        'DisplayToolStripMenuItem
+        '
+        Me.DisplayToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.menuShowRenderer, Me.ToolStripSeparator13, Me.menuCreateTerrain2, Me.menuCreateTerrain3})
+        Me.DisplayToolStripMenuItem.Name = "DisplayToolStripMenuItem"
+        Me.DisplayToolStripMenuItem.Size = New System.Drawing.Size(70, 27)
+        Me.DisplayToolStripMenuItem.Text = "Display"
+        '
+        'menuShowRenderer
+        '
+        Me.menuShowRenderer.CheckOnClick = True
+        Me.menuShowRenderer.Name = "menuShowRenderer"
+        Me.menuShowRenderer.Size = New System.Drawing.Size(279, 24)
+        Me.menuShowRenderer.Text = "Show v3 Terrain"
+        '
+        'ToolStripSeparator13
+        '
+        Me.ToolStripSeparator13.Name = "ToolStripSeparator13"
+        Me.ToolStripSeparator13.Size = New System.Drawing.Size(276, 6)
+        '
+        'menuCreateTerrain2
+        '
+        Me.menuCreateTerrain2.Checked = True
+        Me.menuCreateTerrain2.CheckOnClick = True
+        Me.menuCreateTerrain2.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.menuCreateTerrain2.Name = "menuCreateTerrain2"
+        Me.menuCreateTerrain2.Size = New System.Drawing.Size(279, 24)
+        Me.menuCreateTerrain2.Text = "Store v2 Terrain Graphics Data"
+        '
+        'menuCreateTerrain3
+        '
+        Me.menuCreateTerrain3.CheckOnClick = True
+        Me.menuCreateTerrain3.Name = "menuCreateTerrain3"
+        Me.menuCreateTerrain3.Size = New System.Drawing.Size(279, 24)
+        Me.menuCreateTerrain3.Text = "Store v3 Terrain Graphics Data"
         '
         'TableLayoutPanel5
         '
@@ -3555,4 +3595,9 @@ Partial Class frmMain
     Friend WithEvents ToolStripSeparator12 As System.Windows.Forms.ToolStripSeparator
     Friend WithEvents Panel2 As System.Windows.Forms.Panel
     Public WithEvents btnObjectTypeSelect As System.Windows.Forms.Button
+    Friend WithEvents DisplayToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuCreateTerrain2 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents menuCreateTerrain3 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ToolStripSeparator13 As System.Windows.Forms.ToolStripSeparator
+    Friend WithEvents menuShowRenderer As System.Windows.Forms.ToolStripMenuItem
 End Class
